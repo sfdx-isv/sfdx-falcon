@@ -1,0 +1,58 @@
+{
+  "name": "sfdx-falcon",
+  "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
+  "version": "0.0.0",
+  "author": "Vivek M. Chawla @VivekMChawla",
+  "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
+  "dependencies": {
+    "@oclif/command": "1",
+    "@oclif/config": "1",
+    "@oclif/errors": "1",
+    "@salesforce/command": "0.1.2"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "1",
+    "@oclif/plugin-help": "1",
+    "@oclif/test": "1",
+    "@salesforce/dev-config": "1.0.4",
+    "@types/chai": "4",
+    "@types/jsforce": "1.8.9",
+    "@types/mocha": "5",
+    "@types/node": "9",
+    "chai": "4",
+    "globby": "8",
+    "mocha": "5",
+    "sinon": "5",
+    "ts-node": "5",
+    "tslib": "1",
+    "typescript": "2.8"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    ".oclif.manifest.json",
+    "/lib",
+    "/messages"
+  ],
+  "homepage": "https://github.com/sfdx-isv/sfdx-falcon-plugin",
+  "keywords": [
+    "sfdx-plugin"
+  ],
+  "license": "MIT",
+  "oclif": {
+    "commands": "./lib/commands",
+    "devPlugins": [
+      "@oclif/plugin-help"
+    ]
+  },
+  "repository": "sfdx-isv/sfdx-falcon-plugin",
+  "scripts": {
+    "postpack": "rm -f .oclif.manifest.json",
+    "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
+    "prepack": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
+    "prepare": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md"
+  }
+}
