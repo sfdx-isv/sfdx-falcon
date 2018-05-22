@@ -11,15 +11,8 @@ export default abstract class YeomanCommandBase extends SfdxCommand {
   // Entrypoint for child classes to kick off Yeoman Generators
   protected async generate(generatorType: string, generatorOptions: object = {}) {
 
-    // DEVTEST
-    this.ux.log('generate() function called');
-
     // Create a Yeoman environment.
     const yeomanEnv = createEnv();
-
-    // DEVTEST
-    const generatorsFolder = require.resolve(`./generators/${generatorType}`);
-    this.ux.log(generatorsFolder);
 
     // Register a generator with the Yeoman environment, based on generatorType.
     yeomanEnv.register(
@@ -27,11 +20,7 @@ export default abstract class YeomanCommandBase extends SfdxCommand {
       `sfdx-falcon:${generatorType}`
     );
 
-    // DEVTEST
-    this.ux.log(yeomanEnv.getGeneratorsMeta());
-    this.ux.log('We made it past the register command');
-
-    // Asynchronously execute the Yeoman environment's run() method.
+    // Asynchronously execute Yeoman's run() method to run the specified generator.
     await new Promise((resolve, reject) => {
       yeomanEnv.run(`sfdx-falcon:${generatorType}`, generatorOptions, (err: Error, results: any) => {
         if (err) reject(err);
@@ -46,5 +35,9 @@ export default abstract class YeomanCommandBase extends SfdxCommand {
 * "Generators" are specialized TS classes that Yeoman environment executes via the run() command.
 * By setting this up dynamically, we allow whoever extends this class will be able to choose the 
 * proper Yeoman generator.
+*
+* The generator specified by generatorType must be present in the ./generators folder.  The file
+* should match the string passed by generatorType.  For example, if generatorType==="appx-project",
+* then there MUST be a TS script file located at .generators/appx-project.ts
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┘
 */
