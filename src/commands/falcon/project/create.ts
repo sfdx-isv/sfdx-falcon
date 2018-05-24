@@ -26,21 +26,20 @@ export default class Create extends YeomanCommandBase {
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:project:create`,
-    `$ sfdx falcon:project:create --projectname "My SFDX-Falcon Project" --namespace my_ns_prefix`,
-    `$ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix`
+    `$ sfdx falcon:project:create --outputdir ~/projects/sfdx-projects`
   ];
   
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the flags used by this command.
+  // -d --OUTPUTDIR   Directory where SFDX-Falcon project will be created.
+  //                  Defaults to . (current directory) is not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    projectname:  flags.string({required: true, char: 'n', description: messages.getMessage('projectnameFlagDescription')}),
-    namespace:    flags.string({char: 's', description: messages.getMessage('namespaceFlagDescription')}),
-    outputdir:    flags.string({char: 'd', description: messages.getMessage('outputdirFlagDescription')})
+    outputdir: flags.string({char: 'd', description: messages.getMessage('outputdirFlagDescription')})
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Determine which core SFDX arguments/features are required by this command.
+  // Identify which core SFDX arguments/features are required by this command.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
   protected static requiresUsername       = false;  // True if an org username is REQUIRED.
@@ -54,25 +53,20 @@ export default class Create extends YeomanCommandBase {
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
     // Grab values from flags.  Set defaults for optional flags not set by user.
-    const projectnameFlag = this.flags.projectname;
-    const namespaceFlag   = this.flags.namespace  ||  'force-app';
-    const outputdirFlag   = this.flags.outputdir  ||  '.';
+    const outputdirFlag = this.flags.outputdir  ||  '.';
 
     // TODO: Need to add validation of input values before running the generator
     //       At a minimum, we should check to see if the outputdirFlag is a valid
     //       filesystem name (eg no illegal chars like *).
 
-    // Make an async call to the base object's generate() funtion.
+    // Make an async call to the base object's generate() funtion.  This will
+    // load and execute the Yeoman Generator defined in appx-project.ts.  All
+    // user interactions for the rest of this command will come from Yeoman, so
+    // there is no need to run anything after this call returns.
     await super.generate('appx-project', {
-      projectname: projectnameFlag,
-      namespace: namespaceFlag,
       outputdir: outputdirFlag,
       options: []
     });
-
-    // DEVTEST: This is an example of how you can create strings with variables and output them.
-    let outputString = `Hello ${projectnameFlag}! This is your namespace: ${namespaceFlag}`;
-    this.ux.log(outputString);
 
     // Return empty JSON.
     return { };

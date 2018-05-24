@@ -3,19 +3,16 @@
 
 // Yeoman Generator for scaffolding an SFDX-Falcon project.
 
-import {execSync}     from 'child_process';                       // Why?
-import * as fs        from 'fs';                                  // Why?
-import * as _         from 'lodash';                              // Why?
-import * as path      from 'path';                                // Why?
+import {execSync}     from 'child_process';                       // Allows synchronous execution in a child process.
+import * as fs        from 'fs';                                  // Used for file system operations.
+import * as path      from 'path';                                // Helps resolve local paths at runtime.
 import * as Generator from 'yeoman-generator';                    // Generator class must extend this.
 import yosay =        require('yosay');                           // ASCII art creator brings Yeoman to life.
 
-const nps             = require('nps-utils');                     // Why?
-const sortPjson       = require('sort-pjson');                    // Why?
-const fixpack         = require('fixpack');                       // Why?
-const debug           = require('debug')('generator-oclif');      // Why?
-const {version}       = require('../../package.json');            // Why?
+const debug           = require('debug')('generator-oclif');      // I believe this writes to the CLI's debug log.
+const {version}       = require('../../package.json');            // The version of the SFDX-Falcon plugin
 const pathToTemplate  = require.resolve('sfdx-falcon-template');  // Source dir of the template files.
+
 
 /**
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -26,20 +23,24 @@ class AppXProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
-  // Interview Answers
-  private interviewAnswers!: {
+  private interviewAnswers!: {                                        // Stores Yeoman interview answers
+    projectName: string,
+    isCreatingManagedPackage: boolean,
     namespacePrefix: string,
     packageName: string,
     metadataPackageId: string,
     packageVersionId: string,
+    hasGitRemoteRepository: boolean,
     gitRemoteUri: string
   };
-
+  private confirmationAnswer!: {                                      // Stores the "confirm installation" answer
+    proceedWithInstall: boolean,
+    restartInterview: boolean
+  };
   private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
   private targetDirectory: string;                                    // Target dir where SFDX-Falcon files will be saved
-  private projectName: string;                                        // Why?
-  private namespacePrefix: string;                                    // Why?
   private gitHubUser: string | undefined;                             // Why?
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
@@ -48,24 +49,56 @@ class AppXProject extends Generator {
     // Call the parent constructor to initialize the Generator.
     super(args, opts);
 
-    // Initialize class member variables
+    // Get the target directory from the options passed by the caller.
     this.targetDirectory  = opts.outputdir;
-    this.projectName      = opts.projectname;
-    this.namespacePrefix  = opts.namespace;
+
+    // Initialize the interview and confirmation answers objects.
+    this.interviewAnswers   = new Object() as any;
+    this.confirmationAnswer = new Object() as any;
+
+    // Initialize properties for interview and confirmation objects.
+    this.interviewAnswers.projectName               = 'my-sfdx-falcon-project';
+    this.interviewAnswers.isCreatingManagedPackage  = true;
+    this.interviewAnswers.namespacePrefix           = 'my_ns_prefix';
+    this.interviewAnswers.packageName               = 'My Managed Package';
+    this.interviewAnswers.metadataPackageId         = '033000000000000';
+    this.interviewAnswers.packageVersionId          = '04t000000000000';
+    this.interviewAnswers.hasGitRemoteRepository    = false;
+    this.interviewAnswers.gitRemoteUri              = 'https://github.com/my-org/my-repo.git';
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Check isCreatingManagedPackage (helper function -- won't be run by Yeoman)
+  // Check isCreatingManagedPackage (boolean check)
   //───────────────────────────────────────────────────────────────────────────┘
   private _isCreatingManagedPackage(answerHash) {
     return answerHash.isCreatingManagedPackage;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Check hasGitRemoteRepository (helper function -- won't be run by Yeoman)
+  // Check hasGitRemoteRepository answer (boolean check)
   //───────────────────────────────────────────────────────────────────────────┘
   private _hasGitRemoteRepository(answerHash) {
     return answerHash.hasGitRemoteRepository;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Check proceedWithInstall answer (boolean check)
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _doNotProceedWithInstall(answerHash) {
+    return ! answerHash.proceedWithInstall;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Validate value provided for projectName.  RULES:
+  // - Length?
+  // - No spaces?
+  // - Must be like a github repository name?
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _validateProjectName(answerHash) {
+    // TODO: Implement validation
+    //return 'Please provide a valid project name';
+    return true;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -112,6 +145,123 @@ class AppXProject extends Generator {
     return true;
   }
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Initialize interview questions.  May be called more than once to allow
+  // default values to be set based on the previously set answers.
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _initializeInterviewQuestions() {
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Define the Interview Prompts.
+    // 1. What is the name of your project? (string)
+    // 1. Will this project be tracked by a remote git repository? (y/n)
+    // 2. What is the namespace prefix for your managed package? (string)
+    // 3. What is the Metadata Package ID for your managed package? (string)
+    // 4. What is the Package Version ID for your most recent release? (string)
+    // 5. Have you setup a remote Git repository for this project? (y/n)
+    // 6. What is the URI of your remote Git repository? (string)
+    //─────────────────────────────────────────────────────────────────────────┘
+    return [
+      {
+        type:     'input',
+        name:     'projectName',
+        message:  'What is the name of your project?',
+        default:  this.interviewAnswers.projectName,
+        validate: this._validateNsPrefix,
+        when:     true
+      },
+      {
+        type:     'confirm',
+        name:     'isCreatingManagedPackage',
+        message:  'Are you building a managed package?',
+        default:  this.interviewAnswers.isCreatingManagedPackage,
+        when:     true
+      },
+      {
+        type:     'input',
+        name:     'namespacePrefix',
+        message:  'What is the namespace prefix for your managed package?',
+        default:  this.interviewAnswers.namespacePrefix
+                  ? this.interviewAnswers.namespacePrefix
+                  : 'my_ns_prefix',
+        validate: this._validateNsPrefix,
+        when:     this._isCreatingManagedPackage
+      },
+      {
+        type:     'input',
+        name:     'packageName',
+        message:  'What is the name of your package?',
+        default:  this.interviewAnswers.packageName
+                  ? this.interviewAnswers.packageName
+                  : 'My Managed Package',
+        when:     this._isCreatingManagedPackage
+      },
+      {
+        type:     'input',
+        name:     'metadataPackageId',
+        message:  'What is the Metadata Package ID (033) of your package?',
+        default:  this.interviewAnswers.metadataPackageId
+                  ? this.interviewAnswers.metadataPackageId
+                  : '033000000000000',
+        validate: this._validateMetadataPackageId,
+        when:     this._isCreatingManagedPackage
+      },
+      {
+        type:     'input',
+        name:     'packageVersionId',
+        message:  'What is the Package Version ID (04t) of your most recent release?',
+        default:  this.interviewAnswers.packageVersionId
+                  ? this.interviewAnswers.packageVersionId
+                  : '04t000000000000',
+        validate: this._validateMetadataPackageId,
+        when:     this._isCreatingManagedPackage
+      },
+      {
+        type:     'confirm',
+        name:     'hasGitRemoteRepository',
+        message:  'Have you setup a remote Git repository for this project?',
+        default:  this.interviewAnswers.hasGitRemoteRepository,
+        when:     true
+      },
+      {
+        type:     'input',
+        name:     'gitRemoteUri',
+        message:  'What is the URI of your remote Git repository?',
+        default:  this.interviewAnswers.gitRemoteUri
+                  ? this.interviewAnswers.gitRemoteUri
+                  : undefined,
+        validate: this._validateGitRemoteUri,
+        when:     this._hasGitRemoteRepository
+      }
+    ];
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Initialize confirmation questions.  Shown at the end of each interview.
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _initializeConfirmationQuestions() {
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Define the Interview Prompts.
+    // 1. Create a new SFDX-Falcon project based on the above settings? (y/n)
+    // 2. Would you like to start again and enter new values? (y/n)
+    //─────────────────────────────────────────────────────────────────────────┘
+    return [
+      {
+        type: 'confirm',
+        name: 'proceedWithInstall',
+        message: 'Create a new SFDX-Falcon project based on the above settings?',
+        default: true,
+        when: true
+      },
+      {
+        type: 'confirm',
+        name: 'restartInterview',
+        message: 'Would you like to start again and enter new values?',
+        default: true,
+        when: this._doNotProceedWithInstall
+      },
+    ];
+  }
+
 
   // *************************** START THE INTERVIEW ***************************
 
@@ -144,90 +294,69 @@ class AppXProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private async interviewUser() {
 
+    //─────────────────────────────────────────────────────────────────────────┐
     // Initialize the gitHubUser var. Has to be here since await can
     // only be called inside of async functions.
+    //─────────────────────────────────────────────────────────────────────────┘
     this.gitHubUser = await this.user.github.username().catch(debug);
 
-    // Define the Interview Prompts.
-    // 1. Will this project be tracked by a remote git repository? (y/n)
-    // 2. What is the namespace prefix for your managed package? (string)
-    // 3. What is the Metadata Package ID for your managed package? (string)
-    // 4. What is the Package Version ID for your most recent release? (string)
-    // 5. Have you setup a remote Git repository for this project? (y/n)
-    // 6. What is the URI of your remote Git repository? (string)
-    let interviewQuestions = [
-      {
-        type: 'confirm',
-        name: 'isCreatingManagedPackage',
-        message: 'Are you building a managed package?',
-        default: true,
-        when: true
-      },
-      {
-        type: 'input',
-        name: 'namespacePrefix',
-        message: 'What is the namespace prefix for your managed package?',
-        default: 'my_ns_prefix',
-        validate: this._validateNsPrefix,
-        when: this._isCreatingManagedPackage
-      },
-      {
-        type: 'input',
-        name: 'packageName',
-        message: 'What is the name of your package?',
-        default: 'My Managed Package',
-        when: this._isCreatingManagedPackage
-      },
-      {
-        type: 'input',
-        name: 'metadataPackageId',
-        message: 'What is the Metadata Package ID (033) of your package?',
-        default: '033000000000000',
-        validate: this._validateMetadataPackageId,
-        when: this._isCreatingManagedPackage
-      },
-      {
-        type: 'input',
-        name: 'packageVersionId',
-        message: 'What is the Package Version ID (04t) of your most recent release?',
-        default: '04t000000000000',
-        validate: this._validateMetadataPackageId,
-        when: this._isCreatingManagedPackage
-      },
-      {
-        type: 'confirm',
-        name: 'hasGitRemoteRepository',
-        message: 'Have you setup a remote Git repository for this project?',
-        default: false,
-        when: true
-      },
-      {
-        type: 'input',
-        name: 'gitRemoteUri',
-        message: 'What is the URI of your remote Git repository?',
-        validate: this._validateGitRemoteUri,
-        when: this._hasGitRemoteRepository
-      }
-    ];
 
+    //─────────────────────────────────────────────────────────────────────────┐
     // Start the Interview.
-    this.interviewAnswers = await this.prompt(interviewQuestions) as any;
+    //─────────────────────────────────────────────────────────────────────────┘
+    do {
+      // Initialize interview questions.
+      let interviewQuestions = this._initializeInterviewQuestions();
+
+      // Tell Yeoman to start prompting the user.
+      this.interviewAnswers = await this.prompt(interviewQuestions) as any;
+
+      // DEVTEST
+      this.log(this.interviewAnswers.projectName);
+      this.log(this.interviewAnswers.namespacePrefix);
+      this.log(this.interviewAnswers.gitRemoteUri);
+      this.log(this.interviewAnswers.metadataPackageId);
+      this.log(this.interviewAnswers.packageName);
+      this.log(this.interviewAnswers.packageVersionId);
+
+      // Initialize confirmation questions.
+      let confirmationQuestions = this._initializeConfirmationQuestions();
+      
+      // Tell Yeoman to prompt the user for confirmation of installation.
+      this.confirmationAnswer = await this.prompt(confirmationQuestions) as any;
+
+      // DEVTEST
+      this.log(String(this.confirmationAnswer.proceedWithInstall));
+      this.log(String(this.confirmationAnswer.restartInterview));
+      
+    } while (this.confirmationAnswer.restartInterview === true);
 
     // Send interviewAnswers to the Salesforce CLI debug log
     debug(this.interviewAnswers);
 
     // DEVTEST
+    this.log(this.interviewAnswers.projectName);
     this.log(this.interviewAnswers.namespacePrefix);
     this.log(this.interviewAnswers.gitRemoteUri);
     this.log(this.interviewAnswers.metadataPackageId);
     this.log(this.interviewAnswers.packageName);
     this.log(this.interviewAnswers.packageVersionId);
+    this.log(String(this.confirmationAnswer.proceedWithInstall));
+    this.log(String(this.confirmationAnswer.restartInterview));
+  
   }
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP FOUR: Copy SFDX-Falcon template files to the destination directory.
   //───────────────────────────────────────────────────────────────────────────┘
   private writeFilesToDestination() {
+    // Check if the user wants to proceed with installation.  If they don't
+    // then simply return from this function.  That should end the interview.
+    if (this.confirmationAnswer.proceedWithInstall !== true) {
+      this.log('sfdx falcon:project:create aborted.');
+      return;
+    }
     
     // Tell Yeoman the path to the SOURCE directory.
     this.sourceRoot(path.dirname(this.sourceDirectory));
@@ -258,7 +387,7 @@ class AppXProject extends Generator {
                     this.destinationPath('mdapi-source'),
                     this);
     this.fs.copyTpl(this.templatePath('temp'),
-                    this.destinationPath('sfdx-source'),
+                    this.destinationPath('temp'),
                     this);
 
     //─────────────────────────────────────────────────────────────────────────┐
@@ -339,9 +468,6 @@ class AppXProject extends Generator {
     this.fs.copyTpl(this.templatePath('temp/.npmignore'),
                     this.destinationPath('temp/.gitignore'),
                     this);
-
-
-
   }
 
 
