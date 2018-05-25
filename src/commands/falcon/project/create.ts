@@ -35,7 +35,8 @@ export default class Create extends YeomanCommandBase {
   //                  Defaults to . (current directory) is not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    outputdir: flags.string({char: 'd', description: messages.getMessage('outputdirFlagDescription')})
+    outputdir: flags.string({char: 'd', description: messages.getMessage('outputdirFlagDescription')}),
+    falcondebug: flags.boolean({description: messages.getMessage('falcondebugFlagDescription'),  hidden: true})
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -54,19 +55,24 @@ export default class Create extends YeomanCommandBase {
 
     // Grab values from flags.  Set defaults for optional flags not set by user.
     const outputdirFlag = this.flags.outputdir  ||  '.';
+    const debugModeFlag = this.flags.falcondebug || false;
 
-    // TODO: Need to add validation of input values before running the generator
-    //       At a minimum, we should check to see if the outputdirFlag is a valid
-    //       filesystem name (eg no illegal chars like *).
-
+    //─────────────────────────────────────────────────────────────────────────┐
     // Make an async call to the base object's generate() funtion.  This will
     // load and execute the Yeoman Generator defined in appx-project.ts.  All
     // user interactions for the rest of this command will come from Yeoman, so
     // there is no need to run anything after this call returns.
+    //─────────────────────────────────────────────────────────────────────────┘
     await super.generate('appx-project', {
-      outputdir: outputdirFlag,
+      commandName:  'falcon:project:create',
+      outputdir:    outputdirFlag,
+      debugMode:    debugModeFlag,
       options: []
     });
+
+    // TODO: It would be nice if we could somehow get information BACK from
+    // the call to super.generate(). Interview questions from the generator
+    // would be great for this.
 
     // Return empty JSON.
     return { };
