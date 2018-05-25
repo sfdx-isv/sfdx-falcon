@@ -1,7 +1,5 @@
 {
   "commandDescription": "Creates a Salesforce DX project using the SFDX-Falcon template.",
-  "projectnameFlagDescription": "name of your project",
-  "namespaceFlagDescription": "namespace associated with your packaging org",
   "outputdirFlagDescription": "directory to store your project",
-  "errorGitNotInstalled": "TODO -- Need to add custom message."
+  "falcondebugFlagDescription": "(hidden) runs this command in debug mode"
 }
