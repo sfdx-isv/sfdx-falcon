@@ -9,10 +9,11 @@ import * as path      from 'path';                                // Helps resol
 import * as Generator from 'yeoman-generator';                    // Generator class must extend this.
 import yosay =        require('yosay');                           // ASCII art creator brings Yeoman to life.
 
-const debug           = require('debug')('generator-oclif');      // I believe this writes to the CLI's debug log.
+const shell           = require('shelljs');                       // Cross-platform shell access - use for setting up Git repo.
+const debug           = require('debug')('generator-oclif');      // Utility for debugging. set debug.enabled = true to turn on.
+const chalk           = require('chalk');                         // Utility for creating colorful console output.
 const {version}       = require('../../package.json');            // The version of the SFDX-Falcon plugin
 const pathToTemplate  = require.resolve('sfdx-falcon-template');  // Source dir of the template files.
-
 
 /**
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -25,6 +26,7 @@ class AppXProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private interviewAnswers!: {                                        // Stores Yeoman interview answers
     projectName: string,
+    targetDirectory: string,
     isCreatingManagedPackage: boolean,
     namespacePrefix: string,
     packageName: string,
@@ -33,14 +35,14 @@ class AppXProject extends Generator {
     hasGitRemoteRepository: boolean,
     gitRemoteUri: string
   };
-  private confirmationAnswer!: {                                      // Stores the "confirm installation" answer
+  private confirmationAnswers!: {                                      // Stores the "confirm installation" answers
     proceedWithInstall: boolean,
     restartInterview: boolean
   };
   private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
-  private targetDirectory: string;                                    // Target dir where SFDX-Falcon files will be saved
   private gitHubUser: string | undefined;                             // Why?
-
+  private installationComplete: boolean;                              // Indicates that project installation is complete.
+  private cliCommandName: string;                                     // Name of the CLI command that kicked off this generator.
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
@@ -49,22 +51,33 @@ class AppXProject extends Generator {
     // Call the parent constructor to initialize the Generator.
     super(args, opts);
 
-    // Get the target directory from the options passed by the caller.
-    this.targetDirectory  = opts.outputdir;
+    // Set whether debug is enabled or disabled.
+    debug.enabled = opts.debugMode;
+    this.log(`Debug Enabled: ${debug.enabled}`);
+    this.log(`opts.debugMode: ${opts.debugMode}`);
+
+    // Initialize simple class members.
+    this.installationComplete = false;
+    this.cliCommandName       = opts.commandName;
 
     // Initialize the interview and confirmation answers objects.
-    this.interviewAnswers   = new Object() as any;
-    this.confirmationAnswer = new Object() as any;
+    this.interviewAnswers     = new Object() as any;
+    this.confirmationAnswers  = new Object() as any;
 
-    // Initialize properties for interview and confirmation objects.
+    // Initialize properties for Interview Answers.
+    this.interviewAnswers.targetDirectory           = path.resolve(opts.outputdir);
     this.interviewAnswers.projectName               = 'my-sfdx-falcon-project';
     this.interviewAnswers.isCreatingManagedPackage  = true;
     this.interviewAnswers.namespacePrefix           = 'my_ns_prefix';
     this.interviewAnswers.packageName               = 'My Managed Package';
     this.interviewAnswers.metadataPackageId         = '033000000000000';
     this.interviewAnswers.packageVersionId          = '04t000000000000';
-    this.interviewAnswers.hasGitRemoteRepository    = false;
+    this.interviewAnswers.hasGitRemoteRepository    = true;
     this.interviewAnswers.gitRemoteUri              = 'https://github.com/my-org/my-repo.git';
+
+    // Initialize properties for Confirmation Answers.
+    this.confirmationAnswers.proceedWithInstall     = false;
+    this.confirmationAnswers.restartInterview       = true;
 
   }
 
@@ -98,6 +111,16 @@ class AppXProject extends Generator {
   private _validateProjectName(answerHash) {
     // TODO: Implement validation
     //return 'Please provide a valid project name';
+    return true;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Validate value provided for targetDirectory.  RULES:
+  // - ????
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _validateTargetDirectory(answerHash) {
+    // TODO: Implement validation
+    //return 'Please provide a valid directory path';
     return true;
   }
 
@@ -167,6 +190,14 @@ class AppXProject extends Generator {
         message:  'What is the name of your project?',
         default:  this.interviewAnswers.projectName,
         validate: this._validateNsPrefix,
+        when:     true
+      },
+      {
+        type:     'input',
+        name:     'targetDirectory',
+        message:  'Where do you want to create your project?',
+        default:  this.interviewAnswers.targetDirectory,
+        validate: this._validateTargetDirectory,
         when:     true
       },
       {
@@ -249,17 +280,51 @@ class AppXProject extends Generator {
         type: 'confirm',
         name: 'proceedWithInstall',
         message: 'Create a new SFDX-Falcon project based on the above settings?',
-        default: true,
+        default: this.confirmationAnswers.proceedWithInstall,
         when: true
       },
       {
         type: 'confirm',
         name: 'restartInterview',
         message: 'Would you like to start again and enter new values?',
-        default: true,
+        default: this.confirmationAnswers.restartInterview,
         when: this._doNotProceedWithInstall
       },
     ];
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Display the current set of Interview Answers (nicely formatted, of course).
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _displayInterviewAnswers() {
+
+    let valueChalk  = 'green';
+    let labelChalk  = 'bold';
+    let headerChalk = 'inverse';
+
+    // Main options (always visible).
+    this.log(chalk`{${headerChalk} \nOPTIONS               } {${headerChalk} VALUES                              }`);
+    this.log(chalk`{${labelChalk} Project Name:         } {${valueChalk} ${this.interviewAnswers.projectName}}`);
+    this.log(chalk`{${labelChalk} Target Directory:     } {${valueChalk} ${this.interviewAnswers.targetDirectory}}`);
+
+    // Managed package options (sometimes visible).
+    if (this.interviewAnswers.isCreatingManagedPackage) {
+      this.log(chalk`{${labelChalk} Building Packaged App:} {${valueChalk} ${this.interviewAnswers.isCreatingManagedPackage}}`);
+      this.log(chalk`{${labelChalk} Namespace Prefix:     } {${valueChalk} ${this.interviewAnswers.namespacePrefix}}`);
+      this.log(chalk`{${labelChalk} Package Name:         } {${valueChalk} ${this.interviewAnswers.packageName}}`);
+      this.log(chalk`{${labelChalk} Metadata Package ID:  } {${valueChalk} ${this.interviewAnswers.metadataPackageId}}`);
+      this.log(chalk`{${labelChalk} Package Version ID:   } {${valueChalk} ${this.interviewAnswers.packageVersionId}}`);
+    }
+
+    // Git remote options (sometimes visible).
+    if (this.interviewAnswers.hasGitRemoteRepository) {
+      this.log(chalk`{${labelChalk} Has Git Remote:       } {${valueChalk} ${this.interviewAnswers.hasGitRemoteRepository}}`);
+      this.log(chalk`{${labelChalk} Git Remote URI:       } {${valueChalk} ${this.interviewAnswers.gitRemoteUri}}`);
+    }
+
+    // Extra line break to give the next prompt breathing room.
+    this.log('');
+
   }
 
 
@@ -267,43 +332,21 @@ class AppXProject extends Generator {
 
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP ONE: Show the Yeoman to announce that the generator is running.
+  // STEP ONE: Initialization (uses Yeoman's "initializing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
-  private showTheYeoman() {
+  private async initializing() {
+    // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
-  }
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // STEP TWO: Resolve the path to the target dir and supply to Yeoman.
-  // Note that in tests process.chdir() would CREATE the target directory if
-  // it didn't already exist.  Not sure if I like this behavior or not...
-  //───────────────────────────────────────────────────────────────────────────┘
-  private resolveTargetPath() {
-    // Give Yeoman the target path via the destinationRoot() API.
-    this.destinationRoot(path.resolve(this.targetDirectory));
-
-    // DEVTEST
-    this.log(this.destinationRoot());
-
-    // Change directory
-    process.chdir(this.destinationRoot());
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // STEP THREE: Interview the user
-  //───────────────────────────────────────────────────────────────────────────┘
-  private async interviewUser() {
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Initialize the gitHubUser var. Has to be here since await can
-    // only be called inside of async functions.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Get the current user's GitHub username (if present).
     this.gitHubUser = await this.user.github.username().catch(debug);
 
+  }
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Start the Interview.
-    //─────────────────────────────────────────────────────────────────────────┘
+  //───────────────────────────────────────────────────────────────────────────┐
+  // STEP TWO: Prompting (uses Yeoman's "prompting" run-loop priority).
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async prompting() {
     do {
       // Initialize interview questions.
       let interviewQuestions = this._initializeInterviewQuestions();
@@ -311,63 +354,60 @@ class AppXProject extends Generator {
       // Tell Yeoman to start prompting the user.
       this.interviewAnswers = await this.prompt(interviewQuestions) as any;
 
-      // DEVTEST
-      this.log(this.interviewAnswers.projectName);
-      this.log(this.interviewAnswers.namespacePrefix);
-      this.log(this.interviewAnswers.gitRemoteUri);
-      this.log(this.interviewAnswers.metadataPackageId);
-      this.log(this.interviewAnswers.packageName);
-      this.log(this.interviewAnswers.packageVersionId);
+      // Display the answers provided during the interview
+      this._displayInterviewAnswers();
 
       // Initialize confirmation questions.
       let confirmationQuestions = this._initializeConfirmationQuestions();
       
       // Tell Yeoman to prompt the user for confirmation of installation.
-      this.confirmationAnswer = await this.prompt(confirmationQuestions) as any;
+      this.confirmationAnswers = await this.prompt(confirmationQuestions) as any;
 
-      // DEVTEST
-      this.log(String(this.confirmationAnswer.proceedWithInstall));
-      this.log(String(this.confirmationAnswer.restartInterview));
+      // Separate confirmation from next action in UX with a blank line.
+      this.log('');
+
+      // DEBUG
+      debug(this.confirmationAnswers);
       
-    } while (this.confirmationAnswer.restartInterview === true);
+    } while (this.confirmationAnswers.restartInterview === true);
 
-    // Send interviewAnswers to the Salesforce CLI debug log
+    // DEBUG
     debug(this.interviewAnswers);
-
-    // DEVTEST
-    this.log(this.interviewAnswers.projectName);
-    this.log(this.interviewAnswers.namespacePrefix);
-    this.log(this.interviewAnswers.gitRemoteUri);
-    this.log(this.interviewAnswers.metadataPackageId);
-    this.log(this.interviewAnswers.packageName);
-    this.log(this.interviewAnswers.packageVersionId);
-    this.log(String(this.confirmationAnswer.proceedWithInstall));
-    this.log(String(this.confirmationAnswer.restartInterview));
   
   }
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  // STEP THREE: Configuring (uses Yeoman's "configuring" run-loop priority).
+  //───────────────────────────────────────────────────────────────────────────┘
+  private configuring () {
+    // Check if the user decided to NOT proceed with the install.
+    if (this.confirmationAnswers.proceedWithInstall !== true) {
+      this.installationComplete = false;
+      return;
+    }
+
+    // Tell Yeoman the path to the SOURCE directory
+    this.sourceRoot(path.dirname(this.sourceDirectory));
+
+    // Tell Yeoman the path to  DESTINATION (join of targetDir and project name)
+    this.destinationRoot(path.resolve(this.interviewAnswers.targetDirectory, 
+                                      this.interviewAnswers.projectName));
+
+    // DEBUG
+    debug(`SOURCE PATH: ${this.sourceRoot()}`);
+    debug(`DESTINATION PATH: ${this.destinationRoot()}`);
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FOUR: Copy SFDX-Falcon template files to the destination directory.
+  // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
-  private writeFilesToDestination() {
-    // Check if the user wants to proceed with installation.  If they don't
-    // then simply return from this function.  That should end the interview.
-    if (this.confirmationAnswer.proceedWithInstall !== true) {
-      this.log('sfdx falcon:project:create aborted.');
+  private writing() {
+
+    // Check if the user decided to NOT proceed with the install.
+    if (this.confirmationAnswers.proceedWithInstall !== true) {
       return;
     }
     
-    // Tell Yeoman the path to the SOURCE directory.
-    this.sourceRoot(path.dirname(this.sourceDirectory));
-
-    // Tell Yeoman the path to the DESTINATION directory.
-    this.destinationRoot(this.targetDirectory);
-
-    // DEVTEST
-    this.log(`SOURCE PATH: ${this.sourceRoot()}`);
-    this.log(`DESTINATION PATH: ${this.destinationRoot()}`);
-
     //─────────────────────────────────────────────────────────────────────────┐
     // Copy directories from source to target (except for sfdx-source).
     //─────────────────────────────────────────────────────────────────────────┘
@@ -468,10 +508,91 @@ class AppXProject extends Generator {
     this.fs.copyTpl(this.templatePath('temp/.npmignore'),
                     this.destinationPath('temp/.gitignore'),
                     this);
+
+    // Mark the installation as complete.
+    this.installationComplete = true;
   }
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  // STEP FIVE: Post-write install (uses Yeoman's "install" run-loop priority).
+  //───────────────────────────────────────────────────────────────────────────┘
+  private install() {
+    // If installation was not completed, return immediately.
+    if (this.installationComplete !== true) {
+      return;
+    }
 
-  
+    // Show a "project created" message.
+    this.log(`\nSFDX-Falcon project created in ${this.destinationRoot()}`);
+
+    // If the user did not specify a Git Remote, return immediately.
+    if (this.interviewAnswers.hasGitRemoteRepository !== true) {
+      return;
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // If we get here, we need to initialize the new project directory as a
+    // Git repository, then add a remote based on the value the user gave us.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.log(`\nConfiguring Git\n`);
+    process.chdir(this.destinationRoot());
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Run git --version to check if Git is installed
+    //─────────────────────────────────────────────────────────────────────────┘
+    try {
+      debug(execSync(`git --version`));
+    } catch (err) {
+      // Git isn't available on this system
+      debug(err);
+      return;
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Run git init to initialize the repo. No ill effects for reinitializing.
+    //─────────────────────────────────────────────────────────────────────────┘
+    try {
+      debug(execSync(`git init`));
+    } catch (err) {
+      // This should almost never happen...
+      debug(err);
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Add (stage) all project files and make the initial commit.
+    //─────────────────────────────────────────────────────────────────────────┘
+    try {
+      debug(execSync(`git add -A`));
+      debug(execSync(`git commit -m "Initial commit after running ${this.cliCommandName}"`));
+    } catch (err) {
+      debug(err);
+    }
+    
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Add the Git Remote specified during the interview to the local repo.
+    //─────────────────────────────────────────────────────────────────────────┘
+    try {
+      execSync(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`);
+      //debug(`${execSync(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`)}`);
+      debug(`${execSync(`git remote -v`)}`);
+    } catch (err) {
+      debug(err);
+    }    
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
+  //───────────────────────────────────────────────────────────────────────────┘
+  private end() {
+    if (this.installationComplete === true) {
+      // Installation succeeded
+      this.log(`\nPlACEHOLDER: This is the final message before the generator exits.\n`);      
+    }
+    else {
+      // Installation failed
+      this.log(chalk`\n{bold sfdx falcon:project:create aborted.}\n`);
+    }
+  }
 }
 
 //─────────────────────────────────────────────────────────────────────────────┐
