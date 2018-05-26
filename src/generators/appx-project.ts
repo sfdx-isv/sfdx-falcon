@@ -3,17 +3,33 @@
 
 // Yeoman Generator for scaffolding an SFDX-Falcon project.
 
-import {execSync}     from 'child_process';                       // Allows synchronous execution in a child process.
-import * as fs        from 'fs';                                  // Used for file system operations.
-import * as path      from 'path';                                // Helps resolve local paths at runtime.
-import * as Generator from 'yeoman-generator';                    // Generator class must extend this.
-import yosay =        require('yosay');                           // ASCII art creator brings Yeoman to life.
+import * as fs        from 'fs';                                    // Used for file system operations.
+import * as path      from 'path';                                  // Helps resolve local paths at runtime.
+import * as Generator from 'yeoman-generator';                      // Generator class must extend this.
+import yosay =        require('yosay');                             // ASCII art creator brings Yeoman to life.
 
-const shell           = require('shelljs');                       // Cross-platform shell access - use for setting up Git repo.
-const debug           = require('debug')('generator-oclif');      // Utility for debugging. set debug.enabled = true to turn on.
-const chalk           = require('chalk');                         // Utility for creating colorful console output.
-const {version}       = require('../../package.json');            // The version of the SFDX-Falcon plugin
-const pathToTemplate  = require.resolve('sfdx-falcon-template');  // Source dir of the template files.
+const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
+const debug           = require('debug')('falcon:project:create');  // Utility for debugging. set debug.enabled = true to turn on.
+const chalk           = require('chalk');                           // Utility for creating colorful console output.
+const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
+const pathToTemplate  = require.resolve('sfdx-falcon-template');    // Source dir of the template files.
+
+interface interviewAnswers {
+  projectName: string;
+  targetDirectory: string;
+  isCreatingManagedPackage: boolean;
+  namespacePrefix: string;
+  packageName: string;
+  metadataPackageId: string;
+  packageVersionId: string;
+  isInitializingGit: boolean;
+  hasGitRemoteRepository: boolean;
+  gitRemoteUri: string;
+};
+interface confirmationAnswers {
+  proceedWithInstall: boolean;
+  restartInterview: boolean;
+};
 
 /**
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -24,21 +40,11 @@ class AppXProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
-  private interviewAnswers!: {                                        // Stores Yeoman interview answers
-    projectName: string,
-    targetDirectory: string,
-    isCreatingManagedPackage: boolean,
-    namespacePrefix: string,
-    packageName: string,
-    metadataPackageId: string,
-    packageVersionId: string,
-    hasGitRemoteRepository: boolean,
-    gitRemoteUri: string
-  };
-  private confirmationAnswers!: {                                      // Stores the "confirm installation" answers
-    proceedWithInstall: boolean,
-    restartInterview: boolean
-  };
+  private interviewAnswers:     interviewAnswers;
+  private interviewDefaults:    interviewAnswers;
+  private confirmationAnswers:  confirmationAnswers;
+
+  
   private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
   private gitHubUser: string | undefined;                             // Why?
   private installationComplete: boolean;                              // Indicates that project installation is complete.
@@ -53,32 +59,45 @@ class AppXProject extends Generator {
 
     // Set whether debug is enabled or disabled.
     debug.enabled = opts.debugMode;
-    this.log(`Debug Enabled: ${debug.enabled}`);
-    this.log(`opts.debugMode: ${opts.debugMode}`);
+    debug(`opts.debugMode: ${opts.debugMode}`);
 
     // Initialize simple class members.
     this.installationComplete = false;
     this.cliCommandName       = opts.commandName;
 
     // Initialize the interview and confirmation answers objects.
-    this.interviewAnswers     = new Object() as any;
-    this.confirmationAnswers  = new Object() as any;
+    this.interviewAnswers     = new Object() as interviewAnswers;
+    this.interviewDefaults    = new Object() as interviewAnswers;
+    this.confirmationAnswers  = new Object() as confirmationAnswers;
 
     // Initialize properties for Interview Answers.
-    this.interviewAnswers.targetDirectory           = path.resolve(opts.outputdir);
-    this.interviewAnswers.projectName               = 'my-sfdx-falcon-project';
-    this.interviewAnswers.isCreatingManagedPackage  = true;
-    this.interviewAnswers.namespacePrefix           = 'my_ns_prefix';
-    this.interviewAnswers.packageName               = 'My Managed Package';
-    this.interviewAnswers.metadataPackageId         = '033000000000000';
-    this.interviewAnswers.packageVersionId          = '04t000000000000';
-    this.interviewAnswers.hasGitRemoteRepository    = true;
-    this.interviewAnswers.gitRemoteUri              = 'https://github.com/my-org/my-repo.git';
+    this.interviewAnswers.targetDirectory = path.resolve(opts.outputdir);
+//    this._initializeInterviewAnswers();
+
+    //*
+    // Initialize DEFAULT Interview Answers.
+    this.interviewDefaults.projectName                = 'my-sfdx-falcon-project';
+    this.interviewDefaults.targetDirectory            = path.resolve('.');
+    this.interviewDefaults.isCreatingManagedPackage   = true;
+    this.interviewDefaults.namespacePrefix            = 'my_ns_prefix';
+    this.interviewDefaults.packageName                = 'My Managed Package';
+    this.interviewDefaults.metadataPackageId          = '033000000000000';
+    this.interviewDefaults.packageVersionId           = '04t000000000000';
+    this.interviewDefaults.isInitializingGit          = true;
+    this.interviewDefaults.hasGitRemoteRepository     = true;
+    this.interviewDefaults.gitRemoteUri               = 'https://github.com/my-org/my-repo.git';
+    //*/
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceedWithInstall     = false;
     this.confirmationAnswers.restartInterview       = true;
 
+    // DEBUG
+    debug('cliCommandName (CONSTRUCTOR): %s', this.cliCommandName);
+    debug('installationComplete (CONSTRUCTOR): %s', this.installationComplete);
+    debug('interviewAnswers (CONSTRUCTOR):\n%O', this.interviewAnswers);
+    debug('interviewDefaults (CONSTRUCTOR):\n%O', this.interviewDefaults);
+    debug('confirmationAnswers (CONSTRUCTOR):\n%O', this.confirmationAnswers);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -86,6 +105,13 @@ class AppXProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private _isCreatingManagedPackage(answerHash) {
     return answerHash.isCreatingManagedPackage;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Check isInitializingGit (boolean check)
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _isInitializingGit(answerHash) {
+    return answerHash.isInitializingGit;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -169,6 +195,52 @@ class AppXProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
+  // Initialize interview answers by setting defaults for any undefined keys.
+  //───────────────────────────────────────────────────────────────────────────┘
+  /*
+  private _initializeInterviewAnswers() {
+
+    this.interviewAnswers.targetDirectory           = this.interviewAnswers.targetDirectory 
+                                                      ||  path.resolve('.');
+    this.interviewAnswers.projectName               = this.interviewAnswers.projectName
+                                                      || 'my-sfdx-falcon-project';
+    this.interviewAnswers.isCreatingManagedPackage  
+      = ( typeof this.interviewAnswers.isCreatingManagedPackage !== 'undefined' )
+        ? this.interviewAnswers.isCreatingManagedPackage
+        : true; // Default Value
+                
+    this.interviewAnswers.namespacePrefix 
+      = ( typeof this.interviewAnswers.namespacePrefix !== 'undefined' )
+        ? this.interviewAnswers.namespacePrefix
+        : 'my_ns_prefix'; // Default Value
+
+
+
+    this.interviewAnswers.packageName               = this.interviewAnswers.packageName
+                                                      ||  'My Managed Package';
+    this.interviewAnswers.metadataPackageId         = this.interviewAnswers.metadataPackageId
+                                                      ||  '033000000000000';
+    this.interviewAnswers.packageVersionId          = this.interviewAnswers.packageVersionId
+                                                      ||  '04t000000000000';
+    this.interviewAnswers.isInitializingGit         
+      = ( typeof this.interviewAnswers.isInitializingGit !== 'undefined' )
+        ? this.interviewAnswers.isInitializingGit
+        : true; // Default Value
+
+
+                                                      this.interviewAnswers.hasGitRemoteRepository    = this.interviewAnswers.hasGitRemoteRepository
+                                                      ||  true;
+
+    debug(`INSIDE _initializeInterviewAnswers: interviewAnswers.gitRemoteUri (BEFORE): ${this.interviewAnswers.gitRemoteUri}`);
+
+                                                      this.interviewAnswers.gitRemoteUri              = this.interviewAnswers.gitRemoteUri
+                                                      ||  'https://github.com/my-org/my-repo.git';
+
+                                                      debug(`INSIDE _initializeInterviewAnswers: interviewAnswers.gitRemoteUri (AFTER): ${this.interviewAnswers.gitRemoteUri}`);
+
+  }
+  //*/
+  //───────────────────────────────────────────────────────────────────────────┐
   // Initialize interview questions.  May be called more than once to allow
   // default values to be set based on the previously set answers.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -188,7 +260,9 @@ class AppXProject extends Generator {
         type:     'input',
         name:     'projectName',
         message:  'What is the name of your project?',
-        default:  this.interviewAnswers.projectName,
+        default:  ( typeof this.interviewAnswers.projectName !== 'undefined' )
+                  ? this.interviewAnswers.projectName                   // Current Value
+                  : this.interviewDefaults.projectName,                 // Default Value
         validate: this._validateNsPrefix,
         when:     true
       },
@@ -196,7 +270,9 @@ class AppXProject extends Generator {
         type:     'input',
         name:     'targetDirectory',
         message:  'Where do you want to create your project?',
-        default:  this.interviewAnswers.targetDirectory,
+        default:  ( typeof this.interviewAnswers.targetDirectory !== 'undefined' )
+                  ? this.interviewAnswers.targetDirectory               // Current Value
+                  : this.interviewDefaults.targetDirectory,             // Default Value
         validate: this._validateTargetDirectory,
         when:     true
       },
@@ -204,16 +280,18 @@ class AppXProject extends Generator {
         type:     'confirm',
         name:     'isCreatingManagedPackage',
         message:  'Are you building a managed package?',
-        default:  this.interviewAnswers.isCreatingManagedPackage,
+        default:  ( typeof this.interviewAnswers.isCreatingManagedPackage !== 'undefined' )
+                  ? this.interviewAnswers.isCreatingManagedPackage      // Current Value
+                  : this.interviewDefaults.isCreatingManagedPackage,    // Default Value
         when:     true
       },
       {
         type:     'input',
         name:     'namespacePrefix',
         message:  'What is the namespace prefix for your managed package?',
-        default:  this.interviewAnswers.namespacePrefix
-                  ? this.interviewAnswers.namespacePrefix
-                  : 'my_ns_prefix',
+        default:  ( typeof this.interviewAnswers.namespacePrefix !== 'undefined' )
+                  ? this.interviewAnswers.namespacePrefix               // Current Value
+                  : this.interviewDefaults.namespacePrefix,             // Default Value
         validate: this._validateNsPrefix,
         when:     this._isCreatingManagedPackage
       },
@@ -221,18 +299,18 @@ class AppXProject extends Generator {
         type:     'input',
         name:     'packageName',
         message:  'What is the name of your package?',
-        default:  this.interviewAnswers.packageName
-                  ? this.interviewAnswers.packageName
-                  : 'My Managed Package',
+        default:  ( typeof this.interviewAnswers.packageName !== 'undefined' )
+                  ? this.interviewAnswers.packageName                   // Current Value
+                  : this.interviewDefaults.packageName,                 // Default Value
         when:     this._isCreatingManagedPackage
       },
       {
         type:     'input',
         name:     'metadataPackageId',
         message:  'What is the Metadata Package ID (033) of your package?',
-        default:  this.interviewAnswers.metadataPackageId
-                  ? this.interviewAnswers.metadataPackageId
-                  : '033000000000000',
+        default:  ( typeof this.interviewAnswers.metadataPackageId !== 'undefined' )
+                  ? this.interviewAnswers.metadataPackageId             // Current Value
+                  : this.interviewDefaults.metadataPackageId,           // Default Value
         validate: this._validateMetadataPackageId,
         when:     this._isCreatingManagedPackage
       },
@@ -240,26 +318,37 @@ class AppXProject extends Generator {
         type:     'input',
         name:     'packageVersionId',
         message:  'What is the Package Version ID (04t) of your most recent release?',
-        default:  this.interviewAnswers.packageVersionId
-                  ? this.interviewAnswers.packageVersionId
-                  : '04t000000000000',
+        default:  ( typeof this.interviewAnswers.packageVersionId !== 'undefined' )
+                  ? this.interviewAnswers.packageVersionId              // Current Value
+                  : this.interviewDefaults.packageVersionId,            // Default Value
         validate: this._validateMetadataPackageId,
         when:     this._isCreatingManagedPackage
       },
       {
         type:     'confirm',
-        name:     'hasGitRemoteRepository',
-        message:  'Have you setup a remote Git repository for this project?',
-        default:  this.interviewAnswers.hasGitRemoteRepository,
+        name:     'isInitializingGit',
+        message:  'Would you like to initialize Git for this project? (RECOMMENDED)',
+        default:  ( typeof this.interviewAnswers.isInitializingGit !== 'undefined' )
+                  ? this.interviewAnswers.isInitializingGit
+                  : this.interviewDefaults.isInitializingGit,
         when:     true
+      },      
+      {
+        type:     'confirm',
+        name:     'hasGitRemoteRepository',
+        message:  'Have you created a Git Remote (eg. GitHub/BitBucket repo) for this project?',
+        default:  ( typeof this.interviewAnswers.hasGitRemoteRepository !== 'undefined' )
+                  ? this.interviewAnswers.hasGitRemoteRepository
+                  : this.interviewDefaults.hasGitRemoteRepository,
+        when:     this._isInitializingGit
       },
       {
         type:     'input',
         name:     'gitRemoteUri',
-        message:  'What is the URI of your remote Git repository?',
-        default:  this.interviewAnswers.gitRemoteUri
+        message:  'What is the URI of your Git Remote?',
+        default:  ( typeof this.interviewAnswers.gitRemoteUri !== 'undefined' )
                   ? this.interviewAnswers.gitRemoteUri
-                  : undefined,
+                  : this.interviewDefaults.gitRemoteUri,
         validate: this._validateGitRemoteUri,
         when:     this._hasGitRemoteRepository
       }
@@ -306,25 +395,29 @@ class AppXProject extends Generator {
     this.log(chalk`{${headerChalk} \nOPTIONS               } {${headerChalk} VALUES                              }`);
     this.log(chalk`{${labelChalk} Project Name:         } {${valueChalk} ${this.interviewAnswers.projectName}}`);
     this.log(chalk`{${labelChalk} Target Directory:     } {${valueChalk} ${this.interviewAnswers.targetDirectory}}`);
+    this.log(chalk`{${labelChalk} Building Packaged App:} {${valueChalk} ${this.interviewAnswers.isCreatingManagedPackage}}`);
 
     // Managed package options (sometimes visible).
     if (this.interviewAnswers.isCreatingManagedPackage) {
-      this.log(chalk`{${labelChalk} Building Packaged App:} {${valueChalk} ${this.interviewAnswers.isCreatingManagedPackage}}`);
       this.log(chalk`{${labelChalk} Namespace Prefix:     } {${valueChalk} ${this.interviewAnswers.namespacePrefix}}`);
       this.log(chalk`{${labelChalk} Package Name:         } {${valueChalk} ${this.interviewAnswers.packageName}}`);
       this.log(chalk`{${labelChalk} Metadata Package ID:  } {${valueChalk} ${this.interviewAnswers.metadataPackageId}}`);
       this.log(chalk`{${labelChalk} Package Version ID:   } {${valueChalk} ${this.interviewAnswers.packageVersionId}}`);
     }
 
-    // Git remote options (sometimes visible).
-    if (this.interviewAnswers.hasGitRemoteRepository) {
+    // Git initialzation option (always visible).
+    this.log(chalk`{${labelChalk} Initialize Git Repo:  } {${valueChalk} ${this.interviewAnswers.isInitializingGit}}`);
+
+    // Git init and remote options (sometimes visible).
+    if (this.interviewAnswers.isInitializingGit) {
       this.log(chalk`{${labelChalk} Has Git Remote:       } {${valueChalk} ${this.interviewAnswers.hasGitRemoteRepository}}`);
-      this.log(chalk`{${labelChalk} Git Remote URI:       } {${valueChalk} ${this.interviewAnswers.gitRemoteUri}}`);
+      if (this.interviewAnswers.hasGitRemoteRepository) {
+        this.log(chalk`{${labelChalk} Git Remote URI:       } {${valueChalk} ${this.interviewAnswers.gitRemoteUri}}`);
+      }
     }
 
     // Extra line break to give the next prompt breathing room.
     this.log('');
-
   }
 
 
@@ -344,15 +437,20 @@ class AppXProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP TWO: Prompting (uses Yeoman's "prompting" run-loop priority).
+  // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
     do {
       // Initialize interview questions.
       let interviewQuestions = this._initializeInterviewQuestions();
 
+      // Initialize interview answers.
+//      this._initializeInterviewAnswers();
+      debug('interviewAnswers (PRE-PROMPT):\n%O', this.interviewAnswers);
+
       // Tell Yeoman to start prompting the user.
       this.interviewAnswers = await this.prompt(interviewQuestions) as any;
+      debug('interviewAnswers (POST-PROMPT):\n%O', this.interviewAnswers);
 
       // Display the answers provided during the interview
       this._displayInterviewAnswers();
@@ -367,17 +465,14 @@ class AppXProject extends Generator {
       this.log('');
 
       // DEBUG
-      debug(this.confirmationAnswers);
+      debug('confirmationAnswers (POST-PROMPT):\n%O', this.confirmationAnswers);
       
     } while (this.confirmationAnswers.restartInterview === true);
 
-    // DEBUG
-    debug(this.interviewAnswers);
-  
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP THREE: Configuring (uses Yeoman's "configuring" run-loop priority).
+  // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
     // Check if the user decided to NOT proceed with the install.
@@ -389,7 +484,7 @@ class AppXProject extends Generator {
     // Tell Yeoman the path to the SOURCE directory
     this.sourceRoot(path.dirname(this.sourceDirectory));
 
-    // Tell Yeoman the path to  DESTINATION (join of targetDir and project name)
+    // Tell Yeoman the path to DESTINATION (join of targetDir and project name)
     this.destinationRoot(path.resolve(this.interviewAnswers.targetDirectory, 
                                       this.interviewAnswers.projectName));
 
@@ -514,70 +609,79 @@ class AppXProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FIVE: Post-write install (uses Yeoman's "install" run-loop priority).
+  // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
-    // If installation was not completed, return immediately.
-    if (this.installationComplete !== true) {
-      return;
-    }
-
-    // Show a "project created" message.
-    this.log(`\nSFDX-Falcon project created in ${this.destinationRoot()}`);
-
-    // If the user did not specify a Git Remote, return immediately.
-    if (this.interviewAnswers.hasGitRemoteRepository !== true) {
-      return;
-    }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // If we get here, we need to initialize the new project directory as a
-    // Git repository, then add a remote based on the value the user gave us.
+    // Check if installation (file writes) were completed and inform user. If
+    // not, return now to skip the Git init and remote config steps.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.log(`\nConfiguring Git\n`);
-    process.chdir(this.destinationRoot());
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Run git --version to check if Git is installed
-    //─────────────────────────────────────────────────────────────────────────┘
-    try {
-      debug(execSync(`git --version`));
-    } catch (err) {
-      // Git isn't available on this system
-      debug(err);
+    if (this.installationComplete === true) {
+      this.log(chalk`\n{bold SFDX-Falcon Project Created:}  {green ${this.destinationRoot()}}`);
+    }
+    else {
       return;
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Run git init to initialize the repo. No ill effects for reinitializing.
+    // If the user did not want to initialize Git, end installation here.
     //─────────────────────────────────────────────────────────────────────────┘
-    try {
-      debug(execSync(`git init`));
-    } catch (err) {
-      // This should almost never happen...
-      debug(err);
+    if (this.interviewAnswers.isInitializingGit !== true) {
+      return;
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Add (stage) all project files and make the initial commit.
+    // Check to see if Git is installed in the user's environment.  If it is,
+    // move forward with initializing the project folder as a Git repo.
+    //─────────────────────────────────────────────────────────────────────────┘
+    if (shell.which('git')) {
+      this.log(`\nInitializing Git inside ${this.interviewAnswers.projectName}\n`);
+    }
+    else {
+      this.log(`Could not initialize Git (git executable not found in your environment.`);
+      return;
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Set shelljs config to throw exceptions on fatal errors.  We have to do
+    // this so that git commands that return fatal errors can have their output
+    // suppresed while the generator is running.
+    //─────────────────────────────────────────────────────────────────────────┘
+    debug(shell.config.fatal = true);
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Run git init to initialize the repo (no ill effects for reinitializing)
+    //─────────────────────────────────────────────────────────────────────────┘
+    debug(shell.cd(this.destinationRoot()));
+    debug(shell.exec(`git init`, {silent: true}));
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Stage (add) all project files and make the initial commit.
     //─────────────────────────────────────────────────────────────────────────┘
     try {
-      debug(execSync(`git add -A`));
-      debug(execSync(`git commit -m "Initial commit after running ${this.cliCommandName}"`));
+      this.log(`Staging SFDX-Falcon project files and making initial commit`);
+      debug(shell.exec(`git add -A`, {silent: true}));
+      debug(shell.exec(`git commit -m "Initial commit after running ${this.cliCommandName}"`, {silent: true}));
     } catch (err) {
       debug(err);
     }
     
+
     //─────────────────────────────────────────────────────────────────────────┐
-    // Add the Git Remote specified during the interview to the local repo.
+    // If the user specified a Git Remote, add it as "origin".
     //─────────────────────────────────────────────────────────────────────────┘
-    try {
-      execSync(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`);
-      //debug(`${execSync(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`)}`);
-      debug(`${execSync(`git remote -v`)}`);
-    } catch (err) {
-      debug(err);
-    }    
+    if (this.interviewAnswers.hasGitRemoteRepository === true) {
+      try {
+        this.log(`Adding Git Remote ${this.interviewAnswers.gitRemoteUri} as origin`);
+        debug(shell.exec(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`, {silent: true}));
+      } catch (err) {
+        debug(err);
+      }  
+    }
+    else {
+      return;
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -586,11 +690,11 @@ class AppXProject extends Generator {
   private end() {
     if (this.installationComplete === true) {
       // Installation succeeded
-      this.log(`\nPlACEHOLDER: This is the final message before the generator exits.\n`);      
+      this.log(chalk`\n{bold.green Command Complete:} {bold falcon:project:create completed successfully\n`);      
     }
     else {
       // Installation failed
-      this.log(chalk`\n{bold sfdx falcon:project:create aborted.}\n`);
+      this.log(chalk`\n{bold.red Command Aborted:} {bold falcon:project:create completed without creating a new SFDX-Falcon project}\n`);
     }
   }
 }
@@ -600,3 +704,25 @@ class AppXProject extends Generator {
 // to find your generator. IT'S VERY IMPORTANT THAT YOU NOT FORGET THIS LINE!
 //─────────────────────────────────────────────────────────────────────────────┘
 export = AppXProject;
+
+
+
+
+  /*
+  private interviewAnswers!: {                                        // Stores Yeoman interview answers
+    projectName: string,
+    targetDirectory: string,
+    isCreatingManagedPackage: boolean,
+    namespacePrefix: string,
+    packageName: string,
+    metadataPackageId: string,
+    packageVersionId: string,
+    isInitializingGit: boolean,
+    hasGitRemoteRepository: boolean,
+    gitRemoteUri: string
+  };
+  private confirmationAnswers!: {                                      // Stores the "confirm installation" answers
+    proceedWithInstall: boolean,
+    restartInterview: boolean
+  };
+  //*/
