@@ -5,17 +5,20 @@
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
   "dependencies": {
-    "@oclif/command":       "1",
-    "@oclif/config":        "1",
-    "@oclif/errors":        "1",
-    "@salesforce/command":  "^0.1.2",
-    "chalk":                "^2.4.1",
-    "debug":                "^3.1.0",
-    "lodash":               "^4.17.10",
-    "sfdx-falcon-template": "0.2.6",
-    "yeoman-environment":   "^2.0.5",
-    "yeoman-generator":     "^2.0.3",
-    "yosay":                "^2.0.1"
+    "@oclif/command": "1",
+    "@oclif/config": "1",
+    "@oclif/errors": "1",
+    "@salesforce/command": "^0.1.2",
+    "chalk": "^2.4.1",
+    "debug": "^3.1.0",
+    "listr": "^0.14.1",
+    "lodash": "^4.17.10",
+    "pad": "^2.1.0",
+    "sfdx-falcon-template": "0.2.8",
+    "shelljs": "^0.8.2",
+    "yeoman-environment": "^2.0.5",
+    "yeoman-generator": "^2.0.3",
+    "yosay": "^2.0.1"
   },
   "devDependencies": {
     "@oclif/dev-cli": "1",
@@ -61,11 +64,11 @@
   },
   "repository": "sfdx-isv/sfdx-falcon-plugin",
   "scripts": {
-    "postpack":   "rm -f .oclif.manifest.json",
-    "posttest":   "tsc -p test --noEmit && tslint -p test -t stylish",
-    "prepack":    "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
-    "prepare":    "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
-    "test":       "mocha --forbid-only \"test/**/*.test.ts\"",
-    "version":    "oclif-dev readme && git add README.md"
+    "postpack": "rm -f .oclif.manifest.json",
+    "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
+    "prepack": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
+    "prepare": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
+    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md"
   }
 }
