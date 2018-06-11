@@ -22,7 +22,7 @@
     "chai": "4",
     "globby": "8",
     "mocha": "5",
-    "sinon": "5",
+    "sinon": "^6.0.0",
     "ts-node": "^6.0.3",
     "tslib": "1",
     "typescript": "2.8"
