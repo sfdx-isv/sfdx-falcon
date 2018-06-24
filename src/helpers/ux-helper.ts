@@ -15,7 +15,7 @@ import * as _ from 'lodash';
 
 // Requires
 const debug           = require('debug')('ux-helper');              // Utility for debugging. set debug.enabled = true to turn on.
-const stripAnsi       = require('strip-ansi');                      // Why?
+const stripAnsi       = require('strip-ansi');                      // Strips ANSI escape codes from strings.
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
 
 // Interfaces
