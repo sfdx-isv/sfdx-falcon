@@ -33,9 +33,9 @@ export class CoreValidator {
     return true;
   }
 
-  
+
   /**
-   * @function    validatePath
+   * @function    validateLocalPath
    * @param       {string}      pathString 
    * @returns     {boolean}     True if pathString is a well formed path string
    * @version     1.0.0
@@ -43,7 +43,7 @@ export class CoreValidator {
    *              (ie. "well formed") path string based on the rules of the 
    *              local environment the script is running in.
    */
-  static validatePath(pathString:string):boolean {
+  static validateLocalPath(pathString:string):boolean {
     debug(`validatePath:arguments: %O`, arguments);
     // TODO: Implement validatePath()
     return true;

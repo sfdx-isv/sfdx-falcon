@@ -9,22 +9,26 @@
 // tslint:disable no-floating-promises
 // tslint:disable no-console
 
-import * as fs        from 'fs';                                    // Used for file system operations.
-import * as path      from 'path';                                  // Helps resolve local paths at runtime.
-import * as Generator from 'yeoman-generator';                      // Generator class must extend this.
-import yosay =        require('yosay');                             // ASCII art creator brings Yeoman to life.
-import {AuthInfoConfig, AuthInfo, ConfigFile, SfdxConfig, SfdxConfigAggregator} from '@salesforce/core';
-import {SfdxUtil}     from '@salesforce/core';                      // Provides useful utilities (esp. for processing JSON).
-import {SfdxCommand, core}         from '@salesforce/command';
+import *                as fs         from 'fs';                            // Used for file system operations.
+import *                as path       from 'path';                          // Helps resolve local paths at runtime.
+import *                as Generator  from 'yeoman-generator';              // Generator class must extend this.
+import {YeomanValidator as validate}  from '../validators/yeoman';
+//import {SfdxUtil}                     from '@salesforce/core';              // Provides useful utilities (esp. for processing JSON).
+//import {SfdxCommand, core}            from '@salesforce/command';           // Why?
 
+import {SfdxFalconKeyValueTable} from '../helpers/ux-helper';
+
+const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 const chalk           = require('chalk');                                   // Utility for creating colorful console output.
 const debug           = require('debug')('falcon:project:clone');           // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync      = require('debug')('falcon:project:clone(ASYNC)');    // Utility for debugging. set debug.enabled = true to turn on.
-const debugExtended   = require('debug')('falcon:project:clone(EXTENDED)'); // Utility for debugging. set debug.enabled = true to turn on.
+const debugAsync      = require('debug')('falcon:project:clone(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debugExtended   = require('debug')('falcon:project:clone(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr           = require('listr');                                   // Provides asynchronous list with status of task completion.
-const pad             = require('pad');                                     // Why?
+const pad             = require('pad');                                     // Provides consistent spacing when trying to align console output.
 const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
+
+
 
 interface InterviewAnswers {
   gitRemoteUri:     string;
@@ -65,7 +69,7 @@ interface ListrContext {
 * Yeoman generator class. Used to clone an SFDX-Falcon project from a remote Git repository.
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┘
 */
-class CloneFalconProject extends Generator {
+export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -82,7 +86,12 @@ class CloneFalconProject extends Generator {
   private gitHubUser:             string | undefined;           // Why?
   private isGitAvailable:         boolean;                      // Stores whether or not Git is available.
   private cloningComplete:        boolean;                      // Indicates that a project was successfully cloned to the local environment.
+  private abortYeomanProcess:     boolean;                      // Indicates that Yeoman's interview/installation process must be aborted.
   private cliCommandName:         string;                       // Name of the CLI command that kicked off this generator.
+
+
+  private falconTable:            SfdxFalconKeyValueTable;  // Why?
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
@@ -107,6 +116,7 @@ class CloneFalconProject extends Generator {
     this.cliCommandName       = opts.commandName;
     this.cloningComplete      = false;
     this.isGitAvailable       = false;
+    this.abortYeomanProcess   = true;
 
     // Initialize the interview and confirmation answers objects.
     this.userAnswers              = new Object()  as InterviewAnswers;
@@ -141,6 +151,7 @@ class CloneFalconProject extends Generator {
     debug('userAnswers (CONSTRUCTOR):\n%O',         this.userAnswers);
     debug('defaultAnswers (CONSTRUCTOR):\n%O',      this.defaultAnswers);
     debug('confirmationAnswers (CONSTRUCTOR):\n%O', this.confirmationAnswers);
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -148,26 +159,6 @@ class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private _doNotProceed(answerHash) {
     return ! answerHash.proceed;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for gitRemoteUri.  RULES:
-  // - See https://git-scm.com/docs/git-clone for detailed rules
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateGitRemoteUri(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid URI for your Git remote';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for targetDirectory.  RULES:
-  // - ????
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateTargetDirectory(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid directory path';
-    return true;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -217,7 +208,7 @@ class CloneFalconProject extends Generator {
     debug('\n_identifyDevHubOrgs()-listrContext:\n%O\n', listrContext);
     // Make sure nonScratchOrgInfos has at least ONE item in it.
     if (listrContext.nonScratchOrgInfos.length < 1) {
-      throw new Error('The CLI is not authenticated to any orgs');
+      throw new Error('ERR_NO_AUTHENTICATED_ORGS');
     }
     // Iterate over nonScratchOrgInfos and find the ones where isDevHub is TRUE.
     // When we do, transpose key values into a new object in the sfdxOrgInfos.
@@ -237,7 +228,10 @@ class CloneFalconProject extends Generator {
       }
     }
     // DEBUG
-    debug(`sfdxOrgInfos: (should contain only ACTIVE DevHubs)\n%O`, this.sfdxOrgInfos);    
+    debug(`sfdxOrgInfos: (should contain only ACTIVE DevHubs)\n%O`, this.sfdxOrgInfos);
+    if (typeof this.sfdxOrgInfos === 'undefined' || this.sfdxOrgInfos.length < 1) {
+      throw new Error('ERR_NO_DEV_HUBS');
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -308,7 +302,7 @@ class CloneFalconProject extends Generator {
         default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
                   ? this.userAnswers.gitRemoteUri                     // Current Value
                   : this.defaultAnswers.gitRemoteUri,                 // Default Value
-        validate: this._validateGitRemoteUri,
+        validate: validate.gitRemoteUri,
         when:     true
       },
       {
@@ -318,7 +312,7 @@ class CloneFalconProject extends Generator {
         default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
                   ? this.userAnswers.targetDirectory                  // Current Value
                   : this.defaultAnswers.targetDirectory,              // Default Value
-        validate: this._validateTargetDirectory,
+        validate: validate.localPath,
         when:     true
       },
       {
@@ -413,8 +407,122 @@ class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // _listerTaskRunner_CommandInit() - Runs a set of initialization tasks
   // using the Listr UX/Task Runner module.
+  // TODO: FIX COMMENTS HERE Define an array of Listr tasks so we can get a fancy UX that shows the
+  // user what's happening and lets them know the CLI is thinking/working.
   //───────────────────────────────────────────────────────────────────────────┘
-  private _listrTaskRunner_CommandInit() {
+  private async _listrTaskRunner_CommandInit() {
+    debug(`_listrTaskRunner_CommandInit() initializing`);
+    // Create a local context object to help Listr tasks communicate.
+    let listrContext:ListrContext       = new Object() as ListrContext;
+    let listrContextResult:ListrContext = new Object() as ListrContext;
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Define first segment of tasks.
+    //─────────────────────────────────────────────────────────────────────────┘
+    const gitInitTasks = new Listr([
+      {
+        title: 'Initializing falcon:project:clone',             // PARENT_TASK: "Initialize" the Falcon command.
+        task: (listrContext) => {
+          return new Listr([
+            {
+              title:  'Looking for Git...',                     // SUBTASK: Check if Git is installed
+              task:   (listrContext, thisTask) => {
+                if (this._isGitInstalled() === true) {
+                  thisTask.title += 'Found!';
+                  listrContext.gitIsInstalled = true;
+                }
+                else {
+                  this.isGitAvailable = false;
+                  listrContext.gitIsInstalled = false;
+                  thisTask.title += 'Not Found!';
+                  throw new Error('GIT_NOT_FOUND');
+                }
+              }
+            },
+            {
+              title:  'Validating Git Remote...',               // SUBTASK: Check if the Git Remote URI is valid.
+              enabled: (listrContext) => listrContext.gitIsInstalled === true,
+              task:   (listrContext, thisTask) => {
+                return this._waitASecond(5)                     // TODO: Create a function to validate Git URI
+                  .then(result => {
+                    thisTask.title += 'Valid!';
+                    listrContext.wizardInitialized = true;
+                  })
+                  .catch(result => {throw new Error(result)});  // TODO: Look into error handling
+              }
+            },
+          ],
+          {
+            // Options for SUBTASK
+            concurrent:false
+          });      
+        }
+      }],
+      {
+        // Options for PARENT_TASK (gitInitTasks)
+        concurrent:false,
+        collapse:false
+      }
+    );
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Define the SFDX Initialization Tasks.
+    //─────────────────────────────────────────────────────────────────────────┘
+    const sfdxInitTasks = new Listr(
+      [{
+        title: 'Initializing SFDX Stuff',
+        task: (listrContext) => {
+          return new Listr([
+            {
+              title:  'Scanning Connected Orgs...',
+              task:   (listrContext, thisTask) => {
+                return this._scanConnectedOrgs(listrContext)
+                  .then(result => { 
+                    this.nonScratchOrgInfos = listrContext.nonScratchOrgInfos;
+                    thisTask.title += 'Connections Found!'
+                  })
+                  .catch(result => { 
+                    thisTask.title += 'ERROR - Not Found!'
+                    throw new Error(result)
+                  });
+              }
+            },
+            {
+              title:  'Identifying DevHub Orgs',
+              task:   (listrContext) => {
+                return this._identifyDevHubOrgs(listrContext);
+              }
+            },
+            {
+              title:  'Determining DevHub Aliases',
+              task:   (listrContext) => {
+                return this._initializeDevHubAliases(listrContext);
+              }
+            }
+          ],
+          {
+            concurrent: false,
+            collapse:false
+          })
+        }
+      }],
+      {
+        // Options for PARENT_TASK (gitInitTasks)
+        concurrent:false,
+        collapse:false
+      }
+    );
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Start running the Listr Tasks, but make sure to use await so
+    // Listr maintains control during it's task running process.
+    //─────────────────────────────────────────────────────────────────────────┘
+    // Start with the Git Init Tasks.
+    listrContextResult = await gitInitTasks.run();
+    debug(`_listrTaskRunner_CommandInit-(gitInitTasks->listrContextResult):\n%O`, listrContextResult);
+
+    listrContextResult = await sfdxInitTasks.run();
+    debug(`_listrTaskRunner_CommandInit-(sfdxInitTasks->listrContextResult):\n%O`, listrContextResult);
 
   }
 
@@ -429,59 +537,70 @@ class CloneFalconProject extends Generator {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
 
-    // Create a local context object to help Listr tasks communicate.
-    let listrContext:ListrContext = new Object() as ListrContext;
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Define an array of Listr tasks so we can get a fancy UX that shows the
-    // user what's happening and lets them know the CLI is thinking/working.
-    //─────────────────────────────────────────────────────────────────────────┘
-    const listrTasks = new Listr([
-      {
-        title:  'Initializing Wizard',
-        task:   () => {
-          return  this._waitASecond(3);
-        }
-      },
-      {
-        title:  'Scanning Connected Orgs',
-        task:   (listrContext) => {
-          return this._scanConnectedOrgs(listrContext)
-                     .then(result => { this.nonScratchOrgInfos = listrContext.nonScratchOrgInfos})
-                     .catch(result => { throw new Error(`CatchError:\n${result}`)})
-        }
-      },
-      {
-        title:  'Identifying DevHub Orgs',
-        task:   (listrContext) => {
-          return this._identifyDevHubOrgs(listrContext);
-        }
-      },
-      {
-        title:  'Determining DevHub Aliases',
-        task:   (listrContext) => {
-          return this._initializeDevHubAliases(listrContext);
-        }
-      }
-    ], {concurrent: false});
+    this.falconTable = new SfdxFalconKeyValueTable();
 
-    // Start running the Listr Tasks, but make sure to use await so
-    // Listr maintains control during it's task running process.
-    await listrTasks.run().catch(err => {
-      debug(`Error running listrTasks:\n%O`, err);
-    });
+    this.falconTable.render(
+      [
+        {
+          option: 'data1VMC',
+          value:  'data2VMC'
+        },
+        {
+          option: 'data1444443333333333434232342342342',
+          value:  'data255VMC'
+        }
+      ]  
+    );
 
-    // Get the current user's GitHub username (if present).
-    this.gitHubUser = await this.user.github.username().catch(debug);
+    debug(`----------------TEST BOUNDARY-------------------`)
 
-    // Show an "Initialization Complete" message
-    this.log(chalk`\n{bold Initialization Complete}\n`);
+    // DEVTEST
+    this.abortYeomanProcess = true;
+
+
+    let listrCommandInitSuccessful = false;
+
+    // Execute the async Listr task runner for initialization.
+    try {
+      let listrResponse = await this._listrTaskRunner_CommandInit();  // TODO: What are we doing here?
+      listrCommandInitSuccessful = true;
+      debug(`listrResponse: ${listrResponse}`);
+    } catch (err) {
+      debug(`DEVTEST: ${err}`);
+      this.abortYeomanProcess = true;
+      return;
+    }
+
+    if (listrCommandInitSuccessful === true) {
+      debug(`Command Init Succeded`);
+      // No need to abort Yeoman
+      this.abortYeomanProcess = false;
+      // Get the current user's GitHub username (if present).
+      this.gitHubUser = await this.user.github.username().catch(debug);
+      // Show an "Initialization Complete" message
+      this.log(chalk`\n{bold Initialization Complete}\n`);
+    }
+    else {
+      // Command Init failed, so we must abort Yeoman.
+      debug(`Command Init Failed`);
+      this.abortYeomanProcess = true;
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
+
+debug(`prmompting(): ${this.abortYeomanProcess}`);
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.abortYeomanProcess) {
+      return;
+    }
+    // Start the interview loop.  This will ask the user questions until they
+    // verify they want to take action based on the info they provided, or 
+    // they deciede to cancel the whole process.
     do {
       // Initialize interview questions.
       let interviewQuestions = this._initializeInterviewQuestions();
@@ -514,23 +633,30 @@ class CloneFalconProject extends Generator {
   // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.abortYeomanProcess) {
+      return;
+    }
     // Check if the user decided to NOT proceed with the cloning.
     if (this.confirmationAnswers.proceed !== true) {
       this.cloningComplete = false;
       return;
     }
 
+    // Looks like we have nothing else to run in the configuring step, but
+    // I'm keeping this here to help create a standard framework for running
+    // Yeoman in CLI Plugin scripts.
 
-
-    // DEBUG
-    debug(`SOURCE PATH: ${this.sourceRoot()}`);
-    debug(`DESTINATION PATH: ${this.destinationRoot()}`);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.abortYeomanProcess) {
+      return;
+    }
     // Check if the user decided to NOT proceed with the install.
     if (this.confirmationAnswers.proceed !== true) {
       return;
@@ -542,6 +668,9 @@ class CloneFalconProject extends Generator {
     // Begin another Listr set for handling Git Cloning
 
 
+    // DEBUG
+    debug(`SOURCE PATH: ${this.sourceRoot()}`);
+    debug(`DESTINATION PATH: ${this.destinationRoot()}`);
 
 
 
@@ -581,6 +710,10 @@ class CloneFalconProject extends Generator {
   // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.abortYeomanProcess) {
+      return;
+    }
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Check if installation (file writes) were completed and inform user. If
@@ -672,9 +805,3 @@ class CloneFalconProject extends Generator {
     }
   }
 }
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// Export the generator class.  If you don't do this, Yeoman will not be able
-// to find your generator. IT'S VERY IMPORTANT THAT YOU NOT FORGET THIS LINE!
-//─────────────────────────────────────────────────────────────────────────────┘
-export = CloneFalconProject;

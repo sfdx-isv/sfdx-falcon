@@ -8,7 +8,7 @@
     "@oclif/command": "1",
     "@oclif/config": "1",
     "@oclif/errors": "1",
-    "@salesforce/command": "^0.1.2",
+    "@salesforce/command": "^0.1.6",
     "chalk": "^2.4.1",
     "debug": "^3.1.0",
     "listr": "^0.14.1",
@@ -16,8 +16,8 @@
     "pad": "^2.1.0",
     "sfdx-falcon-template": "0.2.9",
     "shelljs": "^0.8.2",
-    "yeoman-environment": "^2.0.5",
-    "yeoman-generator": "^2.0.3",
+    "yeoman-environment": "^2.3.0",
+    "yeoman-generator": "^2.0.5",
     "yosay": "^2.0.1"
   },
   "devDependencies": {
@@ -27,7 +27,7 @@
     "@oclif/tslint": "^1.0.2",
     "@salesforce/dev-config": "1.0.4",
     "@types/chai": "4",
-    "@types/jsforce": "1.8.9",
+    "@types/jsforce": "^1.8.13",
     "@types/lodash": "^4.14.109",
     "@types/mocha": "5",
     "@types/node": "9",

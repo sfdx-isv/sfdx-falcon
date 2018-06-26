@@ -1,19 +1,40 @@
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @file          generators/create-falcon-project.ts
+ * @copyright     Vivek M. Chawla - 2018
+ * @author        Vivek M. Chawla <@VivekMChawla>
+ * @version       1.0.0
+ * @license       MIT
+ * @requires      module:chalk
+ * @requires      module:debug
+ * @requires      module:path
+ * @requires      module:sfdx-falcon-template
+ * @requires      module:shelljs
+ * @requires      module:yeoman-generator
+ * @requires      module:yosay
+ * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
+ * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
+ *                developer to create an empty project based on the  SFDX-Falcon template.  Before
+ *                the project is created, the user is guided through an interview where they define
+ *                key project settings which are then used to customize the project scaffolding
+ *                that gets created on their local machine.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // tslint:disable no-floating-promises
 // tslint:disable no-console
 
-// Yeoman Generator for scaffolding an SFDX-Falcon project.
-
+// Imports
 import * as fs        from 'fs';                                    // Used for file system operations.
 import * as path      from 'path';                                  // Helps resolve local paths at runtime.
 import * as Generator from 'yeoman-generator';                      // Generator class must extend this.
+// Requires
 import yosay =        require('yosay');                             // ASCII art creator brings Yeoman to life.
-
 const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 const debug           = require('debug')('falcon:project:create');  // Utility for debugging. set debug.enabled = true to turn on.
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
 const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
 const pathToTemplate  = require.resolve('sfdx-falcon-template');    // Source dir of the template files.
-
+// Interfaces
 interface interviewAnswers {
   projectName: string;
   projectType: 'managed1gp' | 'managed2gp' | 'unmanaged' | 'demo' ;
@@ -44,12 +65,20 @@ interface statusMessages {
   commandAborted:   string;
 };
 
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
-* ─────────────────────────────────────────────────────────────────────────────────────────────────┐
-* Yeoman generator class. Used to create and configure a local SFDX-Falcon project template.
-* ─────────────────────────────────────────────────────────────────────────────────────────────────┘
-*/
-class AppXProject extends Generator {
+ * @class       CreateFalconProject
+ * @extends     Generator
+ * @access      public
+ * @version     1.0.0
+ * @summary     Yeoman generator class. Creates and configures a local SFDX-Falcon project.
+ * @description Uses Yeoman to create a local SFDX project using the SFDX-Falcon Template.  This
+ *              class defines the entire Yeoman interview process and the file template copy 
+ *              operations needed to create the project scaffolding on the user's local machine.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export default class CreateFalconProject extends Generator {
+
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -690,9 +719,3 @@ class AppXProject extends Generator {
     }
   }
 }
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// Export the generator class.  If you don't do this, Yeoman will not be able
-// to find your generator. IT'S VERY IMPORTANT THAT YOU NOT FORGET THIS LINE!
-//─────────────────────────────────────────────────────────────────────────────┘
-export = AppXProject;
