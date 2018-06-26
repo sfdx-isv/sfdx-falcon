@@ -20,7 +20,7 @@
 // Imports
 import {flags}              from '@oclif/command';                  // Allows us to define our own custom flags for this command.
 import {core}               from '@salesforce/command';             // Salesforce CLI core library
-import SfdxYeomanCommand    from '../../../yeoman-command-base';    // Required because this CLI command will launch a Yeoman Generator.
+import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Required because this CLI command will launch a Yeoman Generator.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings

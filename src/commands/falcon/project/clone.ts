@@ -17,7 +17,7 @@
 import {flags}              from '@oclif/command';                  // Why?
 import {core}               from '@salesforce/command';             // Why?
 //import {join}               from 'path';                            // Why?
-import SfdxYeomanCommand    from '../../../yeoman-command-base';    // Why?
+import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Why?
 //import * as _               from 'lodash';                          // Why?
 
 
