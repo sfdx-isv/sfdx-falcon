@@ -52,7 +52,7 @@ export default class Create extends SfdxYeomanCommand {
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:project:create`,
-    `$ sfdx falcon:project:create --outputdir ~/projects/sfdx-projects`
+    `$ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects`
   ];
   
   //───────────────────────────────────────────────────────────────────────────┐
@@ -86,8 +86,8 @@ export default class Create extends SfdxYeomanCommand {
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
     // Grab values from flags.  Set defaults for optional flags not set by user.
-    const outputdirFlag = this.flags.outputdir  ||  '.';
-    const debugModeFlag = this.flags.falcondebug || false;
+    const outputdirFlag = this.flags.outputdir    ||  '.';
+    const debugModeFlag = this.flags.falcondebug  ||  false;
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Make an async call to the base object's generate() funtion.  This will
