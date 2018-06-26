@@ -28,25 +28,30 @@ export interface YeomanAnswerHash {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       YeoamanValidator
+ * @access      public
  * @version     1.0.0
- * @description Exposes static methods for validating input from Yeoman prompts.
+ * @summary     Exposes static methods for validating input from Yeoman prompts.
+ * @description Leverages validation logic from validators/core to validate the inputs provided to
+ *              its various static methods.  We do this in order to separate boolean validation
+ *              logic from the mixed boolean/string returns that Yeoman expects (true if valid, 
+ *              some validation error message string if not).
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
 export class YeomanValidator {
 
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    gitRemoteUri
-   * @param       {string}      userInput User input from a specific Yeoman prompt
-   * @param       {any}         answerHash Keys/values of all user input to this point
-   * @returns     {boolean}     True if a properly formed Git URI was provided
+   * @param       {string}  userInput   Description
+   * @param       {any}     answerHash  Description
+   * @returns     {boolean|string}      True if input is valid. If input is not
+   *                                    valid returns an error message string.
    * @version     1.0.0
-   * @description Validate that the user-provided string is a properly formed URI
-   *              for a Git Remote.  Only the format of the URI is being checked.
+   * @description Validate that the user-provided string is a properly 
+   *              formed URI for a Git Remote.  Only the format of the URI 
+   *              is being checked, not whether the repo exists or not.
    */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
-
+  //───────────────────────────────────────────────────────────────────────────┘
   static gitRemoteUri(userInput:string, answerHash:Partial<YeomanAnswerHash>):boolean|string {
     if (typeof userInput !== 'string') {
       throw new Error('ERROR_UNEXPECTED_TYPE');
@@ -55,18 +60,18 @@ export class YeomanValidator {
             || 'Please provide a valid URI for your Git remote');
   }
 
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    localPath
-   * @param       {string}      userInput User input from a specific Yeoman prompt
-   * @param       {any}         answerHash Keys/values of all user input to this point
-   * @returns     {boolean}     True if userInput holds a legal path string
+   * @param       {string}  userInput   Description
+   * @param       {any}     answerHash  Description
+   * @returns     {boolean|string}      True if input is valid. If input is not
+   *                                    valid returns an error message string.
    * @version     1.0.0
-   * @description Validate that the user-provided string is a valid local path, based
-   *              on the environment of the running user (ie. Mac/PC/Linux)
+   * @description Validate that the user-provided string is a valid local path, 
+   *              based on the running user's environment (ie. Mac/PC/Linux)
    */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
-//  static localPath(userInput:string, answerHash:any):boolean|string {
+  //───────────────────────────────────────────────────────────────────────────┘
   static localPath(userInput:string, answerHash:Partial<YeomanAnswerHash>):boolean|string {
       if (typeof userInput !== 'string') {
       throw new Error('ERROR_UNEXPECTED_TYPE');
@@ -83,18 +88,20 @@ export class YeomanValidator {
 
 // ** TEMPLATES FOR FUNCTIONS ** // 
 
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @function    validatorName
-   * @param       {string}      userInput User input from a specific Yeoman prompt
-   * @param       {any}         answerHash Keys/values of all user input to this point
-   * @returns     {boolean}     True if a properly formed Git URI was provided
+   * @function    functionName
+   * @param       {string}  userInput   Description
+   * @param       {any}     answerHash  Description
+   * @returns     {boolean|string}      True if input is valid. If input is not
+   *                                    valid returns an error message string.
    * @version     1.0.0
-   * @description Validate that the user-provided string is...
+   * @since       1.0.0
+   * @description Description (multi-line OK)
    */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
+  //───────────────────────────────────────────────────────────────────────────┘
   /*
-  static validatorName(userInput:string, answerHash:any):boolean|string {
+  static validatorName(userInput:string, answerHash:Partial<YeomanAnswerHash>):boolean|string {
     if (typeof userInput !== 'string') {
       throw new Error('ERROR_UNEXPECTED_TYPE');
     }

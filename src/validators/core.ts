@@ -9,31 +9,36 @@
  * @description   Exports basic validation functions that typically take <string> and return <bool>.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
 // Requires
 const debug = require('debug')('validator:core');
 
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       CoreValidator
  * @version     1.0.0
  * @description Exposes static methods for validating a variety of string values.
  */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class CoreValidator {
+
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    gitRemoteUri
    * @param       {string}      gitRemoteUri 
-   * @returns     {boolean}     True if gitRemoteUri is a valid URI for a Git Remote.
+   * @returns     {boolean}     True if gitRemoteUri is a valid Git Remote URI.
    * @version     1.0.0
    * @description Core validation function for ensuring well-formed Git Remote URIs.
    *              See https://git-scm.com/docs/git-clone for detailed rules.
    */
+  //───────────────────────────────────────────────────────────────────────────┘
   static validateGitRemoteUri(gitRemoteUri:string):boolean {
     debug(`validateGitRemoteUri:arguments: %O`, arguments);
     // TODO: Implement validateGitRemoteUri()
     return true;
   }
 
-
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    validateLocalPath
    * @param       {string}      pathString 
@@ -43,6 +48,7 @@ export class CoreValidator {
    *              (ie. "well formed") path string based on the rules of the 
    *              local environment the script is running in.
    */
+  //───────────────────────────────────────────────────────────────────────────┘
   static validateLocalPath(pathString:string):boolean {
     debug(`validatePath:arguments: %O`, arguments);
     // TODO: Implement validatePath()
@@ -55,14 +61,17 @@ export class CoreValidator {
 
 
 
-/**
- * @function    functionName
- * @param       {type}        paramName Description
- * @returns     {type}        Description
- * @version     1.0.0
- * @since       1.0.0
- * @description Description (multi-line OK)
- */
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    functionName
+   * @param       {type}        paramName Description
+   * @returns     {type}        Description
+   * @version     1.0.0
+   * @since       1.0.0
+   * @description Description (multi-line OK)
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+
 //─────────────────────────────────────────────────────────────────────────────┐
 //─────────────────────────────────────────────────────────────────────────────┘
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
