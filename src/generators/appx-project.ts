@@ -79,6 +79,7 @@ class AppXProject extends Generator {
     this.installationComplete = false;
     this.cliCommandName       = opts.commandName;
     this.pluginVersion        = version;
+    this.sourceDirectory      = require.resolve('sfdx-falcon-template');
 
     // Initialize the interview and confirmation answers objects.
     this.interviewAnswers     = new Object() as interviewAnswers;
@@ -104,8 +105,8 @@ class AppXProject extends Generator {
     this.interviewDefaults.gitRemoteUri               = 'https://github.com/my-org/my-repo.git';
 
     // Initialize properties for Confirmation Answers.
-    this.confirmationAnswers.proceedWithInstall     = false;
-    this.confirmationAnswers.restartInterview       = true;
+    this.confirmationAnswers.proceedWithInstall       = false;
+    this.confirmationAnswers.restartInterview         = true;
 
     // Initialize status message strings.
     this.statusMessages.projectCreated    = 'SFDX-Falcon Project Created  : ';
