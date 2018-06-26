@@ -95,7 +95,7 @@ OPTIONS
 EXAMPLES
   $ sfdx falcon:project:create
 
-  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-projects
+  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
 _See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/project/create.ts)_
