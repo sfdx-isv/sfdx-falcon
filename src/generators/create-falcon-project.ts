@@ -12,6 +12,8 @@
  * @requires      module:shelljs
  * @requires      module:yeoman-generator
  * @requires      module:yosay
+ * @requires      ../helpers/ux-helper
+ * @requires      ../validators/yeoman
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
  * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
@@ -24,16 +26,19 @@
 // tslint:disable no-console
 
 // Imports
-import * as fs        from 'fs';                                    // Used for file system operations.
-import * as path      from 'path';                                  // Helps resolve local paths at runtime.
-import * as Generator from 'yeoman-generator';                      // Generator class must extend this.
+import * as fs                        from 'fs';                    // Used for file system operations.
+import * as path                      from 'path';                  // Helps resolve local paths at runtime.
+import * as Generator                 from 'yeoman-generator';      // Generator class must extend this.
+import {YeomanValidator as validate}  from '../validators/yeoman';  // Shared validation library for Yeoman interview inputs.
+import * as uxHelper                  from '../helpers/ux-helper';  // Library of UX Helper functions specific to SFDX-Falcon.
+
 // Requires
-import yosay =        require('yosay');                             // ASCII art creator brings Yeoman to life.
-const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
-const debug           = require('debug')('falcon:project:create');  // Utility for debugging. set debug.enabled = true to turn on.
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
+const debug           = require('debug')('falcon:project:create');  // Utility for debugging. set debug.enabled = true to turn on.
+const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
-const pathToTemplate  = require.resolve('sfdx-falcon-template');    // Source dir of the template files.
+const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
+
 // Interfaces
 interface interviewAnswers {
   projectName: string;
@@ -397,34 +402,39 @@ export default class CreateFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private _displayInterviewAnswers() {
 
-    let valueChalk  = 'green';
-    let labelChalk  = 'bold';
-    let headerChalk = 'inverse';
+    // We will use SfdxFalconKeyTable from ux-helper to reflect user inputs.
+    let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
+    let falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // Main options (always visible).
-    this.log(chalk`{${headerChalk} \nOPTIONS               } {${headerChalk} VALUES                              }`);
-    this.log(chalk`{${labelChalk} Project Name:         } {${valueChalk} ${this.interviewAnswers.projectName}}`);
-    this.log(chalk`{${labelChalk} Target Directory:     } {${valueChalk} ${this.interviewAnswers.targetDirectory}}`);
-    this.log(chalk`{${labelChalk} Building Packaged App:} {${valueChalk} ${this.interviewAnswers.isCreatingManagedPackage}}`);
+    tableData.push({option:'Project Name:',           value:`${this.interviewAnswers.projectName}`});
+    tableData.push({option:'Target Directory:',       value:`${this.interviewAnswers.targetDirectory}`});
+    tableData.push({option:'Building Packaged App:',  value:`${this.interviewAnswers.isCreatingManagedPackage}`});
 
     // Managed package options (sometimes visible).
     if (this.interviewAnswers.isCreatingManagedPackage) {
-      this.log(chalk`{${labelChalk} Namespace Prefix:     } {${valueChalk} ${this.interviewAnswers.namespacePrefix}}`);
-      this.log(chalk`{${labelChalk} Package Name:         } {${valueChalk} ${this.interviewAnswers.packageName}}`);
-      this.log(chalk`{${labelChalk} Metadata Package ID:  } {${valueChalk} ${this.interviewAnswers.metadataPackageId}}`);
-      this.log(chalk`{${labelChalk} Package Version ID:   } {${valueChalk} ${this.interviewAnswers.packageVersionId}}`);
+      tableData.push({option:'Namespace Prefix:',       value:`${this.interviewAnswers.namespacePrefix}`});
+      tableData.push({option:'Package Name:',           value:`${this.interviewAnswers.packageName}`});
+      tableData.push({option:'Metadata Package ID:',    value:`${this.interviewAnswers.metadataPackageId}`});
+      tableData.push({option:'Package Version ID:',     value:`${this.interviewAnswers.packageVersionId}`});
     }
 
     // Git initialzation option (always visible).
-    this.log(chalk`{${labelChalk} Initialize Git Repo:  } {${valueChalk} ${this.interviewAnswers.isInitializingGit}}`);
+    tableData.push({option:'Initialize Git Repo:',    value:`${this.interviewAnswers.isInitializingGit}`});
 
     // Git init and remote options (sometimes visible).
     if (this.interviewAnswers.isInitializingGit) {
-      this.log(chalk`{${labelChalk} Has Git Remote:       } {${valueChalk} ${this.interviewAnswers.hasGitRemoteRepository}}`);
-      if (this.interviewAnswers.hasGitRemoteRepository) {
-        this.log(chalk`{${labelChalk} Git Remote URI:       } {${valueChalk} ${this.interviewAnswers.gitRemoteUri}}`);
+      tableData.push({option:'Has Git Remote:', value:`${this.interviewAnswers.hasGitRemoteRepository}`});
+      if (this.interviewAnswers.gitRemoteUri) {
+        tableData.push({option:'Git Remote URI:', value:`${this.interviewAnswers.gitRemoteUri}`});
       }
     }
+
+    // Add a line break before rendering the table.
+    this.log('');
+
+    // Render the Falcon Table
+    falconTable.render(tableData);
 
     // Extra line break to give the next prompt breathing room.
     this.log('');
