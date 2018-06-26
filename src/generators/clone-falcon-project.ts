@@ -1,23 +1,37 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file    Yeoman Generator for cloning an SFDX-Falcon project from a remote Git repository.
- * @author  Vivek M. Chawla <vchawla@salesforce.com>
- * @version 1.0.0
+ * @file          generators/clone-falcon-project.ts
+ * @copyright     Vivek M. Chawla - 2018
+ * @author        Vivek M. Chawla <@VivekMChawla>
+ * @version       1.0.0
+ * @license       MIT
+ * @requires      module:chalk
+ * @requires      module:debug
+ * @requires      module:path
+ * @requires      module:sfdx-falcon-template
+ * @requires      module:shelljs
+ * @requires      module:yeoman-generator
+ * @requires      module:yosay
+ * @requires      ../helpers/ux-helper
+ * @requires      ../validators/yeoman
+ * @summary       Yeoman Generator for cloning an SFDX-Falcon project from a remote Git repository.
+ * @description   Salesforce CLI Plugin command (falcon:project:clone) that allows a Salesforce DX
+ *                developer to clone a remote repo containing an SFDX-Falcon project.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
 // tslint:disable no-floating-promises
 // tslint:disable no-console
 
+// Imports
 import *                as fs         from 'fs';                            // Used for file system operations.
 import *                as path       from 'path';                          // Helps resolve local paths at runtime.
 import *                as Generator  from 'yeoman-generator';              // Generator class must extend this.
 import {YeomanValidator as validate}  from '../validators/yeoman';
+import *                as uxHelper   from '../helpers/ux-helper';
 //import {SfdxUtil}                     from '@salesforce/core';              // Provides useful utilities (esp. for processing JSON).
 //import {SfdxCommand, core}            from '@salesforce/command';           // Why?
 
-import {SfdxFalconKeyValueTable} from '../helpers/ux-helper';
-
+// Requires
 const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 const chalk           = require('chalk');                                   // Utility for creating colorful console output.
 const debug           = require('debug')('falcon:project:clone');           // Utility for debugging. set debug.enabled = true to turn on.
@@ -28,8 +42,7 @@ const pad             = require('pad');                                     // P
 const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
 
-
-
+// Interfaces
 interface InterviewAnswers {
   gitRemoteUri:     string;
   targetDirectory:  string;
@@ -73,25 +86,22 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
-  private userAnswers:            InterviewAnswers;             // Why?
-  private defaultAnswers:         InterviewAnswers;             // Why?
-  private confirmationAnswers:    ConfirmationAnswers;          // Why?
-  private statusMessages:         StatusMessages;               // Why?
-  private falconProjectSettings:  FalconProjectSettings;        // Why?
-  private devHubAliasChoices:     [DevHubAliasChoice];          // Used to build the Yeoman choice array
-  private sfdxOrgInfos:           [SfdxOrgInfo];                // Used to store org info that we get from force:org:list.
+  private userAnswers:            InterviewAnswers;                 // Why?
+  private defaultAnswers:         InterviewAnswers;                 // Why?
+  private confirmationAnswers:    ConfirmationAnswers;              // Why?
+  private statusMessages:         StatusMessages;                   // Why?
+  private falconProjectSettings:  FalconProjectSettings;            // Why?
+  private devHubAliasChoices:     [DevHubAliasChoice];              // Used to build the Yeoman choice array
+  private sfdxOrgInfos:           [SfdxOrgInfo];                    // Used to store org info that we get from force:org:list.
   private nonScratchOrgInfos:     [any];
 
-  private sourceDirectory:        string;                       // Source dir - Will be determined after cloning SFDX project.
-  private gitHubUser:             string | undefined;           // Why?
-  private isGitAvailable:         boolean;                      // Stores whether or not Git is available.
-  private cloningComplete:        boolean;                      // Indicates that a project was successfully cloned to the local environment.
-  private abortYeomanProcess:     boolean;                      // Indicates that Yeoman's interview/installation process must be aborted.
-  private cliCommandName:         string;                       // Name of the CLI command that kicked off this generator.
-
-
-  private falconTable:            SfdxFalconKeyValueTable;  // Why?
-
+  private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
+  private gitHubUser:             string | undefined;               // Why?
+  private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
+  private cloningComplete:        boolean;                          // Indicates that a project was successfully cloned to the local environment.
+  private abortYeomanProcess:     boolean;                          // Indicates that Yeoman's interview/installation process must be aborted.
+  private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
+  private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
@@ -144,6 +154,9 @@ export default class CloneFalconProject extends Generator {
     this.statusMessages.gitNotFound       = 'Could Not Initialize Git     : ';
     this.statusMessages.commandCompleted  = 'Command Complete             : ';
     this.statusMessages.commandAborted    = 'Command Aborted : ';
+
+    // Initialize the falconTable
+    this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // DEBUG
     debug('cliCommandName (CONSTRUCTOR): %s',       this.cliCommandName);
@@ -356,16 +369,20 @@ export default class CloneFalconProject extends Generator {
   // Display the current set of Interview Answers (nicely formatted, of course).
   //───────────────────────────────────────────────────────────────────────────┘
   private _displayInterviewAnswers() {
-    // Set colors for header, labels, and values in the display
-    let headerChalk = 'inverse';
-    let labelChalk  = 'bold';
-    let valueChalk  = 'green';
+
+    // Declare an array of Falcon Table Data Rows
+    let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
 
     // Main options (always visible).
-    this.log(chalk`{${headerChalk} \nOPTIONS               } {${headerChalk} VALUES                              }`);
-    this.log(chalk`{${labelChalk} Target Directory:     } {${valueChalk} ${this.userAnswers.targetDirectory}}`);
-    this.log(chalk`{${labelChalk} Git Remote URI:       } {${valueChalk} ${this.userAnswers.gitRemoteUri}}`);
-    this.log(chalk`{${labelChalk} Dev Hub Alias:        } {${valueChalk} ${this.userAnswers.devHubAlias}}`);
+    tableData.push({option:'Target Directory:', value:`${this.userAnswers.targetDirectory}`});
+    tableData.push({option:'Git Remote URI:',   value:`${this.userAnswers.gitRemoteUri}`});
+    tableData.push({option:'Dev Hub Alias:',    value:`${this.userAnswers.devHubAlias}`});
+
+    // Add a line break before rendering the table.
+    this.log('');
+
+    // Render the Falcon Table
+    this.falconTable.render(tableData);
 
     // Extra line break to give the next prompt breathing room.
     this.log('');
@@ -538,22 +555,6 @@ export default class CloneFalconProject extends Generator {
     this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
 
 
-    this.falconTable = new SfdxFalconKeyValueTable();
-
-    this.falconTable.render(
-      [
-        {
-          option: 'data1VMC',
-          value:  'data2VMC'
-        },
-        {
-          option: 'data1444443333333333434232342342342',
-          value:  'data255VMC'
-        }
-      ]  
-    );
-
-    debug(`----------------TEST BOUNDARY-------------------`)
 
     // DEVTEST
     this.abortYeomanProcess = true;

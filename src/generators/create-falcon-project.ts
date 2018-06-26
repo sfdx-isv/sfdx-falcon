@@ -93,10 +93,11 @@ export default class CreateFalconProject extends Generator {
   private statusMessages:       statusMessages;
   
   private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
-  private gitHubUser: string | undefined;                             // Why?
+  private gitHubUser:           string | undefined;                   // Why?
   private installationComplete: boolean;                              // Indicates that project installation is complete.
-  private cliCommandName: string;                                     // Name of the CLI command that kicked off this generator.
-  private pluginVersion: string;                                      // Version pulled from the plugin project's package.json.
+  private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
+  private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
+  private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
@@ -152,6 +153,9 @@ export default class CreateFalconProject extends Generator {
     this.statusMessages.gitRemoteFailed   = 'Failed to Add Git Remote     : ';
     this.statusMessages.commandCompleted  = 'Command Complete             : ';
     this.statusMessages.commandAborted    = 'Command Aborted              : ';
+
+    // Initialize the falconTable
+    this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // DEBUG
     debug('cliCommandName (CONSTRUCTOR): %s', this.cliCommandName);
@@ -402,9 +406,8 @@ export default class CreateFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private _displayInterviewAnswers() {
 
-    // We will use SfdxFalconKeyTable from ux-helper to reflect user inputs.
+    // Declare an array of Falcon Table Data Rows
     let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
-    let falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // Main options (always visible).
     tableData.push({option:'Project Name:',           value:`${this.interviewAnswers.projectName}`});
@@ -434,7 +437,7 @@ export default class CreateFalconProject extends Generator {
     this.log('');
 
     // Render the Falcon Table
-    falconTable.render(tableData);
+    this.falconTable.render(tableData);
 
     // Extra line break to give the next prompt breathing room.
     this.log('');
