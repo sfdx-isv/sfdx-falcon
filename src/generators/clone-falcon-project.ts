@@ -26,8 +26,9 @@
 import *                as fs         from 'fs';                            // Used for file system operations.
 import *                as path       from 'path';                          // Helps resolve local paths at runtime.
 import *                as Generator  from 'yeoman-generator';              // Generator class must extend this.
-import {YeomanValidator as validate}  from '../validators/yeoman';
-import *                as uxHelper   from '../helpers/ux-helper';
+import {YeomanValidator as validate}  from '../validators/yeoman';          // Why?
+import *                as uxHelper   from '../helpers/ux-helper';          // Why?
+import *                as gitHelper  from '../helpers/git-helper';         // Why?
 //import {SfdxUtil}                     from '@salesforce/core';              // Provides useful utilities (esp. for processing JSON).
 //import {SfdxCommand, core}            from '@salesforce/command';           // Why?
 
@@ -82,6 +83,18 @@ interface ListrContext {
 * Yeoman generator class. Used to clone an SFDX-Falcon project from a remote Git repository.
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┘
 */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       CloneFalconProject
+ * @extends     Generator
+ * @access      public
+ * @version     1.0.0
+ * @summary     Yeoman generator class. Used to clone an SFDX-Falcon project from a remote Git repo.
+ * @description Uses Yeoman to clone an SFDX project built using the SFDX-Falcon Template.  This
+ *              class defines the entire Yeoman interview process, git cloning process, and file
+ *              modification operations needed to create config files on the user's local machine.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
@@ -95,6 +108,7 @@ export default class CloneFalconProject extends Generator {
   private sfdxOrgInfos:           [SfdxOrgInfo];                    // Used to store org info that we get from force:org:list.
   private nonScratchOrgInfos:     [any];
 
+  private gitRemoteUri:           string;                           // Why?
   private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
   private gitHubUser:             string | undefined;               // Why?
   private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
@@ -124,6 +138,7 @@ export default class CloneFalconProject extends Generator {
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
+    this.gitRemoteUri         = opts.gitRemoteUri;
     this.cloningComplete      = false;
     this.isGitAvailable       = false;
     this.abortYeomanProcess   = true;
@@ -142,7 +157,8 @@ export default class CloneFalconProject extends Generator {
     
     // DEVTEST - Change back to original line before going live
     //    this.defaultAnswers.gitRemoteUri      = 'https://github.com/my-org/my-repo.git'
-    this.defaultAnswers.gitRemoteUri      = 'https://github.com/VivekMChawla/apple-mango-test-1.git'
+    //    this.defaultAnswers.gitRemoteUri      = 'https://github.com/VivekMChawla/apple-mango-test-1.git'
+    this.defaultAnswers.gitRemoteUri      = opts.gitRemoteUri;
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed      = false;
@@ -216,43 +232,65 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Identify DevHub orgs.
   //───────────────────────────────────────────────────────────────────────────┘
-  private _identifyDevHubOrgs(listrContext:ListrContext) {
+  private async _identifyDevHubOrgs(listrContext:ListrContext):Promise<any> {
     // DEBUG
-    debug('\n_identifyDevHubOrgs()-listrContext:\n%O\n', listrContext);
-    // Make sure nonScratchOrgInfos has at least ONE item in it.
-    if (listrContext.nonScratchOrgInfos.length < 1) {
-      throw new Error('ERR_NO_AUTHENTICATED_ORGS');
-    }
-    // Iterate over nonScratchOrgInfos and find the ones where isDevHub is TRUE.
-    // When we do, transpose key values into a new object in the sfdxOrgInfos.
-    for (let orgInfo of listrContext.nonScratchOrgInfos) {
-      if (orgInfo.isDevHub && orgInfo.connectedStatus === 'Connected') {
-        debug(`ACTIVE DEVHUB: Org with Alias ${orgInfo.alias} (${orgInfo.username}) is an Active DevHub`);
-        this.sfdxOrgInfos.push({
-          alias:            orgInfo.alias,
-          username:         orgInfo.username,
-          orgId:            orgInfo.orgId,
-          isDevHub:         orgInfo.isDevHub,
-          connectedStatus:  orgInfo.connectedStatus
-        });
+    return new Promise ((resolve, reject) => {
+      debug('\n_identifyDevHubOrgs()-listrContext:\n%O\n', listrContext);
+      // Make sure nonScratchOrgInfos has at least ONE item in it.
+      if (listrContext.nonScratchOrgInfos.length < 1) {
+        reject('ERR_NO_AUTHENTICATED_ORGS');
+      }
+      // Iterate over nonScratchOrgInfos and find the ones where isDevHub is TRUE.
+      // When we do, transpose key values into a new object in the sfdxOrgInfos.
+      for (let orgInfo of listrContext.nonScratchOrgInfos) {
+        if (orgInfo.isDevHub && orgInfo.connectedStatus === 'Connected') {
+          debug(`ACTIVE DEVHUB: Org with Alias ${orgInfo.alias} (${orgInfo.username}) is an Active DevHub`);
+          this.sfdxOrgInfos.push({
+            alias:            orgInfo.alias,
+            username:         orgInfo.username,
+            orgId:            orgInfo.orgId,
+            isDevHub:         orgInfo.isDevHub,
+            connectedStatus:  orgInfo.connectedStatus
+          });
+        }
+        else {
+          debug(`NOT AN ACTIVE DEVHUB: Org with Alias ${orgInfo.alias} (${orgInfo.username}) is NOT an Active DevHub`);
+        }
+      }
+      // DEBUG
+      debug(`sfdxOrgInfos: (should contain only ACTIVE DevHubs)\n%O`, this.sfdxOrgInfos);
+      if (typeof this.sfdxOrgInfos === 'undefined' || this.sfdxOrgInfos.length < 1) {
+        reject('ERR_NO_DEV_HUBS');
       }
       else {
-        debug(`NOT AN ACTIVE DEVHUB: Org with Alias ${orgInfo.alias} (${orgInfo.username}) is NOT an Active DevHub`);
+        resolve('SUCCESS');
       }
-    }
-    // DEBUG
-    debug(`sfdxOrgInfos: (should contain only ACTIVE DevHubs)\n%O`, this.sfdxOrgInfos);
-    if (typeof this.sfdxOrgInfos === 'undefined' || this.sfdxOrgInfos.length < 1) {
-      throw new Error('ERR_NO_DEV_HUBS');
-    }
+    });
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // DEVTEST function to help demonstrate/test Listr's async task running.
+  // Helpful function for when you need to spend a little bit of time "thinking"
+  // during an asynchronous operation. Helps a lot if you want to see a Listr
+  // spinner but the operation you want to perform is natively synchronous or
+  // too quick.  See _validateGitRemoteNotEmpty for an example of this in
+  // practice.
   //───────────────────────────────────────────────────────────────────────────┘
   private _waitASecond(waitSecs:number) {
     return new Promise(resolve => setTimeout(resolve, waitSecs*1000));
   }
+
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Validate that the Git Remote is reachable, readable, and NOT empty.
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async _validateGitRemoteNotEmpty(gitRemoteUri:string):Promise<any> {
+    // A little bit of show business here.  Validating the Git remote
+    // can happen very quickly.  Wait 3 seconds to give the user the 
+    // chance to see what's happening. :-)
+    await this._waitASecond(3);
+    return gitHelper.isGitRemoteEmptyAsync(gitRemoteUri)
+  }  
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Scan the local system for authenticated orgs by using force:org:list.
@@ -460,12 +498,15 @@ export default class CloneFalconProject extends Generator {
               title:  'Validating Git Remote...',               // SUBTASK: Check if the Git Remote URI is valid.
               enabled: (listrContext) => listrContext.gitIsInstalled === true,
               task:   (listrContext, thisTask) => {
-                return this._waitASecond(5)                     // TODO: Create a function to validate Git URI
+                return this._validateGitRemoteNotEmpty(this.gitRemoteUri)
                   .then(result => {
-                    thisTask.title += 'Valid!';
+                    thisTask.title += result.message + '!';
                     listrContext.wizardInitialized = true;
                   })
-                  .catch(result => {throw new Error(result)});  // TODO: Look into error handling
+                  .catch(result => {
+                    thisTask.title += result.message;
+                    throw new Error(result)
+                  });
               }
             },
           ],
@@ -487,7 +528,7 @@ export default class CloneFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     const sfdxInitTasks = new Listr(
       [{
-        title: 'Initializing SFDX Stuff',
+        title: 'Inspecting Local SFDX Configuration',
         task: (listrContext) => {
           return new Listr([
             {
@@ -499,21 +540,29 @@ export default class CloneFalconProject extends Generator {
                     thisTask.title += 'Connections Found!'
                   })
                   .catch(result => { 
-                    thisTask.title += 'ERROR - Not Found!'
+                    thisTask.title += 'No Connections Found'
                     throw new Error(result)
                   });
               }
             },
             {
-              title:  'Identifying DevHub Orgs',
-              task:   (listrContext) => {
-                return this._identifyDevHubOrgs(listrContext);
+              title:  'Identifying DevHub Orgs...',
+              task:   (listrContext, thisTask) => {
+                return this._identifyDevHubOrgs(listrContext)
+                  .then(result => {
+                    thisTask.title += 'DevHub Orgs Identified!'
+                  })
+                  .catch(result => {
+                    throw new Error(result);
+                  });
               }
             },
             {
-              title:  'Determining DevHub Aliases',
-              task:   (listrContext) => {
-                return this._initializeDevHubAliases(listrContext);
+              title:  'Building DevHub Alias List...',
+              task:   (listrContext, thisTask) => {
+                this._initializeDevHubAliases(listrContext);
+                thisTask.title += 'Done!'
+                return;
               }
             }
           ],
@@ -594,7 +643,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
 
-debug(`prmompting(): ${this.abortYeomanProcess}`);
+  debug(`prmompting(): ${this.abortYeomanProcess}`);
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.abortYeomanProcess) {
       return;

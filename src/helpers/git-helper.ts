@@ -12,6 +12,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import * as _ from 'lodash';
+import { resolve } from 'path';
 
 // Requires
 const debug       = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
@@ -75,6 +76,74 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
   // there was a repository with at least one commit in it.
   return true;
 }
+
+//─────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isGitRemoteEmptyAsync
+ * @param       {string}        gitRemoteUri 
+ * @returns     {Promise<any>}  Returns an object comprised of code, stdout,
+ *                              stderr, and a custom message with both resolve()
+ *                              and reject() paths.
+ * @version     1.0.0
+ * @description Determines if the URI provided points to a remote repo that is
+ *              reachable and readable by the currently configured Git user AND
+ *              that this repository has at least one commit.
+ */
+//─────────────────────────────────────────────────────────────────────────────┘
+export function isGitRemoteEmptyAsync(gitRemoteUri:string):Promise<any> {
+  // Make sure we got a string as input.
+  if (typeof gitRemoteUri !== 'string') {
+    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+  }
+  // Make an async shell.exec call wrapped inside a promise.
+  return new Promise((resolve, reject) => {
+    shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true}, (code, stdout, stderr) => {
+      // Create an object to store each of the streams returned by shell.exec.
+      let returnObject = {
+        code: code,
+        stdout: stdout,
+        stderr: stderr,
+        message: '',
+        resolve: false
+      }
+      // Determine whether to resolve or reject. In each case, create a
+      // message based on what we know about various return code values.
+      switch (code) {
+        case 0:
+          returnObject.message = 'Remote repository found'
+          returnObject.resolve = true;
+          break;
+        case 2:
+          returnObject.message = 'Remote repository contains no commits'
+          returnObject.resolve = false;
+          break;
+        case 128:
+          returnObject.message = 'Remote repository not found'
+          returnObject.resolve = false;
+          break;
+        default:
+          returnObject.message = 'Unexpected Error'
+          returnObject.resolve = false;
+      }
+      // Debug.  Note that the final debug call with the - and \n chars is
+      // required to solve some stdout oddities where listr was overwriting 
+      // the last few lines of the returnObject printout.
+      debug(returnObject);
+      debug('Async Shell Operation Complete');
+      debug('-\n-\n-');
+
+      // Execute resolve or reject now.
+      if (returnObject.resolve) {
+        resolve(returnObject);
+      }
+      else {
+        reject(returnObject);
+      }
+    });
+  });
+}
+
+
 
 //─────────────────────────────────────────────────────────────────────────────┐
 /**

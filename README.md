@@ -30,7 +30,7 @@ USAGE
 <!-- usagestop -->
 <!-- commands -->
 * [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
-* [`sfdx-falcon falcon:project:clone`](#sfdx-falcon-falconprojectclone)
+* [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
 * [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
 * [`sfdx-falcon hello:org [FILE]`](#sfdx-falcon-helloorg-file)
 
@@ -58,13 +58,16 @@ EXAMPLES
 
 _See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/config/interview.ts)_
 
-## `sfdx-falcon falcon:project:clone`
+## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:project:clone
+  $ sfdx-falcon falcon:project:clone GIT_REMOTE_URI
+
+ARGUMENTS
+  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to clone the project into
@@ -72,9 +75,12 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:project:clone
+  $ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git
 
-  $ sfdx falcon:project:clone --outputdir ~/projects/sfdx-projects
+  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git
+
+  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \
+                              --outputdir ~/projects/sfdx-falcon-projects
 ```
 
 _See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/project/clone.ts)_
