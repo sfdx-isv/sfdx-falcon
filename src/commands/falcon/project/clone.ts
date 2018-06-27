@@ -111,11 +111,6 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
     // Grab values from arguments.
     const gitRemoteUriArg = this.args.GIT_REMOTE_URI;
 
-    // Check if the Git Remote is reachable, readable, and not empty.
-//    if (gitHelper.isGitRemoteEmpty(gitRemoteUriArg) === true) {
-//      throw new Error(`Remote repository "${gitRemoteUriArg}" is empty or unreachable.`)
-//    }
-
     // Grab values from flags.  Set defaults for optional flags not set by user.
     const outputDirFlag = this.flags.outputdir  ||  '.';
     const debugModeFlag = this.flags.falcondebug || false;
