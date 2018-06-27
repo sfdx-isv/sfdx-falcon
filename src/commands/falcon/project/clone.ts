@@ -16,10 +16,12 @@
 // Imports
 import {flags}              from '@oclif/command';                  // Why?
 import {core}               from '@salesforce/command';             // Why?
-//import {join}               from 'path';                            // Why?
+import * as gitHelper       from '../../../helpers/git-helper';     // Why?
 import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Why?
-//import * as _               from 'lodash';                          // Why?
 
+// Requires
+const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
+const debug           = require('debug')('falcon:project:clone');
 
 // Initialize Messages with the current plugin directory
 core.Messages.importMessagesDirectory(__dirname);
@@ -50,17 +52,20 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
   public static description = messages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
-    `$ sfdx falcon:project:clone`,
-    `$ sfdx falcon:project:clone --outputdir ~/projects/sfdx-projects`
+    `$ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git`,
+    `$ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git`,
+    `$ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \\
+                           --outputdir ~/projects/sfdx-falcon-projects`
   ];
   
   //───────────────────────────────────────────────────────────────────────────┐
-  // Define the ARGUMENTS used by this command.
+  // Define the ARGUMENTS used by this command. Note, this has to be done
+  // with a public static member variable named 'args'.
   // Position 1 (gitRemoteUri)  - URI of the Git Remote repo being cloned.
   //───────────────────────────────────────────────────────────────────────────┘
-  protected static argsConfig = [
+  public static args = [
     {
-      name: 'gitRemoteUri',
+      name: 'GIT_REMOTE_URI',
       description: messages.getMessage('gitRemoteUriArgDescription'),
       required: true,
       hidden: false
@@ -103,6 +108,14 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
+    // Grab values from arguments.
+    const gitRemoteUriArg = this.args.GIT_REMOTE_URI;
+
+    // Check if the Git Remote is reachable, readable, and not empty.
+    if (gitHelper.isGitRemoteEmpty(gitRemoteUriArg) === true) {
+      throw new Error(`Remote repository "${gitRemoteUriArg}" is empty or unreachable.`)
+    }
+
     // Grab values from flags.  Set defaults for optional flags not set by user.
     const outputDirFlag = this.flags.outputdir  ||  '.';
     const debugModeFlag = this.flags.falcondebug || false;
@@ -115,6 +128,7 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
     //─────────────────────────────────────────────────────────────────────────┘
     await super.generate('clone-falcon-project', {
       commandName:  'falcon:project:clone',
+      gitRemoteUri: gitRemoteUriArg,
       outputDir:    outputDirFlag,
       debugMode:    debugModeFlag,
       options: []
