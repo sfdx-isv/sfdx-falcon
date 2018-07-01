@@ -16,9 +16,8 @@
 // Imports
 import {flags}              from '@oclif/command';                  // Why?
 import {core}               from '@salesforce/command';             // Why?
-import * as gitHelper       from '../../../helpers/git-helper';     // Why?
 import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Why?
-
+import {validateLocalPath}  from '../../../validators/core';        // Why?
 // Requires
 const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const debug           = require('debug')('falcon:project:clone');
@@ -104,7 +103,7 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
   protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Implement the run() function (this is what actually powers the command)
+  // Implement the run() function (this is what powers the SFDX command)
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
@@ -114,6 +113,11 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
     // Grab values from flags.  Set defaults for optional flags not set by user.
     const outputDirFlag = this.flags.outputdir  ||  '.';
     const debugModeFlag = this.flags.falcondebug || false;
+
+    // Make sure that outputFirFlag has a valid local path
+    if (validateLocalPath(outputDirFlag) === false) {
+      throw new Error('Target Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
+    }
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Make an async call to the base object's generate() funtion.  This will
