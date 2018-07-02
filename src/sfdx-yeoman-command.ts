@@ -14,27 +14,27 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import {SfdxCommand}  from '@salesforce/command';   // Required by child classe to create a CLI command
-import {createEnv}    from 'yeoman-environment';    // Required to use Yeoman
+import {createEnv}    from 'yeoman-environment';    // Required to create a Yeoman Environment
 
-/**
-* ─────────────────────────────────────────────────────────────────────────────────────────────────┐
-* Abstract class to add support for running a Yeoman Generator inside our Salesforce CLI command.
-* ─────────────────────────────────────────────────────────────────────────────────────────────────┘
-*/
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @abstract
  * @class       SfdxYeomanCommand
  * @extends     SfdxCommand
  * @access      public
  * @version     1.0.0
  * @summary     Abstract base class class for building Salesforce CLI commands that use Yeoman.
- * @description Classes that extend SfdxYeomanCommand
+ * @description Classes that extend SfdxYeomanCommand will be able to run any Generator defined
+ *              in the src/generators directory.  The file name in src/generators should match the 
+ *              generatorType string passed into runYeomanGenerator().  For example, if 
+ *              generatorType==="my-generator", then there MUST be a TS script file located at 
+ *              src/generators/my-generator.ts.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export default abstract class SfdxYeomanCommand extends SfdxCommand {
 
   // Entrypoint for child classes to kick off Yeoman Generators
-  protected async generate(generatorType: string, generatorOptions: object = {}) {
+  protected async runYeomanGenerator(generatorType: string, generatorOptions: object = {}) {
 
     // Create a Yeoman environment.
     const yeomanEnv = createEnv();
@@ -45,11 +45,14 @@ export default abstract class SfdxYeomanCommand extends SfdxCommand {
       `sfdx-falcon:${generatorType}`
     );
 
-    // Asynchronously execute Yeoman's run() method to run the specified generator.
-    await new Promise((resolve, reject) => {
-      yeomanEnv.run(`sfdx-falcon:${generatorType}`, generatorOptions, (err: Error, results: any) => {
-        if (err) reject(err);
-        else resolve(results);
+    // Execute Yeoman's run() method to run the specified generator.
+    // Note that the callback passed to run() will always RESOLVE because 
+    // Generator.run() only implements then(), and not catch(). If any
+    // code invoked by Yeoman's run loop throws an Error, Yeoman won't catch
+    // it and a hard stop will be forced and the stacktrace shown the user.
+    return new Promise((resolve, reject) => {
+      yeomanEnv.run(`sfdx-falcon:${generatorType}`, generatorOptions, (results:any) => {
+        resolve(results);
       });
     });
   }
@@ -63,6 +66,6 @@ export default abstract class SfdxYeomanCommand extends SfdxCommand {
 *
 * The generator specified by generatorType must be present in the ./generators folder.  The file
 * should match the string passed by generatorType.  For example, if generatorType==="my-generator",
-* then there MUST be a TS script file located at .generators/my-generator.ts
+* then there MUST be a TS script file located at ./generators/my-generator.ts
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┘
 */
