@@ -29,7 +29,7 @@
 import * as fs                        from 'fs';                    // Used for file system operations.
 import * as path                      from 'path';                  // Helps resolve local paths at runtime.
 import * as Generator                 from 'yeoman-generator';      // Generator class must extend this.
-import {YeomanValidator as validate}  from '../validators/yeoman';  // Shared validation library for Yeoman interview inputs.
+import * as validate                  from '../validators/yeoman';  // Shared validation library for Yeoman interview inputs.
 import * as uxHelper                  from '../helpers/ux-helper';  // Library of UX Helper functions specific to SFDX-Falcon.
 
 // Requires
@@ -194,72 +194,6 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for projectName.  RULES:
-  // - Length?
-  // - No spaces?
-  // - Must be like a github repository name?
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateProjectName(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid project name';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for targetDirectory.  RULES:
-  // - ????
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateTargetDirectory(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid directory path';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for namespacePrefix.  RULES:
-  // - 1 to 15 chars (alphanumeric). 
-  // - Must begin with a letter. 
-  // - Can not contain two consecutive underscores.
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateNsPrefix(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid namespace prefix';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for metadataPackageId.  RULES:
-  // - Exactly 15 chars (alphanumeric only)
-  // - Must begin with 033. 
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateMetadataPackageId(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid Metadata Package ID';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for packageVersionId.  RULES:
-  // - Exactly 15 chars (alphanumeric only)
-  // - Must begin with 04t. 
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validatePackageVersionId(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid Package Version ID';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Validate value provided for gitRemoteUri.  RULES:
-  // - Must be a valid URI
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _validateGitRemoteUri(answerHash) {
-    // TODO: Implement validation
-    //return 'Please provide a valid URI for your Git remote';
-    return true;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
   // Initialize interview questions.  May be called more than once to allow
   // default values to be set based on the previously set answers.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -282,7 +216,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.projectName !== 'undefined' )
                   ? this.interviewAnswers.projectName                   // Current Value
                   : this.interviewDefaults.projectName,                 // Default Value
-        validate: this._validateNsPrefix,
+        validate: validate.projectName,
         when:     true
       },
       {
@@ -292,7 +226,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.targetDirectory !== 'undefined' )
                   ? this.interviewAnswers.targetDirectory               // Current Value
                   : this.interviewDefaults.targetDirectory,             // Default Value
-        validate: this._validateTargetDirectory,
+        validate: validate.targetPath,
         when:     true
       },
       {
@@ -311,7 +245,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.namespacePrefix !== 'undefined' )
                   ? this.interviewAnswers.namespacePrefix               // Current Value
                   : this.interviewDefaults.namespacePrefix,             // Default Value
-        validate: this._validateNsPrefix,
+        validate: validate.namespacePrefix,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -330,7 +264,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.metadataPackageId !== 'undefined' )
                   ? this.interviewAnswers.metadataPackageId             // Current Value
                   : this.interviewDefaults.metadataPackageId,           // Default Value
-        validate: this._validateMetadataPackageId,
+        validate: validate.metadataPackageId,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -340,7 +274,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.packageVersionId !== 'undefined' )
                   ? this.interviewAnswers.packageVersionId              // Current Value
                   : this.interviewDefaults.packageVersionId,            // Default Value
-        validate: this._validateMetadataPackageId,
+        validate: validate.packageVersionId,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -368,7 +302,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.interviewAnswers.gitRemoteUri !== 'undefined' )
                   ? this.interviewAnswers.gitRemoteUri                  // Current Value
                   : this.interviewDefaults.gitRemoteUri,                // Default Value
-        validate: this._validateGitRemoteUri,
+        validate: validate.gitRemoteUri,
         when:     this._hasGitRemoteRepository
       }
     ];

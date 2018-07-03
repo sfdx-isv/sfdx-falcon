@@ -14,13 +14,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {flags}              from '@oclif/command';                  // Why?
-import {core}               from '@salesforce/command';             // Why?
-import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Why?
-import {validateLocalPath}  from '../../../validators/core';        // Why?
-// Requires
-const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
-const debug           = require('debug')('falcon:project:clone');
+import {core}                     from  '@salesforce/command';            // Allows us to use the Messages Library from core.
+import {flags}                    from  '@oclif/command';                 // Requried to create CLI command flags.
+import {GeneratorStatus}          from  '../../../helpers/yeoman-helper'; // Helper object to get status back from Generators after they run.
+import SfdxYeomanCommand          from  '../../../sfdx-yeoman-command';   // Base class that CLI commands in this project that use Yeoman should use.
+import {validateLocalPath}        from  '../../../validators/core';       // Core validation function to check that local path values don't have invalid chars.
 
 // Initialize Messages with the current plugin directory
 core.Messages.importMessagesDirectory(__dirname);
@@ -28,7 +26,6 @@ core.Messages.importMessagesDirectory(__dirname);
 // Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
 // or any library that is using the messages framework can also be loaded this way.
 const messages = core.Messages.loadMessages('sfdx-falcon', 'falconProjectClone');
-
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -107,10 +104,10 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
-    // Grab values from arguments.
+    // Grab values from CLI command arguments.
     const gitRemoteUriArg = this.args.GIT_REMOTE_URI;
 
-    // Grab values from flags.  Set defaults for optional flags not set by user.
+    // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
     const outputDirFlag = this.flags.outputdir  ||  '.';
     const debugModeFlag = this.flags.falcondebug || false;
 
@@ -120,24 +117,31 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
+    // Declare and initialize a GeneratorStatus object. This will let us get
+    // status messages back from the Yeoman Generator and we can display them
+    // to the user once the Generator completes it's run.
+    //─────────────────────────────────────────────────────────────────────────┘
+    let generatorStatus = new GeneratorStatus();
+
+    //─────────────────────────────────────────────────────────────────────────┐
     // Make an async call to the base object's generate() funtion.  This will
     // load and execute the Yeoman Generator defined in clone-falcon-project.ts.
     // All user interactions for the rest of this command will come from Yeoman,
     // so there is no need to run anything after this call returns.
     //─────────────────────────────────────────────────────────────────────────┘
-    await super.generate('clone-falcon-project', {
-      commandName:  'falcon:project:clone',
-      gitRemoteUri: gitRemoteUriArg,
-      outputDir:    outputDirFlag,
-      debugMode:    debugModeFlag,
+    await super.runYeomanGenerator('clone-falcon-project', {
+      generatorStatus:  generatorStatus,
+      commandName:      'falcon:project:clone',
+      gitRemoteUri:     gitRemoteUriArg,
+      outputDir:        outputDirFlag,
+      debugMode:        debugModeFlag,
       options: []
-    });
+    })
 
-    // TODO: It would be nice if we could somehow get information BACK from
-    // the call to super.generate(). Interview questions from the generator
-    // would be great for this.
+    // Print all status messages for the user.
+    generatorStatus.printStatusMessages();
 
-    // Return empty JSON.
-    return { };
+    // Return empty JSON since this is meant to be a human-readable command only.
+    return {};
   }
 }

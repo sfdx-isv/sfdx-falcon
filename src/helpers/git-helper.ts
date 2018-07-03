@@ -13,12 +13,17 @@
 // Imports
 import * as _ from 'lodash';
 import { resolve } from 'path';
+import * as path       from 'path';                         // Node's path library.
+import { waitASecond } from './async-helper';
 
 // Requires
 const debug       = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
 const debugAsync  = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugAsync.enabled = true to turn on.
 const shell       = require('shelljs');                     // Cross-platform shell access - use for setting up Git repo.
 
+// File Globals
+const repoNameRegEx = /\/(\w|-)+\.git\/*$/gm;
+const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:/\-~]+)(\.git)(\/)?/gm;
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Initialize debug settings.  These should be set FALSE to give the caller
@@ -34,7 +39,78 @@ debugAsync.enabled  = false;
 //─────────────────────────────────────────────────────────────────────────┘
 shell.config.fatal = true;
 
-//─────────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    cloneGitProject
+ * @param       {string}      gitRemoteUri 
+ * @param       {string}      targetDirectory 
+ * @returns     {void}        No return value. Will throw Error if any problems.
+ * @version     1.0.0
+ * @description Clones a Git repository located at gitRemoteUri to the local 
+ *              machine inside of the targetDirectory.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function cloneGitProject(gitRemoteUri:string, targetDirectory:string='.'):void {
+  // Begin with Input Debug & Validation
+  debug(`cloneGitProject:arguments\n%O\n`, arguments);
+  if (typeof gitRemoteUri !== 'string' || typeof targetDirectory !== 'string') {
+    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+  }
+  if (targetDirectory.trim() === '') {
+    throw new Error('ERROR_INVALID_VALUE');
+  }
+  // Make sure we start with a resolved path.
+  debug(`cloneGitProject:targetDirectory(unresolved target directory) - ${targetDirectory}`);
+  debug(`cloneGitProject:targetDirectory(normalized target directory) - ${path.normalize(targetDirectory)}`);
+  
+  targetDirectory = path.resolve(path.normalize(targetDirectory));
+  debug(`cloneGitProject:targetDirectory(resolved target directory) - ${targetDirectory}`);
+  debug(path.parse(targetDirectory));
+
+  // Change the shell's working directory to the target directory. If an
+  // Error is thrown, it most likely means that the target directory does
+  // not exist.  If that happens, we will need to create the target.
+  try {
+    debug(shell.cd(targetDirectory));
+    debug(shell.pwd());
+  }
+  catch (cdError) {
+    debug(cdError);    
+    // Target directory not found. Create it now.
+    try {
+      debug(shell.mkdir('-p', targetDirectory));
+    }
+    catch (mkdirError) {
+      debug(mkdirError);
+      // The target directory could not be created
+      throw new Error ('ERROR_INVALID_TARGET_DIR');
+    }
+    // Try again to shell.cd() into the targetDirectory
+    try {
+      debug(shell.cd(targetDirectory));
+    }
+    catch (cdError2) {
+      debug(cdError2);
+      // Target directory was created, but can't be navigated to.
+      throw new Error('ERROR_NO_TARGET_DIR');
+    }
+  }
+
+  // If we get here, we can be certain that our shell is inside
+  // the target directory.  Now all we need to do is execute
+  // `git clone` against the Git Remote URI to pull down the repo.
+  try {
+    debug(shell.exec(`git clone ${gitRemoteUri}`, {silent: true}));
+  } catch (gitCloneError) {
+    // If we get here, it's probably because the clone command is targeting
+    // a directory that already exists and is not empty.
+    debug(gitCloneError);
+    throw new Error(`Destination path '${targetDirectory}' already exists and is not an empty directory.`);
+  }
+
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    setGitHelperDebug
  * @param       {boolean} debugStatus Set to TRUE to enable debug inside of
@@ -44,12 +120,73 @@ shell.config.fatal = true;
  * @description Sets the value for debug.enabled inside git-helper.  Set TRUE
  *              to turn debug output on. Set FALSE to suppress debug output.
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function setGitHelperDebug(debugStatus:boolean) {
   debug.enabled = debugStatus;
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isGitInstalled
+ * @returns     {boolean}       TRUE if Git is installed and available to the 
+ *                              running user via the shell.
+ * @version     1.0.0
+ * @description Determines if Git has been installed on the user's local machine
+ *              and if the executable has been added to the path.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isGitInstalled():boolean {
+  try {
+    if (shell.which('git')) {
+      return true;
+    }
+    else {
+      return false;
+    }
+  } catch(err) {
+    debug(`isGitInstalled:EXCECPTION:\n%O`, err);
+    return false;
+  }
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getRepoNameFromRemoteUri
+ * @returns     {boolean}       TRUE if Git is installed and available to the 
+ *                              running user via the shell.
+ * @version     1.0.0
+ * @description Determines if Git has been installed on the user's local machine
+ *              and if the executable has been added to the path.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function getRepoNameFromUri(gitRemoteUri:string):string {
+
+  // Debug and input validation
+  debug(`getRepoNameFromUri:arguments\n%O\n`, arguments);
+  if (typeof gitRemoteUri !== 'string') {
+    throw new TypeError('ERROR_UNEXPECTED_TYPE: String expected for gitRemoteUri');
+  }
+
+  // Grab the last part of the URI, eg. "/my-git-repo.git/"
+  let repoName = repoNameRegEx.exec(gitRemoteUri)[0];
+
+  // Strip everythng after the .git extension, eg "/my-git-repo"
+  repoName = repoName.substring(0, repoName.lastIndexOf('.'));
+
+  // Strip the leading forward slash
+  repoName = repoName.substr(1);
+
+  // Make sure that we have at least something to return.  Throw Error if not.
+  if (repoName === '') {
+    throw new Error('ERROR_UNREADABLE_REPO_NAME')
+  }
+
+  // Debug and return
+  debug(`getRepoNameFromUri:repoName ${repoName}`);
+  return repoName;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    isGitRemoteEmpty
  * @param       {string}      gitRemoteUri 
@@ -57,15 +194,17 @@ export function setGitHelperDebug(debugStatus:boolean) {
  *                            that is reachable and readable by the current user
  *                            AND that has at least one commit.
  * @version     1.0.0
- * @description Determines if the URI provided points to a remote repo that is
- *              reachable and readable by the currently configured Git user AND
- *              that this repository has at least one commit.
+ * @description Determines if the URI provided points to a remote repo that is reachable and 
+ *              readable by the currently configured Git user AND that it has at least one commit.
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
+  debug(`isGitRemoteEmpty:arguments\n%O\n`, arguments);
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
+  // Execute `git ls-remote` with the --exit-code flag set. This will return
+  // a non-zero (error) result even if the repo exists but has no commits.
   try {
     debug(shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true}));
   } catch (err) {
@@ -77,23 +216,30 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
   return true;
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    isGitRemoteEmptyAsync
- * @param       {string}        gitRemoteUri 
+ * @param       {string}        gitRemoteUri  URI of the Git Remote Repository
+ *                              that will be checked.
+ * @param       {number}        [waitSecs=0]  Number of seconds of delay to add
+ *                              before the Git shell command is executed.
  * @returns     {Promise<any>}  Returns an object comprised of code, stdout,
  *                              stderr, and a custom message with both resolve()
  *                              and reject() paths.
  * @version     1.0.0
- * @description Determines if the URI provided points to a remote repo that is
- *              reachable and readable by the currently configured Git user AND
- *              that this repository has at least one commit.
+ * @description Async version of a function that determines if the URI provided points to a remote
+ *              repo that is reachable and readable by the currently configured Git user AND that 
+ *              it has at least one commit.
  */
-//─────────────────────────────────────────────────────────────────────────────┘
-export function isGitRemoteEmptyAsync(gitRemoteUri:string):Promise<any> {
-  // Make sure we got a string as input.
-  if (typeof gitRemoteUri !== 'string') {
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:number=0):Promise<any> {
+  // Validate incoming arguments
+  if (typeof gitRemoteUri !== 'string' || isNaN(waitSeconds)) {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
+  }
+  // If waitSeconds is > 0 then use waitASecond() to introduce a delay
+  if (waitSeconds > 0) {
+    await waitASecond(waitSeconds);
   }
   // Make an async shell.exec call wrapped inside a promise.
   return new Promise((resolve, reject) => {
@@ -130,7 +276,7 @@ export function isGitRemoteEmptyAsync(gitRemoteUri:string):Promise<any> {
       // the last few lines of the returnObject printout.
       debug(returnObject);
       debug('Async Shell Operation Complete');
-      debug('-\n-\n-');
+      debug('-\n-\n-\n-\n-\n');
 
       // Execute resolve or reject now.
       if (returnObject.resolve) {
@@ -143,18 +289,16 @@ export function isGitRemoteEmptyAsync(gitRemoteUri:string):Promise<any> {
   });
 }
 
-
-
-//─────────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    isGitRemoteReadable
  * @param       {string}      gitRemoteUri 
  * @returns     {boolean}     True if gitRemoteUri is a valid Git Remote URI.
  * @version     1.0.0
- * @description Determines if the URI provided points to a remote repo that is
- *              reachable and readable by the currently configured Git user.
+ * @description Determines if the URI provided points to a remote repo that is reachable and 
+ *              readable by the currently configured Git user.
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitRemoteReadable(gitRemoteUri:string):boolean {
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
@@ -171,16 +315,34 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
   return true;
 }
 
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isGitUriValid
+ * @param       {string}      gitRemoteUri 
+ * @returns     {boolean}     TRUE if gitRemoteUri is a syntactically valid Git Remote URI.
+ * @version     1.0.0
+ * @description Determines if the URI provided is a syntactically valid Git Remote URI. The accepted
+ *              protocols are ssh:, git:, http:, and https:.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isGitUriValid(gitRemoteUri:string):boolean {
+  // Debug and input validation
+  debug(`isGitUriValid:arguments\n%O\n`, arguments);
+  if (typeof gitRemoteUri !== 'string') {
+    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+  }
+
+  // Run the gitUriRegEx. Anything other than ONE result should be an error.
+  return (gitUriRegEx.exec(gitRemoteUri).length === 1);
+}
 
 
 
 
 
+// Comment Templates
 
-
-
-
-
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 //─────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    gitRemoteUri
@@ -191,3 +353,4 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
  *              See https://git-scm.com/docs/git-clone for detailed rules.
  */
 //─────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘

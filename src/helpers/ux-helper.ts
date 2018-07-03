@@ -17,11 +17,18 @@ import * as _ from 'lodash';
 const debug           = require('debug')('ux-helper');              // Utility for debugging. set debug.enabled = true to turn on.
 const stripAnsi       = require('strip-ansi');                      // Strips ANSI escape codes from strings.
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
+const pad             = require('pad');                             // Provides consistent spacing when trying to align console output.
 
 // Interfaces
 export interface SfdxFalconKeyValueTableDataRow {
   option:string;
   value:string;
+}
+
+export interface StatusMessage {
+  title:    string;
+  message:  string;
+  type:     'error'|'info'|'success'|'warning'
 }
 
 export interface TableColumn {
@@ -46,6 +53,77 @@ export interface TableOptions {
   printInverseRow(row: any[]): void
   printHeader(row: any[]): void
   headerAnsi: any
+}
+
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    printStatusMessages
+ * @access      private
+ * @version     1.0.0
+ * @description ????
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function printStatusMessage(statusMessage:StatusMessage, padLength:number=0, separator:string=' : '):void {
+  // Validate input
+  if (typeof statusMessage.title !== 'string') {
+    throw new TypeError('ERROR_INVALID_TYPE: String expected for statusMessage.title');
+  }
+  if (typeof statusMessage.message !== 'string') {
+    throw new TypeError('ERROR_INVALID_TYPE: String expected for statusMessage.message');
+  }
+  if (typeof separator !== 'string') {
+    throw new TypeError('ERROR_INVALID_TYPE: String expected for separator');
+  }
+  if (isNaN(padLength)) {
+    padLength = 0;
+  }
+  // Print the Status Message
+  switch (statusMessage.type) {
+    case 'error':
+      console.log(chalk`{bold.red ${pad(statusMessage.title, padLength)+separator}}{bold ${statusMessage.message}}`);
+      break;
+    case 'info':
+      console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}${statusMessage.message}`);
+      break;
+    case 'success':
+      console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}{green ${statusMessage.message}}`);
+      break;
+    case 'warning':
+      console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}{yellow ${statusMessage.message}}`);
+      break;
+    default:
+      throw new Error('ERROR_INVALID_MESSAGE_TYPE');
+  }
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    printStatusMessages
+ * @access      private
+ * @version     1.0.0
+ * @description ????
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function printStatusMessages(statusMessages:Array<StatusMessage>, separator:string=' : '):void {
+  // Validate input
+  if (Array.isArray(statusMessages) === false) {
+    throw new TypeError('ERROR_INVALID_TYPE: Array expected for statusMessages');
+  }
+  if (typeof separator !== 'string') {
+    throw new TypeError('ERROR_INVALID_TYPE: String expected for separator');
+  }
+  // Calculate the length of the longest StatusMessage Title
+  let longestTitle = 0;
+  for (let statusMessage of statusMessages) {
+    if (typeof statusMessage.title !== 'undefined') {
+      longestTitle = Math.max(statusMessage.title.length, longestTitle);
+    }
+  }
+  // Print all of the Satus Messages
+  for (let statusMessage of statusMessages) {
+    printStatusMessage(statusMessage, longestTitle, separator);
+  }
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

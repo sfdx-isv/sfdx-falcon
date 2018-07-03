@@ -18,8 +18,3 @@ interface FalconProjectSettings {
   hasGitRemoteRepository: boolean;
   gitRemoteUri: string;
 }
-interface ConfirmationAnswers {
-  proceed:  boolean;
-  restart:  boolean;
-  abort:    boolean;
-}

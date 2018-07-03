@@ -95,12 +95,12 @@ export default class Create extends SfdxYeomanCommand {
     // user interactions for the rest of this command will come from Yeoman, so
     // there is no need to run anything after this call returns.
     //─────────────────────────────────────────────────────────────────────────┘
-    await super.generate('create-falcon-project', {
+    await super.runYeomanGenerator('create-falcon-project', {
       commandName:  'falcon:project:create',
       outputdir:    outputdirFlag,
       debugMode:    debugModeFlag,
       options: []
-    });
+    })
 
     // TODO: It would be nice if we could somehow get information BACK from
     // the call to super.generate(). Interview questions from the generator

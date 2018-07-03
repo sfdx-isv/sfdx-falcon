@@ -26,7 +26,7 @@
 import *                as fs         from 'fs';                            // Used for file system operations.
 import *                as path       from 'path';                          // Helps resolve local paths at runtime.
 import *                as Generator  from 'yeoman-generator';              // Generator class must extend this.
-import {YeomanValidator as validate}  from '../validators/yeoman';          // Why?
+import *                as validate   from '../validators/yeoman';          // Why?
 import *                as uxHelper   from '../helpers/ux-helper';          // Why?
 import *                as gitHelper  from '../helpers/git-helper';         // Why?
 import *                as sfdxHelper from '../helpers/sfdx-helper';        // Why?
@@ -120,10 +120,8 @@ export default class CloneFalconProject extends Generator {
     this.abortYeomanProcess   = true;
 
     // Initialize the Generator Status tracking object.
-    this.generatorStatus            = opts.generatorStatus;
-    this.generatorStatus.running    = true;
-    this.generatorStatus.completed  = false;
-    this.generatorStatus.aborted    = false;
+    this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
+    this.generatorStatus.start();                 // Tells the Generator Status object that this Generator has started.
 
     // Initialize the interview and confirmation answers objects.
     this.userAnswers              = <InterviewAnswers>{};
@@ -147,11 +145,11 @@ export default class CloneFalconProject extends Generator {
     this.confirmationAnswers.restart      = true;
     this.confirmationAnswers.abort        = false;
 
-    // Initialize status message strings.
-    this.statusMessages.projectCloned     = 'Project Cloned Successfully  : ';
-    this.statusMessages.gitNotFound       = 'Could Not Initialize Git     : ';
-    this.statusMessages.commandCompleted  = 'Command Complete             : ';
-    this.statusMessages.commandAborted    = 'Command Aborted : ';
+    // Initialize Status Message strings.
+//    this.statusMessages.projectCloned     = 'Project Cloned Successfully  : ';
+//    this.statusMessages.gitNotFound       = 'Could Not Initialize Git     : ';
+//    this.statusMessages.commandCompleted  = 'Command Complete             : ';
+//    this.statusMessages.commandAborted    = 'Command Aborted : ';
 
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
@@ -263,17 +261,16 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Clone a Git project
   //───────────────────────────────────────────────────────────────────────────┘
+  /*
   private _cloneGitProject() {
     //─────────────────────────────────────────────────────────────────────────┐
     // Set shelljs config to throw exceptions on fatal errors.  We have to do
     // this so that git commands that return fatal errors can have their output
     // suppresed while the generator is running.
     //─────────────────────────────────────────────────────────────────────────┘
-
     debug(`_cloneGitProject()-shell.config.fatal: ${shell.config.fatal}`);
-
-
   }
+  //*/
 
   //─────────────────────────────────────────────────────────────────────────────┐
   /**
@@ -444,13 +441,40 @@ export default class CloneFalconProject extends Generator {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
 
+    //DEVTEST
+    console.log('DEVTEST -- Repo Name: %s ', gitHelper.getRepoNameFromUri('https://github.com/sfdx-isv/name.git////sfdx-falcon-template.git//'));
+
+    //DEVTEST
+    /*
+    this.generatorStatus.addMessage({
+      type: 'info',
+      title:  'My Info Message',
+      message:  'This is my informational message.  Hooray!'
+    });
+    this.generatorStatus.addMessage({
+      type: 'error',
+      title:  'Error!',
+      message:  'This is my scary error message!'
+    });
+    this.generatorStatus.addMessage({
+      type: 'success',
+      title:  'WOHOO! We Did it! Here is how',
+      message:  'As you can tell, this is a success message'
+    });
+    this.generatorStatus.addMessage({
+      type: 'warning',
+      title:  'DANGER',
+      message:  'Danger, Will Robinson.  This is a warning message'
+    });
+    this.generatorStatus.printStatusMessages();
+    //*/
+
+
     // Execute the async Listr task runner for initialization.
     try {
       // Run the setup/init tasks for the falcon:project:clone command via Listr.
       let listrResults = await this._executeListrSetupTasks();
       debug(`listrResults: ${listrResults}`);
-      // No need to abort Yeoman if we get here without throwing an error
-      this.abortYeomanProcess = false;
       // Show an "Initialization Complete" message
       this.log(chalk`\n{bold Initialization Complete}\n`);
       // DEBUG
@@ -458,7 +482,11 @@ export default class CloneFalconProject extends Generator {
     } 
     catch (err) {
       debug(`ERROR (likely thrown by _executeListrSetupTasks())\n%O\n:`, err);
-      this.abortYeomanProcess = true;
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Initialization Error',
+        message:  'falcon:project:clone command aborted because one or more initialization tasks failed'
+      });
     }
   }
 
@@ -466,10 +494,9 @@ export default class CloneFalconProject extends Generator {
   // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
-
-  debug(`prmompting:this.abortYeomanProcess: ${this.abortYeomanProcess}`);
     // Check if we need to abort the Yeoman interview/installation process.
-    if (this.abortYeomanProcess) {
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside prompting()`);
       return;
     }
     // Start the interview loop.  This will ask the user questions until they
@@ -501,6 +528,15 @@ export default class CloneFalconProject extends Generator {
       
     } while (this.confirmationAnswers.restart === true);
 
+    // Check if the user decided to proceed with the install.  If not, abort.
+    if (this.confirmationAnswers.proceed !== true) {
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Command Aborted',
+        message:  'falcon:project:clone command canceled by user'
+      });
+    }
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -508,12 +544,8 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
     // Check if we need to abort the Yeoman interview/installation process.
-    if (this.abortYeomanProcess) {
-      return;
-    }
-    // Check if the user decided to NOT proceed with the cloning.
-    if (this.confirmationAnswers.proceed !== true) {
-      this.cloningComplete = false;
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside configuring()`);
       return;
     }
 
@@ -528,11 +560,8 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
     // Check if we need to abort the Yeoman interview/installation process.
-    if (this.abortYeomanProcess) {
-      return;
-    }
-    // Check if the user decided to NOT proceed with the install.
-    if (this.confirmationAnswers.proceed !== true) {
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside writing()`);
       return;
     }
 
@@ -541,20 +570,26 @@ export default class CloneFalconProject extends Generator {
       gitHelper.cloneGitProject(this.gitRemoteUri, this.userAnswers.targetDirectory);
     }
     catch (gitCloneError) {
-      // Show Error Message
-      this.log(chalk`{bold.red Git Clone Error:} {bold ${gitCloneError.message}}\n`);
-      // Abort the Yeoman process
-      this.abortYeomanProcess = true;
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    `Git Clone Error`,
+        message:  `${gitCloneError.message}`
+      });
       // Exit this function
       return;
     }
 
     // Show Success Message
-    this.log(chalk`{green Success:} Git repo cloned to ${this.userAnswers.targetDirectory}\n`);
+    uxHelper.printStatusMessage({
+      type:     'success',
+      title:    `Success`,
+      message:  `Git repo cloned to ${this.userAnswers.targetDirectory}\n`
+    });
 
-
-    // Figure out what the FINAL target directory is.  It will be the
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Figure out what the FINAL target directory is.  This should be the
     // target directory plus the name of the Git repo.
+    //─────────────────────────────────────────────────────────────────────────┘
 
 
     // Tell Yeoman the path to DESTINATION (provided by user as targetDirectory).
@@ -598,7 +633,7 @@ export default class CloneFalconProject extends Generator {
                     this.destinationPath(`sfdx-source/${this.userAnswers.namespacePrefix}/main/default/aura/.gitignore`),
                     this);
     //*/
-    // Mark the installation as complete.
+    // Mark the cloning step as complete.
     this.cloningComplete = true;
   }
 
@@ -607,7 +642,8 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
-    if (this.abortYeomanProcess) {
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside install()`);
       return;
     }
 
@@ -616,7 +652,12 @@ export default class CloneFalconProject extends Generator {
     // not, return now to skip the Git init and remote config steps.
     //─────────────────────────────────────────────────────────────────────────┘
     if (this.cloningComplete === true) {
-      this.log(chalk`\n{bold ${this.statusMessages.projectCloned}}{green ${this.destinationRoot()}}`);
+      this.generatorStatus.addMessage({
+        type:     'success',
+        title:    `Project Cloned Successfully`,
+        message:  `Project cloned to ${this.destinationRoot()}`
+      });
+//      this.log(chalk`\n{bold ${this.statusMessages.projectCloned}}{green ${this.destinationRoot()}}`);
     }
     else {
       return;
@@ -691,13 +732,35 @@ export default class CloneFalconProject extends Generator {
   // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
+    // Check if the Yeoman interview/installation process was aborted.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside writing()`);
+      this.generatorStatus.addMessage({
+        type:     'error',
+        title:    'Command Failed',
+        message:  'falcon:project:clone exited without cloning an SFDX-Falcon project\n'
+      });
+      return;
+    }
+
+    // If we get here, then it's POSSIBLE that the command completed successfully.
     if (this.cloningComplete === true) {
       // Installation succeeded
-      this.log(chalk`{bold ${this.statusMessages.commandCompleted}}{green falcon:project:clone completed successfully}\n`);      
+      this.generatorStatus.complete([
+        {
+          type:     'success',
+          title:    'Command Succeded',
+          message:  'falcon:project:clone completed successfully\n'
+        }
+      ]);
     }
     else {
       // Installation failed
-      this.log(chalk`{bold.red ${this.statusMessages.commandAborted}} {bold falcon:project:clone completed without cloning an SFDX-Falcon project}\n`);
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Command Failed',
+        message:  'falcon:project:clone exited without cloning an SFDX-Falcon project\n'
+      });
     }
   }
 }
