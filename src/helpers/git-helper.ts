@@ -42,18 +42,19 @@ shell.config.fatal = true;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    cloneGitProject
+ * @function    gitClone
+ * @access      public
  * @param       {string}      gitRemoteUri 
  * @param       {string}      targetDirectory 
  * @returns     {void}        No return value. Will throw Error if any problems.
  * @version     1.0.0
- * @description Clones a Git repository located at gitRemoteUri to the local 
- *              machine inside of the targetDirectory.
+ * @description Clones a Git repository located at gitRemoteUri to the local machine inside of
+ *              the directory specified by targetDirectory.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function cloneGitProject(gitRemoteUri:string, targetDirectory:string='.'):void {
+export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
   // Begin with Input Debug & Validation
-  debug(`cloneGitProject:arguments\n%O\n`, arguments);
+  debug(`gitClone:arguments\n%O\n`, arguments);
   if (typeof gitRemoteUri !== 'string' || typeof targetDirectory !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
@@ -61,11 +62,11 @@ export function cloneGitProject(gitRemoteUri:string, targetDirectory:string='.')
     throw new Error('ERROR_INVALID_VALUE');
   }
   // Make sure we start with a resolved path.
-  debug(`cloneGitProject:targetDirectory(unresolved target directory) - ${targetDirectory}`);
-  debug(`cloneGitProject:targetDirectory(normalized target directory) - ${path.normalize(targetDirectory)}`);
+  debug(`gitClone:targetDirectory(unresolved target directory) - ${targetDirectory}`);
+  debug(`gitClone:targetDirectory(normalized target directory) - ${path.normalize(targetDirectory)}`);
   
   targetDirectory = path.resolve(path.normalize(targetDirectory));
-  debug(`cloneGitProject:targetDirectory(resolved target directory) - ${targetDirectory}`);
+  debug(`gitClone:targetDirectory(resolved target directory) - ${targetDirectory}`);
   debug(path.parse(targetDirectory));
 
   // Change the shell's working directory to the target directory. If an
@@ -101,6 +102,7 @@ export function cloneGitProject(gitRemoteUri:string, targetDirectory:string='.')
   // the target directory.  Now all we need to do is execute
   // `git clone` against the Git Remote URI to pull down the repo.
   try {
+    debug(`shell.exec('git clone ${gitRemoteUri}', {silent: true})`);
     debug(shell.exec(`git clone ${gitRemoteUri}`, {silent: true}));
   } catch (gitCloneError) {
     // If we get here, it's probably because the clone command is targeting
@@ -113,27 +115,139 @@ export function cloneGitProject(gitRemoteUri:string, targetDirectory:string='.')
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    setGitHelperDebug
- * @param       {boolean} debugStatus Set to TRUE to enable debug inside of
- *                                    git-helper functions.
- * @returns     {void}
+ * @function    gitInit
+ * @access      public
+ * @param       {string}      targetDirectory   Location where the git command will be run
+ * @returns     {void}        No return value. Will throw Error if any problems.
  * @version     1.0.0
- * @description Sets the value for debug.enabled inside git-helper.  Set TRUE
- *              to turn debug output on. Set FALSE to suppress debug output.
+ * @description Initializes Git at the location specified by targetDirectory.  Note that there are
+ *              no adverse effects if gitInit is called on the same location more than once.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function setGitHelperDebug(debugStatus:boolean) {
-  debug.enabled = debugStatus;
+export function gitInit(targetDirectory:string):void {
+  // Debug and input validation
+  debug(`gitInit:arguments\n%O\n`, arguments);
+  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+  }
+
+  // Change the shell's directory to the target directory.
+  debug(`shell.cd(${targetDirectory})`);
+  debug(shell.cd(targetDirectory));
+
+  // Execute the git init command
+  debug(`shell.exec('git init', {silent: true})`);
+  debug(shell.exec(`git init`, {silent: true}));
+
+  // Done
+  return;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    gitAddAndCommit
+ * @access      public
+ * @param       {string}      targetDirectory   Location where the git command will be run
+ * @param       {string}      commitMessage     String to be used as the commit message
+ * @returns     {void}        No return value. Will throw Error if any problems.
+ * @version     1.0.0
+ * @description Executes "git add -A" and "git commit" inside of the target directory.  For the
+ *              commit, it adds the message passed in via commitMessage.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function gitAddAndCommit(targetDirectory:string, commitMessage:string):void {
+  // Debug and input validation
+  debug(`gitAddAndCommit:arguments\n%O\n`, arguments);
+  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+  }
+  if (typeof commitMessage !== 'string' || commitMessage === '') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for commitMessage but got ${typeof commitMessage}`);
+  }
+
+  // Set shelljs config to throw exceptions on fatal errors.
+  shell.config.fatal = true;
+
+  // Change the shell's directory to the target directory.
+  debug(`shell.cd(${targetDirectory})`);
+  debug(shell.cd(targetDirectory));
+
+  // Stage all new and modified files
+  debug(`shell.exec('git add -A, {silent: true}`);
+  debug(shell.exec(`git add -A`, {silent: true}));
+
+  // Commit
+  debug(`shell.exec(git commit -m "${commitMessage}", {silent: true})`);
+  debug(shell.exec(`git commit -m "${commitMessage}"`, {silent: true}));
+
+  // Done
+  return;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    gitRemoteAddOrigin
+ * @access      public
+ * @param       {string}      targetDirectory   Location where the git command will be run
+ * @param       {string}      gitRemoteUri      ????
+ * @returns     {void}        No return value. Will throw Error if any problems.
+ * @version     1.0.0
+ * @description Executes "git remote add origin" inside of the target directory, connecting the
+ *              repo to the Remote specified by gitRemoteUri.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):void {
+  // Debug and input validation
+  debug(`gitRemoteAddOrigin:arguments\n%O\n`, arguments);
+  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+  }
+  if (typeof gitRemoteUri !== 'string' || gitRemoteUri === '') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for gitRemoteUri but got ${typeof gitRemoteUri}`);
+  }
+
+  // Set shelljs config to throw exceptions on fatal errors.
+  shell.config.fatal = true;
+
+  // Change the shell's directory to the target directory.
+  debug(`shell.cd(${targetDirectory})`);
+  debug(shell.cd(targetDirectory));
+
+  // Add the Git Remote
+  debug(`shell.exec('git remote add origin ${gitRemoteUri}', {silent: true})`);
+  debug(shell.exec(`git remote add origin ${gitRemoteUri}`, {silent: true}));
+
+  // Done
+  return;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    setGitHelperDebug
+ * @param       {boolean} debugStatus Set to TRUE to enable debug inside of git-helper functions
+ * @returns     {void}
+ * @version     1.0.0
+ * @description Sets the value for debug.enabled inside git-helper.  Set TRUE to turn debug output
+ *              on. Set FALSE to suppress debug output.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function setGitHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean) {
+  // Validate Input
+  if (typeof debugStatus !== 'boolean' || typeof debugAsyncStatus !== 'boolean') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected two boolean arguments but got ${typeof debugStatus}, ${typeof debugAsyncStatus}`);
+  }
+  // Enable or disable debug statuses for this file per the caller's values.
+  debug.enabled       = debugStatus;
+  debugAsync.enabled  = debugAsyncStatus;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    isGitInstalled
- * @returns     {boolean}       TRUE if Git is installed and available to the 
- *                              running user via the shell.
+ * @returns     {boolean}       TRUE if the Git executable is installed and available
  * @version     1.0.0
- * @description Determines if Git has been installed on the user's local machine
- *              and if the executable has been added to the path.
+ * @description Determines if Git has been installed on the user's local machine and if the
+ *              executable has been added to the path.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitInstalled():boolean {

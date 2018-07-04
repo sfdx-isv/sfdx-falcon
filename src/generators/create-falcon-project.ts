@@ -36,7 +36,7 @@ import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Ye
 // Requires
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
 const debug           = require('debug')('create-falcon-project');  // Utility for debugging. set debug.enabled = true to turn on.
-const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
+//const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
 
@@ -595,16 +595,11 @@ export default class CreateFalconProject extends Generator {
     this.writingComplete = true;
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Show an in-process Success Message. By "in-process", I mean that it's
-    // not being added to the list of GeneratorStatus messages.  It's just 
-    // being shown once, here.
+    // Show an in-process Success Message telling the user that we just created
+    // their project files.
     //─────────────────────────────────────────────────────────────────────────┘
-    uxHelper.printStatusMessage({
-      type:     'success',
-      title:    `Success`,
-      message:  `\nSFDX-Falcon project created at ${this.destinationRoot()}\n`
-    });
-
+    this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
+   
     //─────────────────────────────────────────────────────────────────────────┐
     // Add a message that the project creation was successful.
     //─────────────────────────────────────────────────────────────────────────┘
@@ -638,7 +633,7 @@ export default class CreateFalconProject extends Generator {
     // Check to see if Git is installed in the user's environment.  If it is,
     // move forward with initializing the project folder as a Git repo.
     //─────────────────────────────────────────────────────────────────────────┘
-    if (shell.which('git')) {
+    if (gitHelper.isGitInstalled() === true) {
       // Tell the user that we are adding their project to Git
       this.log(chalk`{blue Adding project to Git...}\n`)
     }
@@ -656,17 +651,9 @@ export default class CreateFalconProject extends Generator {
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Set shelljs config to throw exceptions on fatal errors.  We have to do
-    // this so that git commands that return fatal errors can have their output
-    // suppresed while the generator is running.
-    //─────────────────────────────────────────────────────────────────────────┘
-    debug(shell.config.fatal = true);
-
-    //─────────────────────────────────────────────────────────────────────────┐
     // Run git init to initialize the repo (no ill effects for reinitializing)
     //─────────────────────────────────────────────────────────────────────────┘
-    debug(shell.cd(this.destinationRoot()));
-    debug(shell.exec(`git init`, {silent: true}));
+    gitHelper.gitInit(this.destinationRoot());
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Git Initialization`,
@@ -677,8 +664,7 @@ export default class CreateFalconProject extends Generator {
     // Stage (add) all project files and make the initial commit.
     //─────────────────────────────────────────────────────────────────────────┘
     try {
-      debug(shell.exec(`git add -A`, {silent: true}));
-      debug(shell.exec(`git commit -m "Initial commit after running ${this.cliCommandName}"`, {silent: true}));
+      gitHelper.gitAddAndCommit(this.destinationRoot(), `Initial commit after running ${this.cliCommandName}`);
       this.generatorStatus.addMessage({
         type:     'success',
         title:    `Git Commit`,
@@ -700,7 +686,7 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     if (this.userAnswers.hasGitRemoteRepository === true) {
       try {
-        debug(shell.exec(`git remote add origin ${this.userAnswers.gitRemoteUri}`, {silent: true}));
+        gitHelper.gitRemoteAddOrigin(this.destinationRoot(), `${this.userAnswers.gitRemoteUri}`);
         this.generatorStatus.addMessage({
           type:     'success',
           title:    `Git Remote`,
@@ -720,6 +706,11 @@ export default class CreateFalconProject extends Generator {
 
     // Done with install()
     this.installComplete = allGitTasksSuccessful;
+
+    // Tell the user that we are adding their project to Git
+    this.log(chalk`{blue Git tasks complete}\n`)
+
+    // All done.
     return;
   }
 

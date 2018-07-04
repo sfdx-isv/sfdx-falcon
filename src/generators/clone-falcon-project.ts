@@ -520,7 +520,7 @@ export default class CloneFalconProject extends Generator {
 
     // Clone the Git Repository specified by gitRemoteUri into the target directory.
     try {
-      gitHelper.cloneGitProject(this.gitRemoteUri, this.userAnswers.targetDirectory);
+      gitHelper.gitClone(this.gitRemoteUri, this.userAnswers.targetDirectory);
     }
     catch (gitCloneError) {
       this.generatorStatus.abort({
