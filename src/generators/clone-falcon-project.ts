@@ -33,7 +33,6 @@ import *                as sfdxHelper from '../helpers/sfdx-helper';        // W
 import *                as yoHelper   from '../helpers/yeoman-helper';      // Why?
 
 // Requires
-const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 const chalk           = require('chalk');                                   // Utility for creating colorful console output.
 const debug           = require('debug')('clone-falcon-project');           // Utility for debugging. set debug.enabled = true to turn on.
 const debugAsync      = require('debug')('clone-falcon-project(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
@@ -42,6 +41,7 @@ const Listr           = require('listr');                                   // P
 const pad             = require('pad');                                     // Provides consistent spacing when trying to align console output.
 const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
+const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 
 // Interfaces
 interface InterviewAnswers {
@@ -50,13 +50,6 @@ interface InterviewAnswers {
   devHubAlias:      string;
   pkgOrgAlias:      string;
 };
-interface StatusMessages {
-  gitNotFound:      string;
-  projectCloned:    string;
-  commandCompleted: string;
-  commandAborted:   string;
-};
-
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -77,18 +70,18 @@ export default class CloneFalconProject extends Generator {
   private userAnswers:            InterviewAnswers;                 // Why?
   private defaultAnswers:         InterviewAnswers;                 // Why?
   private confirmationAnswers:    yoHelper.ConfirmationAnswers;     // Why?
-  private statusMessages:         StatusMessages;                   // Why?
-  private falconProjectSettings:  FalconProjectSettings;            // Why?
+//  private falconProjectSettings:  FalconProjectSettings;            // Why?
   private rawSfdxOrgList:         Array<any>;                       // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
   private devHubOrgInfos:         Array<sfdxHelper.SfdxOrgInfo>;    // Array of sfdxOrgInfo objects that only include DevHub orgs.
   private devHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of DevOrg aliases/usernames in the form of Yeoman choices.
 
   private gitRemoteUri:           string;                           // Why?
-  private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
-  private gitHubUser:             string | undefined;               // Why?
-  private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
-  private cloningComplete:        boolean;                          // Indicates that a project was successfully cloned to the local environment.
-  private abortYeomanProcess:     boolean;                          // Indicates that Yeoman's interview/installation process must be aborted.
+//  private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
+//  private gitHubUser:             string | undefined;               // Why?
+//  private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
+  private writingComplete:        boolean;                          // Indicates that the writing() function completed successfully.
+  private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
+//  private abortYeomanProcess:     boolean;                          // Indicates that Yeoman's interview/installation process must be aborted.
   private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
@@ -97,7 +90,7 @@ export default class CloneFalconProject extends Generator {
   // Constructor
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(args: any, opts: any) {
-    // Call the parent constructor to initialize the Generator.
+    // Call the parent constructor to initialize the Yeoman Generator.
     super(args, opts);
 
     // Set whether STANDARD debug is enabled or not.
@@ -115,10 +108,17 @@ export default class CloneFalconProject extends Generator {
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
     this.gitRemoteUri         = opts.gitRemoteUri;
-    this.cloningComplete      = false;
-    this.isGitAvailable       = false;
-    this.abortYeomanProcess   = true;
+    this.writingComplete      = false;
+    this.installComplete      = false;
+//    this.isGitAvailable       = false;
 
+    // Validate the gitRemoteUri.  If we throw an Error from here in the
+    // cosntructor, the Salesforce CLI will pick it up and send the message
+    // to the user
+    if (gitHelper.isGitUriValid(this.gitRemoteUri) === false) {
+      throw new Error('The value provided for GIT_REMOTE_URI is not a valid URI for a Git Remote');
+    }
+    
     // Initialize the Generator Status tracking object.
     this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
     this.generatorStatus.start();                 // Tells the Generator Status object that this Generator has started.
@@ -127,36 +127,25 @@ export default class CloneFalconProject extends Generator {
     this.userAnswers              = <InterviewAnswers>{};
     this.defaultAnswers           = <InterviewAnswers>{};
     this.confirmationAnswers      = <yoHelper.ConfirmationAnswers>{};
-    this.statusMessages           = <StatusMessages>{};
-    this.falconProjectSettings    = <FalconProjectSettings>{};
     this.devHubAliasChoices       = new Array<yoHelper.YeomanChoice>();
     this.devHubOrgInfos           = new Array<sfdxHelper.SfdxOrgInfo>();
 
     // Initialize DEFAULT Interview Answers.
     this.defaultAnswers.targetDirectory = path.resolve(opts.outputDir);
-    
-    // DEVTEST - Change back to original line before going live
-    //    this.defaultAnswers.gitRemoteUri      = 'https://github.com/my-org/my-repo.git'
-    //    this.defaultAnswers.gitRemoteUri      = 'https://github.com/VivekMChawla/apple-mango-test-1.git'
-    this.defaultAnswers.gitRemoteUri      = opts.gitRemoteUri;
+    this.defaultAnswers.gitRemoteUri    = opts.gitRemoteUri;
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed      = false;
     this.confirmationAnswers.restart      = true;
     this.confirmationAnswers.abort        = false;
 
-    // Initialize Status Message strings.
-//    this.statusMessages.projectCloned     = 'Project Cloned Successfully  : ';
-//    this.statusMessages.gitNotFound       = 'Could Not Initialize Git     : ';
-//    this.statusMessages.commandCompleted  = 'Command Complete             : ';
-//    this.statusMessages.commandAborted    = 'Command Aborted : ';
-
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // DEBUG
     debug('constructor:this.cliCommandName: %s',       this.cliCommandName);
-    debug('constructor:this.cloningComplete: %s',      this.cloningComplete);
+    debug('constructor:this.writingComplete: %s',      this.writingComplete);
+    debug('constructor:this.installComplete: %s',      this.installComplete);
     debug('constructor:this.userAnswers:\n%O',         this.userAnswers);
     debug('constructor:this.defaultAnswers:\n%O',      this.defaultAnswers);
     debug('constructor:this.confirmationAnswers:\n%O', this.confirmationAnswers);
@@ -177,6 +166,9 @@ export default class CloneFalconProject extends Generator {
     // 3. Please select the Dev Hub to use with this project? (options)
     //─────────────────────────────────────────────────────────────────────────┘
     return [
+      /*
+      // Removing this question from the interview because it should be locked
+      // to what the user provides as an argument to falcon:project:clone
       {
         type:     'input',
         name:     'gitRemoteUri',
@@ -187,15 +179,16 @@ export default class CloneFalconProject extends Generator {
         validate: validate.gitRemoteUri,
         when:     true
       },
+      //*/
       {
         type:     'input',
         name:     'targetDirectory',
-        message:  'Where do you want to clone this project to?',
+        message:  'What is the target directory for this project?',
         default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
                   ? this.userAnswers.targetDirectory                  // Current Value
                   : this.defaultAnswers.targetDirectory,              // Default Value
-        validate: validate.targetPath,
-        filter:   yoHelper.filterLocalPath,
+        validate: validate.targetPath,                                // Check targetPath for illegal chars
+        filter:   yoHelper.filterLocalPath,                           // Returns a Resolved path
         when:     true
       },
       {
@@ -219,18 +212,18 @@ export default class CloneFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     return [
       {
-        type: 'confirm',
-        name: 'proceed',
-        message: 'Create a new SFDX-Falcon project based on the above settings?',
-        default: this.confirmationAnswers.proceed,
-        when: true
+        type:     'confirm',
+        name:     'proceed',
+        message:  'Create a new SFDX-Falcon project based on the above settings?',
+        default:  this.confirmationAnswers.proceed,
+        when:     true
       },
       {
-        type: 'confirm',
-        name: 'restart',
-        message: 'Would you like to start again and enter new values?',
-        default: this.confirmationAnswers.restart,
-        when: yoHelper.doNotProceed
+        type:     'confirm',
+        name:     'restart',
+        message:  'Would you like to start again and enter new values?',
+        default:  this.confirmationAnswers.restart,
+        when:     yoHelper.doNotProceed
       }
     ];
   }
@@ -244,8 +237,8 @@ export default class CloneFalconProject extends Generator {
     let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
 
     // Main options (always visible).
+    tableData.push({option:'Git Remote URI:',   value:`${this.gitRemoteUri}`});
     tableData.push({option:'Target Directory:', value:`${this.userAnswers.targetDirectory}`});
-    tableData.push({option:'Git Remote URI:',   value:`${this.userAnswers.gitRemoteUri}`});
     tableData.push({option:'Dev Hub Alias:',    value:`${this.userAnswers.devHubAlias}`});
 
     // Add a line break before rendering the table.
@@ -257,20 +250,6 @@ export default class CloneFalconProject extends Generator {
     // Extra line break to give the next prompt breathing room.
     this.log('');
   }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Clone a Git project
-  //───────────────────────────────────────────────────────────────────────────┘
-  /*
-  private _cloneGitProject() {
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Set shelljs config to throw exceptions on fatal errors.  We have to do
-    // this so that git commands that return fatal errors can have their output
-    // suppresed while the generator is running.
-    //─────────────────────────────────────────────────────────────────────────┘
-    debug(`_cloneGitProject()-shell.config.fatal: ${shell.config.fatal}`);
-  }
-  //*/
 
   //─────────────────────────────────────────────────────────────────────────────┐
   /**
@@ -306,7 +285,6 @@ export default class CloneFalconProject extends Generator {
                   listrContext.gitIsInstalled = true;
                 }
                 else {
-                  this.isGitAvailable = false;
                   listrContext.gitIsInstalled = false;
                   thisTask.title += 'Not Found!';
                   throw new Error('GIT_NOT_FOUND');
@@ -441,35 +419,6 @@ export default class CloneFalconProject extends Generator {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
 
-    //DEVTEST
-    console.log('DEVTEST -- Repo Name: %s ', gitHelper.getRepoNameFromUri('https://github.com/sfdx-isv/name.git////sfdx-falcon-template.git//'));
-
-    //DEVTEST
-    /*
-    this.generatorStatus.addMessage({
-      type: 'info',
-      title:  'My Info Message',
-      message:  'This is my informational message.  Hooray!'
-    });
-    this.generatorStatus.addMessage({
-      type: 'error',
-      title:  'Error!',
-      message:  'This is my scary error message!'
-    });
-    this.generatorStatus.addMessage({
-      type: 'success',
-      title:  'WOHOO! We Did it! Here is how',
-      message:  'As you can tell, this is a success message'
-    });
-    this.generatorStatus.addMessage({
-      type: 'warning',
-      title:  'DANGER',
-      message:  'Danger, Will Robinson.  This is a warning message'
-    });
-    this.generatorStatus.printStatusMessages();
-    //*/
-
-
     // Execute the async Listr task runner for initialization.
     try {
       // Run the setup/init tasks for the falcon:project:clone command via Listr.
@@ -536,7 +485,6 @@ export default class CloneFalconProject extends Generator {
         message:  'falcon:project:clone command canceled by user'
       });
     }
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -565,6 +513,12 @@ export default class CloneFalconProject extends Generator {
       return;
     }
 
+    // Determine a number of Path/Git related strings required by this step.
+    const targetDirectory   = this.userAnswers.targetDirectory;
+    const gitRemoteUri      = this.gitRemoteUri;
+    const gitRepoName       = gitHelper.getRepoNameFromUri(gitRemoteUri);
+    const localProjectPath  = path.join(targetDirectory, gitRepoName);
+
     // Clone the Git Repository specified by gitRemoteUri into the target directory.
     try {
       gitHelper.cloneGitProject(this.gitRemoteUri, this.userAnswers.targetDirectory);
@@ -579,62 +533,52 @@ export default class CloneFalconProject extends Generator {
       return;
     }
 
-    // Show Success Message
+    // Show an in-process Success Message
+    // (we also add something similar to messages, below)
     uxHelper.printStatusMessage({
       type:     'success',
       title:    `Success`,
       message:  `Git repo cloned to ${this.userAnswers.targetDirectory}\n`
     });
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Figure out what the FINAL target directory is.  This should be the
-    // target directory plus the name of the Git repo.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Add a message that the cloning was successful.
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Project Cloned Successfully`,
+      message:  `Project cloned to ${this.destinationRoot()}`
+    });
 
+    // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
+    // Note: For falcon:project:clone the SOURCE and DESTINATION are the 
+    // same directory.
+    this.sourceRoot(localProjectPath);
 
-    // Tell Yeoman the path to DESTINATION (provided by user as targetDirectory).
-    this.destinationRoot(path.resolve(this.userAnswers.targetDirectory));
-
-
-    // Begin another Listr set for handling Git Cloning
-
+    // Set Yeoman's DESTINATION ROOT (where files will be copied TO
+    this.destinationRoot(localProjectPath);
 
     // DEBUG
     debug(`SOURCE PATH: ${this.sourceRoot()}`);
     debug(`DESTINATION PATH: ${this.destinationRoot()}`);
-
-
-
-
-
-
-
-    // Tell Yeoman the path to the SOURCE directory
-//    this.sourceRoot(path.dirname(this.sourceDirectory));
     
-
     //─────────────────────────────────────────────────────────────────────────┐
-    // Copy directories from source to target (except for sfdx-source).
+    // Using the USER'S dev-tools/templates/local-config-template.sh.ejs file
+    // as the source, make a customized copy as the dev-tools/lib/local-config.sh 
+    // settings file for this project.
     //─────────────────────────────────────────────────────────────────────────┘
-    /*
-    this.fs.copyTpl(this.templatePath('.npmignore'),                
-                    this.destinationPath('.gitignore'), 
+    this.fs.copyTpl(this.templatePath('dev-tools/templates/local-config-template.sh.ejs'),
+                    this.destinationPath('dev-tools/lib/local-config.sh'),
                     this);
-    this.fs.copyTpl(this.templatePath('config/.npmignore'),
-                    this.destinationPath('config/.gitignore'),  
-                    this);
-    this.fs.copyTpl(this.templatePath('dev-tools/.npmignore'),
-                    this.destinationPath('dev-tools/.gitignore'),  
-                    this);
-    this.fs.copyTpl(this.templatePath('mdapi-source/.npmignore'),
-                    this.destinationPath('mdapi-source/.gitignore'),
-                    this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/aura/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.userAnswers.namespacePrefix}/main/default/aura/.gitignore`),
-                    this);
-    //*/
+
+    // Add a success message
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Local Config Created`,
+      message:  `dev-tools/lib/local-config.sh created and customized successfully`
+    });
+              
     // Mark the cloning step as complete.
-    this.cloningComplete = true;
+    this.installComplete = true;
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -650,82 +594,16 @@ export default class CloneFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┐
     // Check if installation (file writes) were completed and inform user. If
     // not, return now to skip the Git init and remote config steps.
+    // NOTE: Nothing is needed here.  Keeping this as an example of what 
+    // should be used here if we needed to do post-write tasks.
     //─────────────────────────────────────────────────────────────────────────┘
-    if (this.cloningComplete === true) {
-      this.generatorStatus.addMessage({
-        type:     'success',
-        title:    `Project Cloned Successfully`,
-        message:  `Project cloned to ${this.destinationRoot()}`
-      });
-//      this.log(chalk`\n{bold ${this.statusMessages.projectCloned}}{green ${this.destinationRoot()}}`);
+    if (this.installComplete === true) {
+      // Do something
     }
     else {
+      // Do nothing
       return;
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // If the user did not want to initialize Git, end installation here.
-    //─────────────────────────────────────────────────────────────────────────┘
-/*
-    if (this.userAnswers.isInitializingGit !== true) {
-      return;
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Check to see if Git is installed in the user's environment.  If it is,
-    // move forward with initializing the project folder as a Git repo.
-    //─────────────────────────────────────────────────────────────────────────┘
-    if (shell.which('git')) {
-      this.log(chalk`{bold ${this.statusMessages.gitInitialized}}{green Repository created successfully (${this.userAnswers.projectName})}`);
-    }
-    else {
-      this.log(chalk`{bold ${this.statusMessages.gitInitialized}}{red git executable not found in your environment}`);
-      return;
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Set shelljs config to throw exceptions on fatal errors.  We have to do
-    // this so that git commands that return fatal errors can have their output
-    // suppresed while the generator is running.
-    //─────────────────────────────────────────────────────────────────────────┘
-    debug(shell.config.fatal = true);
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Run git init to initialize the repo (no ill effects for reinitializing)
-    //─────────────────────────────────────────────────────────────────────────┘
-    debug(shell.cd(this.destinationRoot()));
-    debug(shell.exec(`git init`, {silent: true}));
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Stage (add) all project files and make the initial commit.
-    //─────────────────────────────────────────────────────────────────────────┘
-    try {
-      debug(shell.exec(`git add -A`, {silent: true}));
-      debug(shell.exec(`git commit -m "Initial commit after running ${this.cliCommandName}"`, {silent: true}));
-      this.log(chalk`{bold ${this.statusMessages.gitInitialCommit}}{green Staged SFDX-Falcon project files and executed initial commit}`);
-    } catch (err) {
-      debug(err);
-      this.log(chalk`{bold ${this.statusMessages.gitInitFailed}}{yellow Attempt to stage and commit project files failed - Nothing to commit}`);
-    }
-    
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // If the user specified a Git Remote, add it as "origin".
-    //─────────────────────────────────────────────────────────────────────────┘
-    if (this.userAnswers.hasGitRemoteRepository === true) {
-      try {
-        debug(shell.exec(`git remote add origin ${this.userAnswers.gitRemoteUri}`, {silent: true}));
-        this.log(chalk`{bold ${this.statusMessages.gitRemoteAdded}}{green Remote repository ${this.userAnswers.gitRemoteUri} added as "origin"}`);
-      } catch (err) {
-        debug(err);
-        this.log(chalk`{bold ${this.statusMessages.gitRemoteFailed}}{red Could not add Git Remote - A remote named "origin" already exists}`);
-      }  
-    }
-    else {
-      return;
-    }
-//*/
-    
+    }    
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -734,7 +612,8 @@ export default class CloneFalconProject extends Generator {
   private end() {
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside writing()`);
+      debug(`generatorStatus.aborted found as TRUE inside end()`);
+      // Add a final error message
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
@@ -744,7 +623,7 @@ export default class CloneFalconProject extends Generator {
     }
 
     // If we get here, then it's POSSIBLE that the command completed successfully.
-    if (this.cloningComplete === true) {
+    if (this.installComplete === true) {
       // Installation succeeded
       this.generatorStatus.complete([
         {

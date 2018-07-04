@@ -22,8 +22,9 @@ const debugAsync  = require('debug')('git-helper(ASYNC)');  // Utility for debug
 const shell       = require('shelljs');                     // Cross-platform shell access - use for setting up Git repo.
 
 // File Globals
-const repoNameRegEx = /\/(\w|-)+\.git\/*$/gm;
-const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:/\-~]+)(\.git)(\/)?/gm;
+// These RegEx Patterns can be inspected/tested at https://regex101.com/r/VuVsfJ/3
+const repoNameRegEx = /\/(\w|-)+\.git\/*$/;
+const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?$/;
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Initialize debug settings.  These should be set FALSE to give the caller
@@ -331,9 +332,13 @@ export function isGitUriValid(gitRemoteUri:string):boolean {
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
+  // DEVTEST
+  debug(gitUriRegEx.test(gitRemoteUri));
+  debug(gitUriRegEx.test(gitRemoteUri));
+  debug('-\n-\n-\n-');
 
-  // Run the gitUriRegEx. Anything other than ONE result should be an error.
-  return (gitUriRegEx.exec(gitRemoteUri).length === 1);
+  // Test against the gitUriRegEx.
+  return (gitUriRegEx.test(gitRemoteUri));
 }
 
 

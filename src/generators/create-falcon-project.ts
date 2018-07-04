@@ -26,15 +26,18 @@
 // tslint:disable no-console
 
 // Imports
-import * as fs                        from 'fs';                    // Used for file system operations.
-import * as path                      from 'path';                  // Helps resolve local paths at runtime.
-import * as Generator                 from 'yeoman-generator';      // Generator class must extend this.
-import * as validate                  from '../validators/yeoman';  // Shared validation library for Yeoman interview inputs.
-import * as uxHelper                  from '../helpers/ux-helper';  // Library of UX Helper functions specific to SFDX-Falcon.
+//import * as fs              from 'fs';                              // Used for file system operations.
+import * as path            from 'path';                            // Helps resolve local paths at runtime.
+import * as Generator       from 'yeoman-generator';                // Generator class must extend this.
+import * as validate        from '../validators/yeoman';            // Shared validation library for Yeoman interview inputs.
+import * as uxHelper        from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper       from '../helpers/git-helper';           // Why?
+import * as sfdxHelper      from '../helpers/sfdx-helper';          // Why?
+import * as yoHelper        from '../helpers/yeoman-helper';        // Why?
 
 // Requires
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
-const debug           = require('debug')('falcon:project:create');  // Utility for debugging. set debug.enabled = true to turn on.
+const debug           = require('debug')('create-falcon-project');  // Utility for debugging. set debug.enabled = true to turn on.
 const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
@@ -54,21 +57,6 @@ interface interviewAnswers {
   hasGitRemoteRepository: boolean;
   gitRemoteUri: string;
 };
-interface confirmationAnswers {
-  proceedWithInstall: boolean;
-  restartInterview: boolean;
-};
-interface statusMessages {
-  projectCreated:   string;
-  gitNotFound:      string;
-  gitInitialized:   string;
-  gitInitialCommit: string;
-  gitInitFailed:    string;
-  gitRemoteAdded:   string;
-  gitRemoteFailed:  string;
-  commandCompleted: string;
-  commandAborted:   string;
-};
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -87,82 +75,76 @@ export default class CreateFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
-  private interviewAnswers:     interviewAnswers;
-  private interviewDefaults:    interviewAnswers;
-  private confirmationAnswers:  confirmationAnswers;
-  private statusMessages:       statusMessages;
+  private userAnswers:          interviewAnswers;                     // Why?
+  private defaultAnswers:       interviewAnswers;                     // Why?
+  private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
   
-  private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
-  private gitHubUser:           string | undefined;                   // Why?
-  private installationComplete: boolean;                              // Indicates that project installation is complete.
+  private writingComplete:      boolean;                              // Indicates that the writing() function completed successfully.
+  private installComplete:      boolean;                              // Indicates that the install() function completed successfully.
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
-  private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
   private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
+  private generatorStatus:      yoHelper.GeneratorStatus;             // Used to keep track of status and to return messages to the caller.
+  private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
+
+  // TODO: Can this be moved to the constructor?
+  private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Constructor
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(args: any, opts: any) {
-    // Call the parent constructor to initialize the Generator.
+    // Call the parent constructor to initialize the Yeoman Generator.
     super(args, opts);
 
     // Set whether debug is enabled or disabled.
     debug.enabled = opts.debugMode;
-    debug(`opts.debugMode: ${opts.debugMode}`);
+    debug(`constructor:opts.debugMode: ${opts.debugMode}`);
 
     // Initialize simple class members.
-    this.installationComplete = false;
     this.cliCommandName       = opts.commandName;
-    this.pluginVersion        = version;
+    this.writingComplete      = false;
+    this.installComplete      = false;
+    this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
     this.sourceDirectory      = require.resolve('sfdx-falcon-template');
 
-    // Initialize the interview and confirmation answers objects.
-    this.interviewAnswers     = new Object() as interviewAnswers;
-    this.interviewDefaults    = new Object() as interviewAnswers;
-    this.confirmationAnswers  = new Object() as confirmationAnswers;
-    this.statusMessages       = new Object() as statusMessages;
+    // Initialize the Generator Status tracking object.
+    this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
+    this.generatorStatus.start();                 // Tells the Generator Status object that this Generator has started.
 
-    // Initialize properties for Interview Answers.
-    this.interviewAnswers.targetDirectory = path.resolve(opts.outputdir);
+    // Initialize the interview and confirmation answers objects.
+    this.userAnswers          = <interviewAnswers>{};
+    this.defaultAnswers       = <interviewAnswers>{};
+    this.confirmationAnswers  = <yoHelper.ConfirmationAnswers>{};
 
     // Initialize DEFAULT Interview Answers.
-    this.interviewDefaults.projectName                = 'my-sfdx-falcon-project';
-    this.interviewDefaults.projectType                = 'managed1gp';
-    this.interviewDefaults.targetDirectory            = path.resolve('.');
-    this.interviewDefaults.isCreatingManagedPackage   = true;
-    this.interviewDefaults.namespacePrefix            = 'my_ns_prefix';
-    this.interviewDefaults.packageName                = 'My Managed Package';
-    this.interviewDefaults.packageDirectory           = 'force-app';
-    this.interviewDefaults.metadataPackageId          = '033000000000000';
-    this.interviewDefaults.packageVersionId           = '04t000000000000';
-    this.interviewDefaults.isInitializingGit          = true;
-    this.interviewDefaults.hasGitRemoteRepository     = true;
-    this.interviewDefaults.gitRemoteUri               = 'https://github.com/my-org/my-repo.git';
+    this.defaultAnswers.projectName                 = 'my-sfdx-falcon-project';
+    this.defaultAnswers.projectType                 = 'managed1gp';
+    this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
+    this.defaultAnswers.isCreatingManagedPackage    = true;
+    this.defaultAnswers.namespacePrefix             = 'my_ns_prefix';
+    this.defaultAnswers.packageName                 = 'My Managed Package';
+    this.defaultAnswers.packageDirectory            = 'force-app';
+    this.defaultAnswers.metadataPackageId           = '033000000000000';
+    this.defaultAnswers.packageVersionId            = '04t000000000000';
+    this.defaultAnswers.isInitializingGit           = true;
+    this.defaultAnswers.hasGitRemoteRepository      = true;
+    this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
 
     // Initialize properties for Confirmation Answers.
-    this.confirmationAnswers.proceedWithInstall       = false;
-    this.confirmationAnswers.restartInterview         = true;
-
-    // Initialize status message strings.
-    this.statusMessages.projectCreated    = 'SFDX-Falcon Project Created  : ';
-    this.statusMessages.gitNotFound       = 'Could Not Initialize Git     : ';
-    this.statusMessages.gitInitialized    = 'Initializing Git Repository  : ';
-    this.statusMessages.gitInitialCommit  = 'Making Initial Git Commit    : ';
-    this.statusMessages.gitInitFailed     = 'Failed to Execute Git Commit : ';
-    this.statusMessages.gitRemoteAdded    = 'Adding Upstream Git Remote   : ';
-    this.statusMessages.gitRemoteFailed   = 'Failed to Add Git Remote     : ';
-    this.statusMessages.commandCompleted  = 'Command Complete             : ';
-    this.statusMessages.commandAborted    = 'Command Aborted              : ';
+    this.confirmationAnswers.proceed                = false;
+    this.confirmationAnswers.restart                = true;
+    this.confirmationAnswers.abort                  = false;
 
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
     // DEBUG
-    debug('cliCommandName (CONSTRUCTOR): %s', this.cliCommandName);
-    debug('installationComplete (CONSTRUCTOR): %s', this.installationComplete);
-    debug('interviewAnswers (CONSTRUCTOR):\n%O', this.interviewAnswers);
-    debug('interviewDefaults (CONSTRUCTOR):\n%O', this.interviewDefaults);
-    debug('confirmationAnswers (CONSTRUCTOR):\n%O', this.confirmationAnswers);
+    debug('constructor:cliCommandName: %s',       this.cliCommandName);
+    debug('constructor:installComplete: %s',      this.installComplete);
+    debug('constructor:userAnswers:\n%O',         this.userAnswers);
+    debug('constructor:defaultAnswers:\n%O',      this.defaultAnswers);
+    debug('constructor:confirmationAnswers:\n%O', this.confirmationAnswers);
+    debug('constructor:pluginVersion: %s',        this.pluginVersion);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -187,13 +169,6 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Check proceedWithInstall answer (boolean check)
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _doNotProceedWithInstall(answerHash) {
-    return ! answerHash.proceedWithInstall;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
   // Initialize interview questions.  May be called more than once to allow
   // default values to be set based on the previously set answers.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -213,9 +188,9 @@ export default class CreateFalconProject extends Generator {
         type:     'input',
         name:     'projectName',
         message:  'What is the name of your project?',
-        default:  ( typeof this.interviewAnswers.projectName !== 'undefined' )
-                  ? this.interviewAnswers.projectName                   // Current Value
-                  : this.interviewDefaults.projectName,                 // Default Value
+        default:  ( typeof this.userAnswers.projectName !== 'undefined' )
+                  ? this.userAnswers.projectName                    // Current Value
+                  : this.defaultAnswers.projectName,                // Default Value
         validate: validate.projectName,
         when:     true
       },
@@ -223,9 +198,9 @@ export default class CreateFalconProject extends Generator {
         type:     'input',
         name:     'targetDirectory',
         message:  'Where do you want to create your project?',
-        default:  ( typeof this.interviewAnswers.targetDirectory !== 'undefined' )
-                  ? this.interviewAnswers.targetDirectory               // Current Value
-                  : this.interviewDefaults.targetDirectory,             // Default Value
+        default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
+                  ? this.userAnswers.targetDirectory                // Current Value
+                  : this.defaultAnswers.targetDirectory,            // Default Value
         validate: validate.targetPath,
         when:     true
       },
@@ -233,18 +208,18 @@ export default class CreateFalconProject extends Generator {
         type:     'confirm',
         name:     'isCreatingManagedPackage',
         message:  'Are you building a managed package?',
-        default:  ( typeof this.interviewAnswers.isCreatingManagedPackage !== 'undefined' )
-                  ? this.interviewAnswers.isCreatingManagedPackage      // Current Value
-                  : this.interviewDefaults.isCreatingManagedPackage,    // Default Value
+        default:  ( typeof this.userAnswers.isCreatingManagedPackage !== 'undefined' )
+                  ? this.userAnswers.isCreatingManagedPackage       // Current Value
+                  : this.defaultAnswers.isCreatingManagedPackage,   // Default Value
         when:     true
       },
       {
         type:     'input',
         name:     'namespacePrefix',
         message:  'What is the namespace prefix for your managed package?',
-        default:  ( typeof this.interviewAnswers.namespacePrefix !== 'undefined' )
-                  ? this.interviewAnswers.namespacePrefix               // Current Value
-                  : this.interviewDefaults.namespacePrefix,             // Default Value
+        default:  ( typeof this.userAnswers.namespacePrefix !== 'undefined' )
+                  ? this.userAnswers.namespacePrefix                // Current Value
+                  : this.defaultAnswers.namespacePrefix,            // Default Value
         validate: validate.namespacePrefix,
         when:     this._isCreatingManagedPackage
       },
@@ -252,18 +227,18 @@ export default class CreateFalconProject extends Generator {
         type:     'input',
         name:     'packageName',
         message:  'What is the name of your package?',
-        default:  ( typeof this.interviewAnswers.packageName !== 'undefined' )
-                  ? this.interviewAnswers.packageName                   // Current Value
-                  : this.interviewDefaults.packageName,                 // Default Value
+        default:  ( typeof this.userAnswers.packageName !== 'undefined' )
+                  ? this.userAnswers.packageName                    // Current Value
+                  : this.defaultAnswers.packageName,                // Default Value
         when:     this._isCreatingManagedPackage
       },
       {
         type:     'input',
         name:     'metadataPackageId',
         message:  'What is the Metadata Package ID (033) of your package?',
-        default:  ( typeof this.interviewAnswers.metadataPackageId !== 'undefined' )
-                  ? this.interviewAnswers.metadataPackageId             // Current Value
-                  : this.interviewDefaults.metadataPackageId,           // Default Value
+        default:  ( typeof this.userAnswers.metadataPackageId !== 'undefined' )
+                  ? this.userAnswers.metadataPackageId              // Current Value
+                  : this.defaultAnswers.metadataPackageId,          // Default Value
         validate: validate.metadataPackageId,
         when:     this._isCreatingManagedPackage
       },
@@ -271,9 +246,9 @@ export default class CreateFalconProject extends Generator {
         type:     'input',
         name:     'packageVersionId',
         message:  'What is the Package Version ID (04t) of your most recent release?',
-        default:  ( typeof this.interviewAnswers.packageVersionId !== 'undefined' )
-                  ? this.interviewAnswers.packageVersionId              // Current Value
-                  : this.interviewDefaults.packageVersionId,            // Default Value
+        default:  ( typeof this.userAnswers.packageVersionId !== 'undefined' )
+                  ? this.userAnswers.packageVersionId               // Current Value
+                  : this.defaultAnswers.packageVersionId,           // Default Value
         validate: validate.packageVersionId,
         when:     this._isCreatingManagedPackage
       },
@@ -281,27 +256,27 @@ export default class CreateFalconProject extends Generator {
         type:     'confirm',
         name:     'isInitializingGit',
         message:  'Would you like to initialize Git for this project? (RECOMMENDED)',
-        default:  ( typeof this.interviewAnswers.isInitializingGit !== 'undefined' )
-                  ? this.interviewAnswers.isInitializingGit             // Current Value
-                  : this.interviewDefaults.isInitializingGit,           // Default Value
+        default:  ( typeof this.userAnswers.isInitializingGit !== 'undefined' )
+                  ? this.userAnswers.isInitializingGit              // Current Value
+                  : this.defaultAnswers.isInitializingGit,          // Default Value
         when:     true
       },      
       {
         type:     'confirm',
         name:     'hasGitRemoteRepository',
         message:  'Have you created a Git Remote (eg. GitHub/BitBucket repo) for this project?',
-        default:  ( typeof this.interviewAnswers.hasGitRemoteRepository !== 'undefined' )
-                  ? this.interviewAnswers.hasGitRemoteRepository        // Current Value
-                  : this.interviewDefaults.hasGitRemoteRepository,      // Default Value
+        default:  ( typeof this.userAnswers.hasGitRemoteRepository !== 'undefined' )
+                  ? this.userAnswers.hasGitRemoteRepository         // Current Value
+                  : this.defaultAnswers.hasGitRemoteRepository,     // Default Value
         when:     this._isInitializingGit
       },
       {
         type:     'input',
         name:     'gitRemoteUri',
         message:  'What is the URI of your Git Remote?',
-        default:  ( typeof this.interviewAnswers.gitRemoteUri !== 'undefined' )
-                  ? this.interviewAnswers.gitRemoteUri                  // Current Value
-                  : this.interviewDefaults.gitRemoteUri,                // Default Value
+        default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
+                  ? this.userAnswers.gitRemoteUri                   // Current Value
+                  : this.defaultAnswers.gitRemoteUri,               // Default Value
         validate: validate.gitRemoteUri,
         when:     this._hasGitRemoteRepository
       }
@@ -319,18 +294,18 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     return [
       {
-        type: 'confirm',
-        name: 'proceedWithInstall',
-        message: 'Create a new SFDX-Falcon project based on the above settings?',
-        default: this.confirmationAnswers.proceedWithInstall,
-        when: true
+        type:     'confirm',
+        name:     'proceed',
+        message:  'Create a new SFDX-Falcon project based on the above settings?',
+        default:  this.confirmationAnswers.proceed,
+        when:     true
       },
       {
-        type: 'confirm',
-        name: 'restartInterview',
-        message: 'Would you like to start again and enter new values?',
-        default: this.confirmationAnswers.restartInterview,
-        when: this._doNotProceedWithInstall
+        type:     'confirm',
+        name:     'restart',
+        message:  'Would you like to start again and enter new values?',
+        default:  this.confirmationAnswers.restart,
+        when:     yoHelper.doNotProceed
       },
     ];
   }
@@ -344,26 +319,26 @@ export default class CreateFalconProject extends Generator {
     let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
 
     // Main options (always visible).
-    tableData.push({option:'Project Name:',           value:`${this.interviewAnswers.projectName}`});
-    tableData.push({option:'Target Directory:',       value:`${this.interviewAnswers.targetDirectory}`});
-    tableData.push({option:'Building Packaged App:',  value:`${this.interviewAnswers.isCreatingManagedPackage}`});
+    tableData.push({option:'Project Name:',           value:`${this.userAnswers.projectName}`});
+    tableData.push({option:'Target Directory:',       value:`${this.userAnswers.targetDirectory}`});
+    tableData.push({option:'Building Packaged App:',  value:`${this.userAnswers.isCreatingManagedPackage}`});
 
     // Managed package options (sometimes visible).
-    if (this.interviewAnswers.isCreatingManagedPackage) {
-      tableData.push({option:'Namespace Prefix:',       value:`${this.interviewAnswers.namespacePrefix}`});
-      tableData.push({option:'Package Name:',           value:`${this.interviewAnswers.packageName}`});
-      tableData.push({option:'Metadata Package ID:',    value:`${this.interviewAnswers.metadataPackageId}`});
-      tableData.push({option:'Package Version ID:',     value:`${this.interviewAnswers.packageVersionId}`});
+    if (this.userAnswers.isCreatingManagedPackage) {
+      tableData.push({option:'Namespace Prefix:',       value:`${this.userAnswers.namespacePrefix}`});
+      tableData.push({option:'Package Name:',           value:`${this.userAnswers.packageName}`});
+      tableData.push({option:'Metadata Package ID:',    value:`${this.userAnswers.metadataPackageId}`});
+      tableData.push({option:'Package Version ID:',     value:`${this.userAnswers.packageVersionId}`});
     }
 
     // Git initialzation option (always visible).
-    tableData.push({option:'Initialize Git Repo:',    value:`${this.interviewAnswers.isInitializingGit}`});
+    tableData.push({option:'Initialize Git Repo:',    value:`${this.userAnswers.isInitializingGit}`});
 
     // Git init and remote options (sometimes visible).
-    if (this.interviewAnswers.isInitializingGit) {
-      tableData.push({option:'Has Git Remote:', value:`${this.interviewAnswers.hasGitRemoteRepository}`});
-      if (this.interviewAnswers.gitRemoteUri) {
-        tableData.push({option:'Git Remote URI:', value:`${this.interviewAnswers.gitRemoteUri}`});
+    if (this.userAnswers.isInitializingGit) {
+      tableData.push({option:'Has Git Remote:', value:`${this.userAnswers.hasGitRemoteRepository}`});
+      if (this.userAnswers.gitRemoteUri) {
+        tableData.push({option:'Git Remote URI:', value:`${this.userAnswers.gitRemoteUri}`});
       }
     }
 
@@ -388,23 +363,29 @@ export default class CreateFalconProject extends Generator {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
 
-    // Get the current user's GitHub username (if present).
-    this.gitHubUser = await this.user.github.username().catch(debug);
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside prompting()`);
+      return;
+    }
+
+    // Start the interview loop.  This will ask the user questions until they
+    // verify they want to take action based on the info they provided, or 
+    // they deciede to cancel the whole process.
     do {
       // Initialize interview questions.
       let interviewQuestions = this._initializeInterviewQuestions();
 
       // Tell Yeoman to start prompting the user.
-      debug('interviewAnswers (PRE-PROMPT):\n%O', this.interviewAnswers);
-      this.interviewAnswers = await this.prompt(interviewQuestions) as any;
-      debug('interviewAnswers (POST-PROMPT):\n%O', this.interviewAnswers);
+      debug('userAnswers (PRE-PROMPT):\n%O', this.userAnswers);
+      this.userAnswers = await this.prompt(interviewQuestions) as any;
+      debug('userAnswers (POST-PROMPT):\n%O', this.userAnswers);
 
       // Display the answers provided during the interview
       this._displayInterviewAnswers();
@@ -421,38 +402,46 @@ export default class CreateFalconProject extends Generator {
       // DEBUG
       debug('confirmationAnswers (POST-PROMPT):\n%O', this.confirmationAnswers);
       
-    } while (this.confirmationAnswers.restartInterview === true);
+    } while (this.confirmationAnswers.restart === true);
 
+    // Check if the user decided to proceed with the install.  If not, abort.
+    if (this.confirmationAnswers.proceed !== true) {
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Command Aborted',
+        message:  'falcon:project:create command canceled by user'
+      });
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
-    // Check if the user decided to NOT proceed with the install.
-    if (this.confirmationAnswers.proceedWithInstall !== true) {
-      this.installationComplete = false;
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside configuring()`);
       return;
     }
 
     // Determine the name to use for the default Package Directory.
-    if (this.interviewAnswers.isCreatingManagedPackage === true) {
+    if (this.userAnswers.isCreatingManagedPackage === true) {
       // Managed package, so use the namespace prefix.
-      this.interviewAnswers.packageDirectory  = this.interviewAnswers.namespacePrefix;
-      this.interviewAnswers.projectType       = 'managed1gp';
+      this.userAnswers.packageDirectory  = this.userAnswers.namespacePrefix;
+      this.userAnswers.projectType       = 'managed1gp';
     }
     else {
       // NOT a managed package, so use the default value.
-      this.interviewAnswers.packageDirectory = this.interviewDefaults.packageDirectory;
-      this.interviewAnswers.projectType       = 'unmanaged';
+      this.userAnswers.packageDirectory = this.defaultAnswers.packageDirectory;
+      this.userAnswers.projectType       = 'unmanaged';
     }
 
     // Tell Yeoman the path to the SOURCE directory
     this.sourceRoot(path.dirname(this.sourceDirectory));
 
     // Tell Yeoman the path to DESTINATION (join of targetDir and project name)
-    this.destinationRoot(path.resolve(this.interviewAnswers.targetDirectory, 
-                                      this.interviewAnswers.projectName));
+    this.destinationRoot(path.resolve(this.userAnswers.targetDirectory, 
+                                      this.userAnswers.projectName));
 
     // DEBUG
     debug(`SOURCE PATH: ${this.sourceRoot()}`);
@@ -463,12 +452,28 @@ export default class CreateFalconProject extends Generator {
   // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
-
-    // Check if the user decided to NOT proceed with the install.
-    if (this.confirmationAnswers.proceedWithInstall !== true) {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside writing()`);
       return;
     }
     
+    // Tell the user that we are preparing to create their project.
+    this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`)
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // *** IMPORTANT: READ CAREFULLY ******************************************
+    // ALL of the fs.copyTpl() functions below are ASYNC.  Once we start calling
+    // them we have no guarantee of synchronous execution until AFTER the
+    // all of the copyTpl() functions resolve and the Yeoman Invoker decides to
+    // call the install() function.
+    //
+    // If there are any problems with the file system operations carried out by
+    // each copyTpl() function, or if the user chooses to ABORT rather than 
+    // overwrite or ignore a file conflict, an error is thrown inside Yeoman
+    // and the CLI plugin command will terminate with an uncaught fatal error.
+    //─────────────────────────────────────────────────────────────────────────┘
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Copy directories from source to target (except for sfdx-source).
     //─────────────────────────────────────────────────────────────────────────┘
@@ -515,7 +520,7 @@ export default class CreateFalconProject extends Generator {
     // Copy files and folders from sfdx-source.
     //─────────────────────────────────────────────────────────────────────────┘
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}`),
                     this);
                     this.fs.copyTpl(this.templatePath('sfdx-source/unpackaged'),
                     this.destinationPath('sfdx-source/unpackaged'),
@@ -540,72 +545,112 @@ export default class CreateFalconProject extends Generator {
                     this.destinationPath('mdapi-source/.gitignore'),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/aura/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/aura/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/aura/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/classes/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/classes/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/classes/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/layouts/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/layouts/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/layouts/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/objects/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/objects/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/objects/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/permissionsets/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/permissionsets/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/permissionsets/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/profiles/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/profiles/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/profiles/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/remoteSiteSettings/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/remoteSiteSettings/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/remoteSiteSettings/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/tabs/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/tabs/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/tabs/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/triggers/.npmignore'),
-                    this.destinationPath(`sfdx-source/${this.interviewAnswers.packageDirectory}/main/default/triggers/.gitignore`),
+                    this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/triggers/.gitignore`),
                     this);
     this.fs.copyTpl(this.templatePath('temp/.npmignore'),
                     this.destinationPath('temp/.gitignore'),
                     this);
-
-    // Mark the installation as complete.
-    this.installationComplete = true;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Check if installation (file writes) were completed and inform user. If
-    // not, return now to skip the Git init and remote config steps.
-    //─────────────────────────────────────────────────────────────────────────┘
-    if (this.installationComplete === true) {
-      this.log(chalk`\n{bold ${this.statusMessages.projectCreated}}{green ${this.destinationRoot()}}`);
-    }
-    else {
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside install()`);
       return;
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // If the user did not want to initialize Git, end installation here.
+    // If code execution gets here, it means that ALL of the fs.copyTpl() calls
+    // from the writing() function completed successfully.  This means that we
+    // can consider the write operation successful.
     //─────────────────────────────────────────────────────────────────────────┘
-    if (this.interviewAnswers.isInitializingGit !== true) {
+    this.writingComplete = true;
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Show an in-process Success Message. By "in-process", I mean that it's
+    // not being added to the list of GeneratorStatus messages.  It's just 
+    // being shown once, here.
+    //─────────────────────────────────────────────────────────────────────────┘
+    uxHelper.printStatusMessage({
+      type:     'success',
+      title:    `Success`,
+      message:  `\nSFDX-Falcon project created at ${this.destinationRoot()}\n`
+    });
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Add a message that the project creation was successful.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Project Creation`,
+      message:  `Success - Project created at ${this.destinationRoot()}`
+    });
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // The only remaining tasks all have to do with Git.  If the user indicated
+    // that they did not want to initialize Git, we can end installation here.
+    //─────────────────────────────────────────────────────────────────────────┘
+    if (this.userAnswers.isInitializingGit !== true) {
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Git Initialization`,
+        message:  `Skipped - Run "git init" at the root of your project directory to initialize Git`
+      });  
+      this.installComplete = true;
       return;
     }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Use this varialbe to track whether or not ALL of the Git tasks that are
+    // about to run complete without errors or warnings.
+    //─────────────────────────────────────────────────────────────────────────┘
+    let allGitTasksSuccessful = true;
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Check to see if Git is installed in the user's environment.  If it is,
     // move forward with initializing the project folder as a Git repo.
     //─────────────────────────────────────────────────────────────────────────┘
     if (shell.which('git')) {
-      this.log(chalk`{bold ${this.statusMessages.gitInitialized}}{green Repository created successfully (${this.interviewAnswers.projectName})}`);
+      // Tell the user that we are adding their project to Git
+      this.log(chalk`{blue Adding project to Git...}\n`)
     }
     else {
-      this.log(chalk`{bold ${this.statusMessages.gitInitialized}}{red git executable not found in your environment}`);
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Initializing Git`,
+        message:  `Warning - git executable not found in your environment - no Git operations attempted`
+      });
+      // The user wanted to initialize Git, but the Git executables wasn't 
+      // present in their environment. Mark installComplete to false so 
+      // the user will get a special closing message.
+      this.installComplete = false;
       return;
     }
 
@@ -621,6 +666,11 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     debug(shell.cd(this.destinationRoot()));
     debug(shell.exec(`git init`, {silent: true}));
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Git Initialization`,
+      message:  `Success - Repository created successfully (${this.userAnswers.projectName})`
+    });
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Stage (add) all project files and make the initial commit.
@@ -628,41 +678,79 @@ export default class CreateFalconProject extends Generator {
     try {
       debug(shell.exec(`git add -A`, {silent: true}));
       debug(shell.exec(`git commit -m "Initial commit after running ${this.cliCommandName}"`, {silent: true}));
-      this.log(chalk`{bold ${this.statusMessages.gitInitialCommit}}{green Staged SFDX-Falcon project files and executed initial commit}`);
+      this.generatorStatus.addMessage({
+        type:     'success',
+        title:    `Git Commit`,
+        message:  `Success - Staged all project files and executed the initial commit`
+      });
     } catch (err) {
       debug(err);
-      this.log(chalk`{bold ${this.statusMessages.gitInitFailed}}{yellow Attempt to stage and commit project files failed - Nothing to commit}`);
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Git Commit`,
+        message:  `Warning - Attempt to stage and commit project files failed - Nothing to commit`
+      });
+      // Note that a Git Task failed
+      allGitTasksSuccessful = false;
     }
     
-
     //─────────────────────────────────────────────────────────────────────────┐
     // If the user specified a Git Remote, add it as "origin".
     //─────────────────────────────────────────────────────────────────────────┘
-    if (this.interviewAnswers.hasGitRemoteRepository === true) {
+    if (this.userAnswers.hasGitRemoteRepository === true) {
       try {
-        debug(shell.exec(`git remote add origin ${this.interviewAnswers.gitRemoteUri}`, {silent: true}));
-        this.log(chalk`{bold ${this.statusMessages.gitRemoteAdded}}{green Remote repository ${this.interviewAnswers.gitRemoteUri} added as "origin"}`);
+        debug(shell.exec(`git remote add origin ${this.userAnswers.gitRemoteUri}`, {silent: true}));
+        this.generatorStatus.addMessage({
+          type:     'success',
+          title:    `Git Remote`,
+          message:  `Success - Remote repository ${this.userAnswers.gitRemoteUri} added as "origin"`
+        });
       } catch (err) {
         debug(err);
-        this.log(chalk`{bold ${this.statusMessages.gitRemoteFailed}}{red Could not add Git Remote - A remote named "origin" already exists}`);
+        this.generatorStatus.addMessage({
+          type:     'warning',
+          title:    `Git Remote`,
+          message:  `Warning - Could not add Git Remote - A remote named "origin" already exists`
+        });
+        // Note that a Git Task failed
+        allGitTasksSuccessful = false;
       }  
     }
-    else {
-      return;
-    }
+
+    // Done with install()
+    this.installComplete = allGitTasksSuccessful;
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
-    if (this.installationComplete === true) {
-      // Installation succeeded
-      this.log(chalk`{bold ${this.statusMessages.commandCompleted}}{green falcon:project:create completed successfully}\n`);      
+    // Check if the Yeoman interview/installation process was aborted.
+    if (this.generatorStatus.aborted) {
+      debug(`generatorStatus.aborted found as TRUE inside end()`);
+      // Add a final error message
+      this.generatorStatus.addMessage({
+        type:     'error',
+        title:    'Command Failed',
+        message:  'falcon:project:create exited without creating an SFDX-Falcon project\n'
+      });
+      return;
     }
-    else {
-      // Installation failed
-      this.log(chalk`{bold.red ${this.statusMessages.commandAborted}} {bold falcon:project:create completed without creating a new SFDX-Falcon project}\n`);
-    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // If we get here, it means that the Generator completed successfully.
+    // All that's left is to decide whether it was a "perfect" install or
+    // one with warnings.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.generatorStatus.complete([
+      {
+        type:     'success',
+        title:    'Command Succeded',
+        message:  this.installComplete
+                  ? 'falcon:project:create completed successfully\n'
+                  : 'falcon:project:create completed successfully, but with some warnings (see above)\n'
+      }
+    ]);
   }
 }

@@ -14,12 +14,18 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                     from  '@salesforce/command';            // Allows us to use the Messages Library from core.
-import {flags}                    from  '@oclif/command';                 // Requried to create CLI command flags.
-import {GeneratorStatus}          from  '../../../helpers/yeoman-helper'; // Helper object to get status back from Generators after they run.
-import SfdxYeomanCommand          from  '../../../sfdx-yeoman-command';   // Base class that CLI commands in this project that use Yeoman should use.
-import {validateLocalPath}        from  '../../../validators/core';       // Core validation function to check that local path values don't have invalid chars.
+import {core}                   from  '@salesforce/command';            // Allows us to use the Messages Library from core.
+import {flags}                  from  '@oclif/command';                 // Requried to create CLI command flags.
+import {GeneratorStatus}        from  '../../../helpers/yeoman-helper'; // Helper object to get status back from Generators after they run.
+import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';   // Base class that CLI commands in this project that use Yeoman should use.
+import {validateLocalPath}      from  '../../../validators/core';       // Core validation function to check that local path values don't have invalid chars.
 
+//─────────────────────────────────────────────────────────────────────────────┐
+// SFDX Core library has the ability to import a JSON file with message strings
+// making it easy to separate logic from static output messages. The file
+// referenced by the second parameter of loadMessages() must be found in the
+// messages directory at the root of your project.
+//─────────────────────────────────────────────────────────────────────────────┘
 // Initialize Messages with the current plugin directory
 core.Messages.importMessagesDirectory(__dirname);
 
@@ -130,8 +136,8 @@ export default class FalconProjectClone extends SfdxYeomanCommand {
     // so there is no need to run anything after this call returns.
     //─────────────────────────────────────────────────────────────────────────┘
     await super.runYeomanGenerator('clone-falcon-project', {
-      generatorStatus:  generatorStatus,
       commandName:      'falcon:project:clone',
+      generatorStatus:  generatorStatus,
       gitRemoteUri:     gitRemoteUriArg,
       outputDir:        outputDirFlag,
       debugMode:        debugModeFlag,

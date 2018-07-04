@@ -18,9 +18,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {flags}              from '@oclif/command';                  // Allows us to define our own custom flags for this command.
-import {core}               from '@salesforce/command';             // Salesforce CLI core library
-import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Required because this CLI command will launch a Yeoman Generator.
+import {core}                   from  '@salesforce/command';             // Salesforce CLI core library
+import {flags}                  from  '@oclif/command';                  // Allows us to define our own custom flags for this command.
+import {GeneratorStatus}        from  '../../../helpers/yeoman-helper'; // Helper object to get status back from Generators after they run.
+import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';    // Required because this CLI command will launch a Yeoman Generator.
+import {validateLocalPath}      from  '../../../validators/core';       // Core validation function to check that local path values don't have invalid chars.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
@@ -28,22 +30,28 @@ import SfdxYeomanCommand    from '../../../sfdx-yeoman-command';    // Required 
 // referenced by the second parameter of loadMessages() must be found in the
 // messages directory at the root of your project.
 //─────────────────────────────────────────────────────────────────────────────┘
+// Initialize Messages with the current plugin directory
 core.Messages.importMessagesDirectory(__dirname);
+
+// Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
+// or any library that is using the messages framework can also be loaded this way.
 const messages = core.Messages.loadMessages('sfdx-falcon', 'falconProjectCreate');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       Create
+ * @class       FalconProjectCreate
  * @extends     SfdxYeomanCommand
  * @access      public
  * @version     1.0.0
- * @summary     SFDX CLI Command Class (falcon:project:create).
- * @description Creates a local SFDX project using the SFDX-Falcon Template.  Starts a Yeoman 
- *              interview process to create customized project scaffolding on the user's machine.
- *              This class extends SfdxYeomanCommand, which itself extends SfdxCommand.
+ * @summary     Implements the CLI Command falcon:project:clone
+ * @description Extends SfdxYeomanCommand, which itself extends SfdxCommand.  Implements the CLI
+ *              Command falcon:project:create. This command creates a local SFDX project using 
+ *              the SFDX-Falcon Template found at https://github.com/sfdx-isv/sfdx-falcon-template.
+ *              Starts a Yeoman interview process to create customized project scaffolding on the
+ *              user's machine.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export default class Create extends SfdxYeomanCommand {
+export default class FalconProjectCreate extends SfdxYeomanCommand {
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Set command-level properties.
@@ -59,14 +67,20 @@ export default class Create extends SfdxYeomanCommand {
   // Define the flags used by this command.
   // -d --OUTPUTDIR   Directory where SFDX-Falcon project will be created.
   //                  Defaults to . (current directory) if not specified.
+  //    --FALCONDEBUG Indicates that the command should run in DEBUG mode.
+  //                  Defaults to FALSE if not specified by the user.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
     outputdir: flags.string({
       char: 'd', 
-      description: messages.getMessage('outputdirFlagDescription')
+      description: messages.getMessage('outputdirFlagDescription'),
+      default: '.',
+      required: false,
+      hidden: false
     }),
     falcondebug: flags.boolean({
       description: messages.getMessage('falcondebugFlagDescription'),
+      required: false,
       hidden: true
     })
   };
@@ -85,28 +99,40 @@ export default class Create extends SfdxYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
-    // Grab values from flags.  Set defaults for optional flags not set by user.
+    // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
     const outputdirFlag = this.flags.outputdir    ||  '.';
     const debugModeFlag = this.flags.falcondebug  ||  false;
 
+    // Make sure that outputFirFlag has a valid local path
+    if (validateLocalPath(outputdirFlag) === false) {
+      throw new Error('Target Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Declare and initialize a GeneratorStatus object. This will let us get
+    // status messages back from the Yeoman Generator and we can display them
+    // to the user once the Generator completes it's run.
+    //─────────────────────────────────────────────────────────────────────────┘
+    let generatorStatus = new GeneratorStatus();
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Make an async call to the base object's generate() funtion.  This will
-    // load and execute the Yeoman Generator defined in appx-project.ts.  All
-    // user interactions for the rest of this command will come from Yeoman, so
-    // there is no need to run anything after this call returns.
+    // load and execute the Yeoman Generator defined in create-falcon-project.ts.
+    // All user interactions for the rest of this command will come from Yeoman,
+    // so there is no need to run anything after this call returns.
     //─────────────────────────────────────────────────────────────────────────┘
     await super.runYeomanGenerator('create-falcon-project', {
-      commandName:  'falcon:project:create',
-      outputdir:    outputdirFlag,
-      debugMode:    debugModeFlag,
+      commandName:      'falcon:project:create',
+      generatorStatus:  generatorStatus,
+      outputDir:        outputdirFlag,
+      debugMode:        debugModeFlag,
       options: []
     })
 
-    // TODO: It would be nice if we could somehow get information BACK from
-    // the call to super.generate(). Interview questions from the generator
-    // would be great for this.
+    // Print all status messages for the user.
+    generatorStatus.printStatusMessages();
 
-    // Return empty JSON.
+    // Return empty JSON since this is meant to be a human-readable command only.
     return { };
   }
 }

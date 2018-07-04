@@ -113,6 +113,7 @@ export function printStatusMessages(statusMessages:Array<StatusMessage>, separat
   if (typeof separator !== 'string') {
     throw new TypeError('ERROR_INVALID_TYPE: String expected for separator');
   }
+  
   // Calculate the length of the longest StatusMessage Title
   let longestTitle = 0;
   for (let statusMessage of statusMessages) {
@@ -120,6 +121,16 @@ export function printStatusMessages(statusMessages:Array<StatusMessage>, separat
       longestTitle = Math.max(statusMessage.title.length, longestTitle);
     }
   }
+
+  // Set the header text for the final status messages. Padding to length
+  // of longest title, then adding separator length - 1 will only provide
+  // ideal results if there is one blank space to the right of the specified
+  // separator string.
+  let statusHeader = pad('Final Status', longestTitle + separator.length - 1);
+
+  // Print a header for the Status Messages
+  console.log(chalk`{inverse ${statusHeader}}`);
+
   // Print all of the Satus Messages
   for (let statusMessage of statusMessages) {
     printStatusMessage(statusMessage, longestTitle, separator);
@@ -344,3 +355,32 @@ export class SfdxFalconKeyValueTable {
     );
   }
 }
+
+
+
+
+
+    //DEVTEST
+    /*
+    this.generatorStatus.addMessage({
+      type: 'info',
+      title:  'My Info Message',
+      message:  'This is my informational message.  Hooray!'
+    });
+    this.generatorStatus.addMessage({
+      type: 'error',
+      title:  'Error!',
+      message:  'This is my scary error message!'
+    });
+    this.generatorStatus.addMessage({
+      type: 'success',
+      title:  'WOHOO! We Did it! Here is how',
+      message:  'As you can tell, this is a success message'
+    });
+    this.generatorStatus.addMessage({
+      type: 'warning',
+      title:  'DANGER',
+      message:  'Danger, Will Robinson.  This is a warning message'
+    });
+    this.generatorStatus.printStatusMessages();
+    //*/

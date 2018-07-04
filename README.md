@@ -94,7 +94,7 @@ USAGE
   $ sfdx-falcon falcon:project:create
 
 OPTIONS
-  -d, --outputdir=outputdir                       directory to store your project
+  -d, --outputdir=outputdir                       [default: .] directory to store your project
   --json                                          format output as json
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
