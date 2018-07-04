@@ -26,14 +26,12 @@
 // tslint:disable no-console
 
 // Imports
-//import * as fs              from 'fs';                              // Used for file system operations.
-import * as path            from 'path';                            // Helps resolve local paths at runtime.
-import * as Generator       from 'yeoman-generator';                // Generator class must extend this.
-import * as validate        from '../validators/yeoman';            // Shared validation library for Yeoman interview inputs.
-import * as uxHelper        from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
-import * as gitHelper       from '../helpers/git-helper';           // Why?
-import * as sfdxHelper      from '../helpers/sfdx-helper';          // Why?
-import * as yoHelper        from '../helpers/yeoman-helper';        // Why?
+import * as path        from 'path';                            // Helps resolve local paths at runtime.
+import * as Generator   from 'yeoman-generator';                // Generator class must extend this.
+import * as yoValidate  from '../validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as uxHelper    from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper   from '../helpers/git-helper';           // Library of Git Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Yeoman Helper functions specific to SFDX-Falcon.
 
 // Requires
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
@@ -191,7 +189,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.projectName !== 'undefined' )
                   ? this.userAnswers.projectName                    // Current Value
                   : this.defaultAnswers.projectName,                // Default Value
-        validate: validate.projectName,
+        validate: yoValidate.projectName,
         when:     true
       },
       {
@@ -201,7 +199,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
                   ? this.userAnswers.targetDirectory                // Current Value
                   : this.defaultAnswers.targetDirectory,            // Default Value
-        validate: validate.targetPath,
+        validate: yoValidate.targetPath,
         when:     true
       },
       {
@@ -220,7 +218,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.namespacePrefix !== 'undefined' )
                   ? this.userAnswers.namespacePrefix                // Current Value
                   : this.defaultAnswers.namespacePrefix,            // Default Value
-        validate: validate.namespacePrefix,
+        validate: yoValidate.namespacePrefix,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -239,7 +237,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.metadataPackageId !== 'undefined' )
                   ? this.userAnswers.metadataPackageId              // Current Value
                   : this.defaultAnswers.metadataPackageId,          // Default Value
-        validate: validate.metadataPackageId,
+        validate: yoValidate.metadataPackageId,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -249,7 +247,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.packageVersionId !== 'undefined' )
                   ? this.userAnswers.packageVersionId               // Current Value
                   : this.defaultAnswers.packageVersionId,           // Default Value
-        validate: validate.packageVersionId,
+        validate: yoValidate.packageVersionId,
         when:     this._isCreatingManagedPackage
       },
       {
@@ -277,7 +275,7 @@ export default class CreateFalconProject extends Generator {
         default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
                   ? this.userAnswers.gitRemoteUri                   // Current Value
                   : this.defaultAnswers.gitRemoteUri,               // Default Value
-        validate: validate.gitRemoteUri,
+        validate: yoValidate.gitRemoteUri,
         when:     this._hasGitRemoteRepository
       }
     ];
@@ -363,6 +361,9 @@ export default class CreateFalconProject extends Generator {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
 
+    // Other genrators typically do more here, but CreateFalconProject doesn't
+    // have any initialization tasks. Simply return.
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

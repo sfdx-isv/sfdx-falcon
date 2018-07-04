@@ -15,15 +15,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import * as core from './core';
+import * as core from './core-validator';
 
 // Requires
 const debug = require('debug')('validator:yeoman');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    gitRemoteUri
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -39,8 +39,8 @@ export function gitRemoteUri(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    targetPath
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -56,8 +56,8 @@ export function targetPath(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    namespacePrefix
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -73,8 +73,8 @@ export function namespacePrefix(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    projectName
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -90,8 +90,8 @@ export function projectName(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    metadataPackageId
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -109,8 +109,8 @@ export function metadataPackageId(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    packageVersionId
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0
@@ -131,8 +131,8 @@ export function packageVersionId(userInput:string):boolean|string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    functionName
+ * @access      public
  * @param       {string}            userInput ????
  * @returns     {boolean|string}    TRUE if input is valid. Error message STRING if invalid.
  * @version     1.0.0

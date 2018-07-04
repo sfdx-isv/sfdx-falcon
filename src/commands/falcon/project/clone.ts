@@ -14,11 +14,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';            // Allows us to use the Messages Library from core.
-import {flags}                  from  '@oclif/command';                 // Requried to create CLI command flags.
-import {GeneratorStatus}        from  '../../../helpers/yeoman-helper'; // Helper object to get status back from Generators after they run.
-import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';   // Base class that CLI commands in this project that use Yeoman should use.
-import {validateLocalPath}      from  '../../../validators/core';       // Core validation function to check that local path values don't have invalid chars.
+import {core}                   from  '@salesforce/command';                // Allows us to use the Messages Library from core.
+import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
+import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // Helper object to get status back from Generators after they run.
+import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Base class that CLI commands in this project that use Yeoman should use.
+import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings

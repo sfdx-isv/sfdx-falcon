@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          validators/core.ts
+ * @file          validators/core-validator.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
@@ -19,8 +19,8 @@ const debug = require('debug')('validator:core');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    gitRemoteUri
+ * @access      public
  * @param       {string}      gitRemoteUri 
  * @returns     {boolean}     True if gitRemoteUri is a valid Git Remote URI.
  * @version     1.0.0
@@ -37,8 +37,8 @@ export function validateGitRemoteUri(gitRemoteUri:string):boolean {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    validateLocalPath
+ * @access      public
  * @param       {string}      pathString 
  * @returns     {boolean}     FALSE if pathString contains invalid chars
  * @version     1.0.0
@@ -73,8 +73,8 @@ export function validateLocalPath(pathString:string):boolean {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 //─────────────────────────────────────────────────────────────────────────────┐
 /**
- * @public
  * @function    functionName
+ * @access      public
  * @param       {type}        paramName Description
  * @returns     {type}        Description
  * @version     1.0.0

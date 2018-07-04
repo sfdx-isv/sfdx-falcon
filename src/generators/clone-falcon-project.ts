@@ -23,14 +23,13 @@
 // tslint:disable no-console
 
 // Imports
-import *                as fs         from 'fs';                            // Used for file system operations.
-import *                as path       from 'path';                          // Helps resolve local paths at runtime.
-import *                as Generator  from 'yeoman-generator';              // Generator class must extend this.
-import *                as validate   from '../validators/yeoman';          // Why?
-import *                as uxHelper   from '../helpers/ux-helper';          // Why?
-import *                as gitHelper  from '../helpers/git-helper';         // Why?
-import *                as sfdxHelper from '../helpers/sfdx-helper';        // Why?
-import *                as yoHelper   from '../helpers/yeoman-helper';      // Why?
+import * as path        from 'path';                            // Helps resolve local paths at runtime.
+import * as Generator   from 'yeoman-generator';                // Generator class must extend this.
+import * as uxHelper    from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper   from '../helpers/git-helper';           // Library of Git Helper functions specific to SFDX-Falcon.
+import * as sfdxHelper  from '../helpers/sfdx-helper';          // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoValidate  from '../validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 
 // Requires
 const chalk           = require('chalk');                                   // Utility for creating colorful console output.
@@ -38,8 +37,8 @@ const debug           = require('debug')('clone-falcon-project');           // U
 const debugAsync      = require('debug')('clone-falcon-project(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
 const debugExtended   = require('debug')('clone-falcon-project(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr           = require('listr');                                   // Provides asynchronous list with status of task completion.
-const pad             = require('pad');                                     // Provides consistent spacing when trying to align console output.
-const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
+//const pad             = require('pad');                                     // Provides consistent spacing when trying to align console output.
+//const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 
@@ -176,7 +175,7 @@ export default class CloneFalconProject extends Generator {
         default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
                   ? this.userAnswers.gitRemoteUri                     // Current Value
                   : this.defaultAnswers.gitRemoteUri,                 // Default Value
-        validate: validate.gitRemoteUri,
+        validate: yoValidate.gitRemoteUri,
         when:     true
       },
       //*/
@@ -187,7 +186,7 @@ export default class CloneFalconProject extends Generator {
         default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
                   ? this.userAnswers.targetDirectory                  // Current Value
                   : this.defaultAnswers.targetDirectory,              // Default Value
-        validate: validate.targetPath,                                // Check targetPath for illegal chars
+        validate: yoValidate.targetPath,                                // Check targetPath for illegal chars
         filter:   yoHelper.filterLocalPath,                           // Returns a Resolved path
         when:     true
       },
