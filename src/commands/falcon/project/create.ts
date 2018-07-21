@@ -43,7 +43,7 @@ const messages = core.Messages.loadMessages('sfdx-falcon', 'falconProjectCreate'
  * @extends     SfdxYeomanCommand
  * @access      public
  * @version     1.0.0
- * @summary     Implements the CLI Command falcon:project:clone
+ * @summary     Implements the CLI Command falcon:project:create
  * @description Extends SfdxYeomanCommand, which itself extends SfdxCommand.  Implements the CLI
  *              Command falcon:project:create. This command creates a local SFDX project using 
  *              the SFDX-Falcon Template found at https://github.com/sfdx-isv/sfdx-falcon-template.
