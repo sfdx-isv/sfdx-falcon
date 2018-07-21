@@ -50,9 +50,7 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:project:create
-
   $ sfdx falcon:project:create --projectname "My SFDX-Falcon Project" --namespace my_ns_prefix
-
   $ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix
 ```
 
@@ -76,9 +74,7 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git
-
   $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git
-
   $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \
                               --outputdir ~/projects/sfdx-falcon-projects
 ```
@@ -100,7 +96,6 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:project:create
-
   $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
@@ -128,7 +123,6 @@ EXAMPLES
      Hello world! This is org: MyOrg and I will be around until Tue Mar 20 2018!
      My hub org id is: 00Dxx000000001234
   
-
   $ sfdx hello:org --name myname --targetusername myOrg@example.com
      Hello myname! This is org: MyOrg and I will be around until Tue Mar 20 2018!
 ```
