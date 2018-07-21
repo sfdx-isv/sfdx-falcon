@@ -5,7 +5,6 @@ A plugin for the Salesforce CLI that enables and enhances implementation of the 
 
 [![Version](https://img.shields.io/npm/v/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
 [![CircleCI](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master.svg?style=shield)](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master)
-[![Appveyor CI](https://ci.appveyor.com/api/projects/status/github/sfdx-isv/sfdx-falcon-plugin?branch=master&svg=true)](https://ci.appveyor.com/project/heroku/sfdx-falcon-plugin/branch/master)
 [![Codecov](https://codecov.io/gh/sfdx-isv/sfdx-falcon-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/sfdx-isv/sfdx-falcon-plugin)
 [![Greenkeeper](https://badges.greenkeeper.io/sfdx-isv/sfdx-falcon-plugin.svg)](https://greenkeeper.io/)
 [![Known Vulnerabilities](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin/badge.svg)](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin)
@@ -22,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.0 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.1 darwin-x64 node-v10.1.0
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -30,7 +29,82 @@ USAGE
 ```
 <!-- usagestop -->
 <!-- commands -->
+* [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
+* [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
+* [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
 * [`sfdx-falcon hello:org [FILE]`](#sfdx-falcon-helloorg-file)
+
+## `sfdx-falcon falcon:config:interview`
+
+Creates an empty Salesforce DX project using the SFDX-Falcon template.
+
+```
+USAGE
+  $ sfdx-falcon falcon:config:interview
+
+OPTIONS
+  -n, --projectname=projectname                   name of your project
+  -s, --namespace=namespace                       namespace associated with your packaging org
+  --json                                          format output as json
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:project:create
+
+  $ sfdx falcon:project:create --projectname "My SFDX-Falcon Project" --namespace my_ns_prefix
+
+  $ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix
+```
+
+_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/config/interview.ts)_
+
+## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
+
+Clones an SFDX-Falcon project from a remote Git repository.
+
+```
+USAGE
+  $ sfdx-falcon falcon:project:clone GIT_REMOTE_URI
+
+ARGUMENTS
+  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+
+OPTIONS
+  -d, --outputdir=outputdir                       [default: .] directory to clone the project into
+  --json                                          format output as json
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git
+
+  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git
+
+  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \
+                              --outputdir ~/projects/sfdx-falcon-projects
+```
+
+_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/project/clone.ts)_
+
+## `sfdx-falcon falcon:project:create`
+
+Creates a Salesforce DX project using the SFDX-Falcon template.
+
+```
+USAGE
+  $ sfdx-falcon falcon:project:create
+
+OPTIONS
+  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  --json                                          format output as json
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:project:create
+
+  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
+```
+
+_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/falcon/project/create.ts)_
 
 ## `sfdx-falcon hello:org [FILE]`
 
@@ -59,7 +133,7 @@ EXAMPLES
      Hello myname! This is org: MyOrg and I will be around until Tue Mar 20 2018!
 ```
 
-_See code: [src/commands/hello/org.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.0/src/commands/hello/org.ts)_
+_See code: [src/commands/hello/org.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.1/src/commands/hello/org.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->
 # Debugging your plugin

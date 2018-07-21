@@ -1,0 +1,6 @@
+{
+  "commandDescription": "Creates an empty Salesforce DX project using the SFDX-Falcon template.",
+  "projectnameFlagDescription": "name of your project",
+  "namespaceFlagDescription": "namespace associated with your packaging org",
+  "errorGitNotInstalled": "No results found for the organization '%s'."
+}
