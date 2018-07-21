@@ -1,0 +1,6 @@
+{
+  "commandDescription"          : "Clones an SFDX-Falcon project from a remote Git repository.",
+  "gitRemoteUriArgDescription"  : "URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)",
+  "outputdirFlagDescription"    : "directory to clone the project into",
+  "falcondebugFlagDescription"  : "(hidden) runs this command in debug mode"
+}

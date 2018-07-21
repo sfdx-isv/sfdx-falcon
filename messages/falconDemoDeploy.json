@@ -1,0 +1,5 @@
+{
+  "commandDescription": "Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org",
+  "deploydirFlagDescription": "Path to a directory that contains a fully-configured ADK project",
+  "falcondebugFlagDescription": "(hidden) runs this command in debug mode"
+}
