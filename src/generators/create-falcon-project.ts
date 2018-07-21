@@ -36,7 +36,6 @@ import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Ye
 // Requires
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
 const debug           = require('debug')('create-falcon-project');  // Utility for debugging. set debug.enabled = true to turn on.
-//const shell           = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
 
@@ -575,6 +574,9 @@ export default class CreateFalconProject extends Generator {
     this.fs.copyTpl(this.templatePath('temp/.npmignore'),
                     this.destinationPath('temp/.gitignore'),
                     this);
+
+    // Done with writing()
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -593,6 +595,11 @@ export default class CreateFalconProject extends Generator {
     // can consider the write operation successful.
     //─────────────────────────────────────────────────────────────────────────┘
     this.writingComplete = true;
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Project Creation`,
+      message:  `Success - Project created at ${this.destinationRoot()}`
+    });
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Show an in-process Success Message telling the user that we just created
@@ -600,15 +607,6 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
    
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Add a message that the project creation was successful.
-    //─────────────────────────────────────────────────────────────────────────┘
-    this.generatorStatus.addMessage({
-      type:     'success',
-      title:    `Project Creation`,
-      message:  `Success - Project created at ${this.destinationRoot()}`
-    });
-
     //─────────────────────────────────────────────────────────────────────────┐
     // The only remaining tasks all have to do with Git.  If the user indicated
     // that they did not want to initialize Git, we can end installation here.

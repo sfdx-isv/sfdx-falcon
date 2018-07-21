@@ -37,8 +37,6 @@ const debug           = require('debug')('clone-falcon-project');           // U
 const debugAsync      = require('debug')('clone-falcon-project(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
 const debugExtended   = require('debug')('clone-falcon-project(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr           = require('listr');                                   // Provides asynchronous list with status of task completion.
-//const pad             = require('pad');                                     // Provides consistent spacing when trying to align console output.
-//const shell           = require('shelljs');                                 // Cross-platform shell access - use for setting up Git repo.
 const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
 
@@ -372,7 +370,7 @@ export default class CloneFalconProject extends Generator {
               title:  'Building DevHub Alias List...',
               task:   (listrContext, thisTask) => {
                 this.devHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.devHubOrgInfos);
-                // TODO: Add a separator and a "not specified" option
+                // Add a separator and a "not specified" option
                 this.devHubAliasChoices.push(new yoHelper.YeomanSeparator());
                 this.devHubAliasChoices.push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
                 thisTask.title += 'Done!'
@@ -518,6 +516,9 @@ export default class CloneFalconProject extends Generator {
     const gitRepoName       = gitHelper.getRepoNameFromUri(gitRemoteUri);
     const localProjectPath  = path.join(targetDirectory, gitRepoName);
 
+    // Quick message saying we're going to start cloning.
+    this.log(chalk`\n{blue Cloning project to ${this.userAnswers.targetDirectory}}\n`);
+
     // Clone the Git Repository specified by gitRemoteUri into the target directory.
     try {
       gitHelper.gitClone(this.gitRemoteUri, this.userAnswers.targetDirectory);
@@ -558,7 +559,25 @@ export default class CloneFalconProject extends Generator {
     // DEBUG
     debug(`SOURCE PATH: ${this.sourceRoot()}`);
     debug(`DESTINATION PATH: ${this.destinationRoot()}`);
+
     
+    //─────────────────────────────────────────────────────────────────────────┐
+    // *** IMPORTANT: READ CAREFULLY ******************************************
+    // ALL of the fs.copyTpl() functions below are ASYNC.  Once we start calling
+    // them we have no guarantee of synchronous execution until AFTER the
+    // all of the copyTpl() functions resolve and the Yeoman Invoker decides to
+    // call the install() function.
+    //
+    // If there are any problems with the file system operations carried out by
+    // each copyTpl() function, or if the user chooses to ABORT rather than 
+    // overwrite or ignore a file conflict, an error is thrown inside Yeoman
+    // and the CLI plugin command will terminate with an uncaught fatal error.
+    //─────────────────────────────────────────────────────────────────────────┘
+
+    // Quick message saying we're going to update project files
+    this.log(chalk`\n{blue Customizing project files...}\n`);
+
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Using the USER'S dev-tools/templates/local-config-template.sh.ejs file
     // as the source, make a customized copy as the dev-tools/lib/local-config.sh 
@@ -568,16 +587,8 @@ export default class CloneFalconProject extends Generator {
                     this.destinationPath('dev-tools/lib/local-config.sh'),
                     this);
 
-    // Add a success message
-    this.generatorStatus.addMessage({
-      type:     'success',
-      title:    `Local Config Created`,
-      message:  `dev-tools/lib/local-config.sh created and customized successfully`
-    });
-              
-    // Mark the cloning step as complete.
-    this.installComplete = true;
-
+    // Done with writing()
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -591,18 +602,25 @@ export default class CloneFalconProject extends Generator {
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Check if installation (file writes) were completed and inform user. If
-    // not, return now to skip the Git init and remote config steps.
-    // NOTE: Nothing is needed here.  Keeping this as an example of what 
-    // should be used here if we needed to do post-write tasks.
+    // If we get here, it means that the writing() step completed successfully.
     //─────────────────────────────────────────────────────────────────────────┘
-    if (this.installComplete === true) {
-      // Do something
-    }
-    else {
-      // Do nothing
-      return;
-    }    
+    this.writingComplete = true;
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Local Config Created`,
+      message:  `dev-tools/lib/local-config.sh created and customized successfully`
+    });
+  
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Show an in-process Success Message telling the user that we just created
+    // their project files.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.log(chalk`\n{blue Project files customized at ${this.destinationRoot()}}\n`);
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // If we get here, it means that the install() step completed successfully.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.installComplete = true;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
