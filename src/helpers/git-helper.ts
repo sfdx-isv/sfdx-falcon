@@ -33,11 +33,11 @@ const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\
 debug.enabled       = false;
 debugAsync.enabled  = false;
 
-//─────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────┐
 // Set shelljs config to throw exceptions on fatal errors.  We have to do
 // this so that git commands that return fatal errors can have their output
 // suppresed while the generator is running.
-//─────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────┘
 shell.config.fatal = true;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
