@@ -18,3 +18,46 @@ interface FalconProjectSettings {
   hasGitRemoteRepository: boolean;
   gitRemoteUri: string;
 }
+
+interface AppxDemoConfig {
+  demoAlias:        string;
+  demoConfigJson:   string;
+  demoTitle:        string;
+  demoType:         string;
+  demoVersion:      string;
+  gitHubUrl:        string;
+  gitRemoteUri:     string;
+  partnerAlias:     string;
+  partnerName:      string;
+  schemaVersion:    string;
+}
+
+interface AppxProjectConfig {
+  gitHubUrl:          string;
+  gitRemoteUri:       string;
+  metadataPackageId:  string;
+  namespacePrefix:    string;
+  packageName:        string;
+  packageVersionId: {
+    stable: string;
+    beta:   string;
+  }
+  partnerAlias:       string;
+  partnerName:        string;
+  projectAlias:       string;
+  projectName:        string;
+  projectType:        string;
+  schemaVersion:      string;
+}
+
+interface LocalAppxDemoConfig {
+  demoValidationOrgAlias: string;
+  demoDeploymentOrgAlias: string;
+  devHubAlias:            string;
+  envHubAlias:            string;
+}
+
+interface FalconConfig {
+  appxProject:  any;
+  appxDemo:     AppxDemoConfig;
+}
