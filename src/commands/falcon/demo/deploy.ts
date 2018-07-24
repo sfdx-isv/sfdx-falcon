@@ -14,11 +14,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';                // Allows us to use the Messages Library from core.
+import {core, SfdxCommand}      from  '@salesforce/command';                // Allows us to use the Messages Library from core.
 import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
-import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // Helper object to get status back from Generators after they run.
-import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Base class that CLI commands in this project that use Yeoman should use.
+import * as path                from  'path';                               // Helps resolve local paths at runtime.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
+import { AdkProject }           from  '../../../helpers/adk-helper';        // Provides information and actions related to an ADK project
+
+// Requires
+const debug = require('debug')('falcon:demo:deploy');                       // Utility for debugging. set debug.enabled = true to turn on.
+
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
@@ -36,7 +40,7 @@ const messages = core.Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoDeploy
- * @extends     SfdxYeomanCommand
+ * @extends     SfdxCommand
  * @access      public
  * @version     1.0.0
  * @summary     Implements the CLI Command falcon:demo:deploy
@@ -44,7 +48,7 @@ const messages = core.Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // TODO: We may not need to use Yeoman for the deploy command
-export default class FalconDemoClone extends SfdxYeomanCommand {
+export default class FalconDemoClone extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   // Set command-level properties.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -97,36 +101,39 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
     const deployDirFlag = this.flags.deploydir    ||  '.';
     const debugModeFlag = this.flags.falcondebug  || false;
 
+    // Set the debug mode based on the caller's debugModeFlag setting.
+    debug.enabled = debugModeFlag;
+  
     // Make sure that deployDirFlag has a valid local path
     if (validateLocalPath(deployDirFlag) === false) {
       throw new Error('Deploy Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Declare and initialize a GeneratorStatus object. This will let us get
-    // status messages back from the Yeoman Generator and we can display them
-    // to the user once the Generator completes it's run.
+    // Instantiate an AdkProject Object.
     //─────────────────────────────────────────────────────────────────────────┘
-    let generatorStatus = new GeneratorStatus();
+    const adkProject = await AdkProject.resolve(path.resolve(deployDirFlag), debugModeFlag);
+    
+//    debug(`adkProject.projectPath: %s`, adkProject.projectPath);
+//    debug(`adkProject.targetOrgAlias: %s`, adkProject.targetOrgAlias);
+//    debug(`adkProject.sfdxProjectConfig: \n%O`, adkProject.sfdxProjectConfig);
+//    debug(`adkProject.sfdxProjectConfig.plugins.sfdxFalcon: \n%O`, adkProject.sfdxProjectConfig.plugins.sfdxFalcon);
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Make an async call to the base object's generate() funtion.  This will
-    // load and execute the Yeoman Generator defined in clone-falcon-project.ts.
-    // All user interactions for the rest of this command will come from Yeoman,
-    // so there is no need to run anything after this call returns.
+    // ???
     //─────────────────────────────────────────────────────────────────────────┘
-    await super.runYeomanGenerator('deploy-falcon-demo', {
-      commandName:      'falcon:demo:deploy',
-      generatorStatus:  generatorStatus,
-      deployDir:        deployDirFlag,
-      debugMode:        debugModeFlag,
-      options: []
-    })
 
-    // Print all status messages for the user.
-    generatorStatus.printStatusMessages();
+    //─────────────────────────────────────────────────────────────────────────┐
+    // ???
+    // Provide some sort of output
+    //─────────────────────────────────────────────────────────────────────────┘
+    
 
+    //─────────────────────────────────────────────────────────────────────────┐
+    // ???
+    // Construct some sort of response.
     // Return empty JSON since this is meant to be a human-readable command only.
+    //─────────────────────────────────────────────────────────────────────────┘
     return {};
   }
 }

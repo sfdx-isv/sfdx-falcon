@@ -1,3 +1,4 @@
+// TODO: Delete this interface once we see if there's anything we want to borrow.
 interface FalconProjectSettings {
   projectName: string;
   projectType: 'managed1gp' | 'managed2gp' | 'unmanaged' | 'demo' ;
@@ -13,9 +14,16 @@ interface FalconProjectSettings {
   gitRemoteUri: string;
 }
 
-export interface AppxDemoConfig {
+export interface AppxDemoLocalConfig {
+  demoValidationOrgAlias: string;
+  demoDeploymentOrgAlias: string;
+  devHubAlias:            string;
+  envHubAlias:            string;
+}
+
+export interface AppxDemoProjectConfig {
   demoAlias:        string;
-  demoConfigJson:   string;
+  demoBuildConfig:  string;
   demoTitle:        string;
   demoType:         string;
   demoVersion:      string;
@@ -26,7 +34,14 @@ export interface AppxDemoConfig {
   schemaVersion:    string;
 }
 
-export interface AppxProjectConfig {
+export interface AppxPackageLocalConfig {
+  demoValidationOrgAlias: string;
+  demoDeploymentOrgAlias: string;
+  devHubAlias:            string;
+  envHubAlias:            string;
+}
+
+export interface AppxPackageProjectConfig {
   gitHubUrl:          string;
   gitRemoteUri:       string;
   metadataPackageId:  string;
@@ -44,16 +59,14 @@ export interface AppxProjectConfig {
   schemaVersion:      string;
 }
 
-export interface LocalAppxDemoConfig {
-  demoValidationOrgAlias: string;
-  demoDeploymentOrgAlias: string;
-  devHubAlias:            string;
-  envHubAlias:            string;
+export interface FalconConfig {
+  appxProject?:  AppxPackageProjectConfig;
+  appxDemo?:     AppxDemoProjectConfig;
 }
 
-export interface FalconConfig {
-  appxProject:  any;
-  appxDemo:     AppxDemoConfig;
+// TODO: Need to finish defining FalconCommandHandler
+export interface FalconCommandHandler {
+  changeMe: string;
 }
 
 export interface FalconCommandSequence {
@@ -62,13 +75,14 @@ export interface FalconCommandSequence {
   sequenceAlias:          string;
   sequenceDescription:    string;
   sequenceName:           string;
-  sequenceVersion:        string;
+  sequenceOptions:        any;
   sequenceSteps:          [FalconCommandSequenceStep];
+  sequenceVersion:        string;
 }
 
-// TODO: Need to finish defining FalconCommandHandler
-export interface FalconCommandHandler {
-  changeMe: string;
+export interface FalconCommandSequenceOption {
+  key:    string;
+  value:  any;
 }
 
 export interface FalconCommandSequenceStep {
@@ -83,4 +97,3 @@ export interface FalconCommandSequenceStep {
   options:      any;
   type:         string;
 }
-
