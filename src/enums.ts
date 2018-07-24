@@ -1,0 +1,9 @@
+
+
+export enum INTENT {
+  VALIDATE_DEMO,
+  DEPLOY_DEMO,
+  HEALTH_CHECK,
+  REPAIR_PROJECT
+}
+
