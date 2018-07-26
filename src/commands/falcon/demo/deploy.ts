@@ -18,7 +18,8 @@ import {core, SfdxCommand}      from  '@salesforce/command';                // A
 import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
 import * as path                from  'path';                               // Helps resolve local paths at runtime.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
-import { AdkProject }           from  '../../../helpers/adk-helper';        // Provides information and actions related to an ADK project
+import {AdkProject}             from  '../../../helpers/adk-helper';        // Provides information and actions related to an ADK project
+import {FalconStatusReport}     from  '../../../helpers/falcon-helper';     // Why?
 
 // Requires
 const debug = require('debug')('falcon:demo:deploy');                       // Utility for debugging. set debug.enabled = true to turn on.
@@ -114,6 +115,15 @@ export default class FalconDemoClone extends SfdxCommand {
     //─────────────────────────────────────────────────────────────────────────┘
     const adkProject = await AdkProject.resolve(path.resolve(deployDirFlag), debugModeFlag);
     
+    // Validate the demo
+    const statusReport = await adkProject.validateDemo() as FalconStatusReport;
+
+    debug(`statusReport.getStartTime(): %s`,  statusReport.getStartTime(true));
+    debug(`statusReport.getEndTime():   %s`,  statusReport.getEndTime(true));
+    debug(`statusReport.getRunTime():   %s`,  statusReport.getRunTime(true));
+    debug(`statusReport.statusMessage:  %O`,  statusReport.statusMessage);
+    debug(`statusReport.statusLog:      %O`,  statusReport.statusLog);
+
 //    debug(`adkProject.projectPath: %s`, adkProject.projectPath);
 //    debug(`adkProject.targetOrgAlias: %s`, adkProject.targetOrgAlias);
 //    debug(`adkProject.sfdxProjectConfig: \n%O`, adkProject.sfdxProjectConfig);

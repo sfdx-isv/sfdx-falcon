@@ -1,3 +1,6 @@
+import { validateApiVersion } from "../../node_modules/@salesforce/core/lib/util/sfdc";
+import { resolve } from "url";
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          helpers/sfdx-helper.ts
@@ -13,9 +16,12 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-const shell           = require('shelljs');                        // Cross-platform shell access - use for setting up Git repo.
+import {updateObserver}             from '../helpers/falcon-helper';  // Why?
+import {waitASecond}                from './async-helper';            // Why?
+import {FalconStatusReport}         from './falcon-helper';           // Why?
 
 // Requires
+const shell           = require('shelljs');                        // Cross-platform shell access - use for setting up Git repo.
 const debug           = require('debug')('sfdx-helper');           // Utility for debugging. set debug.enabled = true to turn on.
 const debugAsync      = require('debug')('sfdx-helper(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
 
@@ -40,7 +46,7 @@ export interface SfdxShellResult {
 // control over whether or not debug output is generated.
 //─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled       = false;
-debugAsync.enabled  = false;
+debugAsync.enabled  = true;
 
 //─────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -146,20 +152,19 @@ export async function scanConnectedOrgs():Promise<any> {
   });
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyDevHubOrgs
- * @param       {Array<any>}          rawSfdxOrgList  This should be the raw
- *                                    list of SFDX orgs that comes in the result
- *                                    of a call to force:org:list.
- * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects
- *                                    that point to Dev Hub orgs.
+ * @param       {Array<any>}          rawSfdxOrgList  This should be the raw list of SFDX orgs that
+ *                                    comes in the result of a call to force:org:list.
+ * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
+ *                                    Dev Hub orgs.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              finds all the org connections that point to Dev Hubs and returns them as an array
+ *              of SfdxOrgInfo objects.
  * @version     1.0.0
- * @description Given a raw list of SFDX Org Information (like what you get
- *              from force:org:list), finds all the org connections that point
- *              to Dev Hubs and returns them as an array of SfdxOrgInfo objects.
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
   debug('identifyDevHubOrgs:arguments\n%O\n', arguments);
   // Make sure that the caller passed us an Array.
@@ -193,10 +198,183 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
   return devHubOrgInfos;
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    deployMetadata
+ * @param       {string}          targetOrgAlias    Alias of the org targeted by this command.
+ * @param       {any}             sfdxCommandFlags  Contains all flags the caller wants to set.
+ * @returns     {Promise<any>}    Resolves on success, rejects on errors.
+ * @description Deploys metadata to the target org using force:mdapi:deploy.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function deployMetadata(targetOrgAlias:string, sfdxCommandFlags:any, observer?:any):Promise<any> {
+  // Validate incoming params
+  if (!targetOrgAlias.trim())   throw new Error(`ERROR_INVALID_ARGUMENT: Parameter 'targetOrgAlias' requires a non-empty string`);
+
+  // Define default SFDX Command Flags
+  let defaultSfdxCommandFlags = {
+    WAIT_FLAG:        5,
+    TESTLEVEL_FLAG:   'NoTestRun',
+    JSON_FLAG:        true
+  }
+
+  // Use the spread operator to resolve (merge) default and user-provided options.
+  let options = {...defaultOptions, ...userOptions};
+  debugAsync(`installPackage.options:\n%O`, options);
+
+  return new Promise((resolve, reject) => {
+    // Create a FalconStatusReport object to help report on elapsed time.
+    let status = new FalconStatusReport(true);
+
+    // Declare function-local string buffers for stdout and stderr streams.
+    let stdOutBuffer:string       = '';
+    let stdErrBuffer:string       = '';
+
+    // Run force:package:install asynchronously inside a child process.
+    const childProcess = shell.exec(
+      `sfdx force:package:install \\
+            --package         ${packageVersionId} \\
+            --targetusername  ${targetOrgAlias} \\
+            --wait            ${options.waitTime} \\
+            --publishwait     ${options.publishWait} \\
+            --noprompt
+      `
+      , {silent:true, async: true}
+    );
+
+    // Notify observers that we started the package install process.
+    updateObserver(options.observer, `[0.000s] Sending package install request to ${targetOrgAlias}`);
+
+    // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
+    childProcess.stdout.on('data', (stdOutDataStream) => {
+      updateObserver(options.observer, `[${status.getRunTime(true)}s] ${stdOutDataStream}`);
+      stdOutBuffer += stdOutDataStream;
+    });
+
+    // Handle stderr "data". Anything here means an error occured
+    childProcess.stderr.on('data', (stdErrDataStream) => {
+      stdErrBuffer += `\n${stdErrDataStream}`;
+    });
+
+    // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
+    // FYI: Ignore the code and signal vars. They don't work.
+    childProcess.stdout.on('close', (code, signal) => {
+      if (stdErrBuffer) {
+        updateObserver(options.observer, `[${status.getRunTime(true)}s] ERROR: Installation of Package '${packageVersionId}' to ${targetOrgAlias} failed`);
+        reject(new Error(`${stdErrBuffer}`));
+      }
+      else {
+        updateObserver(options.observer, `[${status.getRunTime(true)}s] Package installed successfully`);
+        resolve(stdOutBuffer);
+      }
+    });
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    installPackage
+ * @param       {string}          targetOrgAlias    Alias of the org targeted by this command.
+ * @param       {string}          packageVersionId  Package Version ID (04t) of the package being
+ *                                installed as part of this request.
+ * @param       {string}          waitTime          Number of minutes to wait for the package 
+ *                                install to complete (or fail) before giving up.
+ * @returns     {Promise<any>}    Resolves on success, rejects on errors.
+ * @description Installs a package (managed or unmanaged) in the target org.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function installPackage(targetOrgAlias:string, packageVersionId:string, userOptions?:any):Promise<any> {
+  // Validate incoming params
+  if (!targetOrgAlias.trim())   throw new Error(`ERROR_INVALID_ARGUMENT: Parameter 'targetOrgAlias' requires a non-empty string`);
+  if (!packageVersionId.trim()) throw new Error(`ERROR_INVALID_ARGUMENT: Parameter 'packageVersionId' requires a non-empty string`);
+
+  // Define default options
+  let defaultOptions = {
+    waitTime:     10,
+    publishWait:  10,
+    observer:     null
+  }
+
+  // Use the spread operator to resolve (merge) default and user-provided options.
+  let options = {...defaultOptions, ...userOptions};
+  debugAsync(`installPackage.options:\n%O`, options);
+
+  return new Promise((resolve, reject) => {
+    // Create a FalconStatusReport object to help report on elapsed time.
+    let status = new FalconStatusReport(true);
+
+    // Declare function-local string buffers for stdout and stderr streams.
+    let stdOutBuffer:string       = '';
+    let stdErrBuffer:string       = '';
+
+    // Run force:package:install asynchronously inside a child process.
+    const childProcess = shell.exec(
+      `sfdx force:package:install \\
+            --package         ${packageVersionId} \\
+            --targetusername  ${targetOrgAlias} \\
+            --wait            ${options.waitTime} \\
+            --publishwait     ${options.publishWait} \\
+            --noprompt
+      `
+      , {silent:true, async: true}
+    );
+
+    // Notify observers that we started the package install process.
+    updateObserver(options.observer, `[0.000s] Sending package install request to ${targetOrgAlias}`);
+
+    // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
+    childProcess.stdout.on('data', (stdOutDataStream) => {
+      updateObserver(options.observer, `[${status.getRunTime(true)}s] ${stdOutDataStream}`);
+      stdOutBuffer += stdOutDataStream;
+    });
+
+    // Handle stderr "data". Anything here means an error occured
+    childProcess.stderr.on('data', (stdErrDataStream) => {
+      stdErrBuffer += `\n${stdErrDataStream}`;
+    });
+
+    // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
+    // FYI: Ignore the code and signal vars. They don't work.
+    childProcess.stdout.on('close', (code, signal) => {
+      if (stdErrBuffer) {
+        updateObserver(options.observer, `[${status.getRunTime(true)}s] ERROR: Installation of Package '${packageVersionId}' to ${targetOrgAlias} failed`);
+        reject(new Error(`${stdErrBuffer}`));
+      }
+      else {
+        updateObserver(options.observer, `[${status.getRunTime(true)}s] Package installed successfully`);
+        resolve(stdOutBuffer);
+      }
+    });
+  });
+}
+
+
+
 
 
 
 // Comment templates
+
+
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    identifyDevHubOrgs
+ * @param       {Array<any>}          rawSfdxOrgList  This should be the raw list of SFDX orgs that
+ *                                    comes in the result of a call to force:org:list.
+ * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
+ *                                    Dev Hub orgs.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              finds all the org connections that point to Dev Hubs and returns them as an array
+ *              of SfdxOrgInfo objects.
+ * @version     1.0.0
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 
 //─────────────────────────────────────────────────────────────────────────────┐

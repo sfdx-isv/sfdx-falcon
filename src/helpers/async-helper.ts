@@ -11,7 +11,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-
+var noOp = 'Just need a line of code so JSDoc sees break between file header and first class/function';
 // Requires
 
 // Interfaces

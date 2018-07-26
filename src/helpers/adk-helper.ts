@@ -16,38 +16,34 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';  // Allows us to use SFDX core functionality.
-import * as path                from 'path';                  // Node's path library.
-import {AppxDemoLocalConfig}    from '../falcon-types';       // Why?
-import {AppxDemoProjectConfig}  from '../falcon-types';       // Why?
-import {FalconCommandSequence}  from '../falcon-types';       // Why?
-import {FalconConfig}           from '../falcon-types';       // Why?
-import {INTENT}                 from '../enums';              // Why?
-import * as shell               from 'shelljs';               // Why?
+import {core}                   from  '@salesforce/command';      // Allows us to use SFDX core functionality.
+import * as path                from 'path';                      // Node's path library.
+import {AppxDemoLocalConfig}    from '../falcon-types';           // Why?
+import {AppxDemoProjectConfig}  from '../falcon-types';           // Why?
+import {FalconCommandSequence}  from '../falcon-types';           // Why?
+import {FalconConfig}           from '../falcon-types';           // Why?
+import {FalconStatusReport}     from '../helpers/falcon-helper';  // Why?
+import {INTENT}                 from '../enums';                  // Why?
+//import * as shell               from 'shelljs';                   // Why?
+import {waitASecond}            from '../helpers/async-helper';   // Why?
+import { SfdxCommandSequence } from './sequence-helper';
 
 // Requires
-const debug         = require('debug')('adk-helper');           // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync    = require('debug')('adk-helper(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
-const debugExtended = require('debug')('adk-helper(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
+const debug         = require('debug')('adk-helper');             // Utility for debugging. set debug.enabled = true to turn on.
+const debugAsync    = require('debug')('adk-helper(ASYNC)');      // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debugExtended = require('debug')('adk-helper(EXTENDED)');   // Utility for debugging. set debugExtended.enabled = true to turn on.
 
-// Interfaces
-
-// File Globals
-
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled       = false;
-debugAsync.enabled  = false;
+// Initialize Globals
+debug.enabled         = false;
+debugAsync.enabled    = false;
+debugExtended.enabled = false;
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Set shelljs config to throw exceptions on fatal errors.  We have to do
 // this so that Git/SFDX commands that return fatal errors can have their
 // output suppresed while the generator is running.
 //─────────────────────────────────────────────────────────────────────────────┘
-shell.config.fatal = true;
+//shell.config.fatal = true;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -71,8 +67,15 @@ export class AdkProject {
   private   projectFalconConfig:    FalconConfig;           // Why?
   private   targetOrgAlias:         string;                 // Why?
   private   executionIntent:        INTENT;                 // Why?
+  private   executingSequence:      boolean;                // Why?
   private   scratchDefJson:         string;                 // Why?
   private   skipUserCreation:       boolean;                // Why?
+
+  public    demoDeploymentOrgAlias: string;                 // Why?
+  public    demoValidationOrgAlias: string;                 // Why?
+  public    devHubAlias:            string;                 // Why?
+  public    envHubAlias:            string;                 // Why?
+  public    projectPath:            string;                 // Why?
 
   // TODO: If we don't use these four members outside of the
   //       constructor, get rid of them
@@ -81,13 +84,109 @@ export class AdkProject {
   private   sfdxProject:            core.SfdxProject;       // Why?
   private   sfdxProjectConfig:      object;                 // Why?
 
-  public    demoDeploymentOrgAlias: string;                 // Why?
-  public    demoValidationOrgAlias: string;                 // Why?
-  public    devHubAlias:            string;                 // Why?
-  public    envHubAlias:            string;                 // Why?
-  public    projectPath:            string;                 // Why?
 
+  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  AdkProject
+   * @version     1.0.0
+   * @param       {SfdxProject} sfdxProject Required.
+   *              An SfdxProject context as returned by a call to SfdxProject.resolve().
+   * @param       {object}  sfdxProjectConfig Required.
+   *              The resolved set of SFDX Project config settings for the SfdxProject.
+   * @param       {ConfigFile}  localFalconConfigFile Required.
+   *              A ConfigFile object that should have been populated by a local SFDX-Falcon config.
+   * @description Constructs an AdkProject object.
+   */
+  //───────────────────────────────────────────────────────────────────────────────────────────────┘
+  constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, 
+    localFalconConfigFile:core.ConfigFile, demoBuildConfigFile:core.ConfigFile) {
 
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Make sure that we get a value passed in to each parameter.
+    //─────────────────────────────────────────────────────────────────────────┘
+    if (typeof sfdxProject === 'undefined' 
+    ||  typeof sfdxProjectConfig === 'undefined' 
+    ||  typeof localFalconConfigFile === 'undefined' 
+    ||  typeof demoBuildConfigFile === 'undefined') {
+    throw new Error(`ERROR_MISSING_ARGUMENTS: Expected four arguments but only got ${arguments.length}`);
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Attempt to pull data from the incoming parameters.  If the proper 
+    // data types were not provided, then it's likely that someone tried to
+    // directly construct an AdkProject object.  That's not allowed, so we 
+    // want to catch anything unexpected then throw a custom ERROR.
+    //─────────────────────────────────────────────────────────────────────────┘
+    try {
+    this.projectPath = sfdxProject.getPath();
+    debug(`this.projectPath: \n%O`, this.projectPath);
+
+    this.appxDemoLocalConfig = localFalconConfigFile.toObject().appxDemo as any;
+    debug(`this.appxDemoLocalConfig: \n%O`, this.appxDemoLocalConfig);
+
+    this.appxDemoProjectConfig = (sfdxProjectConfig as any).plugins.sfdxFalcon.appxDemo;
+    debug(`this.appxDemoProjectConfig: \n%O`, this.appxDemoProjectConfig);
+
+    this.demoBuildConfig = demoBuildConfigFile.toObject() as any;
+    debug(`this.demoBuildConfig: \n%O`, this.demoBuildConfig);
+
+    this.devHubAlias = this.appxDemoLocalConfig.devHubAlias;
+    debug('this.devHubAlias: %s', this.devHubAlias);
+
+    this.envHubAlias = this.appxDemoLocalConfig.envHubAlias;
+    debug('this.envHubAlias: %s', this.envHubAlias);
+
+    this.demoDeploymentOrgAlias = this.appxDemoLocalConfig.demoDeploymentOrgAlias;
+    debug('this.demoDeploymentOrgAlias: %s', this.demoDeploymentOrgAlias);
+
+    this.demoValidationOrgAlias = this.appxDemoLocalConfig.demoValidationOrgAlias;
+    debug('this.demoValidationOrgAlias: %s', this.demoValidationOrgAlias);
+    }
+    catch (parseError) {
+    throw new Error (`ERROR_UNPARSED_CONFIG: ${parseError}`);
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Validate the FalconCommandSequence JSON that was loaded into the 
+    // demoBuildConfig variable.  If it's not valid, throw an error.
+    //─────────────────────────────────────────────────────────────────────────┘
+    let demoBuildConfigValidationResponse = validateDemoBuildConfig(this.demoBuildConfig);
+    if (demoBuildConfigValidationResponse !== true) {
+    throw new Error(`ERROR_INVALID_CONFIG: Configuration in ${this.projectPath}/demo-config/${this.appxDemoProjectConfig.demoBuildConfig} has missing/invalid settings (${demoBuildConfigValidationResponse}).`)
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Parse the Demo Build Config to set key properties.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.scratchDefJson = this.demoBuildConfig.options.scratchDefJson;
+    debug('this.scratchDefJson: %s', this.scratchDefJson);
+
+    this.skipUserCreation = this.demoBuildConfig.options.skipUserCreation;
+    debug('this.skipUserCreation: %s', this.skipUserCreation);
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Set any final member variables.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.executingSequence  = false;
+    this.executionIntent    = INTENT.NOT_SPECIFIED;
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // One final validation effort to make sure that we have all the info
+    // that we expect/need in order to perform Demo Deployments and Validations.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.finalValidation();
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // It's very unlikely that we will need any of this, but for now I'm going
+    // to keep references to the incoming object params using instance members.
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.sfdxProject            = sfdxProject;
+    this.sfdxProjectConfig      = sfdxProjectConfig;
+    this.localFalconConfigFile  = localFalconConfigFile;
+    this.demoBuildConfigFile    = demoBuildConfigFile;
+
+    return;
+  }
   //───────────────────────────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      resolve
@@ -207,102 +306,7 @@ export class AdkProject {
 
   }
 
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @constructs  AdkProject
-   * @version     1.0.0
-   * @param       {SfdxProject} sfdxProject Required.
-   *              An SfdxProject context as returned by a call to SfdxProject.resolve().
-   * @param       {object}  sfdxProjectConfig Required.
-   *              The resolved set of SFDX Project config settings for the SfdxProject.
-   * @param       {ConfigFile}  localFalconConfigFile Required.
-   *              A ConfigFile object that should have been populated by a local SFDX-Falcon config.
-   * @description Constructs an AdkProject object.
-   */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
-  constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, 
-              localFalconConfigFile:core.ConfigFile, demoBuildConfigFile:core.ConfigFile) {
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Make sure that we get a value passed in to each parameter.
-    //─────────────────────────────────────────────────────────────────────────┘
-    if (typeof sfdxProject === 'undefined' 
-        ||  typeof sfdxProjectConfig === 'undefined' 
-        ||  typeof localFalconConfigFile === 'undefined' 
-        ||  typeof demoBuildConfigFile === 'undefined') {
-      throw new Error(`ERROR_MISSING_ARGUMENTS: Expected four arguments but only got ${arguments.length}`);
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Attempt to pull data from the incoming parameters.  If the proper 
-    // data types were not provided, then it's likely that someone tried to
-    // directly construct an AdkProject object.  That's not allowed, so we 
-    // want to catch anything unexpected then throw a custom ERROR.
-    //─────────────────────────────────────────────────────────────────────────┘
-    try {
-      this.projectPath = sfdxProject.getPath();
-      debug(`this.projectPath: \n%O`, this.projectPath);
-
-      this.appxDemoLocalConfig = localFalconConfigFile.toObject().appxDemo as any;
-      debug(`this.appxDemoLocalConfig: \n%O`, this.appxDemoLocalConfig);
-
-      this.appxDemoProjectConfig = (sfdxProjectConfig as any).plugins.sfdxFalcon.appxDemo;
-      debug(`this.appxDemoProjectConfig: \n%O`, this.appxDemoProjectConfig);
-
-      this.demoBuildConfig = demoBuildConfigFile.toObject() as any;
-      debug(`this.demoBuildConfig: \n%O`, this.demoBuildConfig);
-
-      this.devHubAlias = this.appxDemoLocalConfig.devHubAlias;
-      debug('this.devHubAlias: %s', this.devHubAlias);
-  
-      this.envHubAlias = this.appxDemoLocalConfig.envHubAlias;
-      debug('this.envHubAlias: %s', this.envHubAlias);
-
-      this.demoDeploymentOrgAlias = this.appxDemoLocalConfig.demoDeploymentOrgAlias;
-      debug('this.demoDeploymentOrgAlias: %s', this.demoDeploymentOrgAlias);
-  
-      this.demoValidationOrgAlias = this.appxDemoLocalConfig.demoValidationOrgAlias;
-      debug('this.demoValidationOrgAlias: %s', this.demoValidationOrgAlias);
-    }
-    catch (parseError) {
-      throw new Error (`ERROR_UNPARSED_CONFIG: ${parseError}`);
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Validate the FalconCommandSequence JSON that was loaded into the 
-    // demoBuildConfig variable.  If it's not valid, throw an error.
-    //─────────────────────────────────────────────────────────────────────────┘
-    let demoBuildConfigValidationResponse = validateDemoBuildConfig(this.demoBuildConfig);
-    if (demoBuildConfigValidationResponse !== true) {
-      throw new Error(`ERROR_INVALID_CONFIG: Configuration in ${this.projectPath}/demo-config/${this.appxDemoProjectConfig.demoBuildConfig} has missing/invalid settings (${demoBuildConfigValidationResponse}).`)
-    }
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Parse the Demo Build Config to set key properties.
-    //─────────────────────────────────────────────────────────────────────────┘
-    this.scratchDefJson = this.demoBuildConfig.sequenceOptions.scratchDefJson;
-    debug('this.scratchDefJson: %s', this.scratchDefJson);
-
-    this.skipUserCreation = this.demoBuildConfig.sequenceOptions.skipUserCreation;
-    debug('this.skipUserCreation: %s', this.skipUserCreation);
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // One final validation effort to make sure that we have all the info
-    // that we expect/need in order to perform Demo Deployments and Validations.
-    //─────────────────────────────────────────────────────────────────────────┘
-    this.finalValidation();
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // It's very unlikely that we will need any of this, but for now I'm going
-    // to keep references to the incoming object params using instance members.
-    //─────────────────────────────────────────────────────────────────────────┘
-    this.sfdxProject            = sfdxProject;
-    this.sfdxProjectConfig      = sfdxProjectConfig;
-    this.localFalconConfigFile  = localFalconConfigFile;
-    this.demoBuildConfigFile    = demoBuildConfigFile;
-
-    return;
-  }
 
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -320,19 +324,36 @@ export class AdkProject {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @function    validateDemo
-   * @returns     {Promise<void>}  No return value, but may throw Errros.
-   * @version     1.0.0
-   * @description ????
+   * @function      validateDemo
+   * @returns       {Promise<FalconStatusReport>}  Returns this but may throw Errros.
+   * @version       1.0.0
+   * @description   ????
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async validateDemo() {
+  public async validateDemo():Promise<FalconStatusReport> {
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Set the demo target and execution intent.
+    // Set the intent, which will take care of configuring all member variables
+    // required by that intent.
     //─────────────────────────────────────────────────────────────────────────┘
     this.setIntent(INTENT.VALIDATE_DEMO);
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Create a Status Report object to track what's happening.
+    //─────────────────────────────────────────────────────────────────────────┘
+    let statusReport = new FalconStatusReport(true);
+
+
+    let sfdxCommandSequence = new SfdxCommandSequence( this.demoBuildConfig,
+                                                       this.projectPath,
+                                                       this.devHubAlias,
+                                                       this.targetOrgAlias);
+
+    let sfdxCommandResult = await sfdxCommandSequence.execute();
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Set the demo target, execution intent, and mar
+    //─────────────────────────────────────────────────────────────────────────┘
     //    this.executionIntent = INTENT.VALIDATE_DEMO;
 
     //─────────────────────────────────────────────────────────────────────────┐
@@ -346,7 +367,7 @@ export class AdkProject {
     //─────────────────────────────────────────────────────────────────────────┐
     // ???
     //─────────────────────────────────────────────────────────────────────────┘
-
+    return statusReport;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -390,6 +411,21 @@ export class AdkProject {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private setIntent(intent:INTENT):void {
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Make sure we're not already executing a command sequence.  If we're not,
+    // then flip executingSequence to TRUE to protect what we're going to do.
+    //─────────────────────────────────────────────────────────────────────────┘
+    if (this.executingSequence === true) {
+      throw new Error('ERROR_SEQUENCE_RUNNING: There is already another sequence running.')
+    }
+    else {
+      this.executingSequence = true;
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Depending on the intent, set class member vars appropriately.
+    //─────────────────────────────────────────────────────────────────────────┘
     switch(intent) {
       case INTENT.DEPLOY_DEMO:
         // code here
@@ -400,11 +436,12 @@ export class AdkProject {
       case INTENT.REPAIR_PROJECT:
         // code here
         break;
-//      case INTENT.VALIDATE_DEMO:
-        // code here
-//        break;
+      case INTENT.VALIDATE_DEMO:
+        this.executionIntent  = intent;
+        this.targetOrgAlias   = this.demoValidationOrgAlias;
+        break;
       default:
-        throw new Error(`ERROR_UNEXPECTED_VALUE: The enum ${intent} was not expected.`);
+        throw new Error(`ERROR_UNKNOWN_INTENT: Your command did not specify a valid intent.`);
     }
   }
 
@@ -415,8 +452,9 @@ export class AdkProject {
 /**
  * @function    validateAppxDemoConfig
  * @param       {AppxDemoProjectConfig}  appxDemoConfig  ????
- * @returns     {boolean|[string]}  Returns TRUE if AppxDemoProjectConfig is valid. If not valid, returns
- *                                  an array of strings listing each key that had an invalid value.
+ * @returns     {boolean|[string]}  Returns TRUE if AppxDemoProjectConfig is valid. If not valid,
+ *                                  returns an array of strings listing each key that had an invalid
+ *                                  value.
  * @version     1.0.0
  * @description ????
  */

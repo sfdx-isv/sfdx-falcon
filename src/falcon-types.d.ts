@@ -34,6 +34,11 @@ export interface AppxDemoProjectConfig {
   schemaVersion:    string;
 }
 
+export interface AppxDemoSequenceOptions {
+  scratchDefJson:    string;
+  skipUserCreation:  boolean;
+}
+
 export interface AppxPackageLocalConfig {
   demoValidationOrgAlias: string;
   demoDeploymentOrgAlias: string;
@@ -59,9 +64,20 @@ export interface AppxPackageProjectConfig {
   schemaVersion:      string;
 }
 
+export interface AppxPackageSequenceOptions {
+  scratchDefJson:    string;
+}
+
 export interface FalconConfig {
   appxProject?:  AppxPackageProjectConfig;
   appxDemo?:     AppxDemoProjectConfig;
+}
+
+export interface FalconCommandContext {
+  devHubAlias:    string;
+  targetOrgAlias: string;
+  projectPath:    string;
+  observer:       any;
 }
 
 // TODO: Need to finish defining FalconCommandHandler
@@ -70,30 +86,31 @@ export interface FalconCommandHandler {
 }
 
 export interface FalconCommandSequence {
-  handlers:               [FalconCommandHandler];
-  schemaVersion:          string;
-  sequenceAlias:          string;
-  sequenceDescription:    string;
-  sequenceName:           string;
-  sequenceOptions:        any;
-  sequenceSteps:          [FalconCommandSequenceStep];
-  sequenceVersion:        string;
+  sequenceName:     string;
+  sequenceType:     string;
+  sequenceVersion:  string;
+  description:      string;
+  options:          any;
+  sequenceGroups:   [FalconCommandSequenceGroup];
+  handlers:         [FalconCommandHandler];
+  schemaVersion:    string;
 }
 
-export interface FalconCommandSequenceOption {
-  key:    string;
-  value:  any;
+export interface FalconCommandSequenceGroup {
+  groupName:      string;
+  description:    string;
+  sequenceSteps:  [FalconCommandSequenceStep];
 }
 
 export interface FalconCommandSequenceStep {
-  action:       string;
-  alias:        string;
+  stepName:     string;
   description:  string;
-  handlers: {
-    error:    string;
-    success:  string;
-  }
-  name:         string;
+  action:       string;
   options:      any;
-  type:         string;
+  onSuccess?: {
+    handler:  string;
+  }
+  onError?:  {
+    handler:  string;
+  }
 }
