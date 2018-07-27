@@ -613,18 +613,27 @@ function setupProgressNotifications(message:string, commandFlags:any, interval:n
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
+private myFunction() {
 
+}
+//*/
 
-//─────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    functionName
- * @param       {string}  requiredParameter Required. Description can
- *                        continue onto multiple lines.
- * @param       {string}  [optionalParameter] Optional. Description can
- *                        continue onto multiple lines.
- * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
- * @description ???
- * @version     1.0.0
- * @public @async
- */
-//─────────────────────────────────────────────────────────────────────────────┘
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    functionName
+   * @param       {string}  requiredParameter Required. Description can
+   *                        continue onto multiple lines.
+   * @param       {string}  [optionalParameter] Optional. Description can
+   *                        continue onto multiple lines.
+   * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+   * @description ???
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  /*
+  private myFunction() {
+
+  }
+  //*/
