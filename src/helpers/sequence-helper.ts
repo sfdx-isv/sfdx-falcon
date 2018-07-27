@@ -15,15 +15,15 @@
 // Imports
 import * as path                    from 'path';                          // Node's path library.
 import * as sfdxHelper              from './sfdx-helper'                  // Library of SFDX commands.
-import {FalconCommandSequence, FalconCommandContext}      from '../falcon-types';               // Why?
+import {AppxDemoSequenceOptions}    from '../falcon-types';               // Why?
+import {FalconCommandContext}       from '../falcon-types';               // Why?
+import {FalconCommandSequence}      from '../falcon-types';               // Why?
 import {FalconCommandSequenceGroup} from '../falcon-types';               // Why?
 import {FalconCommandSequenceStep}  from '../falcon-types';               // Why?
-import {AppxDemoSequenceOptions}    from '../falcon-types';               // Why?
 import {FalconStatusReport}         from '../helpers/falcon-helper';      // Why?
+import {Observable}                 from 'rxjs';                          // Why?
 import {updateObserver}             from '../helpers/falcon-helper';      // Why?
-import { waitASecond } from './async-helper';
-import { Observable } from 'rxjs';
-import { cli } from '../../node_modules/cli-ux';
+import { waitASecond }              from './async-helper';                // Why?
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -32,19 +32,20 @@ const debugExtended         = require('debug')('sequence-helper(EXTENDED)');  //
 const Listr                 = require('listr');                               // Provides asynchronous list with status of task completion.
 const FalconUpdateRenderer  = require('falcon-listr-update-renderer');        // Custom renderer for Listr
 
-// Initialize Globals
-debug.enabled         = true;
-debugAsync.enabled    = true;
+//─────────────────────────────────────────────────────────────────────────────┐
+// Initialize debug settings.  These should be set FALSE to give the caller
+// control over whether or not debug output is generated.
+//─────────────────────────────────────────────────────────────────────────────┘
+debug.enabled         = false;
+debugAsync.enabled    = false;
 debugExtended.enabled = false;
-
-
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxCommandSequence
  * @access      public
- * @version     1.0.0
  * @description ???
+ * @version     1.0.0
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxCommandSequence {
@@ -63,7 +64,6 @@ export class SfdxCommandSequence {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  SfdxCommandSequence
-   * @version     1.0.0
    * @param       {FalconCommandSequence} sequence Required. Specialized Object
    *              that represents the Command Sequence that will be executed.
    * @param       {string}  projectPath Required. The path to the root of the
@@ -71,6 +71,7 @@ export class SfdxCommandSequence {
    * @param       {string}  targetOrgAlias Required. The alias (or username)
    *              of the org against which all commands will be executed.
    * @description Constructs an SfdxCommandSequence object.
+   * @version     1.0.0
    */
   //───────────────────────────────────────────────────────────────────────────┘
   constructor (sequence:FalconCommandSequence, projectPath:string, devHubAlias:string, targetOrgAlias:string) {
@@ -122,8 +123,7 @@ export class SfdxCommandSequence {
 
     // Run the Parent Tasks
     let listrContext = await parentTasks.run();
-
-    debug(`Task Group Done. Context result is: \n%O`, listrContext);
+    debug(`Task Group Done. Context result is:\n%O`, listrContext);
 
     // Stop the timer and return the Status Report.
     this.status.stopTimer();
@@ -160,14 +160,8 @@ export class SfdxCommandSequence {
         task:   (listrContext, thisTask) => {
           return new Observable(observer => { 
             this.executeStep(sequenceStep, observer)
-              .then(result => {
-                observer.next('XXX--1--XXX');
-                observer.complete();
-              })
-              .catch(result => {
-                observer.next('XXX--2--XXX');
-                observer.error(result);
-              });
+              .then(result => {observer.complete();})
+              .catch(result => {observer.error(result);});
           });
         }
       });
@@ -175,7 +169,6 @@ export class SfdxCommandSequence {
 
     // Return the Listr Tasks to the caller.
     return listrTasks;
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -191,9 +184,6 @@ export class SfdxCommandSequence {
   //───────────────────────────────────────────────────────────────────────────┘
   private async executeStep(sequenceStep:FalconCommandSequenceStep, observer?:any):Promise<void> {
 
-
-
-
     // Build the context the called command will need to correctly do its job.
     let commandContext:FalconCommandContext =  {
       devHubAlias:    this.devHubAlias,
@@ -207,8 +197,8 @@ export class SfdxCommandSequence {
       case 'install-package':
         await commandInstallPackage(commandContext, sequenceStep.options);
         break;
-      case 'INTENT.HEALTH_CHECK':
-        // code here
+      case 'deploy-metadata':
+        await commandDeployMetadata(commandContext, sequenceStep.options);
         break;
       case 'INTENT.REPAIR_PROJECT':
         // code here
@@ -220,11 +210,8 @@ export class SfdxCommandSequence {
         throw new Error(`ERROR_UNKNOWN_ACTION: '${sequenceStep.action}'`);
     }
 
-
-
-
-
     // DEVTEST
+    /*
     await waitASecond(2);
     observer.next('step one')
     await waitASecond(2);
@@ -232,7 +219,8 @@ export class SfdxCommandSequence {
     await waitASecond(2);
     observer.next('step three')
     await waitASecond(2);
-//    throw new Error('OUCH! Stop hurting me!');
+    //throw new Error('OUCH! Stop hurting me!');
+    //*/
 
   }
 
@@ -267,6 +255,60 @@ export class SfdxCommandSequence {
 
 
 
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    commandDeployMetadata
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: 'mdapiSource'.
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandDeployMetadata(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+
+  // Validate Command Options
+  if (typeof commandOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:mdapi:deploy',
+    progressMsg:  `Deploying MDAPI source from ${commandOptions.mdapiSource}`,
+    errorMsg:     `Deployment failed for MDAPI source '${commandOptions.mdapiSource}'`,
+    successMsg:   `Deployment of '${commandOptions.mdapiSource}' succeeded`,
+    commandArgs:  {},
+    commandFlags: {
+      FLAG_TARGETUSERNAME:  commandContext.targetOrgAlias,
+      FLAG_DEPLOYDIR:       path.join(commandContext.projectPath, 'mdapi-source', commandOptions.mdapiSource),
+      FLAG_WAIT:            5,
+      FLAG_TESTLEVEL:       'NoTestRun',
+      FLAG_JSON:            true
+    }
+  }
+  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
+    .catch(result => {
+      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
+    })
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
+  
+}
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandInstallPackage
@@ -274,90 +316,57 @@ export class SfdxCommandSequence {
  *                                      Org or DevHub alias) required to successfuly run the command.
  * @param       {any}                   commandOptions  JSON representing the options for this
  *                                      command. Keys expected: 'packageName', 'packageVersionId'.
- * @returns     {Promise<void>}         Resolves with no return value. Throws Error otherwise.
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
  * @description ????
  * @version     1.0.0
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-async function commandInstallPackage(commandContext:FalconCommandContext, commandOptions:any):Promise<void> {
+async function commandInstallPackage(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
 
   // Validate Command Options
   if (typeof commandOptions.packageName       === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'packageName'`);
   if (typeof commandOptions.packageVersionId  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'packageVersionId'`);
 
-  // Execute force:package:install using the SfdxHelper.
-  const cliOutput = await sfdxHelper.installPackage(
-    commandContext.targetOrgAlias, 
-    commandOptions.packageVersionId,
-    {observer:commandContext.observer})
-    .then(result => {
-      return result;
-    })
-    .catch(result => {
-      throw new Error(`Package '${commandOptions.packageName}' (${commandOptions.packageVersionId}) `
-                     +`could not be installed in ${commandContext.targetOrgAlias}\n\n${result}`);
-    })
-  
-  // Wait a few seconds to give the user a chance to see the final status message.
-  await waitASecond(5);
-  
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    commandDeployMdapiSource
- * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
- *                                      Org or DevHub alias) required to successfuly run the command.
- * @param       {any}                   commandOptions  JSON representing the options for this
- *                                      command. Keys expected: 'mdapiSource'.
- * @returns     {Promise<void>}         Resolves with no return value. Throws Error otherwise.
- * @description ????
- * @version     1.0.0
- * @private @async
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-async function commandDeployMdapiSource(commandContext:FalconCommandContext, commandOptions:any):Promise<void> {
-
-  // Validate Command Options
-  if (typeof commandOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
-
-  // Set optional flags for the SFDX command.
-  let sfdxCommandFlags = {
-    DEPLOYDIR_FLAG:   path.join(commandContext.projectPath, commandOptions.mdapiSource),
-    WAIT_FLAG:        5,
-    TESTLEVEL_FLAG:   'NoTestRun',
-    JSON_FLAG:        true
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:package:install',
+    progressMsg:  `Deploying MDAPI source from ${commandOptions.mdapiSource}`,
+    errorMsg:     `Deployment failed for MDAPI source '${commandOptions.mdapiSource}'`,
+    successMsg:   `Deployment of '${commandOptions.mdapiSource}' succeeded`,
+    commandArgs:  {},
+    commandFlags: {
+      FLAG_TARGETUSERNAME:  commandContext.targetOrgAlias,
+      FLAG_PACKAGE:         commandOptions.packageName,
+      FLAG_WAIT:            10,
+      FLAG_PUBLISHWAIT:     10,
+      FLAG_NOPROMPT:        true,
+      FLAG_JSON:            false
+    }
   }
-  debugAsync(`commandDeployMdapiSource.sfdxCommandFlags:\n%O`, sfdxCommandFlags);
+  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
 
-  // Execute force:mdapi:deploy using the SfdxHelper.
-  const cliOutput = await sfdxHelper.deployMetadata(
-    commandContext.targetOrgAlias,                      // Target Org
-                                                        // Flags
-                                                        // Wait time
-    {observer:commandContext.observer})                 // The Observer for this task
-    .then(result => {
-      return result;
-    })
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
     .catch(result => {
-      throw new Error(`Package '${commandOptions.packageName}' (${commandOptions.packageVersionId}) `
-                     +`could not be installed in ${commandContext.targetOrgAlias}\n\n${result}`);
+      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
     })
-  
-  // Wait a few seconds to give the user a chance to see the final status message.
-  await waitASecond(5);
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
   
 }
 
-/*
-  "Executing force:mdapi:deploy \\
-              --deploydir ./mdapi-source/$MDAPI_SOURCE_SUBDIRECTORY \\
-              --testlevel NoTestRun \\
-              --targetusername $ORG_ALIAS_TO_DEPLOY_TO \\
-              --wait 15\n"
 
-//*/
+
+
+
 
 
 
@@ -370,18 +379,49 @@ async function commandDeployMdapiSource(commandContext:FalconCommandContext, com
  *                                      Org or DevHub alias) required to successfuly run the command.
  * @param       {any}                   commandOptions  JSON representing the options for this
  *                                      command. Keys expected: ????, ????, ????
- * @returns     {Promise<void>}         Resolves with no return value. Throws Error otherwise.
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
  * @description ????
  * @version     1.0.0
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions:any):Promise<void> {
+async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
   // Validate Command Options
   if (typeof commandOptions.xxxx === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'xxxx'`);
   if (typeof commandOptions.xxxx === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'xxxx'`);
   if (typeof commandOptions.xxxx === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'xxxx'`);
   if (typeof commandOptions.xxxx === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'xxxx'`);
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:xxxx:xxxx',
+    progressMsg:  `Doing something with ${commandOptions.xxxx}`,
+    errorMsg:     `Something went wrong with ${commandOptions.xxxx}`,
+    successMsg:   `Command '${commandOptions.xxxx}' succeeded`,
+    commandArgs:  {},
+    commandFlags: {
+      FLAG_DEPLOYDIR:       path.join(commandContext.projectPath, 'mdapi-source', commandOptions.mdapiSource),
+      FLAG_WAIT:            5,
+      FLAG_TESTLEVEL:       'NoTestRun',
+      FLAG_JSON:            true
+    }
+  }
+  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
+    .catch(result => {
+      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
+    })
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
 
 }
 
