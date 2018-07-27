@@ -114,3 +114,8 @@ export interface FalconCommandSequenceStep {
     handler:  string;
   }
 }
+
+export interface FalconJsonResponse {
+  status: number;
+  result: any;
+}
