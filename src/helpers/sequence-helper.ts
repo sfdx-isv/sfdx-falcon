@@ -13,19 +13,20 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import * as path                      from 'path';                          // Node's path library.
-import * as sfdxHelper                from './sfdx-helper'                  // Library of SFDX commands.
-import {AppxDemoSequenceOptions}      from '../falcon-types';               // Why?
-import {FalconCommandContext}         from '../falcon-types';               // Why?
-import {FalconCommandSequence}        from '../falcon-types';               // Why?
-import {FalconCommandSequenceGroup}   from '../falcon-types';               // Why?
-import {FalconCommandSequenceStep}    from '../falcon-types';               // Why?
-import {FalconSequenceContext}        from '../falcon-types';               // Why?
-import {FalconStatusReport}           from '../helpers/falcon-helper';      // Why?
-import {composeFalconError}           from '../helpers/falcon-helper';      // Why?
-import {Observable}                   from 'rxjs';                          // Why?
-import {updateObserver}               from '../helpers/falcon-helper';      // Why?
-import { waitASecond }                from './async-helper';                // Why?
+import * as core                      from  '@salesforce/core';             // Allows us to use SFDX core functionality.
+import * as path                      from  'path';                         // Node's path library.
+import * as sfdxHelper                from  './sfdx-helper'                  // Library of SFDX commands.
+import {AppxDemoSequenceOptions}      from  '../falcon-types';               // Why?
+import {FalconCommandContext}         from  '../falcon-types';               // Why?
+import {FalconCommandSequence}        from  '../falcon-types';               // Why?
+import {FalconCommandSequenceGroup}   from  '../falcon-types';               // Why?
+import {FalconCommandSequenceStep}    from  '../falcon-types';               // Why?
+import {FalconSequenceContext}        from  '../falcon-types';               // Why?
+import {FalconStatusReport}           from  '../helpers/falcon-helper';      // Why?
+import {composeFalconError}           from  '../helpers/falcon-helper';      // Why?
+import {Observable}                   from  'rxjs';                          // Why?
+import {updateObserver}               from  '../helpers/falcon-helper';      // Why?
+import {waitASecond}                  from  './async-helper';                // Why?
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -412,10 +413,42 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
   
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    loadSequence
+ * @param       {string}  rootFolder  Required. The root folder where the sequence file is stored.
+ * @param       {string}  filename    Required. The name of the sequence file.
+ * @returns     {Promise<any>}  Resolves with a returned sequence object. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function loadSequence(rootFolder:string, filename:string):Promise<any> {
+  // Combine rootFolder and filename to get a complete path
+  let filePath = path.join(rootFolder, filename);
 
+  // Get the DemoConfigJson file that (should be) referenced in project config.
+  let sequenceFileOptions = {
+    rootFolder: rootFolder,
+    filename:   filename,
+    isGlobal:   false,
+    isState:    false,
+  }
+  debugAsync(`loadSequence.sequenceFileOptions:\n%O\n`, sequenceFileOptions);
 
+  // Retrieve the config file specified by the Config File Options.
+  let sequenceFile = await core.ConfigFile.retrieve(sequenceFileOptions);
 
+  // Verify that the file exists before trying to parse it.
+  if (await sequenceFile.exists() === false) {
+    throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${filePath}`);
+  }
+  debugAsync(`loadSequence.sequenceFile:\n%O\n`, sequenceFile);
 
+  // Parse the Demo Build Config File to get a Demo Build Sequence object.
+  return sequenceFile.toObject();
+}
 
 
 

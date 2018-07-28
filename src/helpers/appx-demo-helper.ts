@@ -16,10 +16,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';        // Allows us to use SFDX core functionality.
+import * as core                from  '@salesforce/core';           // Allows us to use SFDX core functionality.
 import * as path                from 'path';                        // Node's path library.
 import {AppxDemoProjectContext} from '../helpers/falcon-helper';    // Why?
 import {FalconStatusReport}     from '../helpers/falcon-helper';    // Why?
+import {loadSequence}           from '../helpers/sequence-helper';  // Why?
 import {SfdxCommandSequence}    from '../helpers/sequence-helper';  // Why?
 import {AppxDemoLocalConfig}    from '../falcon-types';             // Why?
 import {AppxDemoProjectConfig}  from '../falcon-types';             // Why?
@@ -58,27 +59,9 @@ export class AppxDemoProject {
   private   executionIntent:        INTENT;                 // Why?
   private   executingSequence:      boolean;                // Why?
  
+//  private   appxDemoLocalConfig:    AppxDemoLocalConfig;    // Why?
+//  private   appxDemoProjectConfig:  AppxDemoProjectConfig;  // Why?
 
-//  private   demoBuildSequence:        FalconCommandSequence;  // Why?
-  private   appxDemoLocalConfig:    AppxDemoLocalConfig;    // Why?
-  private   appxDemoProjectConfig:  AppxDemoProjectConfig;  // Why?
-//  private   projectFalconConfig:    FalconConfig;           // Why?
-//  private   targetOrgAlias:         string;                 // Why?
-//  private   scratchDefJson:         string;                 // Why?
-//  private   skipUserCreation:       boolean;                // Why?
-
-//  public    demoDeploymentOrgAlias: string;                 // Why?
-//  public    demoValidationOrgAlias: string;                 // Why?
-  //public    devHubAlias:            string;                 // Why?
-  //public    envHubAlias:            string;                 // Why?
-//  public    projectPath:            string;                 // Why?
-
-  // TODO: If we don't use these four members outside of the
-  //       constructor, get rid of them
-  //private   demoBuildConfigFile:    core.ConfigFile;        // Why?
-  //private   localFalconConfigFile:  core.ConfigFile;        // Why?
-  //private   sfdxProject:            core.SfdxProject;       // Why?
-  //private   sfdxProjectConfig:      object;                 // Why?
 
 
   //───────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -263,36 +246,20 @@ export class AppxDemoProject {
   //───────────────────────────────────────────────────────────────────────────┘
   public async validateDemo():Promise<FalconStatusReport> {
 
-    // Get the DemoConfigJson file that (should be) referenced in project config.
-    let demoBuildConfigOptions = {
-      rootFolder: path.join(this.context.path, 'demo-config'),
-      filename:   this.context.config.project.demoConfig,
-      isGlobal:   false,
-      isState:    false,
-    }
-    debugExtended(`demoBuildConfigOptions:\n%O\n`, demoBuildConfigOptions);
+    // Compute path and file name info for the demoConfig sequence
+    let rootFolder    = path.join(this.context.path, 'demo-config');
+    let filename      = this.context.config.project.demoConfig;
+    let sequencePath  = path.join(rootFolder, filename);
 
-    // Store a shorthand variable for the combined path.
-    let combinedPath = path.join(demoBuildConfigOptions.rootFolder, demoBuildConfigOptions.filename);
-    
-    // Retrieve the Demo Build Config File. 
-    let demoBuildConfigFile = await core.ConfigFile.retrieve(demoBuildConfigOptions);
-
-    // Verify that the file exists before trying to parse it.
-    if (await demoBuildConfigFile.exists() === false) {
-      throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${combinedPath}`);
-    }
-    debugExtended(`demoBuildConfigFile: \n%O`, demoBuildConfigFile);
-
-    // Parse the Demo Build Config File to get a Demo Build Sequence object.
-    let demoBuildSequence = demoBuildConfigFile.toObject() as any;
-    debug(`validateDemo.demoBuildSequence: \n%O`, demoBuildSequence);
+    // Load the sequence (reads file and then returns JS object)
+    let demoBuildSequence = await loadSequence(rootFolder, filename);
+    debug(`validateDemo.demoBuildSequence:\n%O\n`, demoBuildSequence);
 
     // Validate the contents of the Demo Build Sequence object.
     let demoBuildConfigValidationResponse = validateDemoBuildConfig(demoBuildSequence);
     if (demoBuildConfigValidationResponse !== true) {
     throw new Error (`ERROR_INVALID_CONFIG: ` 
-                    +`Configuration in ${combinedPath} `
+                    +`Configuration in ${sequencePath} `
                     +`has missing/invalid settings (${demoBuildConfigValidationResponse}).`)
     }
     
