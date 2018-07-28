@@ -13,10 +13,10 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
+import {composeFalconError}         from '../helpers/falcon-helper';  // Why?
 import {updateObserver}             from '../helpers/falcon-helper';  // Why?
 //import {waitASecond}                from './async-helper';            // Why?
 import {FalconStatusReport}         from './falcon-helper';           // Why?
-
 
 // Requires
 const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -88,11 +88,11 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
     const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
 
     // Notify observers that we started executing the SFDX Command.
-    updateObserver(observer, `[0.000s] Executing ${sfdxCommandString}`);
+    updateObserver(observer, `[0.000s] Executing ${sfdxCommandDef.command}`);
 
     // Set up Progress Notifications (only relevant if JSON flag is set).
     const progressNotifications 
-      = setupProgressNotifications(sfdxCommandDef.progressMsg, sfdxCommandDef.commandFlags, 1500, status, observer);
+      = setupProgressNotifications(sfdxCommandDef.progressMsg, sfdxCommandDef.commandFlags, 1000, status, observer);
 
     // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
     childProcess.stdout.on('data', (stdOutDataStream) => {
@@ -104,7 +104,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
 
     // Handle stderr "data". Anything here means an error occured
     childProcess.stderr.on('data', (stdErrDataStream) => {
-      stdErrBuffer += `\n${stdErrDataStream}`;
+      stdErrBuffer += stdErrDataStream;
     });
 
     // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
@@ -116,8 +116,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
 
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
-        updateObserver(observer, `[${status.getRunTime(true)}s] ERROR: ${sfdxCommandDef.errorMsg}`);
-        reject(new Error(`${stdErrBuffer}`));
+        reject(composeFalconError(sfdxCommandDef.errorMsg, stdErrBuffer));
       }
       else {
         updateObserver(observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);

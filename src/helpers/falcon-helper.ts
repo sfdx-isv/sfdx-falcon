@@ -12,10 +12,41 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-var noOp = 'Just need a line of code so JSDoc sees break between file header and first class/function';
+import {FalconError}  from  '../falcon-types';        // Why?
+
 // Requires
 
 // Interfaces
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    composeFalconError
+ * @param       {string}  falconErrMsg  Required.
+ * @param       {string}  sfdxStdErr    Required.
+ * @returns     {FalconError}  ???
+ * @description ???
+ * @version     1.0.0
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function composeFalconError(falconErrMsg:string, stdErrOutput:string, falconStatus:number=1):FalconError {
+  let stdErrJson = null;
+  try {
+    stdErrJson = JSON.parse(stdErrOutput);
+  } catch (e) {
+    stdErrJson = {
+      name:     'Error',
+      message:  'Unknown SFDX Error (could not parse stderr result from CLI)',
+      status:   1
+    };
+  }
+  let falconError = {
+    message:    falconErrMsg,
+    status:     falconStatus,
+    stdErrJson: stdErrJson
+  }
+  return falconError;
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
