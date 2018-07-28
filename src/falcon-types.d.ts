@@ -115,12 +115,6 @@ export interface FalconCommandSequenceStep {
   }
 }
 
-export interface FalconError {
-  message:    string;
-  status:     number;
-  stdErrJson: any;
-}
-
 export interface FalconJsonResponse {
   status: number;
   result: any;

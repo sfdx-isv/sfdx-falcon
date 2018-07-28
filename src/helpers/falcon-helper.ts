@@ -12,7 +12,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {FalconError}  from  '../falcon-types';        // Why?
+let noOp = 'noOp';
 
 // Requires
 
@@ -47,6 +47,37 @@ export function composeFalconError(falconErrMsg:string, stdErrOutput:string, fal
   }
   return falconError;
 }
+
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       FalconError
+ * @access      public
+ * @version     1.0.0
+ * @summary     ????
+ * @description ????
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class FalconError {
+  public  message:    string;
+  public  status:     number;
+  public  stdErrJson: any;
+
+  public static wrap(error:any):FalconError {
+
+    // If error is missing stdErrJson, it's definitely not a Falcon Error.
+    if (typeof error.stdErrJson === 'undefined') {
+      return {
+        message:    'Unexpected Exception',
+        status:     1,
+        stdErrJson: error
+      }
+    }
+    // Assume that it's already a Falcon Error.
+    return error;
+  }
+}
+
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

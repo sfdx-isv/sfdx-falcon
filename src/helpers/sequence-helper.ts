@@ -243,15 +243,6 @@ export class SfdxCommandSequence {
 
 } // End of SfdxCommandSequence class
 
-
-
-
-
-
-
-
-
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandDeployMetadata

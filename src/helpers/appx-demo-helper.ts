@@ -346,12 +346,12 @@ export class AppxDemoProject {
 
     // TODO: Create a new scratch org.
 
-    // The Status Report returned here should
+    // Execute the Sequence.
     let statusReport = await sfdxCommandSequence.execute();
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // ???
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Perform post-execution tasks
+
+    // Return the status report to the caller.
     return statusReport;
 
   }
@@ -465,7 +465,7 @@ function validateAppxDemoConfig (appxDemoConfig:AppxDemoProjectConfig):boolean|A
  *                                       invalid value.
  * @version     1.0.0
  * @description ????
- * @private
+ * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateDemoBuildConfig (demoBuildConfig:FalconCommandSequence):boolean|Array<string> {
@@ -481,6 +481,27 @@ export function validateDemoBuildConfig (demoBuildConfig:FalconCommandSequence):
   return true;
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validateConfig
+ * @param       {any}  configToValidate ????
+ * @param       {any}  configSchema     ????
+ * @returns     {boolean|Array<string>}  Returns TRUE if configToValidate is valid. If not valid,
+ *                                       returns an array of strings listing each key that had an
+ *                                       invalid value.
+ * @version     1.0.0
+ * @description Uses ajv (https://www.npmjs.com/package/ajv) to validate object against schema.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validateConfig(configToValidate:any, configSchema:any):boolean|Array<string> {
+  
+  // TODO: Need to implement this instead of the single purpose functions
+
+  // See "ajv" for a Node module that can do this for us 
+
+  return false;
+}
 
 
 

@@ -22,9 +22,9 @@ import {flags}                  from  '@oclif/command';                     // R
 import * as path                from  'path';                               // Helps resolve local paths at runtime.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
 import {AppxDemoProject}        from  '../../../helpers/appx-demo-helper';  // Provides information and actions related to an ADK project
+import {FalconError}            from  '../../../helpers/falcon-helper';     // Why?
 import {FalconStatusReport}     from  '../../../helpers/falcon-helper';     // Why?
 import {FalconJsonResponse}     from  '../../../falcon-types';              // Why?
-import {FalconError}            from  '../../../falcon-types';              // Why?
 
 
 // Requires
@@ -188,7 +188,10 @@ export default class FalconDemoDeploy extends SfdxCommand {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(falconError:FalconError):void {
+  private onError(error:any):void {
+
+    // Make sure that whatever we get is wrapped as a Falcon Error.
+    let falconError = FalconError.wrap(error);
 
     // Build an SfdxErrorConfig object
     let sfdxErrorConfig = new SfdxErrorConfig(
@@ -209,8 +212,8 @@ export default class FalconDemoDeploy extends SfdxCommand {
         sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
         break;
-      case /VMC_DEV_TEST2/.test(stdError.message):
-        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_THREE`]);
+      case /^ERROR_UNKNOWN_ACTION:/.test(stdError.message):
+        sfdxErrorConfig.addAction('ACTIONFOR_ERROR_UNKNOWN_ACTION');
         break;
       case /VMC_DEV_TEST3/.test(stdError.message):
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
