@@ -21,6 +21,7 @@ import {FalconCommandSequence}      from '../falcon-types';               // Why
 import {FalconCommandSequenceGroup} from '../falcon-types';               // Why?
 import {FalconCommandSequenceStep}  from '../falcon-types';               // Why?
 import {FalconStatusReport}         from '../helpers/falcon-helper';      // Why?
+import {composeFalconError}         from '../helpers/falcon-helper';      // Why?
 import {Observable}                 from 'rxjs';                          // Why?
 import {updateObserver}             from '../helpers/falcon-helper';      // Why?
 import { waitASecond }              from './async-helper';                // Why?
@@ -55,7 +56,6 @@ export class SfdxCommandSequence {
   //───────────────────────────────────────────────────────────────────────────┘
   private executing:          boolean;                  // Why?
   private devHubAlias:        string;                   // Why?
-  private options:            AppxDemoSequenceOptions;  // Why?
   private projectPath:        string;                   // Why?
   private sequence:           FalconCommandSequence;    // Why?
   private status:             FalconStatusReport;       // Why?
@@ -83,11 +83,11 @@ export class SfdxCommandSequence {
     // Assign incoming values to member variables
     this.devHubAlias    = devHubAlias;
     this.executing      = false;
-    this.options        = sequence.options;
     this.projectPath    = projectPath;
     this.sequence       = sequence;
     this.status         = new FalconStatusReport();
     this.targetOrgAlias = targetOrgAlias;
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -132,6 +132,76 @@ export class SfdxCommandSequence {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      executeStep
+   * @param       {FalconCommandSequenceStep} sequenceStep Required. A single
+   *              Command Sequence Step that the user would like executed.
+   * @param       {any}                       [observer]   Optional. Reference
+   *              to an Observable object. Used to provide external updates.
+   * @returns     {Promise<void>}  Resolves with void if successful, otherwise
+   *              rejects with Error bubbled up from child calls.
+   * @description Given a valid Falcon Command Sequence Step object, tries to
+   *              route the requested Step Action to the appropriate Command
+   *              Function inside of sequence-helper.ts.
+   * @version     1.0.0
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async executeStep(sequenceStep:FalconCommandSequenceStep, observer?:any):Promise<void> {
+
+    // Build the context the called command will need to correctly do its job.
+    let commandContext:FalconCommandContext =  {
+      devHubAlias:    this.devHubAlias,
+      targetOrgAlias: this.targetOrgAlias,
+      projectPath:    this.projectPath,
+      observer:       observer
+    }
+
+    // Route the execution to the appropriate commandFunction()
+    switch(sequenceStep.action.toLowerCase()) {
+      case 'install-package':
+        await commandInstallPackage(commandContext, sequenceStep.options);
+        break;
+      case 'deploy-metadata':
+        await commandDeployMetadata(commandContext, sequenceStep.options);
+        break;
+      case 'INTENT.REPAIR_PROJECT':
+        // code here
+        break;
+      case 'INTENT.VALIDATE_DEMO':
+        // code here
+      break;
+      default:
+        throw new Error(`ERROR_UNKNOWN_ACTION: '${sequenceStep.action}'`);
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      killExecution
+   * @access      private
+   * @param       {string}  errorMessage Required. Forwarded directly to the
+   *                        Error() constructor.
+   * @returns     {void}
+   * @description Performs internal cleanup then throws an exception.
+   * @version     1.0.0
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private killExecution(errorMessage:string):void {
+
+    // Use a generic Error Message if one was not passed in to us.
+    if (errorMessage === '') {
+      errorMessage = 'ERROR_UNKOWN_EXCEPTION: An unknown error has occured';
+    }
+
+    // Stop the timer so we can get an accurate Run Time if desired.
+    this.status.stopTimer();
+
+    // Throw an error using the provided error message.
+    throw new Error(errorMessage);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      prepareListrTasks
    * @param       {FalconCommandSequenceGroup} sequenceGroup Required. Should
    *              contain one or more Command Sequence Steps.
@@ -171,82 +241,7 @@ export class SfdxCommandSequence {
     return listrTasks;
   }
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      executeStep
-   * @param       {FalconCommandSequenceStep} sequenceStep Required. A single
-   *              command sequence 
-   * @returns     {Promise<void>}  ????
-   * @description ???
-   * @version     1.0.0
-   * @private @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private async executeStep(sequenceStep:FalconCommandSequenceStep, observer?:any):Promise<void> {
-
-    // Build the context the called command will need to correctly do its job.
-    let commandContext:FalconCommandContext =  {
-      devHubAlias:    this.devHubAlias,
-      targetOrgAlias: this.targetOrgAlias,
-      projectPath:    this.projectPath,
-      observer:       observer
-    }
-
-    // Route the execution to the appropriate commandFunction()
-    switch(sequenceStep.action.toLowerCase()) {
-      case 'install-package':
-        await commandInstallPackage(commandContext, sequenceStep.options);
-        break;
-      case 'deploy-metadata':
-        await commandDeployMetadata(commandContext, sequenceStep.options);
-        break;
-      case 'INTENT.REPAIR_PROJECT':
-        // code here
-        break;
-      case 'INTENT.VALIDATE_DEMO':
-        // code here
-      break;
-      default:
-        throw new Error(`ERROR_UNKNOWN_ACTION: '${sequenceStep.action}'`);
-    }
-
-    // DEVTEST
-    /*
-    await waitASecond(2);
-    observer.next('step one')
-    await waitASecond(2);
-    observer.next('step two')
-    await waitASecond(2);
-    observer.next('step three')
-    await waitASecond(2);
-    //throw new Error('OUCH! Stop hurting me!');
-    //*/
-
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      killExecution
-   * @access      private
-   * @param       {string}  errorMessage Required. Forwarded directly to the
-   *                        Error() constructor.
-   * @returns     {void}
-   * @description Performs internal cleanup then throws an exception.
-   * @version     1.0.0
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private killExecution(errorMessage:string):void {
-    if (errorMessage === '') {
-      errorMessage = 'ERROR_UNKOWN_EXCEPTION: An unknown error has occured';
-    }
-    this.status.stopTimer();
-
-    // TODO: Add additional Status Object manipulation here.
-
-    // Throw an error using the provided error message.
-    throw new Error(errorMessage);
-  }
-}
+} // End of SfdxCommandSequence class
 
 
 
@@ -275,7 +270,7 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
   // Validate Command Options
   if (typeof commandOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
 
-  // Create an SfdxCommand object to define which command will run.
+  // Create an SfdxCommandDefinition object to define which command will run.
   let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
     command:      'force:mdapi:deploy',
     progressMsg:  `Deploying MDAPI source from ${commandOptions.mdapiSource}`,
@@ -294,9 +289,7 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
-    .catch(result => {
-      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
-    })
+    .catch(error => { throw error });
 
   // Do any processing you want with the CLI Result, then return a success message.
   debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
@@ -331,26 +324,24 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
   // Create an SfdxCommand object to define which command will run.
   let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
     command:      'force:package:install',
-    progressMsg:  `Deploying MDAPI source from ${commandOptions.mdapiSource}`,
-    errorMsg:     `Deployment failed for MDAPI source '${commandOptions.mdapiSource}'`,
-    successMsg:   `Deployment of '${commandOptions.mdapiSource}' succeeded`,
+    progressMsg:  `Installing '${commandOptions.packageName}' (${commandOptions.packageVersionId}) in ${commandContext.targetOrgAlias}`,
+    errorMsg:     `Installation of package '${commandOptions.packageName}' (${commandOptions.packageVersionId}) failed`,
+    successMsg:   `Package '${commandOptions.packageName}' (${commandOptions.packageVersionId}) successfully installed in ${commandContext.targetOrgAlias}`,
     commandArgs:  {},
     commandFlags: {
       FLAG_TARGETUSERNAME:  commandContext.targetOrgAlias,
-      FLAG_PACKAGE:         commandOptions.packageName,
+      FLAG_PACKAGE:         commandOptions.packageVersionId,
       FLAG_WAIT:            10,
       FLAG_PUBLISHWAIT:     10,
       FLAG_NOPROMPT:        true,
-      FLAG_JSON:            false
+      FLAG_JSON:            true
     }
   }
   debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
-    .catch(result => {
-      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
-    })
+    .catch(error => { throw error });
 
   // Do any processing you want with the CLI Result, then return a success message.
   debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
@@ -434,29 +425,38 @@ async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions
 
 
 
-
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    validateAppxDemoConfig
- * @param       {AppxDemoProjectConfig}  appxDemoConfig  ????
- * @returns     {boolean|[string]}  Returns TRUE if AppxDemoProjectConfig is valid. If not valid,
- *                                  returns an array of strings listing each key that had an invalid
- *                                  value.
+ * @function    functionName
+ * @param       {string}  requiredParameter Required. Description can continue onto multiple lines.
+ * @param       {string}  [optionalParameter] Optional. Description can continue onto multiple lines.
+ * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+ * @description ???
  * @version     1.0.0
- * @description ????
+ * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
+private myFunction() {
 
+}
+//*/
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      executeGroup
-   * @param       {FalconCommandSequenceGroup} sequenceGroup Required. Should
-   *              contain one or more Command Sequence Steps.
-   * @returns     {Promise<void>}  ????
+   * @function    functionName
+   * @param       {string}  requiredParameter Required. Description can
+   *                        continue onto multiple lines.
+   * @param       {string}  [optionalParameter] Optional. Description can
+   *                        continue onto multiple lines.
+   * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
    * @description ???
    * @version     1.0.0
-   * @private @async
+   * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  /*
+  private myFunction() {
+
+  }
+  //*/

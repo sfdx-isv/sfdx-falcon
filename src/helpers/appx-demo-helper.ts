@@ -47,7 +47,7 @@ debugExtended.enabled = false;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       AdkProject
+ * @class       AppxDemoProject
  * @access      public
  * @version     1.0.0
  * @description Creates an Object that represents an AppExchange Demo Kit project on the user's
@@ -56,7 +56,7 @@ debugExtended.enabled = false;
  *              take on behalf of the user.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class AdkProject {
+export class AppxDemoProject {
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class member variables/types.
@@ -79,15 +79,15 @@ export class AdkProject {
 
   // TODO: If we don't use these four members outside of the
   //       constructor, get rid of them
-  private   demoBuildConfigFile:    core.ConfigFile;        // Why?
-  private   localFalconConfigFile:  core.ConfigFile;        // Why?
-  private   sfdxProject:            core.SfdxProject;       // Why?
-  private   sfdxProjectConfig:      object;                 // Why?
+  //private   demoBuildConfigFile:    core.ConfigFile;        // Why?
+  //private   localFalconConfigFile:  core.ConfigFile;        // Why?
+  //private   sfdxProject:            core.SfdxProject;       // Why?
+  //private   sfdxProjectConfig:      object;                 // Why?
 
 
   //───────────────────────────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  AdkProject
+   * @constructs  AppxDemoProject
    * @version     1.0.0
    * @param       {SfdxProject} sfdxProject Required.
    *              An SfdxProject context as returned by a call to SfdxProject.resolve().
@@ -95,7 +95,7 @@ export class AdkProject {
    *              The resolved set of SFDX Project config settings for the SfdxProject.
    * @param       {ConfigFile}  localFalconConfigFile Required.
    *              A ConfigFile object that should have been populated by a local SFDX-Falcon config.
-   * @description Constructs an AdkProject object.
+   * @description Constructs an AppxDemoProject object.
    */
   //───────────────────────────────────────────────────────────────────────────────────────────────┘
   constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, 
@@ -114,7 +114,7 @@ export class AdkProject {
     //─────────────────────────────────────────────────────────────────────────┐
     // Attempt to pull data from the incoming parameters.  If the proper 
     // data types were not provided, then it's likely that someone tried to
-    // directly construct an AdkProject object.  That's not allowed, so we 
+    // directly construct an AppxDemoProject object.  That's not allowed, so we 
     // want to catch anything unexpected then throw a custom ERROR.
     //─────────────────────────────────────────────────────────────────────────┘
     try {
@@ -180,10 +180,10 @@ export class AdkProject {
     // It's very unlikely that we will need any of this, but for now I'm going
     // to keep references to the incoming object params using instance members.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.sfdxProject            = sfdxProject;
-    this.sfdxProjectConfig      = sfdxProjectConfig;
-    this.localFalconConfigFile  = localFalconConfigFile;
-    this.demoBuildConfigFile    = demoBuildConfigFile;
+    //this.sfdxProject            = sfdxProject;
+    //this.sfdxProjectConfig      = sfdxProjectConfig;
+    //this.localFalconConfigFile  = localFalconConfigFile;
+    //this.demoBuildConfigFile    = demoBuildConfigFile;
 
     return;
   }
@@ -194,7 +194,7 @@ export class AdkProject {
    *              Specifies the path of a local directory that contains the root of an ADK project.
    *              When not specified, the local SFDX project context must be present.
    * @param       {boolean} [debugMode] Optional.
-   *              Set to TRUE to enable debug output from inside the AdkProject object that this
+   *              Set to TRUE to enable debug output from inside the AppxDemoProject object that this
    *              method will return.
    * @description Leverages the Project object from SFDX-Core to represent an SFDX project 
    *              directory.  This means that the directory must contain an sfdx-project.json file
@@ -294,20 +294,17 @@ export class AdkProject {
     debugExtended(`demoBuildConfigFile: \n%O`, demoBuildConfigFile);
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Construct a new AdkProject object using the SFDX Project, SFDX Project
+    // Construct a new AppxDemoProject object using the SFDX Project, SFDX Project
     // Config, and the SFDX-Falcon Config values.
     //─────────────────────────────────────────────────────────────────────────┘
-    let newAdkProject = new AdkProject(sfdxProject, sfdxProjectConfig, localFalconConfigFile, demoBuildConfigFile);
+    let newAdkProject = new AppxDemoProject(sfdxProject, sfdxProjectConfig, localFalconConfigFile, demoBuildConfigFile);
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Done configuring the new AdkProject object. Send it to the caller.
+    // Done configuring the new AppxDemoProject object. Send it to the caller.
     //─────────────────────────────────────────────────────────────────────────┘
     return newAdkProject;
 
   }
-
-
-
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -319,67 +316,43 @@ export class AdkProject {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public async deployDemo() {
-    
+
+    // TODO: Implement this function. Copy from validateDemo()
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function      validateDemo
-   * @returns       {Promise<FalconStatusReport>}  Returns this but may throw Errros.
-   * @version       1.0.0
+   * @returns       {Promise<FalconStatusReport>}  Resolves with a Falcon Status
+   *                Report or bubbles up thrown errors.
    * @description   ????
+   * @version       1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public async validateDemo():Promise<FalconStatusReport> {
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Set the intent, which will take care of configuring all member variables
-    // required by that intent.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Use setIntent() to configure all member variables required by the intent.
     this.setIntent(INTENT.VALIDATE_DEMO);
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Create a Status Report object to track what's happening.
-    //─────────────────────────────────────────────────────────────────────────┘
-    let statusReport = new FalconStatusReport(true);
-
-
+    // This SFDX Command Sequence will provide our execution capabilities.
     let sfdxCommandSequence = new SfdxCommandSequence( this.demoBuildConfig,
                                                        this.projectPath,
                                                        this.devHubAlias,
                                                        this.targetOrgAlias);
 
-    let sfdxCommandResult = await sfdxCommandSequence.execute();
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Set the demo target, execution intent, and mar
-    //─────────────────────────────────────────────────────────────────────────┘
-    //    this.executionIntent = INTENT.VALIDATE_DEMO;
+    // TODO: Delete the old scratch org.
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Delete the old scratch org.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // TODO: Create a new scratch org.
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Create a new scratch org.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // The Status Report returned here should
+    let statusReport = await sfdxCommandSequence.execute();
 
     //─────────────────────────────────────────────────────────────────────────┐
     // ???
     //─────────────────────────────────────────────────────────────────────────┘
     return statusReport;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @function    executeDeployment
-   * @returns     {Promise<void>}  No return value, but may throw Errros.
-   * @version     1.0.0
-   * @description ????
-   * @private @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private executeDeployment() {
 
   }
 
@@ -387,16 +360,19 @@ export class AdkProject {
   /**
    * @method      finalValidation
    * @returns     {void}  No return value, but may throw Errros.
-   * @version     1.0.0
    * @description Goes through all of the member variables that are initialized
    *              by the constructor and checks each of them for validity and
    *              completeness.  Will throw an Error any time invalid or missing
    *              information is detected.
+   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  // TODO: Implement this function
   private finalValidation() {
+
+    // TODO: Implement this function
+
+    // DEVTEST
     //throw new Error('Hold your horses!');
 
   }
@@ -404,18 +380,18 @@ export class AdkProject {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      setIntent
+   * @param       {INTENT}  intent  Required.  Enum indicating the caller's
+   *                        intent when executing commands implemented by this
+   *                        class.
    * @returns     {void}  No return value, but may throw Errros.
-   * @version     1.0.0
    * @description ???
+   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private setIntent(intent:INTENT):void {
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Make sure we're not already executing a command sequence.  If we're not,
-    // then flip executingSequence to TRUE to protect what we're going to do.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Make sure we're not already executing a command sequence.
     if (this.executingSequence === true) {
       throw new Error('ERROR_SEQUENCE_RUNNING: There is already another sequence running.')
     }
@@ -423,40 +399,39 @@ export class AdkProject {
       this.executingSequence = true;
     }
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // Depending on the intent, set class member vars appropriately.
-    //─────────────────────────────────────────────────────────────────────────┘
     switch(intent) {
       case INTENT.DEPLOY_DEMO:
-        // code here
+        this.targetOrgAlias = this.demoDeploymentOrgAlias;
         break;
       case INTENT.HEALTH_CHECK:
-        // code here
+        throw new Error(`ERROR_INTENT_NOT_IMPLEMENTED: Your command uses an intent that is not yet implemented.`);
         break;
       case INTENT.REPAIR_PROJECT:
-        // code here
+        throw new Error(`ERROR_INTENT_NOT_IMPLEMENTED: Your command uses an intent that is not yet implemented.`);
         break;
       case INTENT.VALIDATE_DEMO:
-        this.executionIntent  = intent;
-        this.targetOrgAlias   = this.demoValidationOrgAlias;
+        this.targetOrgAlias = this.demoValidationOrgAlias;
         break;
       default:
         throw new Error(`ERROR_UNKNOWN_INTENT: Your command did not specify a valid intent.`);
     }
+
+    // Set the intent
+    this.executionIntent  = intent;
   }
-
-
-} // End of AdkProject class definition.
+} // End of AppxDemoProject class definition.
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    validateAppxDemoConfig
  * @param       {AppxDemoProjectConfig}  appxDemoConfig  ????
- * @returns     {boolean|[string]}  Returns TRUE if AppxDemoProjectConfig is valid. If not valid,
- *                                  returns an array of strings listing each key that had an invalid
- *                                  value.
- * @version     1.0.0
+ * @returns     {boolean|Array<string>}  Returns TRUE if AppxDemoProjectConfig is valid. If not
+ *                                       valid, returns an array of strings listing each key that
+ *                                       had an invalid value.
  * @description ????
+ * @version     1.0.0
+ * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function validateAppxDemoConfig (appxDemoConfig:AppxDemoProjectConfig):boolean|Array<string> {
@@ -485,22 +460,32 @@ function validateAppxDemoConfig (appxDemoConfig:AppxDemoProjectConfig):boolean|A
 /**
  * @function    validateDemoBuildConfig
  * @param       {FalconCommandSequence}  demoBuildConfig  ????
- * @returns     {boolean|[string]}  Returns TRUE if demoBuildConfig is valid. If not valid, returns
- *                                  an array of strings listing each key that had an invalid value.
+ * @returns     {boolean|Array<string>}  Returns TRUE if demoBuildConfig is valid. If not valid,
+ *                                       returns an array of strings listing each key that had an
+ *                                       invalid value.
  * @version     1.0.0
  * @description ????
+ * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-// TODO: Need to implement this function.
 export function validateDemoBuildConfig (demoBuildConfig:FalconCommandSequence):boolean|Array<string> {
+
+  // TODO: Need to implement this function.
+
   let invalidConfigKeys = new Array<string>();
 
-  invalidConfigKeys.push('test-error');
+  //DEVTEST
+  //invalidConfigKeys.push('test-error');
+  //return invalidConfigKeys;
 
-//  return invalidConfigKeys;
   return true;
-
 }
+
+
+
+
+
+
 
 /*
 Example of appxDemo JSON:
@@ -517,3 +502,39 @@ Example of appxDemo JSON:
   "schemaVersion"     : "0.0.1"
 }
 //*/
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    functionName
+ * @param       {string}  requiredParameter Required. Description can continue onto multiple lines.
+ * @param       {string}  [optionalParameter] Optional. Description can continue onto multiple lines.
+ * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+ * @description ???
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
+private myFunction() {
+
+}
+//*/
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    functionName
+   * @param       {string}  requiredParameter Required. Description can
+   *                        continue onto multiple lines.
+   * @param       {string}  [optionalParameter] Optional. Description can
+   *                        continue onto multiple lines.
+   * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+   * @description ???
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  /*
+  private myFunction() {
+
+  }
+  //*/

@@ -14,44 +14,56 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core, SfdxCommand}      from  '@salesforce/command';                // Allows us to use the Messages Library from core.
+import {SfdxCommand}            from  '@salesforce/command';                // The CLI command we build must extend this class.
+import {Messages}               from  '@salesforce/core';                   // Messages library that simplifies using external JSON for string reuse.
+import {SfdxError}              from  '@salesforce/core';                   // Why?
+import {SfdxErrorConfig}        from  '@salesforce/core';                   // Why?
 import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
 import * as path                from  'path';                               // Helps resolve local paths at runtime.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
-import {AdkProject}             from  '../../../helpers/adk-helper';        // Provides information and actions related to an ADK project
+import {AppxDemoProject}        from  '../../../helpers/appx-demo-helper';  // Provides information and actions related to an ADK project
 import {FalconStatusReport}     from  '../../../helpers/falcon-helper';     // Why?
+import {FalconJsonResponse}     from  '../../../falcon-types';              // Why?
+import {FalconError}            from  '../../../falcon-types';              // Why?
+
 
 // Requires
 const debug = require('debug')('falcon:demo:deploy');                       // Utility for debugging. set debug.enabled = true to turn on.
 
-
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
-// making it easy to separate logic from static output messages. The file
-// referenced by the second parameter of loadMessages() must be found in the
-// messages directory at the root of your project.
+// making it easy to separate logic from static output messages. There are 
+// two steps required to use this.
+//
+// Step 1:  Tell the Messages framework to look for and import a 'messages' 
+//          directory from inside the root of your project.
+// Step 2:  Create a Messages object representing a message bundle from inside
+//          your 'messages' directory.  The second param represents the name of
+//          the JSON file you're trying to load. 
+// 
+// Note that messages from @salesforce/command, @salesforce/core, or any library
+// that is using the messages framework can also be loaded this way by 
+// specifying the module name as the first parameter of loadMessages().
 //─────────────────────────────────────────────────────────────────────────────┘
-// Initialize Messages with the current plugin directory
-core.Messages.importMessagesDirectory(__dirname);
-
-// Load the specific messages for this file. Messages from @salesforce/command, @salesforce/core,
-// or any library that is using the messages framework can also be loaded this way.
-const messages = core.Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
+Messages.importMessagesDirectory(__dirname);
+const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoDeploy
  * @extends     SfdxCommand
- * @access      public
- * @version     1.0.0
  * @summary     Implements the CLI Command falcon:demo:deploy
  * @description TODO ????
+ * @version     1.0.0
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// TODO: We may not need to use Yeoman for the deploy command
-export default class FalconDemoClone extends SfdxCommand {
+export default class FalconDemoDeploy extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┐
-  // Set command-level properties.
+  // These static properties give the Salesforce CLI a picture of what your
+  // command is and does. For example, the --help flag implemented by the
+  // SfdxCommand class uses the description and examples, and won't show this
+  // command at all if the 'hidden' property is set to TRUE.
   //───────────────────────────────────────────────────────────────────────────┘
   public static description = messages.getMessage('commandDescription');
   public static hidden      = false;
@@ -59,9 +71,18 @@ export default class FalconDemoClone extends SfdxCommand {
     `$ sfdx falcon:demo:deploy`,
     `$ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project`
   ];
-  
+
   //───────────────────────────────────────────────────────────────────────────┐
-  // Define the FLAGS used by this command.
+  // Identify which core SFDX arguments/features are required by this command.
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
+  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
+  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
+  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
+  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.  
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Define the custom FLAGS used by this command.
   // -d --DEPLOYDIR   Directory where a fully configured AppX Demo Kit (ADK)
   //                  project exists. All commands for deployment must be 
   //                  defined inside this directory.
@@ -85,16 +106,23 @@ export default class FalconDemoClone extends SfdxCommand {
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Identify which core SFDX arguments/features are required by this command.
+  // Define some private instance member variables that will be used to help
+  // build and deliver the JSON response.
   //───────────────────────────────────────────────────────────────────────────┘
-  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
-  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
-  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
-  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
-  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.
+  private statusReport:FalconStatusReport;        // Why?
+  private jsonResponse:FalconJsonResponse;        // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Implement the run() function (this is what powers the SFDX command)
+  /**
+   * @function    run
+   * @returns     {Promise<any>}  This should resolve by returning a JSON object
+   *              that the CLI will then forward to the user if the --json flag
+   *              was set when this command was called.
+   * @description Entrypoint function used by the CLI when the user wants to
+   *              run the command 'sfdx falcon:demo:deploy'.
+   * @version     1.0.0
+   * @public @async
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
@@ -104,46 +132,94 @@ export default class FalconDemoClone extends SfdxCommand {
 
     // Set the debug mode based on the caller's debugModeFlag setting.
     debug.enabled = debugModeFlag;
-  
+
+    // Initialize the JSON response
+    this.jsonResponse = {
+      status: 1,
+      result: 'ERROR_RESPONSE_NOT_SET'
+    };
+
     // Make sure that deployDirFlag has a valid local path
     if (validateLocalPath(deployDirFlag) === false) {
       throw new Error('Deploy Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Instantiate an AdkProject Object.
+    // Instantiate an AppxDemoProject Object.
     //─────────────────────────────────────────────────────────────────────────┘
-    const adkProject = await AdkProject.resolve(path.resolve(deployDirFlag), debugModeFlag);
+    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), debugModeFlag);
     
-    // Validate the demo
-    const statusReport = await adkProject.validateDemo() as FalconStatusReport;
+    // Run validateDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
+    await appxDemoProject.validateDemo()
+      .then(statusReport => {this.onSuccess(statusReport)})
+      .catch(falconError => {this.onError(falconError)});
 
-    debug(`statusReport.getStartTime(): %s`,  statusReport.getStartTime(true));
-    debug(`statusReport.getEndTime():   %s`,  statusReport.getEndTime(true));
-    debug(`statusReport.getRunTime():   %s`,  statusReport.getRunTime(true));
-    debug(`statusReport.statusMessage:  %O`,  statusReport.statusMessage);
-    debug(`statusReport.statusLog:      %O`,  statusReport.statusLog);
+    // The JSON Response was populated in onSuccess(). Just need to return now.
+    return this.jsonResponse;
+  }
 
-//    debug(`adkProject.projectPath: %s`, adkProject.projectPath);
-//    debug(`adkProject.targetOrgAlias: %s`, adkProject.targetOrgAlias);
-//    debug(`adkProject.sfdxProjectConfig: \n%O`, adkProject.sfdxProjectConfig);
-//    debug(`adkProject.sfdxProjectConfig.plugins.sfdxFalcon: \n%O`, adkProject.sfdxProjectConfig.plugins.sfdxFalcon);
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    onSuccess
+   * @param       {FalconStatusReport}  statusReport
+   * @returns     {void}  
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private onSuccess(statusReport:FalconStatusReport):void {
+    this.statusReport = statusReport;
+    this.jsonResponse = {
+      status:  0,
+      result:  this.statusReport
+    }
+    debug(`FalconDemoDeploy.onSuccess:\n%O\n`, statusReport);
+    console.log(`Demo Validation Completed Successfully. Total elapsed time: ${statusReport.getRunTime(true)}`);
+  }
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // ???
-    //─────────────────────────────────────────────────────────────────────────┘
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    onError
+   * @param       {any}  error  ???
+   * @returns     {void}
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private onError(falconError:FalconError):void {
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // ???
-    // Provide some sort of output
-    //─────────────────────────────────────────────────────────────────────────┘
-    
+    // Build an SfdxErrorConfig object
+    let sfdxErrorConfig = new SfdxErrorConfig(
+      'sfdx-falcon',          // Package Name
+      'falconErrorMessages',  // Bundle Name
+      'errDefault'            // Error Message Key
+    );
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // ???
-    // Construct some sort of response.
-    // Return empty JSON since this is meant to be a human-readable command only.
-    //─────────────────────────────────────────────────────────────────────────┘
-    return {};
+    // Pull out the sfdxErrorObj so the code below is easier to read.
+    let stdError = falconError.stdErrJson;
+
+    // Merge the custom Falcon message and the standard SFDX into our output.
+    sfdxErrorConfig.setErrorTokens([falconError.message, stdError.message]);
+
+    // Search the SFDX error message to see if we can figure out a recommended action.
+    switch (true) {
+      case /VMC_DEV_TEST1/.test(stdError.message):
+        sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
+        break;
+      case /VMC_DEV_TEST2/.test(stdError.message):
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_THREE`]);
+        break;
+      case /VMC_DEV_TEST3/.test(stdError.message):
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
+        break;
+    }
+
+    // Create an SFDX Error, set the command name, and throw it.
+    let sfdxError = SfdxError.create(sfdxErrorConfig);
+    sfdxError.commandName = 'falcon:demo:deploy';
+    throw sfdxError;
   }
 }
