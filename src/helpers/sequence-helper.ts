@@ -13,18 +13,19 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import * as path                    from 'path';                          // Node's path library.
-import * as sfdxHelper              from './sfdx-helper'                  // Library of SFDX commands.
-import {AppxDemoSequenceOptions}    from '../falcon-types';               // Why?
-import {FalconCommandContext}       from '../falcon-types';               // Why?
-import {FalconCommandSequence}      from '../falcon-types';               // Why?
-import {FalconCommandSequenceGroup} from '../falcon-types';               // Why?
-import {FalconCommandSequenceStep}  from '../falcon-types';               // Why?
-import {FalconStatusReport}         from '../helpers/falcon-helper';      // Why?
-import {composeFalconError}         from '../helpers/falcon-helper';      // Why?
-import {Observable}                 from 'rxjs';                          // Why?
-import {updateObserver}             from '../helpers/falcon-helper';      // Why?
-import { waitASecond }              from './async-helper';                // Why?
+import * as path                      from 'path';                          // Node's path library.
+import * as sfdxHelper                from './sfdx-helper'                  // Library of SFDX commands.
+import {AppxDemoSequenceOptions}      from '../falcon-types';               // Why?
+import {FalconCommandContext}         from '../falcon-types';               // Why?
+import {FalconCommandSequence}        from '../falcon-types';               // Why?
+import {FalconCommandSequenceGroup}   from '../falcon-types';               // Why?
+import {FalconCommandSequenceStep}    from '../falcon-types';               // Why?
+import {FalconSequenceContext}        from '../falcon-types';               // Why?
+import {FalconStatusReport}           from '../helpers/falcon-helper';      // Why?
+import {composeFalconError}           from '../helpers/falcon-helper';      // Why?
+import {Observable}                   from 'rxjs';                          // Why?
+import {updateObserver}               from '../helpers/falcon-helper';      // Why?
+import { waitASecond }                from './async-helper';                // Why?
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -54,12 +55,11 @@ export class SfdxCommandSequence {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class member variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
-  private executing:          boolean;                  // Why?
-  private devHubAlias:        string;                   // Why?
-  private projectPath:        string;                   // Why?
   private sequence:           FalconCommandSequence;    // Why?
+  private sequenceContext:    FalconSequenceContext;    // Why?
+  private options:            any;                      // Why?
   private status:             FalconStatusReport;       // Why?
-  private targetOrgAlias:     string;                   // Why?
+  private executing:          boolean;                  // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -74,20 +74,16 @@ export class SfdxCommandSequence {
    * @version     1.0.0
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor (sequence:FalconCommandSequence, projectPath:string, devHubAlias:string, targetOrgAlias:string) {
+  constructor (sequence:FalconCommandSequence, sequenceContext:FalconSequenceContext, options?:any) {
     debug('SfdxCommandSequence.constructor.arguments:\n%O', arguments);
-    if (typeof sequence !== 'object') {
-      throw new TypeError(`ERROR_INVALID_TYPE: Expected 'FalconCommandSequence' but got ${typeof sequence}`);
+    if (typeof sequence !== 'object' || typeof sequenceContext !== 'object') {
+      throw new TypeError(`ERROR_INVALID_TYPE: Expected 'object, object' but got '${typeof sequence}, ${typeof sequenceContext}'`);
     }
-
-    // Assign incoming values to member variables
-    this.devHubAlias    = devHubAlias;
-    this.executing      = false;
-    this.projectPath    = projectPath;
-    this.sequence       = sequence;
-    this.status         = new FalconStatusReport();
-    this.targetOrgAlias = targetOrgAlias;
-
+    this.sequence         = sequence;
+    this.sequenceContext  = sequenceContext;
+    this.options          = options;
+    this.status           = new FalconStatusReport();
+    this.executing        = false;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -150,9 +146,10 @@ export class SfdxCommandSequence {
 
     // Build the context the called command will need to correctly do its job.
     let commandContext:FalconCommandContext =  {
-      devHubAlias:    this.devHubAlias,
-      targetOrgAlias: this.targetOrgAlias,
-      projectPath:    this.projectPath,
+      devHubAlias:    this.sequenceContext.devHubAlias,
+      targetOrgAlias: this.sequenceContext.targetOrgAlias,
+      projectPath:    this.sequenceContext.projectPath,
+      logLevel:       this.sequenceContext.logLevel,
       observer:       observer
     }
 
@@ -164,8 +161,8 @@ export class SfdxCommandSequence {
       case 'deploy-metadata':
         await commandDeployMetadata(commandContext, sequenceStep.options);
         break;
-      case 'INTENT.REPAIR_PROJECT':
-        // code here
+      case 'create-user':
+        await commandCreateUser(commandContext, sequenceStep.options);
         break;
       case 'INTENT.VALIDATE_DEMO':
         // code here
@@ -243,6 +240,73 @@ export class SfdxCommandSequence {
 
 } // End of SfdxCommandSequence class
 
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    commandCreateUser
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: ????, ????, ????
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandCreateUser(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+  // Validate Command Options
+  if (typeof commandOptions.definitionFile === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'definitionFile'`);
+  if (typeof commandOptions.sfdxUserAlias  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'sfdxUserAlias'`);
+
+  // Load and validate the user definition file.
+
+  // Create a unique username based on what's in the definition file.
+  let uniqueUsername = 'xxx@test.com';
+
+  // Find out if the target is a scratch org or a regular org
+
+  // If a non-scratch org, call our own custom user creation command (look at Shane or Wade's code)
+
+  // If scratch org, execute an SFDX create user command.
+
+
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:user:create',
+    progressMsg:  `Creating User '${uniqueUsername}' in ${commandContext.targetOrgAlias}`,
+    errorMsg:     `Failed to create User '${uniqueUsername}' in ${commandContext.targetOrgAlias}`,
+    successMsg:   `User '${uniqueUsername}' created successfully`,
+    commandArgs:  {},
+    commandFlags: {
+      FLAG_DEFINITIONFILE:        path.join(commandContext.projectPath, 'demo-config', commandOptions.definitionFile),
+      FLAG_SETALIAS:              commandOptions.sfdxUserAlias,
+      FLAG_TARGETUSERNAME:        commandContext.targetOrgAlias,
+      FLAG_TARGETDEVHUBUSERNAME:  commandContext.devHubAlias,
+      FLAG_JSON:                  true,
+      FLAG_LOGLEVEL:              commandContext.logLevel
+    }
+  }
+  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.observer)
+    .catch(result => {
+      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
+    })
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
+
+}
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandDeployMetadata
@@ -273,7 +337,8 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
       FLAG_DEPLOYDIR:       path.join(commandContext.projectPath, 'mdapi-source', commandOptions.mdapiSource),
       FLAG_WAIT:            5,
       FLAG_TESTLEVEL:       'NoTestRun',
-      FLAG_JSON:            true
+      FLAG_JSON:            true,
+      FLAG_LOGLEVEL:        commandContext.logLevel
     }
   }
   debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
@@ -325,7 +390,9 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
       FLAG_WAIT:            10,
       FLAG_PUBLISHWAIT:     10,
       FLAG_NOPROMPT:        true,
-      FLAG_JSON:            true
+      FLAG_JSON:            true,
+      FLAG_LOGLEVEL:        commandContext.logLevel
+
     }
   }
   debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
@@ -385,7 +452,9 @@ async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions
       FLAG_DEPLOYDIR:       path.join(commandContext.projectPath, 'mdapi-source', commandOptions.mdapiSource),
       FLAG_WAIT:            5,
       FLAG_TESTLEVEL:       'NoTestRun',
-      FLAG_JSON:            true
+      FLAG_JSON:            true,
+      FLAG_LOGLEVEL:        commandContext.logLevel
+
     }
   }
   debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);

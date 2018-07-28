@@ -23,7 +23,7 @@ export interface AppxDemoLocalConfig {
 
 export interface AppxDemoProjectConfig {
   demoAlias:        string;
-  demoBuildConfig:  string;
+  demoConfig:       string;
   demoTitle:        string;
   demoType:         string;
   demoVersion:      string;
@@ -77,6 +77,7 @@ export interface FalconCommandContext {
   devHubAlias:    string;
   targetOrgAlias: string;
   projectPath:    string;
+  logLevel:       'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   observer:       any;
 }
 
@@ -118,4 +119,12 @@ export interface FalconCommandSequenceStep {
 export interface FalconJsonResponse {
   status: number;
   result: any;
+}
+
+export interface FalconSequenceContext {
+  devHubAlias:    string;
+  targetOrgAlias: string;
+  projectPath:    string;
+  logLevel:       'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+  observer:       any;
 }

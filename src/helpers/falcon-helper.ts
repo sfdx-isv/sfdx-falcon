@@ -11,12 +11,35 @@
  *                framework.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
-let noOp = 'noOp';
+import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
+import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
 
-// Requires
-
-// Interfaces
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       AppxDemoProjectContext
+ * @access      public
+ * @version     1.0.0
+ * @summary     ????
+ * @description ????
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class AppxDemoProjectContext {
+  // Interface
+  public config: {
+    local:    AppxDemoLocalConfig;
+    project:  AppxDemoProjectConfig;
+    global:   any;
+  }
+  public path: string;
+  // Constructor
+  constructor() {
+    this.config = {
+      local:    <AppxDemoLocalConfig>{},
+      project:  <AppxDemoProjectConfig>{},
+      global:   {}
+    };
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -48,7 +71,6 @@ export function composeFalconError(falconErrMsg:string, stdErrOutput:string, fal
   return falconError;
 }
 
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconError
@@ -77,7 +99,6 @@ export class FalconError {
     return error;
   }
 }
-
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
