@@ -66,23 +66,50 @@ export class FalconStatusReport {
   public    statusLog:      Array<string>;
   public    statusMessage:  string  = '';
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  FalconStatusReport      
+   * @description ???
+   * @version     1.0.0
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   constructor (startTimer:boolean=false) {
     if (startTimer === true) {
       this.startTimer();
     }
     this.statusLog = new Array<string>();
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public setStatusMessage(statusMessage:string):void {
     this.logStatusMessage(statusMessage);
     this.statusMessage = statusMessage;
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public logStatusMessage(logMessage:string):void {
     this.statusLog.push(logMessage);
   }
-
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public startTimer() {
     if (this.endTime !== -1) {
       throw new Error('ERROR_TIMER_RUNNING: You can not restart a timer that has already been stopped.');
@@ -93,7 +120,14 @@ export class FalconStatusReport {
     let d = new Date();
     this.startTime = d.getTime();
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public stopTimer():number {
     if (this.startTime === -1) {
       throw new Error('ERROR_TIMER_NEVER_STARTED: You can not stop a timer that was never started.');
@@ -106,7 +140,14 @@ export class FalconStatusReport {
     this.runTime = this.endTime - this.startTime;
     return this.runTime;
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public getStartTime(returnString:boolean=false):number|string {
     if (returnString === true) {
       return this.printTime(this.startTime);
@@ -115,7 +156,14 @@ export class FalconStatusReport {
       return this.startTime;
     }
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public getEndTime(returnString:boolean=false):number|string {
     if (returnString === true) {
         return this.printTime(this.endTime);
@@ -124,7 +172,14 @@ export class FalconStatusReport {
       return this.endTime;
     }
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public getRunTime(returnString:boolean=false):number|string {
     if (this.startTime === -1) {
       throw new Error('ERROR_TIMER_NEVER_STARTED: You can get runtime from a timer that was never started.');
@@ -144,7 +199,14 @@ export class FalconStatusReport {
       return returnRuntime;
     }
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public getCurrentTime(returnString:boolean=false):number|string {
     let d = new Date();
     let currentTime = d.getTime();
@@ -156,7 +218,14 @@ export class FalconStatusReport {
       return currentTime;      
     }
   }
-
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      printTime
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   private printTime(timeCode:number):string {
     let d = new Date(timeCode);
     let hours         = d.getHours();
@@ -165,7 +234,6 @@ export class FalconStatusReport {
     let milliseconds  = d.getMilliseconds().toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping: false});
 
     return `${hours}:${minutes}:${seconds}:${milliseconds}`;
-
   }
 }
 
