@@ -17,16 +17,16 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import * as core                from  '@salesforce/core';           // Allows us to use SFDX core functionality.
-import * as path                from 'path';                        // Node's path library.
-import {AppxDemoProjectContext} from '../helpers/falcon-helper';    // Why?
-import {FalconStatusReport}     from '../helpers/falcon-helper';    // Why?
-import {loadSequence}           from '../helpers/sequence-helper';  // Why?
-import {SfdxCommandSequence}    from '../helpers/sequence-helper';  // Why?
-import {AppxDemoLocalConfig}    from '../falcon-types';             // Why?
-import {AppxDemoProjectConfig}  from '../falcon-types';             // Why?
-import {FalconCommandSequence}  from '../falcon-types';             // Why?
-import {FalconSequenceContext}  from '../falcon-types';             // Why?
-import {INTENT}                 from '../enums';                    // Why?
+import * as path                from  'path';                        // Node's path library.
+import {readConfigFile}         from  '../helpers/config-helper';  // Why?
+import {AppxDemoProjectContext} from  '../helpers/falcon-helper';    // Why?
+import {FalconStatusReport}     from  '../helpers/falcon-helper';    // Why?
+import {SfdxCommandSequence}    from  '../helpers/sequence-helper';  // Why?
+import {AppxDemoLocalConfig}    from  '../falcon-types';             // Why?
+import {AppxDemoProjectConfig}  from  '../falcon-types';             // Why?
+import {FalconCommandSequence}  from  '../falcon-types';             // Why?
+import {FalconSequenceContext}  from  '../falcon-types';             // Why?
+import {INTENT}                 from  '../enums';                    // Why?
 
 // Requires
 const debug         = require('debug')('adk-helper');             // Utility for debugging. set debug.enabled = true to turn on.
@@ -221,6 +221,30 @@ export class AppxDemoProject {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @function      getDefaultSequenceContext
+   * @returns       {FalconSequenceContext}  ???
+   * @description   Returns a FalconSequenceContext object set with all 
+   *                properties set to defaults.
+   * @version       1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private getDefaultSequenceContext():FalconSequenceContext {
+    return {
+      devHubAlias:        this.context.config.local.devHubAlias,
+      targetOrgAlias:     null,
+      targetIsScratchOrg: null,
+      projectPath:        this.context.path,
+      configPath:         path.join(this.context.path, 'demo-config'),
+      mdapiSourcePath:    path.join(this.context.path, 'mdapi-source'),
+      dataPath:           path.join(this.context.path, 'demo-data'),
+      logLevel:           'error',
+      sequenceObserver:   null
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @function    deployDemo
    * @returns     {Promise<void>}  No return value, but may throw Errros.
    * @version     1.0.0
@@ -246,37 +270,32 @@ export class AppxDemoProject {
   //───────────────────────────────────────────────────────────────────────────┘
   public async validateDemo():Promise<FalconStatusReport> {
 
-    // Compute path and file name info for the demoConfig sequence
-    let rootFolder    = path.join(this.context.path, 'demo-config');
-    let filename      = this.context.config.project.demoConfig;
-    let sequencePath  = path.join(rootFolder, filename);
+    // Create a Default Sequence Context.
+    let sequenceContext = this.getDefaultSequenceContext();
+
+    // Customize for validateDemo().
+    sequenceContext.targetOrgAlias      = this.context.config.local.demoValidationOrgAlias;
+    sequenceContext.targetIsScratchOrg  = true;
+    debug(`validateDemo.sequenceContext:\n%O\n`, sequenceContext);
 
     // Load the sequence (reads file and then returns JS object)
-    let demoBuildSequence = await loadSequence(rootFolder, filename);
+    let demoBuildSequence = await readConfigFile( sequenceContext.configPath,               // rootFolder
+                                                  this.context.config.project.demoConfig);  // filename
     debug(`validateDemo.demoBuildSequence:\n%O\n`, demoBuildSequence);
 
     // Validate the contents of the Demo Build Sequence object.
     let demoBuildConfigValidationResponse = validateDemoBuildConfig(demoBuildSequence);
     if (demoBuildConfigValidationResponse !== true) {
     throw new Error (`ERROR_INVALID_CONFIG: ` 
-                    +`Configuration in ${sequencePath} `
+                    +`Configuration in ${path.join(sequenceContext.configPath, this.context.config.project.demoConfig)} `
                     +`has missing/invalid settings (${demoBuildConfigValidationResponse}).`)
     }
     
     // TODO: Deprecate this Use setIntent() to configure all member variables required by the intent.
     this.setIntent(INTENT.VALIDATE_DEMO);
 
-    // Create a Sequence Context to properly construct the Sequence.
-    let falconSequenceContext = {
-      devHubAlias:    this.context.config.local.devHubAlias,
-      targetOrgAlias: this.context.config.local.demoValidationOrgAlias,
-      projectPath:    this.context.path,
-      logLevel:       'error',
-      observer:       null
-    } as FalconSequenceContext;
-
     // This SFDX Command Sequence will provide our execution capabilities.
-    let sfdxCommandSequence = new SfdxCommandSequence(demoBuildSequence, falconSequenceContext);
+    let sfdxCommandSequence = new SfdxCommandSequence(demoBuildSequence, sequenceContext);
 
     // TODO: Delete the old scratch org.
 

@@ -45,7 +45,7 @@ export interface SfdxCommandDefinition {
   progressMsg:    string;           // Why?
   errorMsg:       string;           // Why?
   successMsg:     string;           // Why?
-  commandArgs:    any;              // Why?
+  commandArgs:    [string];         // Why?
   commandFlags:   any;              // Why?
 }
 
@@ -236,10 +236,15 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
 
   // TODO: Add command sanitization to make sure nobody can inject arbitrary code.
 
+  // Start with the base SFDX command.
   let parsedCommand = `sfdx ${sfdxCommand.command}`;
 
-  // TODO: Add ARGS processing. Make sure to do it before FLAGS.
+  // Add arguments to the command (must happen before flags).
+  for (let argument of sfdxCommand.commandArgs) {
+    parsedCommand += ' ' + argument;
+  }
 
+  // Add flags to the command.
   for (let objectKey of Object.keys(sfdxCommand.commandFlags)) {
 
     // Only process keys that start with "FLAG_".

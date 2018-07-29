@@ -73,12 +73,8 @@ export interface FalconConfig {
   appxDemo?:     AppxDemoProjectConfig;
 }
 
-export interface FalconCommandContext {
-  devHubAlias:    string;
-  targetOrgAlias: string;
-  projectPath:    string;
-  logLevel:       'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-  observer:       any;
+export interface FalconCommandContext extends FalconSequenceContext {
+  commandObserver:  any;
 }
 
 // TODO: Need to finish defining FalconCommandHandler
@@ -122,9 +118,13 @@ export interface FalconJsonResponse {
 }
 
 export interface FalconSequenceContext {
-  devHubAlias:    string;
-  targetOrgAlias: string;
-  projectPath:    string;
-  logLevel:       'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-  observer:       any;
+  devHubAlias:        string;
+  targetOrgAlias:     string;
+  targetIsScratchOrg: boolean;
+  projectPath:        string;
+  configPath:         string;
+  mdapiSourcePath:    string;
+  dataPath:           string;
+  logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+  sequenceObserver:   any;
 }
