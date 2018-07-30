@@ -92,8 +92,10 @@ export class FalconProgressNotifications {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   static killAll():void {
-    for (let i=0; i < FalconProgressNotifications.timeoutRefs.length; i++) {
-      clearInterval(FalconProgressNotifications.timeoutRefs[i]);
+    if (typeof FalconProgressNotifications.timeoutRefs !== 'undefined') {
+      for (let i=0; i < FalconProgressNotifications.timeoutRefs.length; i++) {
+        clearInterval(FalconProgressNotifications.timeoutRefs[i]);
+      }  
     }
   }
 
