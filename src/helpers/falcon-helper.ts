@@ -288,19 +288,3 @@ export class FalconStatusReport {
     return `${hours}:${minutes}:${seconds}:${milliseconds}`;
   }
 }
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    updateObserver
- * @param       {any}     observer  Required. Does nothing if typeof observer.next is undefined.
- * @param       {string}  message   Required. The message to be passed to observer.next().
- * @returns     {void}
- * @description Posts the provided message to observer.next() ONLY if an Observer was provided.
- * @version     1.0.0
-] */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function updateObserver(observer:any, message:string):void {
-  if (typeof observer.next !== 'function') return;
-  if (typeof message === undefined) return;
-  observer.next(message);
-}

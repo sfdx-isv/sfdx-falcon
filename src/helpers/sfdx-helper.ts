@@ -13,10 +13,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {composeFalconError}         from '../helpers/falcon-helper';  // Why?
-import {updateObserver}             from '../helpers/falcon-helper';  // Why?
-//import {waitASecond}                from './async-helper';            // Why?
-import {FalconStatusReport}         from './falcon-helper';           // Why?
+import {composeFalconError}           from  '../helpers/falcon-helper';         // Why?
+import {updateObserver}               from  '../helpers/notification-helper';   // Why?
+import {FalconProgressNotifications}  from  '../helpers/notification-helper';   // Why?
+//import {waitASecond}                from './async-helper';                  // Why?
+import {FalconStatusReport}           from  './falcon-helper';                  // Why?
 
 // Requires
 const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -81,8 +82,8 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
     let status = new FalconStatusReport(true);
 
     // Declare function-local string buffers for stdout and stderr streams.
-    let stdOutBuffer:string       = '';
-    let stdErrBuffer:string       = '';
+    let stdOutBuffer:string = '';
+    let stdErrBuffer:string = '';
 
     // Run the SFDX Command String asynchronously inside a child process.
     const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
@@ -90,15 +91,12 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
     // Notify observers that we started executing the SFDX Command.
     updateObserver(observer, `[0.000s] Executing ${sfdxCommandDef.command}`);
 
-    // Set up Progress Notifications (only relevant if JSON flag is set).
+    // Set up Progress Notifications.
     const progressNotifications 
-      = setupProgressNotifications(sfdxCommandDef.progressMsg, sfdxCommandDef.commandFlags, 1000, status, observer);
+      = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, status, observer);
 
     // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
     childProcess.stdout.on('data', (stdOutDataStream) => {
-      if (! sfdxCommandDef.commandFlags.FLAG_JSON) {
-        updateObserver(observer, `[${status.getRunTime(true)}s] ${stdOutDataStream}`);
-      }
       stdOutBuffer += stdOutDataStream;
     });
 
@@ -112,7 +110,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
     childProcess.stdout.on('close', (code, signal) => {
 
       // Stop the progress notifications for this command.
-      clearInterval(progressNotifications);
+      FalconProgressNotifications.finish(progressNotifications);
 
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
@@ -279,22 +277,6 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
   return parsedCommand;
 }
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    progressNotification
- * @param       {FalconStatusReport}  status    Required. Helps determine current running time.
- * @param       {string}              message   Required. Displayed after the elapsed run time.
- * @param       {any}                 observer  Required. Reference to an Observable object.
- * @returns     {void}
- * @description Computes the current Run Time from a FalconStatusReport object and composes a 
- *              message that updateObserver() will handle.
- * @version     1.0.0
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function progressNotification(status:FalconStatusReport, message:string, observer:any):void {
-  updateObserver(observer, `[${status.getRunTime(true)}s] ${message}`);
-}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -405,29 +387,18 @@ export function setSfdxHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean
   debugExtended.enabled = debugExtendedStatus;
 }
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    setupProgressNotifications
- * @param       {string}              message       Required. Displayed after the elapsed run time.
- * @param       {any}                 commandFlags  Required. Reference to an Observable object.
- * @param       {number}              interval      Required. Amount of time between notifications.
- * @param       {FalconStatusReport}  status        Required. Helps determine current running time.
- * @param       {any}                 observer      Required. Reference to an Observable object.
- * @returns     {void|any}  Undefined if setInterval was not used, Timeout object otherwise.
- * @description Registers a progressNotification() function which will cause regular notifications
- *              to be sent to an Observer (if one exists).
- * @version     1.0.0
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function setupProgressNotifications(message:string, commandFlags:any, interval:number, status:FalconStatusReport, observer:any):void|any {
-  // Do not setup progress notifications if the JSON flag is not set.
-  if (! commandFlags.FLAG_JSON) {
-    return undefined;
-  }
-  // Set an interval for the progressNotification function and return to caller.
-  return setInterval(progressNotification, interval, status, message, observer);
-}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

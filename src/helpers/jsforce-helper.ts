@@ -14,85 +14,235 @@
 import {Aliases}            from '@salesforce/core'     // Why?
 import {AuthInfo}           from '@salesforce/core'     // Why?
 import {Connection}         from '@salesforce/core'     // Why?
-import {RequestInfo}        from 'jsforce';             // Why?
+import * as jsf             from 'jsforce';             // Why?
+import {updateObserver}     from './notification-helper';     // Why?
 
 // Requires
 const debug         = require('debug')('jsforce-helper');            // Utility for debugging. set debug.enabled = true to turn on.
 const debugAsync    = require('debug')('jsforce-helper(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
 const debugExtended = require('debug')('jsforce-helper(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
+const rpRequest     = require('request-promise-native');
 
 // Interfaces
 export interface JSForceCommandDefinition {
-  targetOrgAlias:   string;
-  progressMsg:      string;
-  errorMsg:         string;
-  successMsg:       string; 
-  request:          RequestInfo,
-  options?:         {any};
+  aliasOrConnection:  string|Connection;
+  progressMsg:        string;
+  errorMsg:           string;
+  successMsg:         string; 
+  request:            jsf.RequestInfo,
+  options?:           {any};
+}
+
+export interface ResolvedConnection {
+  connection:       Connection;
+  orgIdentifier:    string;
+}
+
+export interface QueryResult {
+  totalSize: number;
+  done: boolean;
+  records: Record[];
+}
+
+export interface Record {
+  attributes: object;
+  Id: string;
+  ContentDocumentId?: string;
+}
+
+export interface InsertResult {
+  id:       string;
+  success:  boolean;
+  errors:   [any]
 }
 
 // Initialize debug settings.
-debug.enabled         = true;
-debugAsync.enabled    = true;
-debugExtended.enabled = true;
+debug.enabled         = false;
+debugAsync.enabled    = false;
+debugExtended.enabled = false;
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    executeRestCommand
- * @param       {???} xxxxxx  Required. ???
- * @param       {???} xxxxxx  Optional. ???
+ * @function    assignPermsets
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @param       {string}    userId    Required. Id of the user getting the permsets.
+ * @param       {[string]}  permsets  Required. Arrary of permset names to assign.
  * @returns     {Promise<any>}  ???
+ * @description Assigns permsets to the specified user in the specified org.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function assignPermsets(aliasOrConnection:string|Connection, userId:string, permsets:[string]):Promise<any> {
+  // Validate arguments
+  if (typeof userId !== 'string' || typeof permsets === 'undefined') {
+    throw new TypeError(`ERROR_INVALID_PARAMETERS: Missing or invalid parameters`);
+  }
+
+  // Resolve our connection based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Create the search list of permset names
+  let permsetList = permsets.map(item => `'${item}'`).join(',');
+  debugAsync(`-\n-assignPermsets.permsetList:\n%O\n-\n-\n-\n-`, permsetList);
+
+  // Get the IDs for the array of permsets passed by the caller.
+  const permSet = rc.connection.sobject('PermissionSet');
+  const qrPermsets = <any> await permSet.find(
+    `Name IN (${permsetList})`, // Conditions
+    `Name, Id`                  // Fields
+  );  
+
+  // Create an array of just the permset Ids.
+  let permsetIds = qrPermsets.map(record => record.Id) as [string];
+  debugAsync(`-\n-assignPermsets.permsetIds:\n%O\n-\n-\n-\n-`, permsetIds);
+
+  // Make sure we found IDs for each Permset on the list.
+  if (permsets.length !== permsetIds.length) {
+    let permsetsRequested = permsets.join('\n');
+    let permsetsFound = qrPermsets.map(record => `${record.Name} (${record.Id})`).join('\n');
+    throw new Error (`ERROR_MISSING_PERMSET: One or more of the specified permsets do not exist in the target org (${rc.orgIdentifier}).\n\n`
+                    +`Permsets Requested:\n${permsetsRequested}\n\n`
+                    +`Permsets Found:\n${permsetsFound}\n\n`);
+  }
+
+  // Create PermissionSetAssignment records.
+  let permsetAssignmentRecs = new Array();
+  for (let i=0; i < permsetIds.length; i++) {
+    permsetAssignmentRecs.push({
+      AssigneeId: userId,
+      PermissionSetId: permsetIds[i]
+    });
+  }
+  debugAsync(`-\n-assignPermsets.permsetAssignmentRecs:\n%O\n-\n-\n-\n-`, permsetAssignmentRecs);
+
+  // Insert the PermissionSetAssignment records.
+  const permSetAssignment = rc.connection.sobject('PermissionSetAssignment');
+  const assignmentResults = await permSetAssignment.insert(permsetAssignmentRecs) as [InsertResult];
+  debugAsync(`-\n-assignPermsets.assignmentResults:\n%O\n-\n-\n-\n-`, assignmentResults);
+
+  // Make sure the insert was successful.
+  for (let i=0; i < assignmentResults.length; i++) {
+    if (assignmentResults[0].success === false) {
+      throw new Error(`ERROR_PERMSET_ASSIGNMENT: One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`);
+    }
+  }
+
+  // DONE!
+  return;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    changePassword
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  userId Required. Id of the user whose password is being changed.
+ * @param       {string}  newPassword Required. The new password.
+ * @returns     {Promise<any>}  ???
+ * @description Given a User Id, changes a password in the target/connected org.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function changePassword(aliasOrConnection:any, userId:string, newPassword:string):Promise<void> {
+  // Validate arguments
+  if (typeof userId !== 'string' || typeof newPassword !== 'string') {
+      throw new TypeError(`ERROR_INVALID_PARAMETERS: Missing or invalid parameters`);
+  }
+
+  // Resolve our connection based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Attempt the password reset. No result on success, but Error thown if failure.
+  await rc.connection.request(
+    {
+      method: 'post',
+      url: `/sobjects/User/${userId}/password`,
+      body: `{"NewPassword": "${newPassword}"}`
+    },
+    {options: {noContentResponse: 'SUCCESS_PASSWORD_CHANGED'}}
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    createSfdxOrgConfig
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing an Alias
+ *              to or an authenticated JSForce Connection object of the org the user is a part of.
+ * @param       {string}    username    Required. Username we are creating an SFDX connection for.
+ * @param       {string}    password    Required. Password of the user.
+ * @param       {string}    orgAlias    Required. Alias to be set for this user.
+ * @returns     {Promise<any>}  ???
+ * @description ???
+ *              Borrowed from https://github.com/wadewegner/sfdx-waw-plugin/blob/master/commands/auth_username_login.js
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, username:string, password:string, orgAlias:string):Promise<any> {
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Create a NEW JSForce connection that will use the incoming login credentials
+  const newConnection = new jsf.Connection({
+    loginUrl: rc.connection.instanceUrl
+  });
+
+  // Try to create the new connection using the username and password.
+  const userInfo = await newConnection.login(username, password)
+    .catch(error => {
+      debugAsync(`-\n-->createSfdxOrgConfig ERROR:\n%O\n-\n-\n-\n-`, error);
+      throw error;
+    });
+  debugAsync(`-\n-->createSfdxOrgConfig.userInfo:\n%O\n-\n-\n-\n-`, userInfo);
+  
+  // Create the Org Config data structure.
+  const orgSaveData = {} as any;
+
+  orgSaveData.orgId       = userInfo.organizationId;
+  orgSaveData.accessToken = newConnection.accessToken;
+  orgSaveData.instanceUrl = newConnection.instanceUrl;
+  orgSaveData.username    = username;
+  orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
+  debugAsync(`-\n-->createSfdxOrgConfig.orgSaveData:\n%O\n-\n-\n-\n-`, orgSaveData);
+
+  // Save the Org Config
+  // TODO: Not sure how to proceed here.  Looks like we can't persist 
+  // AuthInfos to disk that are created with Access Tokens.  Need to 
+  // figure out something else for making demo logins easy.
+
+  return;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    executeJsForceCommand
+ * @param       {JSForceCommandDefinition}  jsForceCommandDef  Required. ???
+ * @param       {any}                       [observer]  Optional. Reference to an Observable object.
+ * @returns     {Promise<any>}  Result of a REST API request to Salesforce.
  * @description ???
  * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function executeRestCommand(jsForceCommandDef:JSForceCommandDefinition, observer?:any):Promise<any> {
- 
-  // TODO: Add validation?
-  // Parse the JSForceCommandDefinition to construct some sort of REST command.
+export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefinition, observer?:any):Promise<any> {
+  debugExtended(`-\n-executeJsForceCommand.jsForceCommandDef:\n%O\n-\n-\n-\n-`, jsForceCommandDef);
 
-  // Get a connection to the target org
-  const connection = await getConnection(jsForceCommandDef.targetOrgAlias) as Connection;
-
-  // Execute the command
-  const restResult = connection.request(jsForceCommandDef.request);
-/*
-const restResult = connection.request({
-    method: 'post',
-    url:    '/sobjects/User/',
-    body: {
-      'Username': 'tester1@sfdx.org',
-      'FirstName': 'Calvin',
-      'LastName': 'Hobbs',
-      'Email': 'vivek.m.chawla@gmail.com',
-      'Alias': 'tester1',
-      'TimeZoneSidKey': 'America/Denver',
-      'LocaleSidKey': 'en_US',
-      'EmailEncodingKey': 'UTF-8',
-      'LanguageLocaleKey': 'en_US',
-      'profileName': 'Chatter Free User',
-      'permsets': ['Dreamhouse', 'Cloudhouse'],
-      'generatePassword': false,
-      'password': 'abc123pass'
-      
-    }
-});
-//*/
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(jsForceCommandDef.aliasOrConnection);
+  
+  // Execute the command. Note that this is a synchronous request.
+  const restResult = await rc.connection.request(jsForceCommandDef.request);
+  debugAsync(`-\n-executeJsForceCommand.restResult:\n%O\n-\n-\n-\n-\n-`, restResult);
 
   // Process the results in a standard way
+  // TODO: Not sure if there is anything to actually do here...
 
   // Resolve to caller
   return restResult;
-
-  
-
-  /*
-  let result = await connection.query('SELECT Name from User');
-  debug(`connection.query:\n%O\n`, result);
-  //*/
-
-
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -106,7 +256,7 @@ const restResult = connection.request({
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getConnection(orgAlias:string, apiVersion?:string):Promise<any> {
+export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
 
   // Fetch the username associated with this alias.
   debugAsync(`getConnection.orgAlias:-->${orgAlias}<--`);
@@ -134,12 +284,76 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
   return connection;
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getProfileId
+ * @param       {string}  aliasOrConnection  Required. Either a string containing the Alias of the
+ *                        org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  profileName     Required. Name of the profile being searched for.
+ * @param       {any}     [observer]      Optional. Reference to an Observable object.
+ * @returns     {Promise<any>}  Resolves with a string containing the xx-character record ID of 
+ *              the named profile. Rejects if no matching profile can be found.
+ * @description Given a Profile Name, returns the xx-character record ID of the named profile.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getProfileId(aliasOrConnection:any, profileName:string, observer?:any):Promise<any> {
+  debugExtended(`getProfileId.arguments:\n%O\n`, arguments);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const resolvedConnection  = await resolveConnection(aliasOrConnection);
+
+  // Query the connected org for the Id of the named Profile
+  const queryResult = <QueryResult> await resolvedConnection.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
+  debugAsync(`-\ngetProfileId.restResult:\n%O\n-\n-\n-\n-`, queryResult.records[0]);
+
+  // Make sure we got a result.  If not, throw error.
+  if (typeof queryResult.records[0] === 'undefined') {
+    throw new Error (`ERROR_PROFILE_NOT_FOUND: Profile '${profileName}' does not exist in org '${resolvedConnection.orgIdentifier}'`);
+  }
+
+  // Found our Profile Id!
+  return queryResult.records[0].Id;
+}
 
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    resolveConnection
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @returns     {Promise<ResolvedConnection>}  Resolves with an authenticated JSForce Connection.
+ * @description Given a Profile Name, returns the xx-character record ID of the named profile.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedConnection> {
+  // Input validation
+  if (typeof aliasOrConnection !== 'string' && typeof aliasOrConnection !== 'object') {
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected 'string' or 'object' but got '${typeof aliasOrConnection}'`);
+  }
+  
+  let connection:Connection;
+  let orgIdentifier:string;
 
-
-
-
+  // Either get a new connection based on an alias or use one provided to us.  
+  if (typeof aliasOrConnection === 'string') {
+    orgIdentifier = aliasOrConnection;
+    connection    = await getConnection(aliasOrConnection);
+  }
+  else { 
+    connection    = aliasOrConnection;
+    orgIdentifier = connection.getUsername();
+  }
+  
+  // Return a ResolvedConnection object
+  return {
+    connection: connection,
+    orgIdentifier: orgIdentifier
+  }
+}
 
 
 

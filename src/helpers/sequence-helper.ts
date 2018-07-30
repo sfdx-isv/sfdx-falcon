@@ -24,11 +24,17 @@ import {FalconCommandSequenceStep}    from  '../falcon-types';                //
 import {FalconSequenceContext}        from  '../falcon-types';                // Why?
 import {FalconStatusReport}           from  '../helpers/falcon-helper';       // Why?
 import {composeFalconError}           from  '../helpers/falcon-helper';       // Why?
-import {updateObserver}               from  '../helpers/falcon-helper';       // Why?
-import {waitASecond}                  from  '../helpers/async-helper';                 // Why?
-import {readConfigFile}               from  '../helpers/config-helper';
-import {executeRestCommand, JSForceCommandDefinition}           from  '../helpers/jsforce-helper';      // Why?
+import {updateObserver}               from  '../helpers/notification-helper'; // Why?
+import {FalconProgressNotifications}  from  '../helpers/notification-helper'; // Why?
+import {waitASecond}                  from  '../helpers/async-helper';        // Why?
+import {readConfigFile}               from  '../helpers/config-helper';       // Why?
+import {executeJsForceCommand, resolveConnection, ResolvedConnection, getConnection, changePassword, assignPermsets}           from  '../helpers/jsforce-helper';      // Why?
+import {createSfdxOrgConfig}          from  '../helpers/jsforce-helper';      // Why?
+import {getProfileId}                 from  '../helpers/jsforce-helper';      // Why?
+import {JSForceCommandDefinition}     from  '../helpers/jsforce-helper';      // Why?
 import {Observable}                   from  'rxjs';                           // Why?
+
+
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -36,13 +42,14 @@ const debugAsync            = require('debug')('sequence-helper(ASYNC)');     //
 const debugExtended         = require('debug')('sequence-helper(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr                 = require('listr');                               // Provides asynchronous list with status of task completion.
 const FalconUpdateRenderer  = require('falcon-listr-update-renderer');        // Custom renderer for Listr
+const uuid                  = require('uuid/v1');                             // Generates a timestamp-based UUID
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Initialize debug settings.  These should be set FALSE to give the caller
 // control over whether or not debug output is generated.
 //─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled         = false;
-debugAsync.enabled    = true;
+debugAsync.enabled    = false;
 debugExtended.enabled = false;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -264,85 +271,87 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
   debugAsync(`commandCreateUser.userDefinition (${commandOptions.definitionFile}):\n%O\n`, userDefinition);
 
   // Create a unique username based on what's in the definition file.
-  let uniqueUsername = 'xxx@test.com';
+  let uniqueUsername  = createUniqueUsername(userDefinition.Username);
+  let profileId       = await getProfileId(commandContext.targetOrgAlias,userDefinition.profileName);
+  let defaultPassword = determineDefaultPassword(userDefinition.password);
+  debugAsync(`-\ncommandCreateUser(multiple)\nuniqueUsername:${uniqueUsername}\nprofileId:${profileId}\npassword:${defaultPassword}\n-\n-`);
 
   // Define header info that will be used by either JSForce or SFDX command executors.
-  let genericCommandHeader = {
+  let commandHeader = {
     progressMsg:  `Creating User '${uniqueUsername}' in ${commandContext.targetOrgAlias}`,
     errorMsg:     `Failed to create User '${uniqueUsername}' in ${commandContext.targetOrgAlias}`,
     successMsg:   `User '${uniqueUsername}' created successfully`,
   }
 
-  let udBackup = {...userDefinition};
+  // Create a FalconStatusReport object to help report on elapsed runtime of this command.
+  let status = new FalconStatusReport(true);
 
-  delete udBackup.generatePassword;
-  delete udBackup.permsets;
+  // Start sendign Progress Notifications.
+  updateObserver(commandContext.commandObserver, `[0.000s] Executing ${commandHeader.progressMsg}`);
+  const progressNotifications 
+    = FalconProgressNotifications.start(commandHeader.progressMsg, 1000, status, commandContext.commandObserver);
 
-  debugAsync(`commandCreateUser.udBackup (after deleting props):\n%O\n`, udBackup);
+  // If target is NOT a scratch org, create a JSForce Command.
+  // TODO: ORIGINAL LINE-->  if (commandContext.targetIsScratchOrg === false) {
+    if (true) { //TODO: Need to refactor this so that ONLY the JSForce version is used (abandoning SFDX version)
 
-  debugAsync(`commandCreateUser.userDefinition (after deleting props in udBackup):\n%O\n`, userDefinition);
+    // We will be making multiple API calls, so grab a connection.
+    const connection = await getConnection(commandContext.targetOrgAlias);
 
-
-
-  // If target is NOT a non-scratch org, create a JSForce Command.
-  if (commandContext.targetIsScratchOrg === true) { //DEVTEST make sure this is changed to FALSE
+    // Create a "base" for the JSForce Command
+    let jsfBaseCommand  = {
+      ...commandHeader,
+      aliasOrConnection: connection
+    }
 
     // Create a copy of the user definition object without the SFDX properties
     let cleanUserDefinition = {...userDefinition};
     delete cleanUserDefinition.permsets;
     delete cleanUserDefinition.generatePassword;
     delete cleanUserDefinition.profileName;
+    delete cleanUserDefinition.password;
 
     // Define the JSForce Command (includes Falcon extensions).
-    let jsforceCommandDef = {
-      ...genericCommandHeader,
-      targetOrgAlias: commandContext.targetOrgAlias,
+    let jsfCreateUser = {
+      ...jsfBaseCommand,
       request: {
         method: 'post',
         url:    '/sobjects/User/',
         body: JSON.stringify({
-          ...userDefinition,
-          username: 'duuuuuude@xxxyyy.xz.com'
+          ...cleanUserDefinition,
+          username: uniqueUsername,
+          profileId:  profileId
         })
       }
     } as JSForceCommandDefinition;
-      
-    let jsforceRestResponse = await executeRestCommand(jsforceCommandDef);
-    debugAsync(`-\ncommandCreateUser.jsforceRestResponse:\n%O\n-`, jsforceRestResponse);
+    
+    // Execute the command. If the user fails to create, JSForce will throw an exception.
+    let jsfRestResponse = await executeJsForceCommand(jsfCreateUser);
+    debugAsync(`-\n-->commandCreateUser.jsfRestResponse:\n%O\n-\n-\n-\n-`, jsfRestResponse);
 
-    // DEVTEST
-    await waitASecond(2);
-    throw new Error(`${jsforceRestResponse}`);
+    // Get the Record Id of the User that was just created.
+    let userId = jsfRestResponse.id;
 
+    // Change the password to the Demo Default
+    await changePassword(connection, userId, defaultPassword);
+
+    // Assign permsets to the user
+    await assignPermsets(connection, userId, userDefinition.permsets);    
+
+    // Register the user with the local CLI
+    await createSfdxOrgConfig(connection, uniqueUsername, defaultPassword, commandContext.targetOrgAlias);
   }
+
+  // TODO: Figure out if we need to implement the SFDX version of this or not
+  // I'm thinking that maybe we just use the JSForce method for user creation.
 
   /*
-  // Example of SFDX User Definition JSON
-  {
-    "Username": "tester1@sfdx.org",
-    "FirstName": "Calvin",
-    "LastName": "Hobbs",
-    "Email": "vivek.m.chawla@gmail.com",
-    "Alias": "tester1",
-    "TimeZoneSidKey": "America/Denver",
-    "LocaleSidKey": "en_US",
-    "EmailEncodingKey": "UTF-8",
-    "LanguageLocaleKey": "en_US",
-    "profileName": "Chatter Free User",
-    "permsets": ["Dreamhouse", "Cloudhouse"],
-    "generatePassword": false,
-    "password": "abc123pass"
-  }
-  //*/
-
   // If scratch org, execute an SFDX create user command.
-
-
 
   // Create an SfdxCommand object to define which command will run.
   let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
     command:      'force:user:create',
-    ...genericCommandHeader,
+    ...commandHeader,
     commandArgs:  [`username=${uniqueUsername}`],
     commandFlags: {
       FLAG_DEFINITIONFILE:        path.join(commandContext.projectPath, 'demo-config', commandOptions.definitionFile),
@@ -364,11 +373,19 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
   // Do any processing you want with the CLI Result, then return a success message.
   debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
 
-  // Wait two seconds to give the user a chance to see the final status message.
-  await waitASecond(2);
+  //*/
+
+
+  // Stop the progress notifications for this command.
+  FalconProgressNotifications.finish(progressNotifications)
+
+  updateObserver(commandContext.commandObserver, `[${status.getRunTime(true)}s] SUCCESS: ${commandHeader.successMsg}`);
+
+  // Wait three seconds to give the user a chance to see the final status message.
+  await waitASecond(3);
 
   // Return a success message
-  return `${sfdxCommandDef.successMsg}`;
+  return `${commandHeader.successMsg}`;
 
 }
 
@@ -477,9 +494,44 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
   
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    createUniqueUsername
+ * @param       {string}  baseUsername  The starting point for the username.  It should already be
+ *                                      in the form of an email, eg 'name@domain.org'.
+ * @returns     {string}  Returns the baseUsername with a pseudo-uuid appended to the end.
+ * @description Given a base username to start with (eg. 'name@domain.org'), returns what should be
+ *              a globally unique username with a pseudo-uuid appended the end of the username base.
+ * @version     1.0.0
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function createUniqueUsername(baseUsername:string):string {
+  let usernameMaxLength = 35;
+  if (typeof baseUsername === 'undefined') throw new Error(`ERROR_INVALID_ARGUMENT: Expected a value for baseUsername but got undefined`);
+  if (baseUsername.length > usernameMaxLength) throw new Error(`ERROR_USERNAME_LENGTH: Username can not be longer than ${usernameMaxLength} chars to keep room for appending a UUID`);
+  return baseUsername + uuid();
+}
 
-
-
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    determineDefaultPassword
+ * @param       {string}  suggestedPassword Optional. This will usually be returned as-is if it's
+ *              provided. Otherwise this will be determined by some "default processing" logic.
+ * @returns     {string}  Either a reflectoin of the suggested password, or a better one.
+ * @description ???
+ * @version     1.0.0
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function determineDefaultPassword(suggestedPassword:string):string {
+  if (! suggestedPassword) {
+    return '1HappyCloud';
+  }
+  else {
+    return suggestedPassword;
+  }
+}
 
 
 

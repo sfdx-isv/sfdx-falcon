@@ -14,17 +14,18 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {SfdxCommand}            from  '@salesforce/command';                // The CLI command we build must extend this class.
-import {Messages}               from  '@salesforce/core';                   // Messages library that simplifies using external JSON for string reuse.
-import {SfdxError}              from  '@salesforce/core';                   // Why?
-import {SfdxErrorConfig}        from  '@salesforce/core';                   // Why?
-import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
-import * as path                from  'path';                               // Helps resolve local paths at runtime.
-import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
-import {AppxDemoProject}        from  '../../../helpers/appx-demo-helper';  // Provides information and actions related to an ADK project
-import {FalconError}            from  '../../../helpers/falcon-helper';     // Why?
-import {FalconStatusReport}     from  '../../../helpers/falcon-helper';     // Why?
-import {FalconJsonResponse}     from  '../../../falcon-types';              // Why?
+import {SfdxCommand}                  from  '@salesforce/command';                  // The CLI command we build must extend this class.
+import {Messages}                     from  '@salesforce/core';                     // Messages library that simplifies using external JSON for string reuse.
+import {SfdxError}                    from  '@salesforce/core';                     // Why?
+import {SfdxErrorConfig}              from  '@salesforce/core';                     // Why?
+import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
+import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
+import {validateLocalPath}            from  '../../../validators/core-validator';   // Core validation function to check that local path values don't have invalid chars.
+import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
+import {FalconError}                  from  '../../../helpers/falcon-helper';       // Why?
+import {FalconStatusReport}           from  '../../../helpers/falcon-helper';       // Why?
+import {FalconJsonResponse}           from  '../../../falcon-types';                // Why?
+import {FalconProgressNotifications}  from  '../../../helpers/notification-helper'; // Why?
 
 
 // Requires
@@ -189,6 +190,9 @@ export default class FalconDemoDeploy extends SfdxCommand {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private onError(error:any):void {
+
+    // Make sure any outstanding notifications are killed.
+    FalconProgressNotifications.killAll();
 
     // Make sure that whatever we get is wrapped as a Falcon Error.
     let falconError = FalconError.wrap(error);
