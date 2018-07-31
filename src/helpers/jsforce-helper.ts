@@ -18,7 +18,6 @@ import * as jsf             from 'jsforce';                 // Why?
 import {updateObserver}     from './notification-helper';   // Why?
 import { waitASecond }      from './async-helper';
 import {FalconDebug}        from './falcon-helper';         // Why?
-import {dtp}                from './falcon-helper';         // Why?
 
 
 // Requires

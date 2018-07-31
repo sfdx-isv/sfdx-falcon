@@ -16,16 +16,8 @@ import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
 import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
 
 // Requires
-const chalk         = require('chalk');
-const util          = require('util');
-
-
-
-
-// Returns the Debug Tail Padding (this is a hack for printing debug while Listr is running);
-export function dtp(){
-  return '\n%O\n-\n-\n-\n-\n-\n-\n-\n-';
-} 
+const chalk = require('chalk');   // Why?
+const util  = require('util');    // Why?
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -99,18 +91,18 @@ export class FalconDebug {
   private static debugExtendedEnabled:boolean = false;
   private static debugInitialized:boolean     = false;
 
-  static getDebugEnabled():boolean {
-    return FalconDebug.debugEnabled;
-  }
-  static getDebugAsyncEnabled():boolean {
-    return FalconDebug.debugAsyncEnabled;
-  }
-  static getDebugExtendedEnabled():boolean {
-    return FalconDebug.debugExtendedEnabled;
-  }
-  static getDebugInitialized():boolean {
-    return FalconDebug.debugInitialized;
-  }
+  static getDebugEnabled():boolean {return FalconDebug.debugEnabled}
+  static getDebugAsyncEnabled():boolean {return FalconDebug.debugAsyncEnabled}
+  static getDebugExtendedEnabled():boolean {return FalconDebug.debugExtendedEnabled}
+  static getDebugInitialized():boolean {return FalconDebug.debugInitialized}
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   static setDebugEnablement(debugEnabled:boolean, debugAsyncEnabled:boolean, debugExtendedEnabled:boolean):void {
     if (FalconDebug.debugInitialized === true) {
       throw new Error(`ERROR_DEBUG_OPTIONS_SET: Debug enablement options can only be set once`);
@@ -120,6 +112,14 @@ export class FalconDebug {
     FalconDebug.debugExtendedEnabled  = debugExtendedEnabled;
     FalconDebug.debugInitialized      = true;
   }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   static debugObject(localDebugger:any, objToDebug:object, objName:string, strTail?:string):void {
     FalconDebug.initLocalDebuggerEnablement(localDebugger);
     localDebugger(
@@ -129,11 +129,46 @@ export class FalconDebug {
     );
     if(strTail) localDebugger(strTail);
   }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   static debugString(localDebugger:any, strToDebug:string, strName:string, strTail?:string):void {
     FalconDebug.initLocalDebuggerEnablement(localDebugger);
     localDebugger(`-\n${chalk.magenta(strName + ':')} ${strToDebug}`);
     if(strTail) localDebugger(strTail);
   }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  static displayStdError(stdError:any) {
+    console.log('');
+    console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
+    console.log(chalk`{blue name:}     ${stdError.name}`);
+    console.log(chalk`{blue message:}  ${stdError.message}`);
+    console.log(chalk`{blue status:}   ${stdError.status}`);
+    console.log(chalk`{blue warnings:} ${stdError.warnings}`);
+    console.log(chalk`{blue result:}   ${util.inspect(stdError.result, {depth:6, colors:true})}`);
+    console.log(chalk`{blue stack:}    ${stdError.stack}`);
+    console.log('');
+  }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      
+   * @description ???
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   private static initLocalDebuggerEnablement(localDebugger:any):void {
     // Don't change anything if the localDebugger is already enabled.
     if (localDebugger.enabled) return;

@@ -143,7 +143,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async run(): Promise<any> { // tslint:disable-line:no-any
+  public async run(): Promise<any> { 
 
     // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
     const deployDirFlag           = this.flags.deploydir            ||  '.';
@@ -229,20 +229,8 @@ export default class FalconDemoDeploy extends SfdxCommand {
     // Pull out the sfdxErrorObj so the code below is easier to read.
     let stdError = falconError.stdErrJson;
 
-
-    // DEVTEST
-    console.log(`CLI_EXCEPTION_DEBUG:`);
-    console.log(`name:    ${stdError.name}`);
-    console.log(`message: ${stdError.message}`);
-    console.log(`status:  ${stdError.status}`);
-
-    const util = require('util');
-    console.log(util.inspect(stdError.result, {depth:4, colors:true}));
-
-    console.log(`warnings: ${stdError.warnings}`);
-    console.log(`stack: ${stdError.stack}`);
-
-
+    // Display a formatted version of the stdError before throwing the SfdxError.
+    FalconDebug.displayStdError(stdError);
 
     // Merge the custom Falcon message and the standard SFDX into our output.
     sfdxErrorConfig.setErrorTokens([falconError.message, stdError.message]);

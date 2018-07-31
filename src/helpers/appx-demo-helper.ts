@@ -20,7 +20,6 @@ import * as core                    from  '@salesforce/core';           // Allow
 import * as path                    from  'path';                        // Node's path library.
 import {readConfigFile}             from  '../helpers/config-helper';  // Why?
 import {AppxDemoProjectContext}     from  '../helpers/falcon-helper';    // Why?
-import {dtp}                        from  '../helpers/falcon-helper';    // Why?
 import {FalconDebug}                from  '../helpers/falcon-helper';    // Why?
 import {FalconStatusReport}         from  '../helpers/falcon-helper';    // Why?
 import {SfdxCommandSequence}        from  '../helpers/sequence-helper';  // Why?
