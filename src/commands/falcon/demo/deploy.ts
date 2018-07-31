@@ -216,6 +216,19 @@ export default class FalconDemoDeploy extends SfdxCommand {
     // Pull out the sfdxErrorObj so the code below is easier to read.
     let stdError = falconError.stdErrJson;
 
+
+
+    // DEVTEST
+    console.log(`CLI_EXCEPTION_DEBUG:`);
+    console.log(`name:    ${stdError.name}`);
+    console.log(`message: ${stdError.message}`);
+    console.log(`status:  ${stdError.status}`);
+    console.log(`result:\n%O`, stdError.result);
+    console.log(`warnings: ${stdError.warnings}`);
+    console.log(`stack: ${stdError.stack}`);
+
+
+
     // Merge the custom Falcon message and the standard SFDX into our output.
     sfdxErrorConfig.setErrorTokens([falconError.message, stdError.message]);
 
