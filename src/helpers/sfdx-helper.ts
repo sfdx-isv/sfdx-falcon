@@ -13,11 +13,12 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {composeFalconError}           from  '../helpers/falcon-helper';         // Why?
-import {updateObserver}               from  '../helpers/notification-helper';   // Why?
-import {FalconProgressNotifications}  from  '../helpers/notification-helper';   // Why?
-//import {waitASecond}                from './async-helper';                  // Why?
-import {FalconStatusReport}           from  './falcon-helper';                  // Why?
+import {Aliases}                      from  '@salesforce/core';
+import {FalconStatusReport}           from  './falcon-helper';         // Why?
+import {composeFalconError}           from  './falcon-helper';         // Why?
+import {updateObserver}               from  './notification-helper';   // Why?
+import {FalconProgressNotifications}  from  './notification-helper';   // Why?
+import {waitASecond}                  from './async-helper';             // Why?
 
 // Requires
 const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -122,6 +123,22 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
       }
     });
   });
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getUsernameFromAlias
+ * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
+ * @returns     {Promise<any>}   Resolves to the username if the alias was found, NULL if not.
+ * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
+ *              in the local environment the CLI is running in.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
+  const username = await Aliases.fetch(sfdxAlias);
+  return username;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
