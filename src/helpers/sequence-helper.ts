@@ -13,26 +13,28 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import * as core                      from  '@salesforce/core';               // Allows us to use SFDX core functionality.
-import * as path                      from  'path';                           // Node's path library.
-import * as sfdxHelper                from  './sfdx-helper'                   // Library of SFDX commands.
-import {AppxDemoSequenceOptions}      from  '../falcon-types';                // Why?
-import {FalconCommandContext}         from  '../falcon-types';                // Why?
-import {FalconCommandSequence}        from  '../falcon-types';                // Why?
-import {FalconCommandSequenceGroup}   from  '../falcon-types';                // Why?
-import {FalconCommandSequenceStep}    from  '../falcon-types';                // Why?
-import {FalconSequenceContext}        from  '../falcon-types';                // Why?
-import {FalconStatusReport}           from  '../helpers/falcon-helper';       // Why?
-import {composeFalconError}           from  '../helpers/falcon-helper';       // Why?
-import {updateObserver}               from  '../helpers/notification-helper'; // Why?
-import {FalconProgressNotifications}  from  '../helpers/notification-helper'; // Why?
-import {waitASecond}                  from  '../helpers/async-helper';        // Why?
-import {readConfigFile}               from  '../helpers/config-helper';       // Why?
-import {executeJsForceCommand, resolveConnection, ResolvedConnection, getConnection, changePassword, assignPermsets}           from  '../helpers/jsforce-helper';      // Why?
-import {createSfdxOrgConfig}          from  '../helpers/jsforce-helper';      // Why?
-import {getProfileId}                 from  '../helpers/jsforce-helper';      // Why?
-import {JSForceCommandDefinition}     from  '../helpers/jsforce-helper';      // Why?
-import {Observable}                   from  'rxjs';                           // Why?
+import * as path                      from  'path';                   // Node's path library.
+import {Observable}                   from  'rxjs';                   // Why?
+import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
+import {FalconCommandContext}         from  '../falcon-types';        // Why?
+import {FalconCommandSequence}        from  '../falcon-types';        // Why?
+import {FalconCommandSequenceGroup}   from  '../falcon-types';        // Why?
+import {FalconCommandSequenceStep}    from  '../falcon-types';        // Why?
+import {FalconSequenceContext}        from  '../falcon-types';        // Why?
+import {FalconStatusReport}           from  './falcon-helper';        // Why?
+import {updateObserver}               from  './notification-helper';  // Why?
+import {FalconProgressNotifications}  from  './notification-helper';  // Why?
+import {waitASecond}                  from  './async-helper';         // Why?
+import {readConfigFile}               from  './config-helper';        // Why?
+import {executeJsForceCommand}        from  './jsforce-helper';      // Why?
+import {getConnection}                from  './jsforce-helper';      // Why?
+import {changePassword}               from  './jsforce-helper';      // Why?
+import {assignPermsets}               from  './jsforce-helper';      // Why?
+import {createSfdxOrgConfig}          from  './jsforce-helper';      // Why?
+import {getProfileId}                 from  './jsforce-helper';      // Why?
+import {getUserId}                    from  './jsforce-helper';      // Why?
+import {JSForceCommandDefinition}     from  './jsforce-helper';      // Why?
+import {getUsernameFromAlias}         from  './sfdx-helper';      // Why?
 
 
 
@@ -162,18 +164,21 @@ export class SfdxCommandSequence {
 
     // Route the execution to the appropriate commandFunction()
     switch(sequenceStep.action.toLowerCase()) {
-      case 'install-package':
-        await commandInstallPackage(commandContext, sequenceStep.options);
-        break;
-      case 'deploy-metadata':
-        await commandDeployMetadata(commandContext, sequenceStep.options);
+      case 'configure-admin-user':
+        await commandConfigureAdminUser(commandContext, sequenceStep.options);
         break;
       case 'create-user':
         await commandCreateUser(commandContext, sequenceStep.options);
         break;
-      case 'INTENT.VALIDATE_DEMO':
-        // code here
-      break;
+      case 'deploy-metadata':
+        await commandDeployMetadata(commandContext, sequenceStep.options);
+        break;
+      case 'import-data-tree':
+        await commandImportDataTree(commandContext, sequenceStep.options);
+        break;
+      case 'install-package':
+        await commandInstallPackage(commandContext, sequenceStep.options);
+        break;
       default:
         throw new Error(`ERROR_UNKNOWN_ACTION: '${sequenceStep.action}'`);
     }
@@ -250,6 +255,105 @@ export class SfdxCommandSequence {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    commandConfigureAdminUser
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: ????, ????, ????
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandConfigureAdminUser(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+  // Validate Command Options
+  if (typeof commandOptions.definitionFile === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'definitionFile'`);
+
+  // Load and validate the user definition file.
+  let userDefinition = await readConfigFile(commandContext.configPath, commandOptions.definitionFile);
+  debugAsync(`-\n-->commandConfigureAdminUser.userDefinition (${commandOptions.definitionFile}):\n%O\n-\n-\n-\n-`, userDefinition);
+
+  // Create a unique username based on what's in the definition file.
+  let profileId = await getProfileId(commandContext.targetOrgAlias,userDefinition.profileName);
+  debugAsync(`-\n-->commandConfigureAdminUser.profileId:${profileId}\n-\n-\n-\n-`);
+
+  let adminUsername = await getUsernameFromAlias(commandContext.targetOrgAlias);
+
+  // Define the Command Header.
+  let commandHeader = {
+    progressMsg:  `Configuring the Admin User '${adminUsername}' in ${commandContext.targetOrgAlias}`,
+    errorMsg:     `Failed to configure the Admin User '${adminUsername}' in ${commandContext.targetOrgAlias}`,
+    successMsg:   `Admin User '${adminUsername}' configured successfully`,
+  }
+
+  // Create a FalconStatusReport object to help report on elapsed runtime of this command.
+  let status = new FalconStatusReport(true);
+
+  // Start sending Progress Notifications.
+  updateObserver(commandContext.commandObserver, `[0.000s] ${commandHeader.progressMsg}`);
+  const progressNotifications 
+    = FalconProgressNotifications.start(commandHeader.progressMsg, 1000, status, commandContext.commandObserver);
+
+  // We will be making multiple API calls, so grab a connection.
+  const connection = await getConnection(commandContext.targetOrgAlias);
+
+  // Get the Record Id of the Admin User.
+  let adminUserId = await getUserId(connection, adminUsername);
+
+  // Create a copy of the Admin User definition object without the SFDX properties
+  let cleanUserDefinition = {...userDefinition};
+  delete cleanUserDefinition.permsets;
+  delete cleanUserDefinition.generatePassword;
+  delete cleanUserDefinition.profileName;
+  delete cleanUserDefinition.password;
+  delete cleanUserDefinition.Username;
+  delete cleanUserDefinition.Email;
+
+  // Create a "base" for the JSForce Command
+  let jsfBaseCommand  = {
+    ...commandHeader,
+    aliasOrConnection: connection
+  }
+
+  // Define the JSForce Command (includes Falcon extensions).
+  let jsfUpdateUser = {
+    ...jsfBaseCommand,
+    request: {
+      method: 'patch',
+      url:    `/sobjects/User/${adminUserId}`,
+      body: JSON.stringify({
+        ...cleanUserDefinition
+      })
+    }
+  } as JSForceCommandDefinition;
+  debugAsync(`-\n-->commandConfigureAdminUser.jsfUpdateUser:\n%O\n-\n-\n-\n-`, jsfUpdateUser);
+
+  // Execute the command. If the user fails to create, JSForce will throw an exception.
+  // TODO: Find out why Admin user update fails.
+  // let updateUserResponse = await executeJsForceCommand(jsfUpdateUser);
+  // debugAsync(`-\n-->commandConfigureAdminUser.jsfRestResponse:\n%O\n-\n-\n-\n-`, updateUserResponse);
+
+  // Assign permsets to the Admin User (if present)
+  if (typeof userDefinition.permsets !== 'undefined') {
+    await assignPermsets(connection, adminUserId, userDefinition.permsets);
+  }
+
+  // Stop the progress notifications for this command.
+  FalconProgressNotifications.finish(progressNotifications)
+
+  updateObserver(commandContext.commandObserver, `[${status.getRunTime(true)}s] SUCCESS: ${commandHeader.successMsg}`);
+
+  // Wait three seconds to give the user a chance to see the final status message.
+  await waitASecond(3);
+
+  // Return a success message
+  return `${commandHeader.successMsg}`;
+
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    commandCreateUser
  * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
  *                                      Org or DevHub alias) required to successfuly run the command.
@@ -287,94 +391,57 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
   let status = new FalconStatusReport(true);
 
   // Start sendign Progress Notifications.
-  updateObserver(commandContext.commandObserver, `[0.000s] Executing ${commandHeader.progressMsg}`);
+  updateObserver(commandContext.commandObserver, `[0.000s] ${commandHeader.progressMsg}`);
   const progressNotifications 
     = FalconProgressNotifications.start(commandHeader.progressMsg, 1000, status, commandContext.commandObserver);
 
-  // If target is NOT a scratch org, create a JSForce Command.
-  // TODO: ORIGINAL LINE-->  if (commandContext.targetIsScratchOrg === false) {
-    if (true) { //TODO: Need to refactor this so that ONLY the JSForce version is used (abandoning SFDX version)
+  // We will be making multiple API calls, so grab a connection.
+  const connection = await getConnection(commandContext.targetOrgAlias);
 
-    // We will be making multiple API calls, so grab a connection.
-    const connection = await getConnection(commandContext.targetOrgAlias);
-
-    // Create a "base" for the JSForce Command
-    let jsfBaseCommand  = {
-      ...commandHeader,
-      aliasOrConnection: connection
-    }
-
-    // Create a copy of the user definition object without the SFDX properties
-    let cleanUserDefinition = {...userDefinition};
-    delete cleanUserDefinition.permsets;
-    delete cleanUserDefinition.generatePassword;
-    delete cleanUserDefinition.profileName;
-    delete cleanUserDefinition.password;
-
-    // Define the JSForce Command (includes Falcon extensions).
-    let jsfCreateUser = {
-      ...jsfBaseCommand,
-      request: {
-        method: 'post',
-        url:    '/sobjects/User/',
-        body: JSON.stringify({
-          ...cleanUserDefinition,
-          username: uniqueUsername,
-          profileId:  profileId
-        })
-      }
-    } as JSForceCommandDefinition;
-    
-    // Execute the command. If the user fails to create, JSForce will throw an exception.
-    let jsfRestResponse = await executeJsForceCommand(jsfCreateUser);
-    debugAsync(`-\n-->commandCreateUser.jsfRestResponse:\n%O\n-\n-\n-\n-`, jsfRestResponse);
-
-    // Get the Record Id of the User that was just created.
-    let userId = jsfRestResponse.id;
-
-    // Change the password to the Demo Default
-    await changePassword(connection, userId, defaultPassword);
-
-    // Assign permsets to the user
-    await assignPermsets(connection, userId, userDefinition.permsets);    
-
-    // Register the user with the local CLI
-    await createSfdxOrgConfig(connection, uniqueUsername, defaultPassword, commandContext.targetOrgAlias);
-  }
-
-  // TODO: Figure out if we need to implement the SFDX version of this or not
-  // I'm thinking that maybe we just use the JSForce method for user creation.
-
-  /*
-  // If scratch org, execute an SFDX create user command.
-
-  // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
-    command:      'force:user:create',
+  // Create a "base" for the JSForce Command
+  let jsfBaseCommand  = {
     ...commandHeader,
-    commandArgs:  [`username=${uniqueUsername}`],
-    commandFlags: {
-      FLAG_DEFINITIONFILE:        path.join(commandContext.projectPath, 'demo-config', commandOptions.definitionFile),
-      FLAG_SETALIAS:              commandOptions.sfdxUserAlias,
-      FLAG_TARGETUSERNAME:        commandContext.targetOrgAlias,
-      FLAG_TARGETDEVHUBUSERNAME:  commandContext.devHubAlias,
-      FLAG_JSON:                  true,
-      FLAG_LOGLEVEL:              commandContext.logLevel
-    }
+    aliasOrConnection: connection
   }
-  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
 
-  // Execute the SFDX Command using an sfdxHelper.
-  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-    .catch(result => {
-      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
-    })
+  // Create a copy of the user definition object without the SFDX properties
+  let cleanUserDefinition = {...userDefinition};
+  delete cleanUserDefinition.permsets;
+  delete cleanUserDefinition.generatePassword;
+  delete cleanUserDefinition.profileName;
+  delete cleanUserDefinition.password;
 
-  // Do any processing you want with the CLI Result, then return a success message.
-  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+  // Define the JSForce Command (includes Falcon extensions).
+  let jsfCreateUser = {
+    ...jsfBaseCommand,
+    request: {
+      method: 'post',
+      url:    '/sobjects/User/',
+      body: JSON.stringify({
+        ...cleanUserDefinition,
+        username: uniqueUsername,
+        profileId:  profileId
+      })
+    }
+  } as JSForceCommandDefinition;
+  
+  // Execute the command. If the user fails to create, JSForce will throw an exception.
+  let jsfRestResponse = await executeJsForceCommand(jsfCreateUser);
+  debugAsync(`-\n-->commandCreateUser.jsfRestResponse:\n%O\n-\n-\n-\n-`, jsfRestResponse);
 
-  //*/
+  // Get the Record Id of the User that was just created.
+  let userId = jsfRestResponse.id;
 
+  // Change the password to the Demo Default
+  await changePassword(connection, userId, defaultPassword);
+
+  // Assign permsets to the user (if present)
+  if (typeof userDefinition.permsets !== 'undefined') {
+    await assignPermsets(connection, userId, userDefinition.permsets);    
+  }
+
+  // Register the user with the local CLI
+  await createSfdxOrgConfig(connection, uniqueUsername, defaultPassword, commandContext.targetOrgAlias);
 
   // Stop the progress notifications for this command.
   FalconProgressNotifications.finish(progressNotifications)
@@ -416,7 +483,7 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
     commandArgs:  [] as [string],
     commandFlags: {
       FLAG_TARGETUSERNAME:  commandContext.targetOrgAlias,
-      FLAG_DEPLOYDIR:       path.join(commandContext.projectPath, 'mdapi-source', commandOptions.mdapiSource),
+      FLAG_DEPLOYDIR:       path.join(commandContext.mdapiSourcePath, commandOptions.mdapiSource),
       FLAG_WAIT:            5,
       FLAG_TESTLEVEL:       'NoTestRun',
       FLAG_JSON:            true,
@@ -438,6 +505,63 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
   // Return a success message
   return `${sfdxCommandDef.successMsg}`;
   
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    commandImportDataTree
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: 'plan'.
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandImportDataTree(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+  // Validate Command Options
+  if (typeof commandOptions.plan === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'plan'`);
+  /*
+  // Save this for later when(if) we add support for individual SOBject tree files.
+  if (typeof commandOptions.plan === 'undefined' && typeof commandOptions.sObjectTreeFiles === 'undefined') {
+    throw new Error(`ERROR_MISSING_OPTION: Either 'plan' or 'sObjectTreeFiles' must be provided`);
+  }
+  //*/
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:data:tree:import',
+    progressMsg:  `Importing data based on ${commandOptions.plan}`,
+    errorMsg:     `Data tree import failed for plan ${commandOptions.plan}`,
+    successMsg:   `Data tree import succeeded for plan '${commandOptions.plan}'`,
+    commandArgs:  [] as [string],
+    commandFlags: {
+      FLAG_TARGETUSERNAME:  commandContext.targetOrgAlias,
+      FLAG_PLAN:            path.join(commandContext.dataPath, commandOptions.plan),
+      FLAG_CONTENTTYPE:     'json',
+      FLAG_JSON:            true,
+      FLAG_LOGLEVEL:        commandContext.logLevel
+    }
+  }
+  debugAsync(`-\nsfdxCommandDef:\n%O\n-`, sfdxCommandDef);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
+    .catch(result => {
+      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${JSON.stringify(result)}`);
+    })
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  debugAsync(`-\ncliOutput:\n%O\n-`, cliOutput);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
+
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
