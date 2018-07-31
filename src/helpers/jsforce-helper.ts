@@ -60,18 +60,6 @@ export interface InsertResult {
   errors:   [any]
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize Debug Enablement Variables
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled         = false;
-debugAsync.enabled    = false;
-debugExtended.enabled = false;
-function initializeDebug() {
-  debug.enabled         = FalconDebug.getDebugEnabled();
-  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
-  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
-}
-
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    assignPermsets
@@ -87,9 +75,6 @@ function initializeDebug() {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function assignPermsets(aliasOrConnection:string|Connection, userId:string, permsets:[string]):Promise<any> {
 
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
   // Validate arguments
   if (typeof userId !== 'string') {
     throw new TypeError(`ERROR_INVALID_PARAMETER: Missing userId [assignPermsets()]`);
@@ -103,7 +88,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Create the search list of permset names
   let permsetList = permsets.map(item => `'${item}'`).join(',');
-  debugAsync(`-\n-assignPermsets.permsetList:\n%O\n-\n-\n-\n-`, permsetList);
+  FalconDebug.debugString(debugAsync, permsetList, `assignPermsets.permsetList`);
 
   // Get the IDs for the array of permsets passed by the caller.
   const permSet = rc.connection.sobject('PermissionSet');
@@ -114,7 +99,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Create an array of just the permset Ids.
   let permsetIds = qrPermsets.map(record => record.Id) as [string];
-  debugAsync(`-\n-assignPermsets.permsetIds:\n%O\n-\n-\n-\n-`, permsetIds);
+  FalconDebug.debugString(debugAsync, permsetIds.toString(), `assignPermsets.permsetIds`);
 
   // Make sure we found IDs for each Permset on the list.
   if (permsets.length !== permsetIds.length) {
@@ -133,12 +118,12 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
       PermissionSetId: permsetIds[i]
     });
   }
-  debugAsync(`-\n-assignPermsets.permsetAssignmentRecs:\n%O\n-\n-\n-\n-`, permsetAssignmentRecs);
+  FalconDebug.debugObject(debugAsync, permsetAssignmentRecs, `assignPermsets.permsetAssignmentRecs`)
 
   // Insert the PermissionSetAssignment records.
   const permSetAssignment = rc.connection.sobject('PermissionSetAssignment');
   const assignmentResults = await permSetAssignment.insert(permsetAssignmentRecs) as [InsertResult];
-  debugAsync(`-\n-assignPermsets.assignmentResults:\n%O\n-\n-\n-\n-`, assignmentResults);
+  FalconDebug.debugObject(debugAsync, assignmentResults, `assignPermsets.assignmentResults`)
 
   // Make sure the insert was successful.
   for (let i=0; i < assignmentResults.length; i++) {
@@ -165,9 +150,6 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function changePassword(aliasOrConnection:any, userId:string, newPassword:string):Promise<void> {
-
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
 
   // Validate arguments
   if (typeof userId !== 'string' || typeof newPassword !== 'string') {
@@ -204,9 +186,6 @@ export async function changePassword(aliasOrConnection:any, userId:string, newPa
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, username:string, password:string, orgAlias:string):Promise<any> {
-
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
   
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
@@ -219,11 +198,12 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   // Try to create the new connection using the username and password.
   const userInfo = await newConnection.login(username, password)
     .catch(error => {
-      debugAsync(`-\n-->createSfdxOrgConfig ERROR:\n%O\n-\n-\n-\n-`, error);
+      FalconDebug.debugObject(debugAsync, error, `createSfdxOrgConfig ERROR`);
+
       throw error;
     });
-  debugAsync(`-\n-->createSfdxOrgConfig.userInfo:\n%O\n-\n-\n-\n-`, userInfo);
-  
+  FalconDebug.debugObject(debugAsync, userInfo, `createSfdxOrgConfig.userInfo`);
+
   // Create the Org Config data structure.
   const orgSaveData = {} as any;
 
@@ -232,7 +212,7 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   orgSaveData.instanceUrl = newConnection.instanceUrl;
   orgSaveData.username    = username;
   orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
-  debugAsync(`-\n-->createSfdxOrgConfig.orgSaveData:\n%O\n-\n-\n-\n-`, orgSaveData);
+  FalconDebug.debugObject(debugAsync, orgSaveData, `createSfdxOrgConfig.orgSaveData`);
 
   // Save the Org Config
   // TODO: Not sure how to proceed here.  Looks like we can't persist 
@@ -255,18 +235,15 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefinition, observer?:any):Promise<any> {
 
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
-  debugExtended(`-\n-->executeJsForceCommand.jsForceCommandDef:${dtp()}`, jsForceCommandDef);
+  FalconDebug.debugObject(debugExtended, jsForceCommandDef, `executeJsForceCommand.jsForceCommandDef`);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(jsForceCommandDef.aliasOrConnection);
   
   // Execute the command. Note that this is a synchronous request.
-  debugAsync(`-\n-->executeJsForceCommand.jsForceCommandDef.request:${dtp()}`, jsForceCommandDef.request);
+  FalconDebug.debugObject(debugAsync, jsForceCommandDef.request, `executeJsForceCommand.jsForceCommandDef.request`);
   const restResult = await rc.connection.request(jsForceCommandDef.request);
-  debugAsync(`-\n-->executeJsForceCommand.restResult:${dtp()}`, restResult);
+  FalconDebug.debugObject(debugAsync, restResult, `executeJsForceCommand.restResult`);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...
@@ -288,13 +265,10 @@ export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefi
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
 
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
   // Fetch the username associated with this alias.
-  debugAsync(`getConnection.orgAlias:-->${orgAlias}<--`);
+  FalconDebug.debugString(debugAsync, orgAlias, `getConnection.orgAlias`);
   const username:string = await Aliases.fetch(orgAlias);
-  debugAsync(`getConnection.username:-->${username}<--`);
+  FalconDebug.debugString(debugAsync, username, `getConnection.username`);
 
   // Make sure a value was returned for the alias
   if (typeof username === 'undefined') {
@@ -309,7 +283,7 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 
   // Set the API version (if specified by the caller).
   if (typeof apiVersion !== 'undefined') {
-    debugAsync(`getConnection.apiVersion:-->${apiVersion}<--`);
+    FalconDebug.debugString(debugAsync, apiVersion, `getConnection.apiVersion`);
     connection.setApiVersion(apiVersion);
   }
 
@@ -333,17 +307,14 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getProfileId(aliasOrConnection:any, profileName:string, observer?:any):Promise<any> {
 
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
-  debugExtended(`getProfileId.arguments:\n%O\n`, arguments);
+  FalconDebug.debugObject(debugExtended, arguments, `getProfileId.arguments`);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const resolvedConnection  = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
   const queryResult = <QueryResult> await resolvedConnection.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
-  debugAsync(`-\ngetProfileId.restResult:\n%O\n-\n-\n-\n-`, queryResult.records[0]);
+  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getProfileId.restResult`);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -370,17 +341,14 @@ export async function getProfileId(aliasOrConnection:any, profileName:string, ob
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<any> {
 
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
-  debugExtended(`-\n-->getUserId.arguments:\n%O\n-\n-\n-\n-`, arguments);
+  FalconDebug.debugObject(debugExtended, arguments, `getUserId.arguments`);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named User
   const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`);
-  debugAsync(`-\n-->getUserId.restResult:\n%O\n-\n-\n-\n-`, queryResult.records[0]);
+  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getUserId.restResult`);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -403,9 +371,6 @@ export async function getUserId(aliasOrConnection:any, username:string, observer
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedConnection> {
-
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
 
   // Input validation
   if (typeof aliasOrConnection !== 'string' && typeof aliasOrConnection !== 'object') {

@@ -55,6 +55,7 @@ export interface SfdxCommandDefinition {
 //─────────────────────────────────────────────────────────────────────────────┐
 // Initialize Debug Enablement Variables
 //─────────────────────────────────────────────────────────────────────────────┘
+/*
 debug.enabled         = false;
 debugAsync.enabled    = false;
 debugExtended.enabled = false;
@@ -63,7 +64,7 @@ function initializeDebug() {
   debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
   debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
 }
-
+//*/
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    executeSfdxCommand
@@ -76,13 +77,9 @@ function initializeDebug() {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, observer?:any):Promise<any> {
-
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
-  debugAsync(`-\nsfdxCommandString:\n%O\n-\n-`, sfdxCommandString);
+  FalconDebug.debugString(debugAsync, sfdxCommandString, `executeSfdxCommand:sfdxCommandString`);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
@@ -164,9 +161,7 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-  debug('identifyDevHubOrgs:arguments\n%O\n', arguments);
+  FalconDebug.debugObject(debug, arguments, `identifyDevHubOrgs:arguments`);
 
   // Make sure that the caller passed us an Array.
   if ((rawSfdxOrgList instanceof Array) === false) {
@@ -181,7 +176,7 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
   // SfdxOrgInfo that will be added to the devHubOrgInfos array.
   for (let rawOrgInfo of rawSfdxOrgList) {
     if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
-      debug(`identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username) is ${rawOrgInfo.alias}(${rawOrgInfo.username})`);
+      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username)`);
       devHubOrgInfos.push({
         alias:            rawOrgInfo.alias,
         username:         rawOrgInfo.username,
@@ -191,12 +186,12 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       });
     }
     else {
-      debug(`identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username) is ${rawOrgInfo.alias} (${rawOrgInfo.username})`);
+      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username)`);
     }
   }
 
   // DEBUG
-  debug(`identifyDevHubOrgs:devHubOrgInfos\n%O\n`, devHubOrgInfos);
+  FalconDebug.debugObject(debug, devHubOrgInfos, `identifyDevHubOrgs:devHubOrgInfos`);
 
   // Return the list of Dev Hubs to the caller
   return devHubOrgInfos;
@@ -275,10 +270,6 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function scanConnectedOrgs():Promise<any> {
-
-  // Make sure that Debug is initialized, otherwise no debug will show.
-  initializeDebug();
-
   return new Promise((resolve, reject) => {
     // Declare a function-local string buffer to hold the stdio stream.
     let stdoutBuffer:       string              = '';                         // Function-local string buffer to hold stdio stream
@@ -297,7 +288,7 @@ export async function scanConnectedOrgs():Promise<any> {
     // stdout in small chunks, rather than all at once at the end of the call.
     //───────────────────────────────────────────────────────────────────────┘
     childProcess.stdout.on('data', (data) => {
-      debugAsync(`scanConnectedOrgs.childProcess.stdout.on(data):dataStream\n%s`, data);
+      FalconDebug.debugString(debugAsync, data, `scanConnectedOrgs:childProcess:stdout:data`);
       // Add the contents of the data stream to the stdioBuffer
       stdoutBuffer += data;
     });
@@ -313,7 +304,7 @@ export async function scanConnectedOrgs():Promise<any> {
       // NOTE: For whatever reason, code is coming in as a boolean, and not
       // as a number. This means that we can't rely on it. Adding some debug
       // here just to prove (to myself) that I'm not crazy.
-      debugAsync(`TypeOf code: ${typeof code}`);
+      FalconDebug.debugString(debugAsync, `${typeof code}`, `canConnectedOrgs:childProcess:stdout:close (TypeOf code)`);
 
       // Declare the SfdxShellResult variable that will be used to send
       // information back to the caller.
@@ -340,8 +331,7 @@ export async function scanConnectedOrgs():Promise<any> {
       }
 
       // DEBUG
-      debugAsync(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
-      debugAsync('-\n-\n-\n-\n-\n');
+      FalconDebug.debugObject(debugAsync, sfdxShellResult, `canConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult`, `\n-\n-\n-`);
 
       // Based on the closing code, either RESOLVE or REJECT to end this
       // promise.  Any closing code other than 0 indicates failure.

@@ -120,12 +120,36 @@ export class FalconDebug {
     FalconDebug.debugExtendedEnabled  = debugExtendedEnabled;
     FalconDebug.debugInitialized      = true;
   }
-  static debugObject(localDebugger:any, objToDebug:object, objName:string):void {
+  static debugObject(localDebugger:any, objToDebug:object, objName:string, strTail?:string):void {
+    FalconDebug.initLocalDebuggerEnablement(localDebugger);
     localDebugger(
-      `-\n${chalk.magenta(objName + ':')}\n` +
+      `-\n${chalk.yellow(objName + ':')}\n` +
       util.inspect(objToDebug, {depth:6, colors:true}) +
       `\n-\n-\n-\n-`
     );
+    if(strTail) localDebugger(strTail);
+  }
+  static debugString(localDebugger:any, strToDebug:string, strName:string, strTail?:string):void {
+    FalconDebug.initLocalDebuggerEnablement(localDebugger);
+    localDebugger(`-\n${chalk.magenta(strName + ':')} ${strToDebug}`);
+    if(strTail) localDebugger(strTail);
+  }
+  private static initLocalDebuggerEnablement(localDebugger:any):void {
+    // Don't change anything if the localDebugger is already enabled.
+    if (localDebugger.enabled) return;
+
+    // Check the namespace of the Local Debugger and enable
+    switch (true) {
+      case /\(ASYNC\)$/.test(localDebugger.namespace):
+        localDebugger.enabled = FalconDebug.getDebugAsyncEnabled();
+        break;
+      case /\(EXTENDED\)$/.test(localDebugger.namespace):
+        localDebugger.enabled = FalconDebug.getDebugExtendedEnabled();
+        break;
+      default:
+        localDebugger.enabled = FalconDebug.getDebugEnabled();
+        break;
+    }
   }
 }
 

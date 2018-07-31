@@ -197,7 +197,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
       status:  0,
       result:  this.statusReport
     }
-    debug(`FalconDemoDeploy.onSuccess:\n%O\n`, statusReport);
+    FalconDebug.debugObject(debug, statusReport, `FalconDemoDeploy.onSuccess`);
     console.log(`Demo Validation Completed Successfully. Total elapsed time: ${statusReport.getRunTime(true)}`);
   }
 

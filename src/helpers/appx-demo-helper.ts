@@ -16,35 +16,27 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import * as core                from  '@salesforce/core';           // Allows us to use SFDX core functionality.
-import * as path                from  'path';                        // Node's path library.
-import {readConfigFile}         from  '../helpers/config-helper';  // Why?
-import {AppxDemoProjectContext} from  '../helpers/falcon-helper';    // Why?
-import {FalconDebug}            from  '../helpers/falcon-helper';    // Why?
-import {FalconStatusReport}     from  '../helpers/falcon-helper';    // Why?
-import {SfdxCommandSequence}    from  '../helpers/sequence-helper';  // Why?
-import {AppxDemoLocalConfig}    from  '../falcon-types';             // Why?
-import {AppxDemoProjectConfig}  from  '../falcon-types';             // Why?
-import {FalconCommandSequence}  from  '../falcon-types';             // Why?
-import {FalconSequenceContext}  from  '../falcon-types';             // Why?
-import {INTENT}                 from  '../enums';                    // Why?
+import * as core                    from  '@salesforce/core';           // Allows us to use SFDX core functionality.
+import * as path                    from  'path';                        // Node's path library.
+import {readConfigFile}             from  '../helpers/config-helper';  // Why?
+import {AppxDemoProjectContext}     from  '../helpers/falcon-helper';    // Why?
+import {dtp}                        from  '../helpers/falcon-helper';    // Why?
+import {FalconDebug}                from  '../helpers/falcon-helper';    // Why?
+import {FalconStatusReport}         from  '../helpers/falcon-helper';    // Why?
+import {SfdxCommandSequence}        from  '../helpers/sequence-helper';  // Why?
+import {AppxDemoLocalConfig}        from  '../falcon-types';             // Why?
+import {AppxDemoProjectConfig}      from  '../falcon-types';             // Why?
+import {FalconCommandSequence}      from  '../falcon-types';             // Why?
+import {FalconCommandSequenceGroup} from  '../falcon-types';             // Why?
+import {FalconSequenceContext}      from  '../falcon-types';             // Why?
+import {INTENT}                     from  '../enums';                    // Why?
 
 // Requires
 const debug         = require('debug')('adk-helper');             // Utility for debugging. set debug.enabled = true to turn on.
 const debugAsync    = require('debug')('adk-helper(ASYNC)');      // Utility for debugging. set debugAsync.enabled = true to turn on.
 const debugExtended = require('debug')('adk-helper(EXTENDED)');   // Utility for debugging. set debugExtended.enabled = true to turn on.
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize Debug Enablement Variables
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled         = false;
-debugAsync.enabled    = false;
-debugExtended.enabled = false;
-function initializeDebug() {
-  debug.enabled         = FalconDebug.getDebugEnabled();
-  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
-  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
-}
+const chalk         = require('chalk');
+const util          = require('util');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -78,7 +70,7 @@ export class AppxDemoProject {
    * @description Constructs an AppxDemoProject object.
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, localFalconConfigFile:core.ConfigFile) {
+  private constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, localFalconConfigFile:core.ConfigFile) {
 
     // Make sure that we get a value passed in to each parameter.
     if (typeof sfdxProject === 'undefined' 
@@ -100,15 +92,15 @@ export class AppxDemoProject {
 
       // Get the project path
       this.context.path = sfdxProject.getPath(); 
-      debug(`this.context.path:\n%O`, this.context.path);
+      FalconDebug.debugString(debug, this.context.path, `constructor.this.context.path`);
 
       // Get the PROJECT LEVEL configuration for an AppxDemo project.
       this.context.config.project = (sfdxProjectConfig as any).plugins.sfdxFalcon.appxDemo;
-      debug(`this.context.config.project:\n%O`, this.context.config.project);  
+      FalconDebug.debugObject(debug, this.context.config.project, `constructor.this.context.config.project`);
 
       // Get the LOCAL configuration for an AppxDemo project.
       this.context.config.local = localFalconConfigFile.toObject().appxDemo as any;
-      debug(`context.config.local:\n%O`, this.context.config.local);
+      FalconDebug.debugObject(debug, this.context.config.local, `constructor.this.context.config.local`);
     }
     catch (parseError) {
       throw new Error (`ERROR_UNPARSED_CONFIG: ${parseError}`);
@@ -145,17 +137,11 @@ export class AppxDemoProject {
   public static async resolve (projectDirectory: string, demoConfigOverride:string = '') {
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Make sure that Debug is initialized, otherwise no debug will show.
-    //─────────────────────────────────────────────────────────────────────────┘
-    initializeDebug();
-
-    //─────────────────────────────────────────────────────────────────────────┐
     // Try to resolve an SFDX Project context using the project directory
     // that was passed in by the caller.
     //─────────────────────────────────────────────────────────────────────────┘
-    // TODO: Add try/catch
     let sfdxProject = await core.SfdxProject.resolve(projectDirectory);
-    debugExtended(`sfdxProject:\n%O`, sfdxProject);
+    FalconDebug.debugObject(debugExtended, sfdxProject, `resolve.sfdxProject`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Resolve the overall project config. A resolved config object will
@@ -164,7 +150,7 @@ export class AppxDemoProject {
     // 3rd party custom properties like the ones for SFDX-Falcon.
     //─────────────────────────────────────────────────────────────────────────┘
     let sfdxProjectConfig = await sfdxProject.resolveProjectConfig();
-    debugExtended(`sfdxProjectConfig:\n%O`, sfdxProjectConfig);
+    FalconDebug.debugObject(debugExtended, sfdxProjectConfig, `resolve.sfdxProjectConfig`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Try to get the local SFDX-Falcon Config File so we can parse it for 
@@ -179,7 +165,7 @@ export class AppxDemoProject {
       isGlobal:   false,
       isState:    false,
     }
-    debugExtended(`fileConfigOptions:\n%O`, falconLocalConfigOptions);
+    FalconDebug.debugObject(debugExtended, falconLocalConfigOptions, `resolve.falconLocalConfigOptions`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Using the options set above, retrieve the SFDX-Falcon Config file, then
@@ -191,7 +177,7 @@ export class AppxDemoProject {
       let combinedPath = path.join(falconLocalConfigOptions.rootFolder, falconLocalConfigOptions.filename);
       throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${combinedPath}`);
     }
-    debugExtended(`localFalconConfigFile: \n%O`, localFalconConfigFile);
+    FalconDebug.debugObject(debugExtended, localFalconConfigFile, `resolve.localFalconConfigFile`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Grab the JSON for "plugins.sfdxFalcon.appxDemo" from the resolved SFDX
@@ -204,11 +190,12 @@ export class AppxDemoProject {
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_CONFIG: Configuration for 'appxDemo' in sfdx-project.json has missing/invalid settings (${validationResponse}).`)
     }
-    debug(`resolve.demoConfigOverride:${demoConfigOverride}`);
+    FalconDebug.debugString(debug, demoConfigOverride, `resolve.demoConfigOverride`);
+
     if (demoConfigOverride) {
       appxDemoProjectConfig.demoConfig = demoConfigOverride;
     }
-    debugExtended(`appxDemoProjectConfig:\n%O`, appxDemoProjectConfig);
+    FalconDebug.debugObject(debugExtended, appxDemoProjectConfig, `resolve.appxDemoProjectConfig`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Construct a new AppxDemoProject object using the SFDX Project, SFDX 
@@ -275,36 +262,69 @@ export class AppxDemoProject {
   //───────────────────────────────────────────────────────────────────────────┘
   public async validateDemo():Promise<FalconStatusReport> {
 
+    // Set the intent for this class. Prevents reuse of this object context.
+    this.setIntent(INTENT.VALIDATE_DEMO);
+
     // Create a Default Sequence Context.
     let sequenceContext = this.getDefaultSequenceContext();
 
     // Customize for validateDemo().
     sequenceContext.targetOrgAlias      = this.context.config.local.demoValidationOrgAlias;
     sequenceContext.targetIsScratchOrg  = true;
-    debug(`validateDemo.sequenceContext:\n%O\n`, sequenceContext);
+    FalconDebug.debugObject(debug, sequenceContext, 'validateDemo.sequenceContext');
 
     // Load the sequence (reads file and then returns JS object)
-    let demoBuildSequence = await readConfigFile( sequenceContext.configPath,               // rootFolder
-                                                  this.context.config.project.demoConfig);  // filename
-    debug(`validateDemo.demoBuildSequence:\n%O\n`, demoBuildSequence);
+    let demoBuildSequence:FalconCommandSequence 
+      = await readConfigFile( sequenceContext.configPath,               // rootFolder
+                              this.context.config.project.demoConfig);  // filename
+    FalconDebug.debugObject(debug, demoBuildSequence, 'validateDemo.demoBuildSequence');
 
     // Validate the contents of the Demo Build Sequence object.
-    let demoBuildConfigValidationResponse = validateDemoBuildConfig(demoBuildSequence);
-    if (demoBuildConfigValidationResponse !== true) {
-    throw new Error (`ERROR_INVALID_CONFIG: ` 
-                    +`Configuration in ${path.join(sequenceContext.configPath, this.context.config.project.demoConfig)} `
-                    +`has missing/invalid settings (${demoBuildConfigValidationResponse}).`)
-    }
+    validateDemoBuildConfig(demoBuildSequence);
     
-    // TODO: Deprecate this Use setIntent() to configure all member variables required by the intent.
-    this.setIntent(INTENT.VALIDATE_DEMO);
+    // Check if rebuildValidationOrg  property is defined as boolean. If not, set it to TRUE
+    if (typeof demoBuildSequence.options.rebuildValidationOrg !== 'boolean') {
+      demoBuildSequence.options.rebuildValidationOrg = true;
+    }
+    FalconDebug.debugString(debug, demoBuildSequence.options.rebuildValidationOrg, 'demoBuildSequence.options.rebuildValidationOrg');
+
+    // Determine if the sequence is set to rebuild the scratch (validation) org or not.
+    if (demoBuildSequence.options.rebuildValidationOrg === true) {
+
+      // Build an additional Sequence Group to handel scratch org refresh.
+      let rebuildScratchOrgSequenceGroup:FalconCommandSequenceGroup = {
+        groupId:  "rebuild-org",
+        groupName:  "Refresh Scratch Org",
+        description:  "Deletes the current validation scratch org and creates a new one",
+        sequenceSteps:  [
+          {
+            stepName:     'Delete Old Demo Validation Org',
+            description:  'Deletes the current Demo Validation scratch org',
+            action:       'delete-scratch-org',
+            options:  {
+              scratchOrgAlias:  `${sequenceContext.targetOrgAlias}`,
+              scratchDefJson:   `${demoBuildSequence.options.scratchDefJson}`
+            }
+          },
+          {
+            stepName:     'Create New Demo Validation Org',
+            description:  'Creates a new Demo Validation scratch org',
+            action:       'create-scratch-org',
+            options:  {
+              scratchOrgAlias:  `${sequenceContext.targetOrgAlias}`,
+              scratchDefJson:   `${demoBuildSequence.options.scratchDefJson}`
+            }
+          }
+        ]
+      };
+
+      // Add the new "refresh" sequence group to the front of the group array.
+      demoBuildSequence.sequenceGroups.unshift(rebuildScratchOrgSequenceGroup)
+      FalconDebug.debugObject(debug, demoBuildSequence, 'validateDemo.demoBuildSequence (after getting an extra sequence group)');
+    }
 
     // This SFDX Command Sequence will provide our execution capabilities.
     let sfdxCommandSequence = new SfdxCommandSequence(demoBuildSequence, sequenceContext);
-
-    // TODO: Delete the old scratch org.
-
-    // TODO: Create a new scratch org.
 
     // Execute the Sequence.
     let statusReport = await sfdxCommandSequence.execute();
@@ -313,7 +333,6 @@ export class AppxDemoProject {
 
     // Return the status report to the caller.
     return statusReport;
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -427,6 +446,13 @@ function validateAppxDemoConfig (appxDemoConfig:AppxDemoProjectConfig):boolean|A
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateDemoBuildConfig (demoBuildSequence:FalconCommandSequence):boolean|Array<string> {
+  // Check if sequenceGroups are built properly.
+  if (Array.isArray(demoBuildSequence.sequenceGroups) === false) {
+    throw new Error(`ERROR_INVALID_CONFIG: 'sequenceGroups' must be type 'array' not '${typeof demoBuildSequence.sequenceGroups}'`);
+  }
+  if (demoBuildSequence.sequenceGroups.length < 1) {
+    throw new Error(`ERROR_INVALID_CONFIG: 'sequenceGroups' array must contain at least one member`);
+  }
 
   // TODO: Need to implement this function.
 

@@ -95,9 +95,10 @@ export interface FalconCommandSequence {
 }
 
 export interface FalconCommandSequenceGroup {
+  groupId:        string;
   groupName:      string;
   description:    string;
-  sequenceSteps:  [FalconCommandSequenceStep];
+  sequenceSteps:  Array<FalconCommandSequenceStep>;
 }
 
 export interface FalconCommandSequenceStep {
