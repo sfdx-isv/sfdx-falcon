@@ -14,6 +14,11 @@
 import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
 import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
 
+// Returns the Debug Tail Padding (this is a hack for printing debug while Listr is running);
+export function dtp(){
+  return '\n%O\n-\n-\n-\n-\n-\n-\n-\n-';
+} 
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       AppxDemoProjectContext
@@ -69,6 +74,44 @@ export function composeFalconError(falconErrMsg:string, stdErrOutput:string, fal
     stdErrJson: stdErrJson
   }
   return falconError;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       FalconDebug
+ * @access      public
+ * @version     1.0.0
+ * @summary     ????
+ * @description ????
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class FalconDebug {
+  private static debugEnabled:boolean         = false;
+  private static debugAsyncEnabled:boolean    = false;
+  private static debugExtendedEnabled:boolean = false;
+  private static debugInitialized:boolean     = false;
+
+  static getDebugEnabled():boolean {
+    return FalconDebug.debugEnabled;
+  }
+  static getDebugAsyncEnabled():boolean {
+    return FalconDebug.debugAsyncEnabled;
+  }
+  static getDebugExtendedEnabled():boolean {
+    return FalconDebug.debugExtendedEnabled;
+  }
+  static getDebugInitialized():boolean {
+    return FalconDebug.debugInitialized;
+  }
+  static setDebugEnablement(debugEnabled:boolean, debugAsyncEnabled:boolean, debugExtendedEnabled:boolean):void {
+    if (FalconDebug.debugInitialized === true) {
+      throw new Error(`ERROR_DEBUG_OPTIONS_SET: Debug enablement options can only be set once`);
+    }
+    FalconDebug.debugEnabled          = debugEnabled;
+    FalconDebug.debugAsyncEnabled     = debugAsyncEnabled;
+    FalconDebug.debugExtendedEnabled  = debugExtendedEnabled;
+    FalconDebug.debugInitialized      = true;
+  }
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

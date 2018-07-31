@@ -13,12 +13,13 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {Aliases}                      from  '@salesforce/core';
-import {FalconStatusReport}           from  './falcon-helper';         // Why?
-import {composeFalconError}           from  './falcon-helper';         // Why?
-import {updateObserver}               from  './notification-helper';   // Why?
-import {FalconProgressNotifications}  from  './notification-helper';   // Why?
-import {waitASecond}                  from './async-helper';             // Why?
+import {Aliases}                      from  '@salesforce/core';       // Why?
+import {FalconDebug}                  from  './falcon-helper';        // Why?
+import {FalconStatusReport}           from  './falcon-helper';        // Why?
+import {composeFalconError}           from  './falcon-helper';        // Why?
+import {updateObserver}               from  './notification-helper';  // Why?
+import {FalconProgressNotifications}  from  './notification-helper';  // Why?
+import {waitASecond}                  from './async-helper';          // Why?
 
 // Requires
 const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -52,12 +53,16 @@ export interface SfdxCommandDefinition {
 }
 
 //─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
+// Initialize Debug Enablement Variables
 //─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled         = false;
 debugAsync.enabled    = false;
 debugExtended.enabled = false;
+function initializeDebug() {
+  debug.enabled         = FalconDebug.getDebugEnabled();
+  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
+  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -71,6 +76,9 @@ debugExtended.enabled = false;
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, observer?:any):Promise<any> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
 
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
@@ -156,11 +164,15 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
   debug('identifyDevHubOrgs:arguments\n%O\n', arguments);
+
   // Make sure that the caller passed us an Array.
   if ((rawSfdxOrgList instanceof Array) === false) {
     throw new Error('ERROR_INVALID_TYPE');
   }
+
   // Array of SfdxOrgInfo objects that will hold Dev Hubs.
   let devHubOrgInfos = new Array<SfdxOrgInfo>();
 
@@ -182,57 +194,12 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       debug(`identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username) is ${rawOrgInfo.alias} (${rawOrgInfo.username})`);
     }
   }
+
   // DEBUG
   debug(`identifyDevHubOrgs:devHubOrgInfos\n%O\n`, devHubOrgInfos);
+
   // Return the list of Dev Hubs to the caller
   return devHubOrgInfos;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    parseCommandFlags
- * @param       {object}          commandFlags  Object/JSON containing command flags in the form
- *                                of "FLAG_<FLAG_NAME>:value" (eg. "FLAG_JSON: true").
- * @returns     {string}          A single string containing all the flags and values in a format
- *                                that the Salesforce CLI expects (eg. "-d myDirectory --json").
- * @description Parses an Object with key/value pairs in the form of "FLAG_<FLAG_NAME>:value"
- *              and returns a string containing those flags and values in a format that the 
- *              Salesforce CLI expects (eg. "-d myDirectory --json").
- * @version     1.0.0
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function parseCommandFlags222(commandFlags:object):string {
-
-  let parsedFlags = '';
-
-  for (let objectKey of Object.keys(commandFlags)) {
-
-    // Only process keys that start with "FLAG_".
-    if (objectKey.substr(0,5).toUpperCase() !== 'FLAG_') {
-      continue;
-    }
-
-    // Pull the flag and value out and store for processing.
-    let flag  = objectKey.substring(5).toUpperCase();
-    let value = commandFlags[objectKey];
-
-    // Handle boolean flags differently from non-boolean flags.
-    if (typeof value === 'boolean') {
-      parsedFlags += ` --${flag}`;
-      continue;
-    }
-
-    // Handle values that contain spaces differently from ones that don't.
-    if (/\s/.test(value)) {
-      parsedFlags += ` --${flag} "${value}"`;
-    }
-    else {
-      parsedFlags += ` --${flag} ${value}`;
-    }
-  }
-
-  return parsedFlags;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -308,6 +275,10 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function scanConnectedOrgs():Promise<any> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
   return new Promise((resolve, reject) => {
     // Declare a function-local string buffer to hold the stdio stream.
     let stdoutBuffer:       string              = '';                         // Function-local string buffer to hold stdio stream

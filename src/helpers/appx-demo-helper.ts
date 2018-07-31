@@ -20,6 +20,7 @@ import * as core                from  '@salesforce/core';           // Allows us
 import * as path                from  'path';                        // Node's path library.
 import {readConfigFile}         from  '../helpers/config-helper';  // Why?
 import {AppxDemoProjectContext} from  '../helpers/falcon-helper';    // Why?
+import {FalconDebug}            from  '../helpers/falcon-helper';    // Why?
 import {FalconStatusReport}     from  '../helpers/falcon-helper';    // Why?
 import {SfdxCommandSequence}    from  '../helpers/sequence-helper';  // Why?
 import {AppxDemoLocalConfig}    from  '../falcon-types';             // Why?
@@ -33,10 +34,17 @@ const debug         = require('debug')('adk-helper');             // Utility for
 const debugAsync    = require('debug')('adk-helper(ASYNC)');      // Utility for debugging. set debugAsync.enabled = true to turn on.
 const debugExtended = require('debug')('adk-helper(EXTENDED)');   // Utility for debugging. set debugExtended.enabled = true to turn on.
 
-// Initialize Globals
+//─────────────────────────────────────────────────────────────────────────────┐
+// Initialize Debug Enablement Variables
+//─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled         = false;
 debugAsync.enabled    = false;
 debugExtended.enabled = false;
+function initializeDebug() {
+  debug.enabled         = FalconDebug.getDebugEnabled();
+  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
+  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -134,15 +142,12 @@ export class AppxDemoProject {
    * @public @static @async 
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static async resolve (projectDirectory: string, debugMode?:boolean, demoConfigOverride?:string) {
+  public static async resolve (projectDirectory: string, demoConfigOverride:string = '') {
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Activate debug mode if set to TRUE by the caller.
+    // Make sure that Debug is initialized, otherwise no debug will show.
     //─────────────────────────────────────────────────────────────────────────┘
-    debug.enabled = (debugMode === true);
-    debugExtended.enabled = false;
-    debug(`debug.enabled: ${debug.enabled}`);
-    debug(`debugExtended.enabled: ${debugExtended.enabled}`);
+    initializeDebug();
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Try to resolve an SFDX Project context using the project directory

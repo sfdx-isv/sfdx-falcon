@@ -11,11 +11,15 @@
  * @description   Exports functions that use JSForce
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {Aliases}            from '@salesforce/core'     // Why?
-import {AuthInfo}           from '@salesforce/core'     // Why?
-import {Connection}         from '@salesforce/core'     // Why?
-import * as jsf             from 'jsforce';             // Why?
-import {updateObserver}     from './notification-helper';     // Why?
+import {Aliases}            from '@salesforce/core'         // Why?
+import {AuthInfo}           from '@salesforce/core'         // Why?
+import {Connection}         from '@salesforce/core'         // Why?
+import * as jsf             from 'jsforce';                 // Why?
+import {updateObserver}     from './notification-helper';   // Why?
+import { waitASecond }      from './async-helper';
+import {FalconDebug}        from './falcon-helper';         // Why?
+import {dtp}                from './falcon-helper';         // Why?
+
 
 // Requires
 const debug         = require('debug')('jsforce-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -56,10 +60,17 @@ export interface InsertResult {
   errors:   [any]
 }
 
-// Initialize debug settings.
+//─────────────────────────────────────────────────────────────────────────────┐
+// Initialize Debug Enablement Variables
+//─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled         = false;
 debugAsync.enabled    = false;
 debugExtended.enabled = false;
+function initializeDebug() {
+  debug.enabled         = FalconDebug.getDebugEnabled();
+  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
+  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -75,9 +86,16 @@ debugExtended.enabled = false;
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function assignPermsets(aliasOrConnection:string|Connection, userId:string, permsets:[string]):Promise<any> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
   // Validate arguments
-  if (typeof userId !== 'string' || typeof permsets === 'undefined') {
-    throw new TypeError(`ERROR_INVALID_PARAMETERS: Missing or invalid parameters`);
+  if (typeof userId !== 'string') {
+    throw new TypeError(`ERROR_INVALID_PARAMETER: Missing userId [assignPermsets()]`);
+  }
+  if (Array.isArray(permsets) === false) {
+    throw new TypeError(`ERROR_INVALID_PARAMETER: Permsets must be provided as an array of strings`);
   }
 
   // Resolve our connection based on the incoming "alias or connection" param.
@@ -147,6 +165,10 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function changePassword(aliasOrConnection:any, userId:string, newPassword:string):Promise<void> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
   // Validate arguments
   if (typeof userId !== 'string' || typeof newPassword !== 'string') {
       throw new TypeError(`ERROR_INVALID_PARAMETERS: Missing or invalid parameters`);
@@ -183,6 +205,9 @@ export async function changePassword(aliasOrConnection:any, userId:string, newPa
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, username:string, password:string, orgAlias:string):Promise<any> {
 
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+  
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
@@ -229,14 +254,19 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefinition, observer?:any):Promise<any> {
-  debugExtended(`-\n-executeJsForceCommand.jsForceCommandDef:\n%O\n-\n-\n-\n-`, jsForceCommandDef);
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
+  debugExtended(`-\n-->executeJsForceCommand.jsForceCommandDef:${dtp()}`, jsForceCommandDef);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(jsForceCommandDef.aliasOrConnection);
   
   // Execute the command. Note that this is a synchronous request.
+  debugAsync(`-\n-->executeJsForceCommand.jsForceCommandDef.request:${dtp()}`, jsForceCommandDef.request);
   const restResult = await rc.connection.request(jsForceCommandDef.request);
-  debugAsync(`-\n-executeJsForceCommand.restResult:\n%O\n-\n-\n-\n-\n-`, restResult);
+  debugAsync(`-\n-->executeJsForceCommand.restResult:${dtp()}`, restResult);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...
@@ -257,6 +287,9 @@ export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefi
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
 
   // Fetch the username associated with this alias.
   debugAsync(`getConnection.orgAlias:-->${orgAlias}<--`);
@@ -299,6 +332,10 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getProfileId(aliasOrConnection:any, profileName:string, observer?:any):Promise<any> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
   debugExtended(`getProfileId.arguments:\n%O\n`, arguments);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
@@ -317,6 +354,42 @@ export async function getProfileId(aliasOrConnection:any, profileName:string, ob
   return queryResult.records[0].Id;
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getUserId
+ * @param       {string}  aliasOrConnection  Required. Either a string containing the Alias of the
+ *                        org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  username    Required. Name of the user being searched for.
+ * @param       {any}     [observer]  Optional. Reference to an Observable object.
+ * @returns     {Promise<any>}  Resolves with a string containing the xx-character record ID of 
+ *              the named user. Rejects if no matching user can be found.
+ * @description Given a Username, returns the xx-character record ID of the named user.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<any> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
+  debugExtended(`-\n-->getUserId.arguments:\n%O\n-\n-\n-\n-`, arguments);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Query the connected org for the Id of the named User
+  const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`);
+  debugAsync(`-\n-->getUserId.restResult:\n%O\n-\n-\n-\n-`, queryResult.records[0]);
+
+  // Make sure we got a result.  If not, throw error.
+  if (typeof queryResult.records[0] === 'undefined') {
+    throw new Error (`ERROR_USER_NOT_FOUND: User '${username}' does not exist in org '${rc.orgIdentifier}'`);
+  }
+
+  // Found our User Id!
+  return queryResult.records[0].Id;
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -330,6 +403,10 @@ export async function getProfileId(aliasOrConnection:any, profileName:string, ob
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedConnection> {
+
+  // Make sure that Debug is initialized, otherwise no debug will show.
+  initializeDebug();
+
   // Input validation
   if (typeof aliasOrConnection !== 'string' && typeof aliasOrConnection !== 'object') {
     throw new TypeError(`ERROR_INVALID_TYPE: Expected 'string' or 'object' but got '${typeof aliasOrConnection}'`);

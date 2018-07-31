@@ -15,28 +15,27 @@
 // Imports
 import * as path                      from  'path';                   // Node's path library.
 import {Observable}                   from  'rxjs';                   // Why?
-import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
 import {FalconCommandContext}         from  '../falcon-types';        // Why?
 import {FalconCommandSequence}        from  '../falcon-types';        // Why?
 import {FalconCommandSequenceGroup}   from  '../falcon-types';        // Why?
 import {FalconCommandSequenceStep}    from  '../falcon-types';        // Why?
 import {FalconSequenceContext}        from  '../falcon-types';        // Why?
+import {FalconDebug}                  from  './falcon-helper';        // Why?
 import {FalconStatusReport}           from  './falcon-helper';        // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
 import {waitASecond}                  from  './async-helper';         // Why?
 import {readConfigFile}               from  './config-helper';        // Why?
-import {executeJsForceCommand}        from  './jsforce-helper';      // Why?
-import {getConnection}                from  './jsforce-helper';      // Why?
-import {changePassword}               from  './jsforce-helper';      // Why?
-import {assignPermsets}               from  './jsforce-helper';      // Why?
-import {createSfdxOrgConfig}          from  './jsforce-helper';      // Why?
-import {getProfileId}                 from  './jsforce-helper';      // Why?
-import {getUserId}                    from  './jsforce-helper';      // Why?
-import {JSForceCommandDefinition}     from  './jsforce-helper';      // Why?
-import {getUsernameFromAlias}         from  './sfdx-helper';      // Why?
-
-
+import {executeJsForceCommand}        from  './jsforce-helper';       // Why?
+import {getConnection}                from  './jsforce-helper';       // Why?
+import {changePassword}               from  './jsforce-helper';       // Why?
+import {assignPermsets}               from  './jsforce-helper';       // Why?
+import {createSfdxOrgConfig}          from  './jsforce-helper';       // Why?
+import {getProfileId}                 from  './jsforce-helper';       // Why?
+import {getUserId}                    from  './jsforce-helper';       // Why?
+import {JSForceCommandDefinition}     from  './jsforce-helper';       // Why?
+import {getUsernameFromAlias}         from  './sfdx-helper';          // Why?
+import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -47,12 +46,16 @@ const FalconUpdateRenderer  = require('falcon-listr-update-renderer');        //
 const uuid                  = require('uuid/v1');                             // Generates a timestamp-based UUID
 
 //─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
+// Initialize Debug Enablement Variables
 //─────────────────────────────────────────────────────────────────────────────┘
 debug.enabled         = false;
 debugAsync.enabled    = false;
 debugExtended.enabled = false;
+function initializeDebug() {
+  debug.enabled         = FalconDebug.getDebugEnabled();
+  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
+  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -87,6 +90,8 @@ export class SfdxCommandSequence {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   constructor (sequence:FalconCommandSequence, sequenceContext:FalconSequenceContext, options?:any) {
+    // Make sure that Debug is initialized, otherwise no debug will show.
+    initializeDebug();
     debug('SfdxCommandSequence.constructor.arguments:\n%O', arguments);
     if (typeof sequence !== 'object' || typeof sequenceContext !== 'object') {
       throw new TypeError(`ERROR_INVALID_TYPE: Expected 'object, object' but got '${typeof sequence}, ${typeof sequenceContext}'`);

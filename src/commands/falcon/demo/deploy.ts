@@ -22,6 +22,7 @@ import {flags}                        from  '@oclif/command';                   
 import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
 import {validateLocalPath}            from  '../../../validators/core-validator';   // Core validation function to check that local path values don't have invalid chars.
 import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
+import {FalconDebug}                  from  '../../../helpers/falcon-helper';       // Why?
 import {FalconError}                  from  '../../../helpers/falcon-helper';       // Why?
 import {FalconStatusReport}           from  '../../../helpers/falcon-helper';       // Why?
 import {FalconJsonResponse}           from  '../../../falcon-types';                // Why?
@@ -110,6 +111,16 @@ export default class FalconDemoDeploy extends SfdxCommand {
       description: messages.getMessage('falcondebugFlagDescription'),  
       required: false,
       hidden: true
+    }),
+    falcondebugasync: flags.boolean({
+      description: messages.getMessage('falcondebugasyncFlagDescription'),  
+      required: false,
+      hidden: true
+    }),
+    falcondebugextended: flags.boolean({
+      description: messages.getMessage('falcondebugextendedFlagDescription'),  
+      required: false,
+      hidden: true
     })
   };
 
@@ -135,15 +146,17 @@ export default class FalconDemoDeploy extends SfdxCommand {
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
     // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
-    const deployDirFlag   = this.flags.deploydir    ||  '.';
-    const debugModeFlag   = this.flags.falcondebug  ||  false;
-    const demoConfigFile  = this.flags.configfile   ||  '';
+    const deployDirFlag           = this.flags.deploydir            ||  '.';
+    const demoConfigFile          = this.flags.configfile           ||  '';
+    const falconDebugFlag         = this.flags.falcondebug          ||  false;
+    const falconDebugAsyncFlag    = this.flags.falcondebugasync     ||  false;
+    const falconDebugExtendedFlag = this.flags.falcondebugextended  ||  false;
 
-    // "filepath" type flags default to '.' if not specified. Transform that to an empty string.
-    //const demoConfigFile  = (this.flags.configfile === '.') ? '' : this.flags.configfile;
+    // Initialize the global debug enablement settings
+    FalconDebug.setDebugEnablement(falconDebugFlag, falconDebugAsyncFlag, falconDebugExtendedFlag);
 
-    // Set the debug mode based on the caller's debugModeFlag setting.
-    debug.enabled = debugModeFlag;
+    // Don't forget to enable the LOCAL debug
+    debug.enabled = FalconDebug.getDebugEnabled();
 
     // Initialize the JSON response
     this.jsonResponse = {
@@ -157,7 +170,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
     }
 
     // Instantiate an AppxDemoProject Object.
-    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), debugModeFlag, demoConfigFile);
+    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), demoConfigFile);
     
     // Run validateDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
     await appxDemoProject.validateDemo()
@@ -217,13 +230,15 @@ export default class FalconDemoDeploy extends SfdxCommand {
     let stdError = falconError.stdErrJson;
 
 
-
     // DEVTEST
     console.log(`CLI_EXCEPTION_DEBUG:`);
     console.log(`name:    ${stdError.name}`);
     console.log(`message: ${stdError.message}`);
     console.log(`status:  ${stdError.status}`);
-    console.log(`result:\n%O`, stdError.result);
+
+    const util = require('util');
+    console.log(util.inspect(stdError.result, {depth:4, colors:true}));
+
     console.log(`warnings: ${stdError.warnings}`);
     console.log(`stack: ${stdError.stack}`);
 

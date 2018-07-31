@@ -117,6 +117,9 @@ OPTIONS
   -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
+  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
+                                                  project
+
   --json                                          format output as json
 
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation

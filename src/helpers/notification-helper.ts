@@ -98,8 +98,7 @@ export class FalconProgressNotifications {
       }  
     }
   }
-
-}
+} // End of FalconProgressNotifications class definition
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
