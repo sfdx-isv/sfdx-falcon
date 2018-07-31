@@ -35,8 +35,9 @@ export interface AppxDemoProjectConfig {
 }
 
 export interface AppxDemoSequenceOptions {
-  scratchDefJson:    string;
-  skipUserCreation:  boolean;
+  scratchDefJson:       string;
+  rebuildValidationOrg: boolean;
+  skipActions:          [string];
 }
 
 export interface AppxPackageLocalConfig {
