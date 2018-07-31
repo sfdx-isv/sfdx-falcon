@@ -11,8 +11,16 @@
  *                framework.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Imports
 import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
 import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
+
+// Requires
+const chalk         = require('chalk');
+const util          = require('util');
+
+
+
 
 // Returns the Debug Tail Padding (this is a hack for printing debug while Listr is running);
 export function dtp(){
@@ -111,6 +119,13 @@ export class FalconDebug {
     FalconDebug.debugAsyncEnabled     = debugAsyncEnabled;
     FalconDebug.debugExtendedEnabled  = debugExtendedEnabled;
     FalconDebug.debugInitialized      = true;
+  }
+  static debugObject(localDebugger:any, objToDebug:object, objName:string):void {
+    localDebugger(
+      `-\n${chalk.magenta(objName + ':')}\n` +
+      util.inspect(objToDebug, {depth:6, colors:true}) +
+      `\n-\n-\n-\n-`
+    );
   }
 }
 
