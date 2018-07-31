@@ -99,6 +99,13 @@ export default class FalconDemoDeploy extends SfdxCommand {
       default: '.',
       hidden: false
     },
+    configfile: {
+      char: 'f', 
+      required: false,
+      type: 'filepath',
+      description: messages.getMessage('configfileFlagDescription'),
+      hidden: false
+    },
     falcondebug: flags.boolean({
       description: messages.getMessage('falcondebugFlagDescription'),  
       required: false,
@@ -128,8 +135,12 @@ export default class FalconDemoDeploy extends SfdxCommand {
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
     // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
-    const deployDirFlag = this.flags.deploydir    ||  '.';
-    const debugModeFlag = this.flags.falcondebug  || false;
+    const deployDirFlag   = this.flags.deploydir    ||  '.';
+    const debugModeFlag   = this.flags.falcondebug  ||  false;
+    const demoConfigFile  = this.flags.configfile   ||  '';
+
+    // "filepath" type flags default to '.' if not specified. Transform that to an empty string.
+    //const demoConfigFile  = (this.flags.configfile === '.') ? '' : this.flags.configfile;
 
     // Set the debug mode based on the caller's debugModeFlag setting.
     debug.enabled = debugModeFlag;
@@ -145,10 +156,8 @@ export default class FalconDemoDeploy extends SfdxCommand {
       throw new Error('Deploy Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
     }
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // Instantiate an AppxDemoProject Object.
-    //─────────────────────────────────────────────────────────────────────────┘
-    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), debugModeFlag);
+    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), debugModeFlag, demoConfigFile);
     
     // Run validateDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
     await appxDemoProject.validateDemo()

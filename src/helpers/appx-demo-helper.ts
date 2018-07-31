@@ -51,32 +51,25 @@ debugExtended.enabled = false;
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class AppxDemoProject {
 
-  //───────────────────────────────────────────────────────────────────────────┐
   // Define class member variables/types.
-  //───────────────────────────────────────────────────────────────────────────┘
-  private   context:   AppxDemoProjectContext;   // Why?
-
+  private   context:                AppxDemoProjectContext; // Why?
   private   executionIntent:        INTENT;                 // Why?
   private   executingSequence:      boolean;                // Why?
  
-//  private   appxDemoLocalConfig:    AppxDemoLocalConfig;    // Why?
-//  private   appxDemoProjectConfig:  AppxDemoProjectConfig;  // Why?
-
-
-
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  AppxDemoProject
    * @version     1.0.0
-   * @param       {SfdxProject} sfdxProject Required.
-   *              An SfdxProject context as returned by a call to SfdxProject.resolve().
-   * @param       {object}      sfdxProjectConfig Required.
-   *              The resolved set of SFDX Project config settings for the SfdxProject.
-   * @param       {ConfigFile}  localFalconConfigFile Required.
-   *              A ConfigFile object that should have been populated by a local SFDX-Falcon config.
+   * @param       {SfdxProject} sfdxProject Required. An SfdxProject context as
+   *              returned by a call to SfdxProject.resolve().
+   * @param       {object}      sfdxProjectConfig Required. The resolved set of
+   *              SFDX Project config settings for the SfdxProject.
+   * @param       {ConfigFile}  localFalconConfigFile Required. A ConfigFile 
+   *              object that should have been populated by a local SFDX-Falcon 
+   *              config.
    * @description Constructs an AppxDemoProject object.
    */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
+  //───────────────────────────────────────────────────────────────────────────┘
   constructor(sfdxProject:core.SfdxProject, sfdxProjectConfig:object, localFalconConfigFile:core.ConfigFile) {
 
     // Make sure that we get a value passed in to each parameter.
@@ -122,23 +115,26 @@ export class AppxDemoProject {
 
     return;
   }
-  //───────────────────────────────────────────────────────────────────────────────────────────────┐
+  //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      resolve
-   * @param       {string}  projectDirectory Required.
-   *              Specifies the path of a local directory that contains the root of an ADK project.
-   *              When not specified, the local SFDX project context must be present.
-   * @param       {boolean} [debugMode] Optional.
-   *              Set to TRUE to enable debug output from inside the AppxDemoProject object that this
-   *              method will return.
-   * @description Leverages the Project object from SFDX-Core to represent an SFDX project 
-   *              directory.  This means that the directory must contain an sfdx-project.json file
-   *              and (possibly) a hidden .sfdx folder that contains other local SFDX config files.
+   * @param       {string}  projectDirectory Required.  Specifies the path of a
+   *              local directory that contains the root of an ADK project. When
+   *              not specified, the local SFDX project context must be present.
+   * @param       {boolean} [debugMode] Optional.  Set to TRUE to enable debug
+   *              output from inside the AppxDemoProject object that this method
+   *              will return.
+   * @param       {string}  [demoConfigOverride] Optional.  Overrides the 
+   *              demoConfig filename setting from inside sfdx-project.json.
+   * @description Leverages the Project object from SFDX-Core to represent an
+   *              SFDX project directory.  This means that the directory must 
+   *              contain an sfdx-project.json file and (possibly) a hidden 
+   *              .sfdx folder that contains other local SFDX config files.
    * @version     1.0.0
    * @public @static @async 
    */
-  //───────────────────────────────────────────────────────────────────────────────────────────────┘
-  public static async resolve (projectDirectory: string, debugMode?:boolean) {
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static async resolve (projectDirectory: string, debugMode?:boolean, demoConfigOverride?:string) {
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Activate debug mode if set to TRUE by the caller.
@@ -195,18 +191,23 @@ export class AppxDemoProject {
     //─────────────────────────────────────────────────────────────────────────┐
     // Grab the JSON for "plugins.sfdxFalcon.appxDemo" from the resolved SFDX
     // Project Config object, then validate it to make sure all expected values
-    // were provided.
+    // were provided.  Then, check if a demoConfigOverride was passed in. In 
+    // that case we need to override the demoConfig property.
     //─────────────────────────────────────────────────────────────────────────┘
     let appxDemoProjectConfig:AppxDemoProjectConfig = (sfdxProjectConfig as any).plugins.sfdxFalcon.appxDemo;
     let validationResponse = validateAppxDemoConfig(appxDemoProjectConfig);
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_CONFIG: Configuration for 'appxDemo' in sfdx-project.json has missing/invalid settings (${validationResponse}).`)
     }
+    debug(`resolve.demoConfigOverride:${demoConfigOverride}`);
+    if (demoConfigOverride) {
+      appxDemoProjectConfig.demoConfig = demoConfigOverride;
+    }
     debugExtended(`appxDemoProjectConfig:\n%O`, appxDemoProjectConfig);
 
     //─────────────────────────────────────────────────────────────────────────┐
-    // Construct a new AppxDemoProject object using the SFDX Project, SFDX Project
-    // Config, and the SFDX-Falcon Config values.
+    // Construct a new AppxDemoProject object using the SFDX Project, SFDX 
+    // Project Config, and the SFDX-Falcon Config values.
     //─────────────────────────────────────────────────────────────────────────┘
     let newAdkProject = new AppxDemoProject(sfdxProject, 
                                             sfdxProjectConfig, 
@@ -216,7 +217,6 @@ export class AppxDemoProject {
     // Done configuring the new AppxDemoProject object. Send it to the caller.
     //─────────────────────────────────────────────────────────────────────────┘
     return newAdkProject;
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
