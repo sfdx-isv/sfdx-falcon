@@ -226,25 +226,22 @@ export default class FalconDemoDeploy extends SfdxCommand {
       'errDefault'            // Error Message Key
     );
 
-    // Pull out the sfdxErrorObj so the code below is easier to read.
-    let stdError = falconError.stdErrJson;
-
     // Display a formatted version of the stdError before throwing the SfdxError.
-    FalconDebug.displayStdError(stdError);
+    FalconDebug.displayFalconError(falconError);
 
     // Merge the custom Falcon message and the standard SFDX into our output.
-    sfdxErrorConfig.setErrorTokens([falconError.message, stdError.message]);
+    sfdxErrorConfig.setErrorTokens([falconError.falconMessage, falconError.errObj.message]);
 
     // Search the SFDX error message to see if we can figure out a recommended action.
     switch (true) {
-      case /VMC_DEV_TEST1/.test(stdError.message):
+      case /VMC_DEV_TEST1/.test(falconError.errObj.message):
         sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
         break;
-      case /^ERROR_UNKNOWN_ACTION:/.test(stdError.message):
+      case /^ERROR_UNKNOWN_ACTION:/.test(falconError.errObj.message):
         sfdxErrorConfig.addAction('ACTIONFOR_ERROR_UNKNOWN_ACTION');
         break;
-      case /VMC_DEV_TEST3/.test(stdError.message):
+      case /VMC_DEV_TEST3/.test(falconError.errObj.message):
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
         break;
     }

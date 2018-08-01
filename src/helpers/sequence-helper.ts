@@ -45,19 +45,6 @@ const Listr                 = require('listr');                               //
 const FalconUpdateRenderer  = require('falcon-listr-update-renderer');        // Custom renderer for Listr
 const uuid                  = require('uuid/v1');                             // Generates a timestamp-based UUID
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize Debug Enablement Variables
-//─────────────────────────────────────────────────────────────────────────────┘
-/*
-debug.enabled         = false;
-debugAsync.enabled    = false;
-debugExtended.enabled = false;
-function initializeDebug() {
-  debug.enabled         = FalconDebug.getDebugEnabled();
-  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
-  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
-}
-//*/
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxCommandSequence
@@ -179,6 +166,9 @@ export class SfdxCommandSequence {
       case 'create-user':
         await commandCreateUser(commandContext, sequenceStep.options);
         break;
+      case 'delete-scratch-org':
+        await commandDeleteScratchOrg(commandContext, sequenceStep.options);
+        break;
       case 'deploy-metadata':
         await commandDeployMetadata(commandContext, sequenceStep.options);
         break;
@@ -248,8 +238,8 @@ export class SfdxCommandSequence {
         task:   (listrContext, thisTask) => {
           return new Observable(observer => { 
             this.executeStep(sequenceStep, observer)
-              .then(result => {observer.complete();})
-              .catch(result => {observer.error(result);});
+              .then(result => {observer.complete()})
+              .catch(error => {observer.error(error)});
           });
         }
       });
@@ -258,9 +248,7 @@ export class SfdxCommandSequence {
     // Return the Listr Tasks to the caller.
     return listrTasks;
   }
-
 } // End of SfdxCommandSequence class
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -469,6 +457,56 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    commandDeleteScratchOrg
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: ????, ????, ????
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandDeleteScratchOrg(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+
+  // Validate Command Options
+  if (typeof commandOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
+  if (typeof commandOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:org:delete',
+    progressMsg:  `Marking scratch org '${commandOptions.scratchOrgAlias}' for deletion`,
+    errorMsg:     `Request to mark scratch org '${commandOptions.scratchOrgAlias}' for deletion failed`,
+    successMsg:   `Scratch org '${commandOptions.scratchOrgAlias}' successfully marked for deletion`,
+    commandArgs:  [] as [string],
+    commandFlags: {
+      FLAG_TARGETUSERNAME:        commandContext.targetOrgAlias,
+      FLAG_TARGETDEVHUBUSERNAME:  commandContext.devHubAlias,
+      FLAG_NOPROMPT:              true,
+      FLAG_JSON:                  true,
+      FLAG_LOGLEVEL:              commandContext.logLevel
+    }
+  }
+  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandDeleteScratchOrg:sfdxCommandDef`);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  FalconDebug.debugObject(debugAsync, cliOutput, `commandDeleteScratchOrg.cliOutput`);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
+
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    commandDeployMetadata
  * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
  *                                      Org or DevHub alias) required to successfuly run the command.
@@ -505,7 +543,6 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-    .catch(error => { throw error });
 
   // Do any processing you want with the CLI Result, then return a success message.
   FalconDebug.debugObject(debugAsync, cliOutput, `commandDeployMetadata.cliOutput`);
@@ -560,9 +597,6 @@ async function commandImportDataTree(commandContext:FalconCommandContext, comman
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-    .catch(result => {
-      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${JSON.stringify(result)}`);
-    })
 
   // Do any processing you want with the CLI Result, then return a success message.
   FalconDebug.debugObject(debugAsync, cliOutput, `commandImportDataTree.cliOutput`);
@@ -616,10 +650,9 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-    .catch(error => { throw error });
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandInstallPackage.sfdxCommandDef`);
+  FalconDebug.debugObject(debugAsync, cliOutput, `commandInstallPackage.cliOutput`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -725,9 +758,6 @@ async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-    .catch(result => {
-      throw new Error(`${sfdxCommandDef.errorMsg}\n\n${result}`);
-    })
 
   // Do any processing you want with the CLI Result, then return a success message.
   FalconDebug.debugObject(debugAsync, cliOutput, `commandXXXXXX.cliOutput`);

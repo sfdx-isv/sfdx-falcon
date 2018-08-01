@@ -46,36 +46,6 @@ export class AppxDemoProjectContext {
   }
 }
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    composeFalconError
- * @param       {string}  falconErrMsg  Required.
- * @param       {string}  sfdxStdErr    Required.
- * @returns     {FalconError}  ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function composeFalconError(falconErrMsg:string, stdErrOutput:string, falconStatus:number=1):FalconError {
-  let stdErrJson = null;
-  try {
-    stdErrJson = JSON.parse(stdErrOutput);
-  } catch (e) {
-    stdErrJson = {
-      name:     'Error',
-      message:  'Unknown SFDX Error (could not parse stderr result from CLI)',
-      status:   1
-    };
-  }
-  let falconError = {
-    message:    falconErrMsg,
-    status:     falconStatus,
-    stdErrJson: stdErrJson
-  }
-  return falconError;
-}
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDebug
@@ -150,15 +120,21 @@ export class FalconDebug {
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static displayStdError(stdError:any) {
+  static displayFalconError(falconError:FalconError) {
     console.log('');
     console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
-    console.log(chalk`{blue name:}     ${stdError.name}`);
-    console.log(chalk`{blue message:}  ${stdError.message}`);
-    console.log(chalk`{blue status:}   ${stdError.status}`);
-    console.log(chalk`{blue warnings:} ${stdError.warnings}`);
-    console.log(chalk`{blue result:}   ${util.inspect(stdError.result, {depth:6, colors:true})}`);
-    console.log(chalk`{blue stack:}    ${stdError.stack}`);
+    console.log(chalk`{blue Error Name:}  ${falconError.name}`);
+    console.log(chalk`{blue Error Msg:}   ${falconError.falconMessage}`);
+    console.log(chalk`{blue Status Code:} ${falconError.status}`);
+    if (typeof falconError.errObj.stack !== 'undefined') {
+      if (falconError.errObj.name)      console.log(chalk`{yellow CLI Error Name:}  ${falconError.errObj.name}`);
+      if (falconError.errObj.message)   console.log(chalk`{yellow CLI Error Msg:}   ${falconError.errObj.message}`);
+      if (falconError.errObj.status)    console.log(chalk`{yellow CLI Status Code:} ${falconError.errObj.status}`);
+      if (falconError.errObj.warnings)  console.log(chalk`{yellow CLI Warnings:}    ${util.inspect(falconError.errObj.warnings, {depth:8, colors:true})}`);
+      if (falconError.errObj.action)    console.log(chalk`{yellow CLI Suggested Actions:} \n${falconError.errObj.action}`);
+      if (falconError.errObj.stack)     console.log(chalk`{yellow CLI Stacktrace:}        \n${falconError.errObj.stack}`);
+    }
+    console.log(chalk`{yellow Raw Error:}\n${falconError.errRaw}`);
     console.log('');
   }
   //───────────────────────────────────────────────────────────────────────────┐
@@ -198,23 +174,68 @@ export class FalconDebug {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class FalconError {
-  public  message:    string;
-  public  status:     number;
-  public  stdErrJson: any;
+  public  name:           string;
+  public  message:        string;
+  public  falconMessage:  string;
+  public  status:         number;
+  public  errRaw:         string;
+  public  errObj:         any;
+
+  private constructor() {
+  }
 
   public static wrap(error:any):FalconError {
-
-    // If error is missing stdErrJson, it's definitely not a Falcon Error.
-    if (typeof error.stdErrJson === 'undefined') {
+    if (error instanceof FalconError) {
+      return error;
+    }
+    else {
       return {
-        message:    'Unexpected Exception',
-        status:     1,
-        stdErrJson: error
+        name:           `UNEXPECTED_EXCEPTION (${error.name})`,
+        message:        `Unexpected Exception ${error.message}`,
+        falconMessage:  `There has been an unexpected exception ${error.message}`,
+        status:   -999,
+        errObj:   error,
+        errRaw:   error.toString()
       }
     }
-    // Assume that it's already a Falcon Error.
-    return error;
   }
+
+  public static wrapCliError(stdErrString:string, customMessage:string=''):FalconError {
+    let falconError = new FalconError();
+    let stdErrJson  = <any>{};
+
+    // Initialize errRaw since everybody gets that.
+    falconError.errRaw  = stdErrString;
+    
+    // See if we can resolve the raw stderr output to an object.
+    try {
+      stdErrJson = JSON.parse(stdErrString);
+    } catch (e) {
+      // Could not parse the stderr string.
+      falconError.name          = `UNPARSED_CLI_ERROR`;
+      falconError.message       = `Unparsed CLI Error`;
+      falconError.falconMessage = `The CLI threw an error that could not be parsed`;
+      falconError.status        = -1;
+      falconError.errObj        = <any>{};
+      return falconError;
+    }
+
+    // Use the custom message for the Falcon Message (if provided).
+    if (customMessage) {
+      falconError.falconMessage = customMessage;
+    }
+    else {
+      falconError.falconMessage = stdErrJson.message;
+    }
+
+    // Wrap the parsed error as best we can
+    falconError.name    = stdErrJson.name;
+    falconError.message = stdErrJson.message;
+    falconError.status  = stdErrJson.status;
+    falconError.errObj  = stdErrJson;
+
+    return falconError;
+  }  
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
