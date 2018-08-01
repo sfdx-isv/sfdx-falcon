@@ -493,7 +493,12 @@ async function commandDeleteScratchOrg(commandContext:FalconCommandContext, comm
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
-
+    .catch(error => {
+      // TODO: Add a validation check for target and devhub orgs BEFORE making the 
+      //       call to force:org:delete otherwise we have to stop errors from floating up.
+      FalconDebug.debugObject(debugAsync, error, `commandDeleteScratchOrg.error (suppressed)`);
+      return `${sfdxCommandDef.successMsg}`;
+    });
   // Do any processing you want with the CLI Result, then return a success message.
   FalconDebug.debugObject(debugAsync, cliOutput, `commandDeleteScratchOrg.cliOutput`);
 
