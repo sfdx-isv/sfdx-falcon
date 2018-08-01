@@ -14,7 +14,9 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import {SfdxCommand}  from '@salesforce/command';   // Required by child classe to create a CLI command
-import {createEnv}    from 'yeoman-environment';    // Required to create a Yeoman Environment
+
+// Requires
+const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -37,7 +39,7 @@ export default abstract class SfdxYeomanCommand extends SfdxCommand {
   protected async runYeomanGenerator(generatorType: string, generatorOptions: object = {}) {
 
     // Create a Yeoman environment.
-    const yeomanEnv = createEnv();
+    const yeomanEnv = yeoman.createEnv();
 
     // Register a generator with the Yeoman environment, based on generatorType.
     yeomanEnv.register(

@@ -17,9 +17,10 @@ import * as path       from 'path';                         // Node's path libra
 import { waitASecond } from './async-helper';
 
 // Requires
-const debug       = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync  = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugAsync.enabled = true to turn on.
-const shell       = require('shelljs');                     // Cross-platform shell access - use for setting up Git repo.
+const debug         = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
+const debugAsync    = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debugExtended = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
+const shell         = require('shelljs');                     // Cross-platform shell access - use for setting up Git repo.
 
 // File Globals
 // These RegEx Patterns can be inspected/tested at https://regex101.com/r/VuVsfJ/3
@@ -30,14 +31,15 @@ const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\
 // Initialize debug settings.  These should be set FALSE to give the caller
 // control over whether or not debug output is generated.
 //─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled       = false;
-debugAsync.enabled  = false;
+debug.enabled         = false;
+debugAsync.enabled    = false;
+debugExtended.enabled = false;
 
-//─────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────┐
 // Set shelljs config to throw exceptions on fatal errors.  We have to do
 // this so that git commands that return fatal errors can have their output
 // suppresed while the generator is running.
-//─────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────┘
 shell.config.fatal = true;
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -224,21 +226,21 @@ export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    setGitHelperDebug
- * @param       {boolean} debugStatus Set to TRUE to enable debug inside of git-helper functions
+ * @param       {boolean} debugStatus Set TRUE to enable debug inside of synchronous functions.
+ * @param       {boolean} debugAsyncStatus Set TRUE to enable debug inside asynchronous functions.
+ * @param       {boolean} debugExtendedStatus Set TRUE to enable extended debugging (if present).
  * @returns     {void}
+ * @description Used to enable/disable debug, debugAsync, and debugExtended debugging inside the
+ *              scope of the git-helper JavaScript file.  Set TRUE to turn debug output on, FALSE
+ *              to ensure that debug output is suppressed.
  * @version     1.0.0
- * @description Sets the value for debug.enabled inside git-helper.  Set TRUE to turn debug output
- *              on. Set FALSE to suppress debug output.
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function setGitHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean) {
-  // Validate Input
-  if (typeof debugStatus !== 'boolean' || typeof debugAsyncStatus !== 'boolean') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected two boolean arguments but got ${typeof debugStatus}, ${typeof debugAsyncStatus}`);
-  }
-  // Enable or disable debug statuses for this file per the caller's values.
-  debug.enabled       = debugStatus;
-  debugAsync.enabled  = debugAsyncStatus;
+export function setGitHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean, debugExtendedStatus:boolean) {
+  debug.enabled         = debugStatus;
+  debugAsync.enabled    = debugAsyncStatus;
+  debugExtended.enabled = debugExtendedStatus;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

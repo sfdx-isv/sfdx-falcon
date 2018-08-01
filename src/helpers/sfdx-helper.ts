@@ -13,19 +13,27 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-const shell           = require('shelljs');                        // Cross-platform shell access - use for setting up Git repo.
+import {Aliases}                      from  '@salesforce/core';       // Why?
+import {FalconDebug}                  from  './falcon-helper';        // Why?
+import {FalconError}                  from  './falcon-helper';        // Why?
+import {FalconStatusReport}           from  './falcon-helper';        // Why?
+import {updateObserver}               from  './notification-helper';  // Why?
+import {FalconProgressNotifications}  from  './notification-helper';  // Why?
+import {waitASecond}                  from './async-helper';          // Why?
 
 // Requires
-const debug           = require('debug')('sfdx-helper');           // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync      = require('debug')('sfdx-helper(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
+const debugAsync    = require('debug')('sfdx-helper(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debugExtended = require('debug')('sfdx-helper(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
+const shell         = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 
 // Interfaces
 export interface SfdxOrgInfo {
-  alias:    string;
-  username: string;
-  orgId:    string;
-  isDevHub: boolean;
-  connectedStatus: string;
+  alias:    string;                 // Why?
+  username: string;                 // Why?
+  orgId:    string;                 // Why?
+  isDevHub: boolean;                // Why?
+  connectedStatus: string;          // Why?
 }
 
 export interface SfdxShellResult {
@@ -35,40 +43,232 @@ export interface SfdxShellResult {
   status:         number;           // Status code returned by the CLI command after execution.
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled       = false;
-debugAsync.enabled  = false;
-
-//─────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    setSfdxHelperDebug
- * @param       {boolean} debugStatus Set to TRUE to enable debug inside of
- *                                    sfdx-helper functions.
- * @returns     {void}
- * @version     1.0.0
- * @description Sets the value for debug.enabled inside sfdx-helper.  Set TRUE
- *              to turn debug output on. Set FALSE to suppress debug output.
- */
-//─────────────────────────────────────────────────────────────────────────────┘
-export function setSfdxHelperDebug(debugStatus:boolean) {
-  debug.enabled = debugStatus;
+export interface SfdxCommandDefinition {
+  command:        string;           // Why?
+  progressMsg:    string;           // Why?
+  errorMsg:       string;           // Why?
+  successMsg:     string;           // Why?
+  commandArgs:    [string];         // Why?
+  commandFlags:   any;              // Why?
 }
 
 //─────────────────────────────────────────────────────────────────────────────┐
+// Initialize Debug Enablement Variables
+//─────────────────────────────────────────────────────────────────────────────┘
+/*
+debug.enabled         = false;
+debugAsync.enabled    = false;
+debugExtended.enabled = false;
+function initializeDebug() {
+  debug.enabled         = FalconDebug.getDebugEnabled();
+  debugAsync.enabled    = FalconDebug.getDebugAsyncEnabled();
+  debugExtended.enabled = FalconDebug.getDebugExtendedEnabled();
+}
+//*/
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    executeSfdxCommand
+ * @param       {SfdxCommandDefinition} sfdxCommandDef  Required. Defines the command to be run.
+ * @param       {any}                   [observer]      Optional. Reference to an Observable object.
+ * @returns     {Promise<any>}  Resolves with the CLI output on success. Throws on errors.
+ * @description Executes an SFDX command based on the SfdxCommandDefinition passed in.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, observer?:any):Promise<any> {
+  // Construct the SFDX Command String
+  let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
+  FalconDebug.debugString(debugAsync, sfdxCommandString, `executeSfdxCommand:sfdxCommandString`);
+
+  // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
+  return new Promise((resolve, reject) => {
+
+    // Create a FalconStatusReport object to help report on elapsed time.
+    let status = new FalconStatusReport(true);
+
+    // Declare function-local string buffers for stdout and stderr streams.
+    let stdOutBuffer:string = '';
+    let stdErrBuffer:string = '';
+
+    // Run the SFDX Command String asynchronously inside a child process.
+    const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
+
+    // Notify observers that we started executing the SFDX Command.
+    updateObserver(observer, `[0.000s] Executing ${sfdxCommandDef.command}`);
+
+    // Set up Progress Notifications.
+    const progressNotifications 
+      = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, status, observer);
+
+    // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
+    childProcess.stdout.on('data', (stdOutDataStream) => {
+      stdOutBuffer += stdOutDataStream;
+    });
+
+    // Handle stderr "data". Anything here means an error occured
+    childProcess.stderr.on('data', (stdErrDataStream) => {
+      stdErrBuffer += stdErrDataStream;
+    });
+
+    // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
+    // FYI: Ignore the code and signal vars. They don't work.
+    childProcess.stdout.on('close', (code, signal) => {
+
+      // Stop the progress notifications for this command.
+      FalconProgressNotifications.finish(progressNotifications);
+
+      // Determine of the command succeded or failed.
+      if (stdErrBuffer) {
+        reject(FalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
+      }
+      else {
+        updateObserver(observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);
+        resolve(stdOutBuffer);
+      }
+    });
+  });
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getUsernameFromAlias
+ * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
+ * @returns     {Promise<any>}   Resolves to the username if the alias was found, NULL if not.
+ * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
+ *              in the local environment the CLI is running in.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
+  const username = await Aliases.fetch(sfdxAlias);
+  return username;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    identifyDevHubOrgs
+ * @param       {Array<any>}          rawSfdxOrgList  This should be the raw list of SFDX orgs that
+ *                                    comes in the result of a call to force:org:list.
+ * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
+ *                                    Dev Hub orgs.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              finds all the org connections that point to Dev Hubs and returns them as an array
+ *              of SfdxOrgInfo objects.
+ * @version     1.0.0
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
+  FalconDebug.debugObject(debug, arguments, `identifyDevHubOrgs:arguments`);
+
+  // Make sure that the caller passed us an Array.
+  if ((rawSfdxOrgList instanceof Array) === false) {
+    throw new Error('ERROR_INVALID_TYPE');
+  }
+
+  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
+  let devHubOrgInfos = new Array<SfdxOrgInfo>();
+
+  // Iterate over rawSfdxOrgList to find orgs where isDevHub is TRUE.
+  // When found, move a subset of values for that org into an 
+  // SfdxOrgInfo that will be added to the devHubOrgInfos array.
+  for (let rawOrgInfo of rawSfdxOrgList) {
+    if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
+      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username)`);
+      devHubOrgInfos.push({
+        alias:            rawOrgInfo.alias,
+        username:         rawOrgInfo.username,
+        orgId:            rawOrgInfo.orgId,
+        isDevHub:         rawOrgInfo.isDevHub,
+        connectedStatus:  rawOrgInfo.connectedStatus
+      });
+    }
+    else {
+      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username)`);
+    }
+  }
+
+  // DEBUG
+  FalconDebug.debugObject(debug, devHubOrgInfos, `identifyDevHubOrgs:devHubOrgInfos`);
+
+  // Return the list of Dev Hubs to the caller
+  return devHubOrgInfos;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    parseSfdxCommand
+ * @param       {SfdxCommandDefinition} sfdxCommand Required. The SFDX Command Definition object
+ *                                      that will be parsed to create an SFDX Command String.
+ * @returns     {string}  A fully parsed SFDX CLI command, ready for immediate shell execution.
+ * @description Given an SFDX Command Definition object, this function will parse it and return a
+ *              string that can be immediately executed in a shell.
+ * @version     1.0.0
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
+
+  // TODO: Add command sanitization to make sure nobody can inject arbitrary code.
+
+  // Start with the base SFDX command.
+  let parsedCommand = `sfdx ${sfdxCommand.command}`;
+
+  // Add arguments to the command (must happen before flags).
+  for (let argument of sfdxCommand.commandArgs) {
+    parsedCommand += ' ' + argument;
+  }
+
+  // Add flags to the command.
+  for (let objectKey of Object.keys(sfdxCommand.commandFlags)) {
+
+    // Only process keys that start with "FLAG_".
+    if (objectKey.substr(0,5).toUpperCase() !== 'FLAG_') {
+      continue;
+    }
+
+    // Parse the flag, value, and whether it's a single or multi-char flag.
+    let flag          = objectKey.substring(5).toLowerCase();
+    let value         = sfdxCommand.commandFlags[objectKey];
+    let hyphen        = flag.length === 1 ? '-' : '--';
+
+    // Begin constructing a resolved flag.
+    let resolvedFlag  = ` ${hyphen + flag}`;
+
+    // If it's a boolean flag, we're done for this iteration.
+    if (typeof value === 'boolean') {
+      parsedCommand += ` ${resolvedFlag}`;
+      continue;
+    }
+
+    // Handle values that contain spaces differently from ones that don't.
+    if (/\s/.test(value)) {
+      parsedCommand += ` ${resolvedFlag} "${value}"`;
+    }
+    else {
+      parsedCommand += ` ${resolvedFlag} ${value}`;
+    }
+  }
+
+  // Done. This should be a complete, valid SFDX CLI command.
+  return parsedCommand;
+}
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    scanConnectedOrgs
- * @returns     {Promise<any>}  Uses an SfdxShellResult to return data to the
- *                              caller for both RESOLVE and REJECT.
+ * @returns     {Promise<any>}  Uses an SfdxShellResult to return data to the caller for both
+ *                              RESOLVE and REJECT.
+ * @description Calls force:org:list via an async shell command, then creates an array of SfdxOrgInfo
+ *              objects by parsing the JSON response returned by the CLI command.  Sends results 
+ *              back to caller as an SfdxShellResult.
  * @version     1.0.0
- * @description Calls force:org:list via an async shell command, then creates
- *              an array of SfdxOrgInfo objects by parsing the JSON response
- *              returned by the CLI command.  Sends results back to caller as
- *              an SfdxShellResult.
+ * @public @async
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function scanConnectedOrgs():Promise<any> {
   return new Promise((resolve, reject) => {
     // Declare a function-local string buffer to hold the stdio stream.
@@ -88,7 +288,7 @@ export async function scanConnectedOrgs():Promise<any> {
     // stdout in small chunks, rather than all at once at the end of the call.
     //───────────────────────────────────────────────────────────────────────┘
     childProcess.stdout.on('data', (data) => {
-      debugAsync(`scanConnectedOrgs.childProcess.stdout.on(data):dataStream\n%s`, data);
+      FalconDebug.debugString(debugAsync, data, `scanConnectedOrgs:childProcess:stdout:data`);
       // Add the contents of the data stream to the stdioBuffer
       stdoutBuffer += data;
     });
@@ -104,7 +304,7 @@ export async function scanConnectedOrgs():Promise<any> {
       // NOTE: For whatever reason, code is coming in as a boolean, and not
       // as a number. This means that we can't rely on it. Adding some debug
       // here just to prove (to myself) that I'm not crazy.
-      debugAsync(`TypeOf code: ${typeof code}`);
+      FalconDebug.debugString(debugAsync, `${typeof code}`, `canConnectedOrgs:childProcess:stdout:close (TypeOf code)`);
 
       // Declare the SfdxShellResult variable that will be used to send
       // information back to the caller.
@@ -131,8 +331,7 @@ export async function scanConnectedOrgs():Promise<any> {
       }
 
       // DEBUG
-      debugAsync(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
-      debugAsync('-\n-\n-\n-\n-\n');
+      FalconDebug.debugObject(debugAsync, sfdxShellResult, `canConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult`, `\n-\n-\n-`);
 
       // Based on the closing code, either RESOLVE or REJECT to end this
       // promise.  Any closing code other than 0 indicates failure.
@@ -146,67 +345,79 @@ export async function scanConnectedOrgs():Promise<any> {
   });
 }
 
-//─────────────────────────────────────────────────────────────────────────────┐
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    identifyDevHubOrgs
- * @param       {Array<any>}          rawSfdxOrgList  This should be the raw
- *                                    list of SFDX orgs that comes in the result
- *                                    of a call to force:org:list.
- * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects
- *                                    that point to Dev Hub orgs.
+ * @function    setSfdxHelperDebug
+ * @param       {boolean} debugStatus Set TRUE to enable debug inside of synchronous functions.
+ * @param       {boolean} debugAsyncStatus Set TRUE to enable debug inside asynchronous functions.
+ * @param       {boolean} debugExtendedStatus Set TRUE to enable extended debugging (if present).
+ * @returns     {void}
+ * @description Used to enable/disable debug, debugAsync, and debugExtended debugging inside the
+ *              scope of the sfdx-helper JavaScript file.  Set TRUE to turn debug output on, FALSE
+ *              to ensure that debug output is suppressed.
  * @version     1.0.0
- * @description Given a raw list of SFDX Org Information (like what you get
- *              from force:org:list), finds all the org connections that point
- *              to Dev Hubs and returns them as an array of SfdxOrgInfo objects.
+ * @public
  */
-//─────────────────────────────────────────────────────────────────────────────┘
-export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
-  debug('identifyDevHubOrgs:arguments\n%O\n', arguments);
-  // Make sure that the caller passed us an Array.
-  if ((rawSfdxOrgList instanceof Array) === false) {
-    throw new Error('ERROR_INVALID_TYPE');
-  }
-  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
-  let devHubOrgInfos = new Array<SfdxOrgInfo>();
-
-  // Iterate over rawSfdxOrgList to find orgs where isDevHub is TRUE.
-  // When found, move a subset of values for that org into an 
-  // SfdxOrgInfo that will be added to the devHubOrgInfos array.
-  for (let rawOrgInfo of rawSfdxOrgList) {
-    if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
-      debug(`identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username) is ${rawOrgInfo.alias}(${rawOrgInfo.username})`);
-      devHubOrgInfos.push({
-        alias:            rawOrgInfo.alias,
-        username:         rawOrgInfo.username,
-        orgId:            rawOrgInfo.orgId,
-        isDevHub:         rawOrgInfo.isDevHub,
-        connectedStatus:  rawOrgInfo.connectedStatus
-      });
-    }
-    else {
-      debug(`identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username) is ${rawOrgInfo.alias} (${rawOrgInfo.username})`);
-    }
-  }
-  // DEBUG
-  debug(`identifyDevHubOrgs:devHubOrgInfos\n%O\n`, devHubOrgInfos);
-  // Return the list of Dev Hubs to the caller
-  return devHubOrgInfos;
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function setSfdxHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean, debugExtendedStatus:boolean) {
+  debug.enabled         = debugStatus;
+  debugAsync.enabled    = debugAsyncStatus;
+  debugExtended.enabled = debugExtendedStatus;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 
 // Comment templates
 
-
-//─────────────────────────────────────────────────────────────────────────────┐
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    scanConnectedOrgs
- * @returns     {Promise<any>}  ???? with both resolve()
- *                              and reject() paths.
+ * @function    functionName
+ * @param       {string}  requiredParameter Required. Description can continue onto multiple lines.
+ * @param       {string}  [optionalParameter] Optional. Description can continue onto multiple lines.
+ * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+ * @description ???
  * @version     1.0.0
- * @description Calls force:org:list via an async shell command, then creates
- *              an array of SfdxOrgInfo objects by parsing the JSON response
- *              returned by the CLI command.
+ * @public @async
  */
-//─────────────────────────────────────────────────────────────────────────────┘
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
+private myFunction() {
+
+}
+//*/
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    functionName
+   * @param       {string}  requiredParameter Required. Description can
+   *                        continue onto multiple lines.
+   * @param       {string}  [optionalParameter] Optional. Description can
+   *                        continue onto multiple lines.
+   * @returns     {Promise<any>}  Resolves with ???, otherwise Rejects with ???.
+   * @description ???
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  /*
+  private myFunction() {
+
+  }
+  //*/
