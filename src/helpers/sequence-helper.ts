@@ -163,6 +163,9 @@ export class SfdxCommandSequence {
       case 'configure-admin-user':
         await commandConfigureAdminUser(commandContext, sequenceStep.options);
         break;
+      case 'create-scratch-org':
+        await commandCreateScratchOrg(commandContext, sequenceStep.options);
+        break;
       case 'create-user':
         await commandCreateUser(commandContext, sequenceStep.options);
         break;
@@ -346,6 +349,60 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
 
   // Return a success message
   return `${commandHeader.successMsg}`;
+
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    commandCreateScratchOrg
+ * @param       {FalconCommandContext}  commandContext  Provides all contextual info (like Target
+ *                                      Org or DevHub alias) required to successfuly run the command.
+ * @param       {any}                   commandOptions  JSON representing the options for this
+ *                                      command. Keys expected: ????, ????, ????
+ * @returns     {Promise<any>}          Resolves with a success message. Rejects with Error object.
+ * @description ????
+ * @version     1.0.0
+ * @private @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+async function commandCreateScratchOrg(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
+
+  // Validate Command Options
+  if (typeof commandOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
+  if (typeof commandOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
+
+  // Create an SfdxCommand object to define which command will run.
+  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+    command:      'force:org:create',
+    progressMsg:  `Creating scratch org '${commandOptions.scratchOrgAlias}' using ${commandOptions.scratchDefJson} (this can take 3-10 minutes)`,
+    errorMsg:     `Failed to create scratch org using ${commandOptions.scratchDefJson}`,
+    successMsg:   `Scratch org '${commandOptions.scratchOrgAlias}' created successfully using ${commandOptions.scratchDefJson}`,
+    commandArgs:  [] as [string],
+    commandFlags: {
+      FLAG_TARGETDEVHUBUSERNAME:  commandContext.devHubAlias,
+      FLAG_DEFINITIONFILE:        path.join(commandContext.configPath, commandOptions.scratchDefJson),
+      FLAG_SETALIAS:              commandOptions.scratchOrgAlias,
+      FLAG_DURATIONDAYS:          30,
+      FLAG_WAIT:                  10,
+      FLAG_NONAMESPACE:           true,
+      FLAG_SETDEFAULTUSERNAME:    true,
+      FLAG_JSON:                  true,
+      FLAG_LOGLEVEL:              commandContext.logLevel
+    }
+  }
+  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandCreateScratchOrg.sfdxCommandDef`);
+
+  // Execute the SFDX Command using an sfdxHelper.
+  const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
+
+  // Do any processing you want with the CLI Result, then return a success message.
+  FalconDebug.debugObject(debugAsync, cliOutput, `commandCreateScratchOrg.cliOutput`);
+
+  // Wait two seconds to give the user a chance to see the final status message.
+  await waitASecond(2);
+
+  // Return a success message
+  return `${sfdxCommandDef.successMsg}`;
 
 }
 
