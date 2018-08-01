@@ -236,26 +236,11 @@ export class AppxDemoProject {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @function    deployDemo
-   * @returns     {Promise<void>}  No return value, but may throw Errros.
+   * @function    validateDemo
+   * @returns     {Promise<FalconStatusReport>}  Resolves with a Falcon Status
+   *              Report or bubbles up thrown errors.
    * @version     1.0.0
    * @description ????
-   * @public @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  public async deployDemo() {
-
-    // TODO: Implement this function. Copy from validateDemo()
-
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @function      validateDemo
-   * @returns       {Promise<FalconStatusReport>}  Resolves with a Falcon Status
-   *                Report or bubbles up thrown errors.
-   * @description   ????
-   * @version       1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -264,19 +249,52 @@ export class AppxDemoProject {
     // Set the intent for this class. Prevents reuse of this object context.
     this.setIntent(INTENT.VALIDATE_DEMO);
 
+    // Leverage deployDemo() for everything else.
+    return await this.deployDemo();
+
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function      deployDemo
+   * @returns       {Promise<FalconStatusReport>}  Resolves with a Falcon Status
+   *                Report or bubbles up thrown errors.
+   * @description   ????
+   * @version       1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async deployDemo():Promise<FalconStatusReport> {
+
+    // If the execution intent was not already set, set it now.
+    if (this.executionIntent == INTENT.NOT_SPECIFIED) {
+      this.setIntent(INTENT.DEPLOY_DEMO);
+    }
+
     // Create a Default Sequence Context.
     let sequenceContext = this.getDefaultSequenceContext();
 
-    // Customize for validateDemo().
-    sequenceContext.targetOrgAlias      = this.context.config.local.demoValidationOrgAlias;
-    sequenceContext.targetIsScratchOrg  = true;
-    FalconDebug.debugObject(debug, sequenceContext, 'validateDemo.sequenceContext');
+    switch (this.executionIntent) {
+      case INTENT.VALIDATE_DEMO:
+        FalconDebug.debugString(debug, 'VALIDATE_DEMO', 'AppxDemoProject:deployDemo:executionIntent');
+        sequenceContext.targetOrgAlias      = this.context.config.local.demoValidationOrgAlias;
+        sequenceContext.targetIsScratchOrg  = true;
+        break;
+      case INTENT.DEPLOY_DEMO:
+        FalconDebug.debugString(debug, 'DEPLOY_DEMO', 'AppxDemoProject:deployDemo:executionIntent');
+        sequenceContext.targetOrgAlias      = this.context.config.local.demoDeploymentOrgAlias;
+        sequenceContext.targetIsScratchOrg  = false;
+        break;
+      default:
+        throw new Error(`ERROR_INVALID_INTENT: The specified Execution Intent is not valid`);
+    }
+    FalconDebug.debugObject(debug, sequenceContext, 'AppxDemoProject:deployDemo:sequenceContext');
 
     // Load the sequence (reads file and then returns JS object)
     let demoBuildSequence:FalconCommandSequence 
       = await readConfigFile( sequenceContext.configPath,               // rootFolder
                               this.context.config.project.demoConfig);  // filename
-    FalconDebug.debugObject(debug, demoBuildSequence, 'validateDemo.demoBuildSequence');
+    FalconDebug.debugObject(debug, demoBuildSequence, 'AppxDemoProject:deployDemo:demoBuildSequence');
 
     // Validate the contents of the Demo Build Sequence object.
     validateDemoBuildConfig(demoBuildSequence);
@@ -285,10 +303,11 @@ export class AppxDemoProject {
     if (typeof demoBuildSequence.options.rebuildValidationOrg !== 'boolean') {
       demoBuildSequence.options.rebuildValidationOrg = true;
     }
-    FalconDebug.debugString(debug, demoBuildSequence.options.rebuildValidationOrg, 'demoBuildSequence.options.rebuildValidationOrg');
+    FalconDebug.debugString(debug, demoBuildSequence.options.rebuildValidationOrg, 'AppxDemoProject:deployDemo:demoBuildSequence.options.rebuildValidationOrg');
 
-    // Determine if the sequence is set to rebuild the scratch (validation) org or not.
-    if (demoBuildSequence.options.rebuildValidationOrg === true) {
+    // ONLY IF running as VALIDATE_DEMO and rebuild request made, create a sequence to rebuild the scratch (validation) org.
+    if (this.executionIntent === INTENT.VALIDATE_DEMO 
+        && demoBuildSequence.options.rebuildValidationOrg === true) {
 
       // Build an additional Sequence Group to handel scratch org refresh.
       let rebuildScratchOrgSequenceGroup:FalconCommandSequenceGroup = {
@@ -319,7 +338,7 @@ export class AppxDemoProject {
 
       // Add the new "refresh" sequence group to the front of the group array.
       demoBuildSequence.sequenceGroups.unshift(rebuildScratchOrgSequenceGroup)
-      FalconDebug.debugObject(debug, demoBuildSequence, 'validateDemo.demoBuildSequence (after getting an extra sequence group)');
+      FalconDebug.debugObject(debug, demoBuildSequence, 'AppxDemoProject:deployDemo:demoBuildSequence (after getting an extra sequence group)');
     }
 
     // This SFDX Command Sequence will provide our execution capabilities.

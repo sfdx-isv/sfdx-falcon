@@ -143,13 +143,16 @@ OPTIONS
   -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
+  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
+                                                  project
+
   --json                                          format output as json
 
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:validate
-  $ sfdx falcon:demo:validate --deploydir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:deploy
+  $ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project
 ```
 
 _See code: [src/commands/falcon/demo/validate.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/demo/validate.ts)_
