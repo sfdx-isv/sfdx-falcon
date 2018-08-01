@@ -1,7 +1,7 @@
 {
   "name": "sfdx-falcon",
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
   "dependencies": {
