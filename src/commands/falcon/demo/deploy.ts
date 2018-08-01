@@ -123,7 +123,6 @@ export default class FalconDemoDeploy extends SfdxCommand {
       required: false,
       hidden: true
     })
-
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
