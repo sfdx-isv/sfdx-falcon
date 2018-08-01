@@ -14,6 +14,7 @@
 // Imports
 import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
 import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
+import {ERROR_TYPE}             from '../enums';          // Why?
 
 // Requires
 const chalk = require('chalk');   // Why?
@@ -121,20 +122,40 @@ export class FalconDebug {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   static displayFalconError(falconError:FalconError) {
+    let falconErrorColor = 'blue';
+    let errorColor, errorLabel;
     console.log('');
     console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
-    console.log(chalk`{blue Error Name:}  ${falconError.name}`);
-    console.log(chalk`{blue Error Msg:}   ${falconError.falconMessage}`);
-    console.log(chalk`{blue Status Code:} ${falconError.status}`);
+    console.log(chalk`{${falconErrorColor} Error Name:}  ${falconError.name}`);
+    console.log(chalk`{${falconErrorColor} Error Msg:}   ${falconError.falconMessage}`);
+    console.log(chalk`{${falconErrorColor} Status Code:} ${falconError.status}`);
     if (typeof falconError.errObj.stack !== 'undefined') {
-      if (falconError.errObj.name)      console.log(chalk`{yellow CLI Error Name:}  ${falconError.errObj.name}`);
-      if (falconError.errObj.message)   console.log(chalk`{yellow CLI Error Msg:}   ${falconError.errObj.message}`);
-      if (falconError.errObj.status)    console.log(chalk`{yellow CLI Status Code:} ${falconError.errObj.status}`);
-      if (falconError.errObj.warnings)  console.log(chalk`{yellow CLI Warnings:}    ${util.inspect(falconError.errObj.warnings, {depth:8, colors:true})}`);
-      if (falconError.errObj.action)    console.log(chalk`{yellow CLI Suggested Actions:} \n${falconError.errObj.action}`);
-      if (falconError.errObj.stack)     console.log(chalk`{yellow CLI Stacktrace:}        \n${falconError.errObj.stack}`);
+      switch (falconError.type) {
+        case ERROR_TYPE.CLI_ERROR:
+          errorColor = 'yellow';
+          errorLabel = 'CLI';
+          break;
+        case ERROR_TYPE.INTERNAL_ERROR:
+          errorColor = 'magenta';
+          errorLabel = 'Internal';
+          break;
+        case ERROR_TYPE.FALCON_ERROR:
+          errorColor = 'green';
+          errorLabel = 'Falcon';
+          break;
+        default:
+          errorColor = 'red';
+          errorLabel = 'Unknown';
+          break;
+      }
+      if (falconError.errObj.name)      console.log(chalk`{${errorColor} ${errorLabel} Error Name:}  ${falconError.errObj.name}`);
+      if (falconError.errObj.message)   console.log(chalk`{${errorColor} ${errorLabel} Error Msg:}   ${falconError.errObj.message}`);
+      if (falconError.errObj.status)    console.log(chalk`{${errorColor} ${errorLabel} Status Code:} ${falconError.errObj.status}`);
+      if (falconError.errObj.warnings)  console.log(chalk`{${errorColor} ${errorLabel} Warnings:}    ${util.inspect(falconError.errObj.warnings, {depth:8, colors:true})}`);
+      if (falconError.errObj.action)    console.log(chalk`{${errorColor} ${errorLabel} Suggested Actions:} \n${falconError.errObj.action}`);
+      if (falconError.errObj.stack)     console.log(chalk`{${errorColor} ${errorLabel} Stacktrace:}        \n${falconError.errObj.stack}`);
     }
-    console.log(chalk`{yellow Raw Error:}\n${falconError.errRaw}`);
+    console.log(chalk`{${falconErrorColor} Raw Error:}\n${falconError.errRaw}`);
     console.log('');
   }
   //───────────────────────────────────────────────────────────────────────────┐
@@ -178,6 +199,7 @@ export class FalconError {
   public  message:        string;
   public  falconMessage:  string;
   public  status:         number;
+  public  type:           ERROR_TYPE;
   public  errRaw:         string;
   public  errObj:         any;
 
@@ -190,9 +212,10 @@ export class FalconError {
     }
     else {
       return {
-        name:           `UNEXPECTED_EXCEPTION (${error.name})`,
-        message:        `Unexpected Exception ${error.message}`,
-        falconMessage:  `There has been an unexpected exception ${error.message}`,
+        name:           `UNEXPECTED_ERROR (${error.name})`,
+        message:        `${error.message}`,
+        falconMessage:  `There has been an unexpected error`,
+        type:           ERROR_TYPE.INTERNAL_ERROR,
         status:   -999,
         errObj:   error,
         errRaw:   error.toString()
@@ -212,6 +235,7 @@ export class FalconError {
       stdErrJson = JSON.parse(stdErrString);
     } catch (e) {
       // Could not parse the stderr string.
+      falconError.type          = ERROR_TYPE.UNPARSED_ERROR;
       falconError.name          = `UNPARSED_CLI_ERROR`;
       falconError.message       = `Unparsed CLI Error`;
       falconError.falconMessage = `The CLI threw an error that could not be parsed`;
@@ -229,6 +253,7 @@ export class FalconError {
     }
 
     // Wrap the parsed error as best we can
+    falconError.type    = ERROR_TYPE.CLI_ERROR;
     falconError.name    = stdErrJson.name;
     falconError.message = stdErrJson.message;
     falconError.status  = stdErrJson.status;
