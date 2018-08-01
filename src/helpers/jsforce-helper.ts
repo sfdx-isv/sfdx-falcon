@@ -109,12 +109,20 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
                     +`Permsets Found:\n${permsetsFound}\n\n`);
   }
 
+  // Find out if any Permsets are already assigned.
+  let assignedPermsets = await getAssignedPermsets(rc.connection, userId);
+  FalconDebug.debugObject(debugAsync, assignedPermsets, `assignPermsets.assignedPermsets`);
+
+  // Remove assigned permset IDs from the list of requested permset IDs
+  let unassignedPermsets = permsetIds.filter(permsetId => !assignedPermsets.includes(permsetId));
+  FalconDebug.debugObject(debugAsync, unassignedPermsets, `assignPermsets.unassignedPermsets`);
+
   // Create PermissionSetAssignment records.
   let permsetAssignmentRecs = new Array();
-  for (let i=0; i < permsetIds.length; i++) {
+  for (let permsetId of unassignedPermsets) {
     permsetAssignmentRecs.push({
       AssigneeId: userId,
-      PermissionSetId: permsetIds[i]
+      PermissionSetId: permsetId
     });
   }
   FalconDebug.debugObject(debugAsync, permsetAssignmentRecs, `assignPermsets.permsetAssignmentRecs`)
@@ -253,6 +261,40 @@ export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefi
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    getAssignedPermsets
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  userId  Required. Id of the user whose permsets we are getting.
+ * @returns     {Promise<Array<string>>}  Resolves with an Array of Permset Ids assigned to the user.
+ * @description Given a User ID, return an Array of Permset Ids that are assigned to that user.
+ * @version     1.0.0
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
+ 
+  FalconDebug.debugObject(debugExtended, arguments, `getAssignedPermsets.arguments`);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Query the connected org for the Ids of all Permsets assigned to the user.
+  const queryResult = <QueryResult> await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`);
+  FalconDebug.debugObject(debugAsync, queryResult.records, `getAssignedPermsets.queryResult`);
+
+  // Parse the result and extract the Permset IDs (if found).
+  let assignedPermsets = new Array<string>();
+  for (let record of queryResult.records as any) {
+    assignedPermsets.push(record.PermissionSetId)
+  }
+  FalconDebug.debugObject(debugExtended, assignedPermsets, `getAssignedPermsets.assignedPermsets`);
+
+  // Done
+  return assignedPermsets;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    getConnection
  * @param       {string} orgAlias   Required. The alias of the org to create a connection to.
  * @param       {string} apiVersion Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
@@ -309,15 +351,15 @@ export async function getProfileId(aliasOrConnection:any, profileName:string, ob
   FalconDebug.debugObject(debugExtended, arguments, `getProfileId.arguments`);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
-  const resolvedConnection  = await resolveConnection(aliasOrConnection);
+  const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
-  const queryResult = <QueryResult> await resolvedConnection.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
-  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getProfileId.restResult`);
+  const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
+  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getProfileId.queryResult`);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
-    throw new Error (`ERROR_PROFILE_NOT_FOUND: Profile '${profileName}' does not exist in org '${resolvedConnection.orgIdentifier}'`);
+    throw new Error (`ERROR_PROFILE_NOT_FOUND: Profile '${profileName}' does not exist in org '${rc.orgIdentifier}'`);
   }
 
   // Found our Profile Id!
@@ -347,7 +389,7 @@ export async function getUserId(aliasOrConnection:any, username:string, observer
 
   // Query the connected org for the Id of the named User
   const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`);
-  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getUserId.restResult`);
+  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getUserId.queryResult`);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
