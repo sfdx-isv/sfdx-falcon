@@ -12,9 +12,12 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {AppxDemoLocalConfig}    from '../falcon-types';   // Why?
-import {AppxDemoProjectConfig}  from '../falcon-types';   // Why?
-import {ERROR_TYPE}             from '../enums';          // Why?
+import {SfdxError}                    from  '@salesforce/core';                     // Why?
+import {SfdxErrorConfig}              from  '@salesforce/core';                     // Why?
+import {AppxDemoLocalConfig}          from '../falcon-types';         // Why?
+import {AppxDemoProjectConfig}        from '../falcon-types';         // Why?
+import {ERROR_TYPE}                   from '../enums';                // Why?
+import {FalconProgressNotifications}  from './notification-helper'    // Why?
 
 // Requires
 const chalk = require('chalk');   // Why?
@@ -260,7 +263,50 @@ export class FalconError {
     falconError.errObj  = stdErrJson;
 
     return falconError;
-  }  
+  }
+  
+  public static terminateWithError(error:any, commandName:string, showErrorDebug:boolean=false):void {
+  
+    // Make sure any outstanding notifications are killed.
+    FalconProgressNotifications.killAll();
+
+    // Make sure that whatever we get is wrapped as a Falcon Error.
+    let falconError = FalconError.wrap(error);
+
+    // Build an SfdxErrorConfig object
+    let sfdxErrorConfig = new SfdxErrorConfig(
+      'sfdx-falcon',          // Package Name
+      'falconErrorMessages',  // Bundle Name
+      'errDefault'            // Error Message Key
+    );
+
+    // Display a formatted version of the stdError before throwing the SfdxError.
+    if (showErrorDebug) {
+      FalconDebug.displayFalconError(falconError);
+    }
+
+    // Merge the custom Falcon message and the standard SFDX into our output.
+    sfdxErrorConfig.setErrorTokens([falconError.falconMessage, falconError.errObj.message]);
+
+    // Search the SFDX error message to see if we can figure out a recommended action.
+    switch (true) {
+      case /VMC_DEV_TEST1/.test(falconError.errObj.message):
+        sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
+        break;
+      case /^ERROR_UNKNOWN_ACTION:/.test(falconError.errObj.message):
+        sfdxErrorConfig.addAction('ACTIONFOR_ERROR_UNKNOWN_ACTION');
+        break;
+      case /VMC_DEV_TEST3/.test(falconError.errObj.message):
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
+        break;
+    }
+
+    // Create an SFDX Error, set the command name, and throw it.
+    let sfdxError = SfdxError.create(sfdxErrorConfig);
+    sfdxError.commandName = commandName;
+    throw sfdxError;  
+  }
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
