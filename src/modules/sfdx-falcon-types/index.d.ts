@@ -111,7 +111,7 @@ export interface FalconCommandSequenceStep {
   }
 }
 
-export interface FalconJsonResponse {
+export interface SfdxFalconJsonResponse {
   status: number;
   result: any;
 }
