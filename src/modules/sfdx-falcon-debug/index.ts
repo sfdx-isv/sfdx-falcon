@@ -99,7 +99,7 @@ export class SfdxFalconDebug {
   //───────────────────────────────────────────────────────────────────────────┘
   public static debugString(namespace:string, strToDebug:string, strLead:string = '', strTail:string = ''):void {
     let debugFunc = SfdxFalconDebug.getDebugger(namespace);
-    debugFunc(`-\n${chalk.magenta(strLead)}${strToDebug}${chalk.magenta(strTail)}`);
+    debugFunc(`-\n${chalk.blue(strLead)}${strToDebug}${chalk.blue(strTail)}`);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

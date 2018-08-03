@@ -21,8 +21,8 @@ import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // H
 import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Base class that CLI commands in this project that use Yeoman should use.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
 
-import {FalconJsonResponse}     from  '../../../falcon-types';                // Why?
 
+import {FalconJsonResponse}     from  '../../../modules/sfdx-falcon-types';       // Why?
 import {SfdxFalconDebug}        from  '../../../modules/sfdx-falcon-debug';       // Why?
 import {SfdxFalconError}        from  '../../../modules/sfdx-falcon-error';       // Why?
 import {SfdxFalconStatus}       from  '../../../modules/sfdx-falcon-status';      // Why?

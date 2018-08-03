@@ -15,11 +15,6 @@
 // Imports
 import * as path                      from  'path';                   // Node's path library.
 import {Observable}                   from  'rxjs';                   // Why?
-import {FalconCommandContext}         from  '../falcon-types';        // Why?
-import {FalconCommandSequence}        from  '../falcon-types';        // Why?
-import {FalconCommandSequenceGroup}   from  '../falcon-types';        // Why?
-import {FalconCommandSequenceStep}    from  '../falcon-types';        // Why?
-import {FalconSequenceContext}        from  '../falcon-types';        // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
 import {waitASecond}                  from  './async-helper';         // Why?
@@ -35,9 +30,15 @@ import {JSForceCommandDefinition}     from  './jsforce-helper';       // Why?
 import {getUsernameFromAlias}         from  './sfdx-helper';          // Why?
 import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
 
-
-import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';        // Why?
-import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';        // Why?
+import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';       // Why?
+import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';      // Why?
+import {AppxDemoLocalConfig}            from  '../modules/sfdx-falcon-types';     // Why?
+import {AppxDemoProjectConfig}          from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandContext}           from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandSequence}          from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandSequenceGroup}     from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandSequenceStep}      from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconSequenceContext}          from  '../modules/sfdx-falcon-types';     // Why?
 
 
 // Requires

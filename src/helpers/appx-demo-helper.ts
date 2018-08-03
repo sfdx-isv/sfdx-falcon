@@ -20,17 +20,16 @@ import * as core                    from  '@salesforce/core';             // All
 import * as path                    from  'path';                         // Node's path library.
 import {readConfigFile}             from  '../helpers/config-helper';     // Why?
 import {SfdxCommandSequence}        from  '../helpers/sequence-helper';   // Why?
-import {AppxDemoLocalConfig}        from  '../falcon-types';              // Why?
-import {AppxDemoProjectConfig}      from  '../falcon-types';              // Why?
-import {FalconCommandSequence}      from  '../falcon-types';              // Why?
-import {FalconCommandSequenceGroup} from  '../falcon-types';              // Why?
-import {FalconSequenceContext}      from  '../falcon-types';              // Why?
 import {INTENT}                     from  '../enums';                     // Why?
-
 
 import {AppxDemoProjectContext}         from  '../modules/sfdx-falcon-projects';  // Why?
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';     // Why?
 import {SfdxFalconStatus}               from  '../modules/sfdx-falcon-status';    // Why?
+import {AppxDemoLocalConfig}            from  '../modules/sfdx-falcon-types';     // Why?
+import {AppxDemoProjectConfig}          from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandSequence}          from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconCommandSequenceGroup}     from  '../modules/sfdx-falcon-types';     // Why?
+import {FalconSequenceContext}          from  '../modules/sfdx-falcon-types';     // Why?
 
 
 

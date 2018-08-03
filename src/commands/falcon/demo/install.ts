@@ -19,9 +19,9 @@ import {Messages}                     from  '@salesforce/core';                 
 import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
 import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
 import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
-import {FalconJsonResponse}           from  '../../../falcon-types';                // Why?
 import {validateLocalPath}            from  '../../../validators/core-validator';   // Core validation function to check that local path values don't have invalid chars.
 
+import {FalconJsonResponse}           from  '../../../modules/sfdx-falcon-types';   // Why?
 import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
 import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
 import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
