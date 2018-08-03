@@ -30,8 +30,8 @@ import * as gitHelper   from  '../helpers/git-helper';            // Library of 
 import * as sfdxHelper  from  '../helpers/sfdx-helper';           // Library of SFDX Helper functions specific to SFDX-Falcon.
 import * as yoHelper    from  '../helpers/yeoman-helper';         // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as yoValidate  from  '../validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-import {FalconDebug}    from  '../helpers/falcon-helper';         // Why?
-import {FalconStatusReport}         from  '../helpers/falcon-helper';     // Why?
+//import {FalconDebug}    from  '../helpers/falcon-helper';         // Why?
+import {SfdxFalconStatus}         from  '../modules/sfdx-falcon-status';     // Why?
 
 // Requires
 const chalk           = require('chalk');                                       // Utility for creating colorful console output.
@@ -87,7 +87,7 @@ export default class CloneAppxDemoProject extends Generator {
   private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
-  private status:                 FalconStatusReport;               // Why?
+  private status:                 SfdxFalconStatus;               // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -123,7 +123,7 @@ export default class CloneAppxDemoProject extends Generator {
 //    this.isGitAvailable       = false;
 
     // Initialize (but don't START) a Falcon Status Report object.
-    this.status = new FalconStatusReport();
+    this.status = new SfdxFalconStatus();
 
     // Validate the gitRemoteUri.  If we throw an Error from here in the
     // cosntructor, the Salesforce CLI will pick it up and send the message

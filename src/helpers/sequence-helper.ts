@@ -20,8 +20,6 @@ import {FalconCommandSequence}        from  '../falcon-types';        // Why?
 import {FalconCommandSequenceGroup}   from  '../falcon-types';        // Why?
 import {FalconCommandSequenceStep}    from  '../falcon-types';        // Why?
 import {FalconSequenceContext}        from  '../falcon-types';        // Why?
-import {FalconDebug}                  from  './falcon-helper';        // Why?
-import {FalconStatusReport}           from  './falcon-helper';        // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
 import {waitASecond}                  from  './async-helper';         // Why?
@@ -36,6 +34,11 @@ import {getUserId}                    from  './jsforce-helper';       // Why?
 import {JSForceCommandDefinition}     from  './jsforce-helper';       // Why?
 import {getUsernameFromAlias}         from  './sfdx-helper';          // Why?
 import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
+
+
+import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';        // Why?
+import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';        // Why?
+
 
 // Requires
 const debug                 = require('debug')('sequence-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -61,7 +64,7 @@ export class SfdxCommandSequence {
   private sequence:           FalconCommandSequence;    // Why?
   private sequenceContext:    FalconSequenceContext;    // Why?
   private options:            any;                      // Why?
-  private status:             FalconStatusReport;       // Why?
+  private status:             SfdxFalconStatus;       // Why?
   private executing:          boolean;                  // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -79,7 +82,7 @@ export class SfdxCommandSequence {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   constructor (sequence:FalconCommandSequence, sequenceContext:FalconSequenceContext, options?:any) {
-    FalconDebug.debugObject(debug, arguments, `SfdxCommandSequence:constructor:arguments`);
+    SfdxFalconDebug.obj('FALCON:sequence-helper', arguments, `SfdxCommandSequence:constructor:arguments`);
 
     // Make sure that the constructor is being called properly.
     if (typeof sequence !== 'object' || typeof sequenceContext !== 'object') {
@@ -90,21 +93,21 @@ export class SfdxCommandSequence {
     this.sequence         = sequence;
     this.sequenceContext  = sequenceContext;
     this.options          = options;
-    this.status           = new FalconStatusReport();
+    this.status           = new SfdxFalconStatus();
     this.executing        = false;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      execute
-   * @returns     {Promise<FalconStatusReport>}  Will return only if successful.
+   * @returns     {Promise<SfdxFalconStatus>}  Will return only if successful.
    *              Any failures will result in a thrown exception.
    * @description ???
    * @version     1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute():Promise<FalconStatusReport> {
+  public async execute():Promise<SfdxFalconStatus> {
 
     // Start the status timer.
     this.status.startTimer();
@@ -127,7 +130,7 @@ export class SfdxCommandSequence {
 
     // Run the Parent Tasks
     let listrContext = await parentTasks.run();
-    FalconDebug.debugObject(debug, listrContext, `SfdxCommandSequence:execute:listrContext`);
+    SfdxFalconDebug.obj('FALCON:sequence-helper', listrContext, `SfdxCommandSequence:execute:listrContext`);
 
     // Stop the timer and return the Status Report.
     this.status.stopTimer();
@@ -272,11 +275,11 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
 
   // Load and validate the user definition file.
   let userDefinition = await readConfigFile(commandContext.configPath, commandOptions.definitionFile);
-  FalconDebug.debugObject(debugAsync, userDefinition, `commandConfigureAdminUser.userDefinition (${commandOptions.definitionFile})`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', userDefinition, `commandConfigureAdminUser:userDefinition: (${commandOptions.definitionFile})`);
 
   // Create a unique username based on what's in the definition file.
   let profileId = await getProfileId(commandContext.targetOrgAlias,userDefinition.profileName);
-  FalconDebug.debugString(debugAsync, profileId, `commandConfigureAdminUser.profileId`);
+  SfdxFalconDebug.str('FALCON_EXT:sequence-helper', profileId, `commandConfigureAdminUser:profileId:`);
 
   let adminUsername = await getUsernameFromAlias(commandContext.targetOrgAlias);
 
@@ -287,8 +290,8 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
     successMsg:   `Admin User '${adminUsername}' configured successfully`,
   }
 
-  // Create a FalconStatusReport object to help report on elapsed runtime of this command.
-  let status = new FalconStatusReport(true);
+  // Create a SfdxFalconStatus object to help report on elapsed runtime of this command.
+  let status = new SfdxFalconStatus(true);
 
   // Start sending Progress Notifications.
   updateObserver(commandContext.commandObserver, `[0.000s] ${commandHeader.progressMsg}`);
@@ -327,12 +330,12 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
       })
     }
   } as JSForceCommandDefinition;
-  FalconDebug.debugObject(debugAsync, jsfUpdateUser, `commandConfigureAdminUser.jsfUpdateUser`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', jsfUpdateUser, `commandConfigureAdminUser:jsfUpdateUser:`);
 
   // Execute the command. If the user fails to create, JSForce will throw an exception.
   // TODO: Find out why Admin user update fails.
   // let updateUserResponse = await executeJsForceCommand(jsfUpdateUser);
-  // FalconDebug.debugObject(debugAsync, updateUserResponse, `commandConfigureAdminUser.updateUserResponse`);
+  // SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', updateUserResponse, `commandConfigureAdminUser:updateUserResponse`);
 
   // Assign permsets to the Admin User (if present)
   if (typeof userDefinition.permsets !== 'undefined') {
@@ -390,13 +393,13 @@ async function commandCreateScratchOrg(commandContext:FalconCommandContext, comm
       FLAG_LOGLEVEL:              commandContext.logLevel
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandCreateScratchOrg.sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandCreateScratchOrg:sfdxCommandDef:`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandCreateScratchOrg.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandCreateScratchOrg:cliOutput`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -426,15 +429,15 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
 
   // Load and validate the user definition file.
   let userDefinition = await readConfigFile(commandContext.configPath, commandOptions.definitionFile);
-  FalconDebug.debugObject(debugAsync, userDefinition, `commandCreateUser.userDefinition`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', userDefinition, `commandCreateUser:userDefinition:`);
 
   // Create a unique username based on what's in the definition file.
   let uniqueUsername  = createUniqueUsername(userDefinition.Username);
   let profileId       = await getProfileId(commandContext.targetOrgAlias,userDefinition.profileName);
   let defaultPassword = determineDefaultPassword(userDefinition.password);
-  FalconDebug.debugString(debugAsync, uniqueUsername,   `commandCreateUser.uniqueUsername`);
-  FalconDebug.debugString(debugAsync, profileId,        `commandCreateUser.profileId`);
-  FalconDebug.debugString(debugAsync, defaultPassword,  `commandCreateUser.defaultPassword`);
+  SfdxFalconDebug.str('FALCON_EXT:commandCreateUser', uniqueUsername,   `uniqueUsername: `);
+  SfdxFalconDebug.str('FALCON_EXT:commandCreateUser', profileId,        `profileId: `);
+  SfdxFalconDebug.str('FALCON_EXT:commandCreateUser', defaultPassword,  `defaultPassword: `);
 
   // Define header info that will be used by either JSForce or SFDX command executors.
   let commandHeader = {
@@ -443,8 +446,8 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
     successMsg:   `User '${uniqueUsername}' created successfully`,
   }
 
-  // Create a FalconStatusReport object to help report on elapsed runtime of this command.
-  let status = new FalconStatusReport(true);
+  // Create a SfdxFalconStatus object to help report on elapsed runtime of this command.
+  let status = new SfdxFalconStatus(true);
 
   // Start sendign Progress Notifications.
   updateObserver(commandContext.commandObserver, `[0.000s] ${commandHeader.progressMsg}`);
@@ -483,7 +486,7 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
   
   // Execute the command. If the user fails to create, JSForce will throw an exception.
   let jsfRestResponse = await executeJsForceCommand(jsfCreateUser);
-  FalconDebug.debugObject(debugAsync, jsfRestResponse, `commandCreateUser.jsfRestResponse`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', jsfRestResponse, `commandCreateUser:jsfRestResponse:`);
 
   // Get the Record Id of the User that was just created.
   let userId = jsfRestResponse.id;
@@ -546,18 +549,18 @@ async function commandDeleteScratchOrg(commandContext:FalconCommandContext, comm
       FLAG_LOGLEVEL:              commandContext.logLevel
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandDeleteScratchOrg:sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandDeleteScratchOrg:sfdxCommandDef:`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
     .catch(error => {
       // TODO: Add a validation check for target and devhub orgs BEFORE making the 
       //       call to force:org:delete otherwise we have to stop errors from floating up.
-      FalconDebug.debugObject(debugAsync, error, `commandDeleteScratchOrg.error (suppressed)`);
+      SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', error, `commandDeleteScratchOrg:error: (suppressed)`);
       return `${sfdxCommandDef.successMsg}`;
     });
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandDeleteScratchOrg.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandDeleteScratchOrg:cliOutput:`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -601,13 +604,13 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
       FLAG_LOGLEVEL:        commandContext.logLevel
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandDeployMetadata.sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandDeployMetadata:sfdxCommandDef:`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandDeployMetadata.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandDeployMetadata:cliOutput:`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -655,13 +658,13 @@ async function commandImportDataTree(commandContext:FalconCommandContext, comman
       FLAG_LOGLEVEL:        commandContext.logLevel
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandImportDataTree.sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandImportDataTree:sfdxCommandDef:`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandImportDataTree.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandImportDataTree:cliOutput:`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -708,13 +711,13 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
 
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandInstallPackage.sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandInstallPackage.sfdxCommandDef`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandInstallPackage.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandInstallPackage:cliOutput:`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);
@@ -816,13 +819,13 @@ async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions
 
     }
   }
-  FalconDebug.debugObject(debugAsync, sfdxCommandDef, `commandXXXXXX.sfdxCommandDef`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', sfdxCommandDef, `commandXXXXXX.sfdxCommandDef`);
 
   // Execute the SFDX Command using an sfdxHelper.
   const cliOutput = await sfdxHelper.executeSfdxCommand(sfdxCommandDef, commandContext.commandObserver)
 
   // Do any processing you want with the CLI Result, then return a success message.
-  FalconDebug.debugObject(debugAsync, cliOutput, `commandXXXXXX.cliOutput`);
+  SfdxFalconDebug.obj('FALCON_EXT:sequence-helper', cliOutput, `commandXXXXXX:cliOutput:`);
 
   // Wait two seconds to give the user a chance to see the final status message.
   await waitASecond(2);

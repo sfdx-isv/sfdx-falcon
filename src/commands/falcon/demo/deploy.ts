@@ -19,11 +19,14 @@ import {Messages}                     from  '@salesforce/core';                 
 import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
 import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
 import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
-import {FalconDebug}                  from  '../../../helpers/falcon-helper';       // Why?
-import {FalconError}                  from  '../../../helpers/falcon-helper';       // Why?
-import {FalconStatusReport}           from  '../../../helpers/falcon-helper';       // Why?
 import {FalconJsonResponse}           from  '../../../falcon-types';                // Why?
 import {validateLocalPath}            from  '../../../validators/core-validator';   // Core validation function to check that local path values don't have invalid chars.
+
+
+import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';       // Why?
+import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';       // Why?
+import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';      // Why?
+
 
 // Requires
 const debug = require('debug')('falcon:demo:deploy');                               // Utility for debugging. set debug.enabled = true to turn on.
@@ -129,7 +132,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
   // Define some private instance member variables that will be used to help
   // build and deliver the JSON response.
   //───────────────────────────────────────────────────────────────────────────┘
-  private statusReport:FalconStatusReport;        // Why?
+  private statusReport:SfdxFalconStatus;        // Why?
   private jsonResponse:FalconJsonResponse;        // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -154,8 +157,8 @@ export default class FalconDemoDeploy extends SfdxCommand {
     const falconDebugExtendedFlag = this.flags.falcondebugextended  ||  false;
     const falconDebugErrorsFlag   = this.flags.falcondebugerrors    ||  false;
 
-    // Initialize the global debug enablement settings
-    FalconDebug.setDebugEnablement(falconDebugFlag, falconDebugAsyncFlag, falconDebugExtendedFlag);
+    // Specify the top-level SFDX-Falcon debugger namespaces to enable.
+    SfdxFalconDebug.enableDebuggers(['FALCON', 'FALCON_EXT', 'FALCON_XL']);
 
     // Initialize the JSON response
     this.jsonResponse = {
@@ -174,7 +177,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
     // Run validateDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
     await appxDemoProject.deployDemo()
       .then(statusReport => {this.onSuccess(statusReport)})
-      .catch(error => {FalconError.terminateWithError(error, 'falcon:demo:deploy', falconDebugErrorsFlag)});
+      .catch(error => {SfdxFalconError.terminateWithError(error, 'falcon:demo:deploy', falconDebugErrorsFlag)});
 
     // The JSON Response was populated in onSuccess(). Just need to return now.
     return this.jsonResponse;
@@ -183,20 +186,20 @@ export default class FalconDemoDeploy extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    onSuccess
-   * @param       {FalconStatusReport}  statusReport
+   * @param       {SfdxFalconStatus}  statusReport
    * @returns     {void}  
    * @description ???
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(statusReport:FalconStatusReport):void {
+  private onSuccess(statusReport:SfdxFalconStatus):void {
     this.statusReport = statusReport;
     this.jsonResponse = {
       status:  0,
       result:  this.statusReport
     }
-    FalconDebug.debugObject(debug, statusReport, `FalconDemoDeploy:onSuccess:statusReport`);
+    SfdxFalconDebug.obj('FALCON:COMMAND:falcon:demo:deploy', statusReport, `FalconDemoDeploy:onSuccess:statusReport:`);
     console.log(`Demo Deployment Completed Successfully. Total elapsed time: ${statusReport.getRunTime(true)} seconds`);
   }
 } // End of Class FalconDemoDeploy

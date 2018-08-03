@@ -13,7 +13,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {FalconStatusReport} from './falcon-helper';                       // Why?
+import {SfdxFalconStatus} from '../modules/sfdx-falcon-status';                       // Why?
 
 // Requires
 const debug         = require('debug')('notification-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -44,7 +44,7 @@ export class FalconProgressNotifications {
    * @method      start
    * @param       {string}              message   ???
    * @param       {number}              interval  ???
-   * @param       {FalconStatusReport}  status    ???
+   * @param       {SfdxFalconStatus}  status    ???
    * @param       {any}                 observer  ???
    * @returns     {any}  ???
    * @description ???
@@ -52,7 +52,7 @@ export class FalconProgressNotifications {
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static start(message:string, interval:number, status:FalconStatusReport, observer:any):any {
+  static start(message:string, interval:number, status:SfdxFalconStatus, observer:any):any {
 
     // Initialize the timeoutRefs array if this is the first time star() is called.
     if (typeof FalconProgressNotifications.timeoutRefs === 'undefined') {
@@ -106,7 +106,7 @@ export class FalconProgressNotifications {
  * @param       {string}              message       Required. Displayed after the elapsed run time.
  * @param       {any}                 commandFlags  Required. Reference to an Observable object.
  * @param       {number}              interval      Required. Amount of time between notifications.
- * @param       {FalconStatusReport}  status        Required. Helps determine current running time.
+ * @param       {SfdxFalconStatus}  status        Required. Helps determine current running time.
  * @param       {any}                 observer      Required. Reference to an Observable object.
  * @returns     {void|any}  Undefined if setInterval was not used, Timeout object otherwise.
  * @description Registers a progressNotification() function which will cause regular notifications
@@ -116,7 +116,7 @@ export class FalconProgressNotifications {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 /*
-export function setupProgressNotifications(message:string, interval:number, status:FalconStatusReport, observer:any):void|any {
+export function setupProgressNotifications(message:string, interval:number, status:SfdxFalconStatus, observer:any):void|any {
   // Set an interval for the progressNotification function and return to caller.
   return setInterval(progressNotification, interval, status, message, observer);
 }
@@ -126,17 +126,17 @@ export function setupProgressNotifications(message:string, interval:number, stat
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    progressNotification
- * @param       {FalconStatusReport}  status    Required. Helps determine current running time.
+ * @param       {SfdxFalconStatus}  status    Required. Helps determine current running time.
  * @param       {string}              message   Required. Displayed after the elapsed run time.
  * @param       {any}                 observer  Required. Reference to an Observable object.
  * @returns     {void}
- * @description Computes the current Run Time from a FalconStatusReport object and composes a 
+ * @description Computes the current Run Time from a SfdxFalconStatus object and composes a 
  *              message that updateObserver() will handle.
  * @version     1.0.0
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function progressNotification(status:FalconStatusReport, message:string, observer:any):void {
+function progressNotification(status:SfdxFalconStatus, message:string, observer:any):void {
   updateObserver(observer, `[${status.getRunTime(true)}s] ${message}`);
 }
 

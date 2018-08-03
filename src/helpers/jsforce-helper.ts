@@ -17,7 +17,8 @@ import {Connection}         from '@salesforce/core'         // Why?
 import * as jsf             from 'jsforce';                 // Why?
 import {updateObserver}     from './notification-helper';   // Why?
 import { waitASecond }      from './async-helper';
-import {FalconDebug}        from './falcon-helper';         // Why?
+
+import {SfdxFalconDebug}    from '../modules/sfdx-falcon-debug';         // Why?
 
 
 // Requires
@@ -87,7 +88,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Create the search list of permset names
   let permsetList = permsets.map(item => `'${item}'`).join(',');
-  FalconDebug.debugString(debugAsync, permsetList, `assignPermsets.permsetList`);
+  SfdxFalconDebug.str('FALCON_EXT:jsforce-helper', permsetList, `assignPermsets:permsetList: `);
 
   // Get the IDs for the array of permsets passed by the caller.
   const permSet = rc.connection.sobject('PermissionSet');
@@ -98,7 +99,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Create an array of just the permset Ids.
   let permsetIds = qrPermsets.map(record => record.Id) as [string];
-  FalconDebug.debugString(debugAsync, permsetIds.toString(), `assignPermsets.permsetIds`);
+  SfdxFalconDebug.str('FALCON_EXT:jsforce-helper', permsetIds.toString(), `assignPermsets:permsetIds: `);
 
   // Make sure we found IDs for each Permset on the list.
   if (permsets.length !== permsetIds.length) {
@@ -111,11 +112,11 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Find out if any Permsets are already assigned.
   let assignedPermsets = await getAssignedPermsets(rc.connection, userId);
-  FalconDebug.debugObject(debugAsync, assignedPermsets, `assignPermsets.assignedPermsets`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', assignedPermsets, `assignPermsets:assignedPermsets: `);
 
   // Remove assigned permset IDs from the list of requested permset IDs
   let unassignedPermsets = permsetIds.filter(permsetId => !assignedPermsets.includes(permsetId));
-  FalconDebug.debugObject(debugAsync, unassignedPermsets, `assignPermsets.unassignedPermsets`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', unassignedPermsets, `assignPermsets:unassignedPermsets: `);
 
   // Create PermissionSetAssignment records.
   let permsetAssignmentRecs = new Array();
@@ -125,12 +126,12 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
       PermissionSetId: permsetId
     });
   }
-  FalconDebug.debugObject(debugAsync, permsetAssignmentRecs, `assignPermsets.permsetAssignmentRecs`)
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', permsetAssignmentRecs, `assignPermsets:permsetAssignmentRecs: `)
 
   // Insert the PermissionSetAssignment records.
   const permSetAssignment = rc.connection.sobject('PermissionSetAssignment');
   const assignmentResults = await permSetAssignment.insert(permsetAssignmentRecs) as [InsertResult];
-  FalconDebug.debugObject(debugAsync, assignmentResults, `assignPermsets.assignmentResults`)
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', assignmentResults, `assignPermsets:assignmentResults: `)
 
   // Make sure the insert was successful.
   for (let i=0; i < assignmentResults.length; i++) {
@@ -205,11 +206,11 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   // Try to create the new connection using the username and password.
   const userInfo = await newConnection.login(username, password)
     .catch(error => {
-      FalconDebug.debugObject(debugAsync, error, `createSfdxOrgConfig ERROR`);
+      SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', error, `createSfdxOrgConfig:ERROR: `);
 
       throw error;
     });
-  FalconDebug.debugObject(debugAsync, userInfo, `createSfdxOrgConfig.userInfo`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', userInfo, `createSfdxOrgConfig:userInfo: `);
 
   // Create the Org Config data structure.
   const orgSaveData = {} as any;
@@ -219,7 +220,7 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   orgSaveData.instanceUrl = newConnection.instanceUrl;
   orgSaveData.username    = username;
   orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
-  FalconDebug.debugObject(debugAsync, orgSaveData, `createSfdxOrgConfig.orgSaveData`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', orgSaveData, `createSfdxOrgConfig:orgSaveData: `);
 
   // Save the Org Config
   // TODO: Not sure how to proceed here.  Looks like we can't persist 
@@ -242,15 +243,15 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefinition, observer?:any):Promise<any> {
 
-  FalconDebug.debugObject(debugExtended, jsForceCommandDef, `executeJsForceCommand.jsForceCommandDef`);
+  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', jsForceCommandDef, `executeJsForceCommand:jsForceCommandDef: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(jsForceCommandDef.aliasOrConnection);
   
   // Execute the command. Note that this is a synchronous request.
-  FalconDebug.debugObject(debugAsync, jsForceCommandDef.request, `executeJsForceCommand.jsForceCommandDef.request`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', jsForceCommandDef.request, `executeJsForceCommand:jsForceCommandDef:request: `);
   const restResult = await rc.connection.request(jsForceCommandDef.request);
-  FalconDebug.debugObject(debugAsync, restResult, `executeJsForceCommand.restResult`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', restResult, `executeJsForceCommand:restResult: `);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...
@@ -273,21 +274,21 @@ export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefi
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
  
-  FalconDebug.debugObject(debugExtended, arguments, `getAssignedPermsets.arguments`);
+  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', arguments, `getAssignedPermsets:arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Ids of all Permsets assigned to the user.
   const queryResult = <QueryResult> await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`);
-  FalconDebug.debugObject(debugAsync, queryResult.records, `getAssignedPermsets.queryResult`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', queryResult.records, `getAssignedPermsets:queryResult: `);
 
   // Parse the result and extract the Permset IDs (if found).
   let assignedPermsets = new Array<string>();
   for (let record of queryResult.records as any) {
     assignedPermsets.push(record.PermissionSetId)
   }
-  FalconDebug.debugObject(debugExtended, assignedPermsets, `getAssignedPermsets.assignedPermsets`);
+  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', assignedPermsets, `getAssignedPermsets:assignedPermsets: `);
 
   // Done
   return assignedPermsets;
@@ -307,9 +308,9 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
 export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
 
   // Fetch the username associated with this alias.
-  FalconDebug.debugString(debugAsync, orgAlias, `getConnection.orgAlias`);
+  SfdxFalconDebug.str('FALCON_EXT:jsforce-helper', orgAlias, `getConnection:orgAlias: `);
   const username:string = await Aliases.fetch(orgAlias);
-  FalconDebug.debugString(debugAsync, username, `getConnection.username`);
+  SfdxFalconDebug.str('FALCON_EXT:jsforce-helper', username, `getConnection:username: `);
 
   // Make sure a value was returned for the alias
   if (typeof username === 'undefined') {
@@ -324,7 +325,7 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 
   // Set the API version (if specified by the caller).
   if (typeof apiVersion !== 'undefined') {
-    FalconDebug.debugString(debugAsync, apiVersion, `getConnection.apiVersion`);
+    SfdxFalconDebug.str('FALCON_EXT:jsforce-helper', apiVersion, `getConnection:apiVersion: `);
     connection.setApiVersion(apiVersion);
   }
 
@@ -348,14 +349,14 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getProfileId(aliasOrConnection:any, profileName:string, observer?:any):Promise<any> {
 
-  FalconDebug.debugObject(debugExtended, arguments, `getProfileId.arguments`);
+  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', arguments, `getProfileId:arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
   const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
-  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getProfileId.queryResult`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', queryResult.records[0], `getProfileId:queryResult: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -382,14 +383,14 @@ export async function getProfileId(aliasOrConnection:any, profileName:string, ob
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<any> {
 
-  FalconDebug.debugObject(debugExtended, arguments, `getUserId.arguments`);
+  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', arguments, `getUserId:arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named User
   const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`);
-  FalconDebug.debugObject(debugAsync, queryResult.records[0], `getUserId.queryResult`);
+  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', queryResult.records[0], `getUserId:queryResult: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {

@@ -1,16 +1,16 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          commands/falcon/demo/validate.ts
+ * @file          commands/falcon/demo/install.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
  * @license       MIT
- * @requires      module:validators/core
- * @summary       Implements the falcon:demo:validate CLI command
- * @description   Salesforce CLI Plugin command (falcon:demo:validate) that is expected to run
- *                inside of a fully-configured AppExchange Demo Kit (ADK) project.  Uses project and
- *                local settings from various JSON config files and uses them to power an Org Build
- *                that targets a scratch org specified by the local user.
+ * @requires      module:???
+ * @summary       Implements the falcon:demo:install CLI command
+ * @description   Salesforce CLI Plugin command (falcon:demo:install) that is expected to run inside
+ *                of a fully-configured AppExchange Demo Kit (ADK) project.  Uses project and local
+ *                settings from various JSON config files and uses them to power an Org Build 
+ *                based on the SFDX Falcon Recipe selected by the user.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
@@ -25,10 +25,6 @@ import {validateLocalPath}            from  '../../../validators/core-validator'
 import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
 import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
 import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
-
-// Requires
-const debug = require('debug')('falcon:demo:validate');                             // Utility for debugging. set debug.enabled = true to turn on.
-
 
 
 //─────────────────────────────────────────────────────────────────────────────┐
@@ -47,13 +43,13 @@ const debug = require('debug')('falcon:demo:validate');                         
 // specifying the module name as the first parameter of loadMessages().
 //─────────────────────────────────────────────────────────────────────────────┘
 Messages.importMessagesDirectory(__dirname);
-const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoValidate');
+const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       FalconDemoValidate
+ * @class       FalconDemoDeploy
  * @extends     SfdxCommand
- * @summary     Implements the CLI Command falcon:demo:validate
+ * @summary     Implements the CLI Command falcon:demo:install
  * @description TODO ????
  * @version     1.0.0
  * @public
@@ -69,8 +65,8 @@ export default class FalconDemoDeploy extends SfdxCommand {
   public static description = messages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
-    `$ sfdx falcon:demo:deploy`,
-    `$ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project`
+    `$ sfdx falcon:demo:install`,
+    `$ sfdx falcon:demo:install --deploydir ~/demos/adk-projects/my-adk-project`
   ];
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -126,7 +122,6 @@ export default class FalconDemoDeploy extends SfdxCommand {
       required: false,
       hidden: true
     })
-
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -143,7 +138,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
    *              that the CLI will then forward to the user if the --json flag
    *              was set when this command was called.
    * @description Entrypoint function used by the CLI when the user wants to
-   *              run the command 'sfdx falcon:demo:deploy'.
+   *              run the command 'sfdx falcon:demo:install'.
    * @version     1.0.0
    * @public @async
    */
@@ -176,9 +171,9 @@ export default class FalconDemoDeploy extends SfdxCommand {
     const appxDemoProject = await AppxDemoProject.resolve(path.resolve(deployDirFlag), demoConfigFile);
     
     // Run validateDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
-    await appxDemoProject.validateDemo()
+    await appxDemoProject.deployDemo()
       .then(statusReport => {this.onSuccess(statusReport)})
-      .catch(error => {SfdxFalconError.terminateWithError(error, 'falcon:demo:validate', falconDebugErrorsFlag)});
+      .catch(error => {SfdxFalconError.terminateWithError(error, 'falcon:demo:install', falconDebugErrorsFlag)});
 
     // The JSON Response was populated in onSuccess(). Just need to return now.
     return this.jsonResponse;
@@ -200,7 +195,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
       status:  0,
       result:  this.statusReport
     }
-    SfdxFalconDebug.obj('FALCON:COMMAND:falcon:demo:validate', statusReport, `FalconDemoValidate:onSuccess:statusReport:`);
-    console.log(`Demo Validation Completed Successfully. Total elapsed time: ${statusReport.getRunTime(true)} seconds`);
+    SfdxFalconDebug.obj('FALCON:COMMAND:falcon:demo:install', statusReport, `FalconDemoInstall:onSuccess:statusReport:`);
+    console.log(`Demo Deployment Completed Successfully. Total elapsed time: ${statusReport.getRunTime(true)} seconds`);
   }
-} // End of Class FalconDemoValidate
+} // End of Class FalconDemoDeploy

@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.3 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.3 darwin-x64 node-v10.1.0
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -33,6 +33,7 @@ USAGE
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`](#sfdx-falcon-falcondemoclone-git-remote-uri)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
 * [`sfdx-falcon falcon:demo:deploy`](#sfdx-falcon-falcondemodeploy)
+* [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
 * [`sfdx-falcon falcon:demo:validate`](#sfdx-falcon-falcondemovalidate)
 * [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
 * [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
@@ -130,6 +131,32 @@ EXAMPLES
 ```
 
 _See code: [src/commands/falcon/demo/deploy.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/deploy.ts)_
+
+## `sfdx-falcon falcon:demo:install`
+
+Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org
+
+```
+USAGE
+  $ sfdx-falcon falcon:demo:install
+
+OPTIONS
+  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
+                                                  project
+
+  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
+                                                  project
+
+  --json                                          format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:demo:install
+  $ sfdx falcon:demo:install --deploydir ~/demos/adk-projects/my-adk-project
+```
+
+_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/install.ts)_
 
 ## `sfdx-falcon falcon:demo:validate`
 

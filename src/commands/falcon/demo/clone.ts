@@ -21,13 +21,15 @@ import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // H
 import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Base class that CLI commands in this project that use Yeoman should use.
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
 
-import {FalconDebug}            from  '../../../helpers/falcon-helper';       // Why?
-import {FalconError}            from  '../../../helpers/falcon-helper';       // Why?
-import {FalconStatusReport}     from  '../../../helpers/falcon-helper';       // Why?
 import {FalconJsonResponse}     from  '../../../falcon-types';                // Why?
 
+import {SfdxFalconDebug}        from  '../../../modules/sfdx-falcon-debug';       // Why?
+import {SfdxFalconError}        from  '../../../modules/sfdx-falcon-error';       // Why?
+import {SfdxFalconStatus}       from  '../../../modules/sfdx-falcon-status';      // Why?
+
+
 // Requires
-const debug = require('debug')('falcon:demo:clone');                               // Utility for debugging. set debug.enabled = true to turn on.
+//const debug = require('debug')('falcon:demo:clone');                               // Utility for debugging. set debug.enabled = true to turn on.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
@@ -142,7 +144,7 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
   // Define some private instance member variables that will be used to help
   // build and deliver the JSON response.
   //───────────────────────────────────────────────────────────────────────────┘
-  private statusReport:FalconStatusReport;        // Why?
+  private statusReport:SfdxFalconStatus;        // Why?
   private jsonResponse:FalconJsonResponse;        // Why?
   private generatorStatus:GeneratorStatus;        // Why?
 
@@ -171,8 +173,8 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
     const falconDebugExtendedFlag = this.flags.falcondebugextended  ||  false;
     const falconDebugErrorsFlag   = this.flags.falcondebugerrors    ||  false;
 
-    // Initialize the global debug enablement settings
-    FalconDebug.setDebugEnablement(falconDebugFlag, falconDebugAsyncFlag, falconDebugExtendedFlag);
+    // Specify the top-level SFDX-Falcon debugger namespaces to enable.
+    SfdxFalconDebug.enableDebuggers(['FALCON', 'FALCON_EXT', 'FALCON_XL']);
 
     // Initialize the JSON response
     this.jsonResponse = {
@@ -207,7 +209,7 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
       options: []
     })
     .then(statusReport => {this.onSuccess(statusReport)})
-    .catch(error => {FalconError.terminateWithError(error, 'falcon:demo:clone', falconDebugErrorsFlag)});
+    .catch(error => {SfdxFalconError.terminateWithError(error, 'falcon:demo:clone', falconDebugErrorsFlag)});
 
     // Return empty JSON since this is meant to be a human-readable command only.
     return this.jsonResponse;
@@ -230,7 +232,7 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
       status:  0,
       result:  this.statusReport
     }
-    FalconDebug.debugObject(debug, statusReport, `FalconDemoClone:onSuccess:statusReport`);
+    SfdxFalconDebug.obj('FALCON:COMMAND:falcon:demo:clone', statusReport, `FalconDemoClone:onSuccess:statusReport:`);
 
     console.log(`Demo Project was cloned successfully. Total elapsed time: ${statusReport.getRunTime(true)} seconds`);
     //*/

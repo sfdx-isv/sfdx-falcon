@@ -14,12 +14,15 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import {Aliases}                      from  '@salesforce/core';       // Why?
-import {FalconDebug}                  from  './falcon-helper';        // Why?
-import {FalconError}                  from  './falcon-helper';        // Why?
-import {FalconStatusReport}           from  './falcon-helper';        // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
 import {waitASecond}                  from './async-helper';          // Why?
+
+import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';       // Why?
+import {SfdxFalconError}              from  '../modules/sfdx-falcon-error';       // Why?
+import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';      // Why?
+
+
 
 // Requires
 const debug         = require('debug')('sfdx-helper');            // Utility for debugging. set debug.enabled = true to turn on.
@@ -79,13 +82,13 @@ function initializeDebug() {
 export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, observer?:any):Promise<any> {
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
-  FalconDebug.debugString(debugAsync, sfdxCommandString, `executeSfdxCommand:sfdxCommandString`);
+  SfdxFalconDebug.str('FALCON_EXT:sfdx-helper', sfdxCommandString, `executeSfdxCommand:sfdxCommandString: `);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
 
-    // Create a FalconStatusReport object to help report on elapsed time.
-    let status = new FalconStatusReport(true);
+    // Create a SfdxFalconStatus object to help report on elapsed time.
+    let status = new SfdxFalconStatus(true);
 
     // Declare function-local string buffers for stdout and stderr streams.
     let stdOutBuffer:string = '';
@@ -120,7 +123,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
 
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
-        reject(FalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
+        reject(SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
       }
       else {
         updateObserver(observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);
@@ -161,7 +164,7 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
-  FalconDebug.debugObject(debug, arguments, `identifyDevHubOrgs:arguments`);
+  SfdxFalconDebug.obj('FALCON:sfdx-helper', arguments, `identifyDevHubOrgs:arguments: `);
 
   // Make sure that the caller passed us an Array.
   if ((rawSfdxOrgList instanceof Array) === false) {
@@ -176,7 +179,7 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
   // SfdxOrgInfo that will be added to the devHubOrgInfos array.
   for (let rawOrgInfo of rawSfdxOrgList) {
     if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
-      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username)`);
+      SfdxFalconDebug.str('FALCON:sfdx-helper', `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:ACTIVE DEVHUB: Alias(Username)`);
       devHubOrgInfos.push({
         alias:            rawOrgInfo.alias,
         username:         rawOrgInfo.username,
@@ -186,12 +189,12 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       });
     }
     else {
-      FalconDebug.debugString(debug, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username)`);
+      SfdxFalconDebug.str('FALCON:sfdx-helper', `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `identifyDevHubOrgs:NOT AN ACTIVE DEVHUB: Alias(Username)`);
     }
   }
 
   // DEBUG
-  FalconDebug.debugObject(debug, devHubOrgInfos, `identifyDevHubOrgs:devHubOrgInfos`);
+  SfdxFalconDebug.obj('FALCON:sfdx-helper', devHubOrgInfos, `identifyDevHubOrgs:devHubOrgInfos: `);
 
   // Return the list of Dev Hubs to the caller
   return devHubOrgInfos;
@@ -288,7 +291,7 @@ export async function scanConnectedOrgs():Promise<any> {
     // stdout in small chunks, rather than all at once at the end of the call.
     //───────────────────────────────────────────────────────────────────────┘
     childProcess.stdout.on('data', (data) => {
-      FalconDebug.debugString(debugAsync, data, `scanConnectedOrgs:childProcess:stdout:data`);
+      SfdxFalconDebug.str('FALCON_EXT:sfdx-helper', data, `scanConnectedOrgs:childProcess:stdout:data: `);
       // Add the contents of the data stream to the stdioBuffer
       stdoutBuffer += data;
     });
@@ -304,7 +307,7 @@ export async function scanConnectedOrgs():Promise<any> {
       // NOTE: For whatever reason, code is coming in as a boolean, and not
       // as a number. This means that we can't rely on it. Adding some debug
       // here just to prove (to myself) that I'm not crazy.
-      FalconDebug.debugString(debugAsync, `${typeof code}`, `canConnectedOrgs:childProcess:stdout:close (TypeOf code)`);
+      SfdxFalconDebug.str('FALCON_EXT:sfdx-helper', `${typeof code}`, `canConnectedOrgs:childProcess:stdout:close: (TypeOf code) `);
 
       // Declare the SfdxShellResult variable that will be used to send
       // information back to the caller.
@@ -331,7 +334,7 @@ export async function scanConnectedOrgs():Promise<any> {
       }
 
       // DEBUG
-      FalconDebug.debugObject(debugAsync, sfdxShellResult, `canConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult`, `\n-\n-\n-`);
+      SfdxFalconDebug.obj('FALCON_EXT:sfdx-helper', sfdxShellResult, `canConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult`, `\n-\n-\n-`);
 
       // Based on the closing code, either RESOLVE or REJECT to end this
       // promise.  Any closing code other than 0 indicates failure.
