@@ -10,9 +10,9 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxFalconBase} from '../sfdx-falcon-base'
+//import {SfdxFalconBase} from '../sfdx-falcon-base'
 
-
+/*
 export class SfdxFalconRecipe extends SfdxFalconBase {
 
   private constructor() {
@@ -23,3 +23,4 @@ export class SfdxFalconRecipe extends SfdxFalconBase {
 
   }
 }
+//*/

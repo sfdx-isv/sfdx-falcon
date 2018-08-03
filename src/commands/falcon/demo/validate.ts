@@ -21,10 +21,11 @@ import * as path                      from  'path';                             
 import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
 import {validateLocalPath}            from  '../../../validators/core-validator';   // Core validation function to check that local path values don't have invalid chars.
 
-import {FalconJsonResponse}           from  '../../../modules/sfdx-falcon-types';   // Why?
+import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
 import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
 import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
 import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
+import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 
 // Requires
 const debug = require('debug')('falcon:demo:validate');                             // Utility for debugging. set debug.enabled = true to turn on.
@@ -134,7 +135,7 @@ export default class FalconDemoDeploy extends SfdxCommand {
   // build and deliver the JSON response.
   //───────────────────────────────────────────────────────────────────────────┘
   private statusReport:SfdxFalconStatus;        // Why?
-  private jsonResponse:FalconJsonResponse;        // Why?
+  private jsonResponse:SfdxFalconJsonResponse;        // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**

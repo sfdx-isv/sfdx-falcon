@@ -22,7 +22,7 @@ import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // B
 import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
 
 
-import {FalconJsonResponse}     from  '../../../modules/sfdx-falcon-types';       // Why?
+import {SfdxFalconJsonResponse} from  '../../../modules/sfdx-falcon-types';       // Why?
 import {SfdxFalconDebug}        from  '../../../modules/sfdx-falcon-debug';       // Why?
 import {SfdxFalconError}        from  '../../../modules/sfdx-falcon-error';       // Why?
 import {SfdxFalconStatus}       from  '../../../modules/sfdx-falcon-status';      // Why?
@@ -145,8 +145,8 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
   // build and deliver the JSON response.
   //───────────────────────────────────────────────────────────────────────────┘
   private statusReport:SfdxFalconStatus;        // Why?
-  private jsonResponse:FalconJsonResponse;        // Why?
-  private generatorStatus:GeneratorStatus;        // Why?
+  private jsonResponse:SfdxFalconJsonResponse;  // Why?
+  private generatorStatus:GeneratorStatus;      // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
