@@ -60,10 +60,11 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected falconCommandStatus:SfdxFalconStatus;       // Why?
   protected falconJsonResponse:SfdxFalconJsonResponse;  // Why?
 
-  protected falconDebugFlag:boolean     = false;    // Why?
-  protected falconDebugExtFlag:boolean  = false;    // Why?
-  protected falconDebugXlFlag:boolean   = false;    // Why?
-  protected falconDebugErrFlag:boolean  = false;    // Why?
+  protected falconDebugFlag:boolean         = false;    // Why?
+  protected falconDebugExtFlag:boolean      = false;    // Why?
+  protected falconDebugXlFlag:boolean       = false;    // Why?
+  protected falconDebugErrFlag:boolean      = false;    // Why?
+  protected falconDebugSuccessFlag:boolean  = false;    // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the baseline set of custom FLAGS used by all SFDX-Falcon commands.
@@ -76,7 +77,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     falcondebug: flags.boolean({
       description: sfdxFalconCommandMessages.getMessage('falcondebug_FlagDescription'),  
       required: false,
-      hidden: true
+      hidden: false
     }),
     falcondebugext: flags.boolean({
       description: sfdxFalconCommandMessages.getMessage('falcondebugext_FlagDescription'),  
@@ -91,7 +92,12 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     falcondebugerr: flags.boolean({
       description: sfdxFalconCommandMessages.getMessage('falcondebugerr_FlagDescription'),  
       required: false,
-      hidden: true
+      hidden: false
+    }),
+    falcondebugsuccess: flags.boolean({
+      description: sfdxFalconCommandMessages.getMessage('falcondebugsuccess_FlagDescription'),  
+      required: false,
+      hidden: false
     })
   };
 
@@ -111,23 +117,28 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       result: 'RESPONSE_NOT_SPECIFIED'
     };
   
+    // Set the command name
+    this.falconCommandName = commandName;
+
     // Read the incoming values for all DEBUG flags.
-    this.falconDebugFlag      = this.flags.falcondebug      ||  false;
-    this.falconDebugExtFlag   = this.flags.falcondebugext   ||  false;
-    this.falconDebugXlFlag    = this.flags.falcondebugxl    ||  false;
-    this.falconDebugErrFlag   = this.flags.falcondebugerr   ||  false;
+    this.falconDebugFlag        = this.flags.falcondebug        ||  false;
+    this.falconDebugExtFlag     = this.flags.falcondebugext     ||  false;
+    this.falconDebugXlFlag      = this.flags.falcondebugxl      ||  false;
+    this.falconDebugErrFlag     = this.flags.falcondebugerr     ||  false;
+    this.falconDebugSuccessFlag = this.flags.falcondebugsuccess ||  false;
 
     // Specify the top-level SFDX-Falcon debugger namespaces to enable.
     let enabledDebuggers = new Array<string>();
 
     // Build an array of the namespaces to enable.
-    if (this.falconDebugFlag)     enabledDebuggers.push('FALCON');
-    if (this.falconDebugExtFlag)  enabledDebuggers.push('FALCON_EXT');
-    if (this.falconDebugXlFlag)   enabledDebuggers.push('FALCON_XL');
+    if (this.falconDebugFlag)         enabledDebuggers.push('FALCON');
+    if (this.falconDebugExtFlag)      enabledDebuggers.push('FALCON_EXT');
+    if (this.falconDebugXlFlag)       enabledDebuggers.push('FALCON_XL');
+    if (this.falconDebugErrFlag)      enabledDebuggers.push('FALCON_ERR');
+    if (this.falconDebugSuccessFlag)  enabledDebuggers.push('FALCON_SUCCESS');
 
     // Enable the debuggers.
     SfdxFalconDebug.enableDebuggers(enabledDebuggers);
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -159,8 +170,14 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       status:  0,
       result:  this.falconCommandStatus
     }
-    SfdxFalconDebug.obj(`FALCON:COMMAND:${this.falconCommandName}`, statusReport, `SfdxFalconCommand:onSuccess:statusReport: `);
-    console.log(`Command Successful. Total elapsed time: ${this.falconCommandStatus.getRunTime(true)} seconds`);
+    SfdxFalconDebug.obj(`FALCON_SUCCESS:${this.falconCommandName}`, this.falconCommandStatus, `SfdxFalconCommand:onSuccess:statusReport: `);
+    
+    if (typeof this.falconCommandStatus.getRunTime !== 'undefined') {
+      console.log(`Command Successful. Total elapsed time: ${this.falconCommandStatus.getRunTime(true)} seconds`);
+    }
+    else {
+      console.log(`Command Successful`);
+    }
   }
 
 } // End of class SfdxFalconCommand

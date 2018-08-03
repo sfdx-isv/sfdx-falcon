@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.3 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.3 darwin-x64 node-v10.1.0
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -115,11 +115,17 @@ USAGE
   $ sfdx-falcon falcon:demo:deploy
 
 OPTIONS
-  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
+  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
   -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
                                                   project
+
+  --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugerr                                Displays extended information for uncaught Errors
+
+  --falcondebugsuccess                            Displays extended information upon successful command completion
 
   --json                                          format output as json
 
@@ -127,7 +133,9 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:demo:deploy
-  $ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:deploy --projectdir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:deploy --projectdir ~/demos/adk-projects/my-adk-project \
+                            --configfile my-alternate-demo-config.json
 ```
 
 _See code: [src/commands/falcon/demo/deploy.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/deploy.ts)_
@@ -141,11 +149,17 @@ USAGE
   $ sfdx-falcon falcon:demo:install
 
 OPTIONS
-  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
+  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
   -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
                                                   project
+
+  --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugerr                                Displays extended information for uncaught Errors
+
+  --falcondebugsuccess                            Displays extended information upon successful command completion
 
   --json                                          format output as json
 
@@ -153,7 +167,9 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:demo:install
-  $ sfdx falcon:demo:install --deploydir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project \
+                             --configfile my-alternate-demo-config.json
 ```
 
 _See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/install.ts)_
@@ -167,19 +183,27 @@ USAGE
   $ sfdx-falcon falcon:demo:validate
 
 OPTIONS
-  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
+  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
   -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
                                                   project
+
+  --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugerr                                Displays extended information for uncaught Errors
+
+  --falcondebugsuccess                            Displays extended information upon successful command completion
 
   --json                                          format output as json
 
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:deploy
-  $ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:validate
+  $ sfdx falcon:demo:validate --projectdir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:validate --projectdir ~/demos/adk-projects/my-adk-project \
+                              --configfile my-alternate-demo-config.json
 ```
 
 _See code: [src/commands/falcon/demo/validate.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/validate.ts)_

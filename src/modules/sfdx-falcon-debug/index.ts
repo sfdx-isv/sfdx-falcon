@@ -42,6 +42,10 @@ export class SfdxFalconDebug {
   public static checkEnabled(namespace:string):boolean {
     // Get the "top namespace", ie. the substring up to the first ":".
     let topNamespace = namespace.substring(0, namespace.indexOf(':'));
+
+    //DEVTEST
+    //console.log(`checkEnabled:topNamespace: %s = %s${SfdxFalconDebug.printLineBreaks()}`, topNamespace, SfdxFalconDebug.enabledDebuggers.get(topNamespace));
+
     // Find out if the topNamespace is set to TRUE in the enabledDebuggers map.
     return SfdxFalconDebug.enabledDebuggers.get(topNamespace);
   }
@@ -58,6 +62,9 @@ export class SfdxFalconDebug {
     for (let namespace of namespaces) {
       SfdxFalconDebug.enabledDebuggers.set(namespace, true);
     }
+    //DEVTEST
+    //console.log(`SfdxFalconDebug.enabledDebuggers:\n%O${SfdxFalconDebug.printLineBreaks()}`, SfdxFalconDebug.enabledDebuggers);
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -82,10 +89,11 @@ export class SfdxFalconDebug {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static debugObject(namespace:string, objToDebug:object, strLead:string = '', strTail:string = ''):void {
-    debug(namespace)(
+    let debugFunc = SfdxFalconDebug.getDebugger(namespace);
+    debugFunc(
       `\n${chalk.yellow(strLead)}\n` +
-      util.inspect(objToDebug, {depth:8, colors:true}) +
-      SfdxFalconDebug.printLineBreaks()
+      `${util.inspect(objToDebug, {depth:8, colors:true})}` +
+      `${SfdxFalconDebug.printLineBreaks()}`
     );
   }
 
@@ -99,7 +107,7 @@ export class SfdxFalconDebug {
   //───────────────────────────────────────────────────────────────────────────┘
   public static debugString(namespace:string, strToDebug:string, strLead:string = '', strTail:string = ''):void {
     let debugFunc = SfdxFalconDebug.getDebugger(namespace);
-    debugFunc(`-\n${chalk.blue(strLead)}${strToDebug}${chalk.blue(strTail)}`);
+    debugFunc(`-\n${chalk.blue(strLead)}${strToDebug}${chalk.blue(strTail)}${SfdxFalconDebug.printLineBreaks()}`);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -219,7 +227,7 @@ export class SfdxFalconDebug {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static printLineBreaks():string {
-    return '\n'.repeat(SfdxFalconDebug.lineBreaks);
+    return '\n-'.repeat(SfdxFalconDebug.lineBreaks);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

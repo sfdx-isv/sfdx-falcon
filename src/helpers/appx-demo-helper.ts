@@ -143,7 +143,7 @@ export class AppxDemoProject {
     // that was passed in by the caller.
     //─────────────────────────────────────────────────────────────────────────┘
     let sfdxProject = await core.SfdxProject.resolve(projectDirectory);
-    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', sfdxProject, `resolve.sfdxProject`);
+    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', sfdxProject, `AppxDemoProject:resolve:sfdxProject: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Resolve the overall project config. A resolved config object will
@@ -152,7 +152,7 @@ export class AppxDemoProject {
     // 3rd party custom properties like the ones for SFDX-Falcon.
     //─────────────────────────────────────────────────────────────────────────┘
     let sfdxProjectConfig = await sfdxProject.resolveProjectConfig();
-    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', sfdxProjectConfig, `resolve.sfdxProjectConfig`);
+    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', sfdxProjectConfig, `AppxDemoProject:resolve:sfdxProjectConfig: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Try to get the local SFDX-Falcon Config File so we can parse it for 
@@ -167,7 +167,7 @@ export class AppxDemoProject {
       isGlobal:   false,
       isState:    false,
     }
-    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', falconLocalConfigOptions, `resolve.falconLocalConfigOptions`);
+    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', falconLocalConfigOptions, `AppxDemoProject:resolve:falconLocalConfigOptions: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Using the options set above, retrieve the SFDX-Falcon Config file, then
@@ -179,7 +179,7 @@ export class AppxDemoProject {
       let combinedPath = path.join(falconLocalConfigOptions.rootFolder, falconLocalConfigOptions.filename);
       throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${combinedPath}`);
     }
-    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', localFalconConfigFile, `resolve.localFalconConfigFile`);
+    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', localFalconConfigFile, `AppxDemoProject:resolve:localFalconConfigFile: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Grab the JSON for "plugins.sfdxFalcon.appxDemo" from the resolved SFDX
@@ -197,7 +197,7 @@ export class AppxDemoProject {
     if (demoConfigOverride) {
       appxDemoProjectConfig.demoConfig = demoConfigOverride;
     }
-    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', appxDemoProjectConfig, `resolve.appxDemoProjectConfig`);
+    SfdxFalconDebug.obj('FALCON_XL:appx-demo-helper', appxDemoProjectConfig, `AppxDemoProject:resolve:appxDemoProjectConfig: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Construct a new AppxDemoProject object using the SFDX Project, SFDX 

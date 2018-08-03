@@ -1,6 +1,7 @@
 {
-  "falcondebug_FlagDescription":    "(hidden) Runs this command in debug mode",
-  "falcondebugext_FlagDescription": "(hidden) Runs this command in extended debug mode",
-  "falcondebugxl_FlagDescription":  "(hidden) Runs this command in XL debug mode",
-  "falcondebugerr_FlagDescription": "(hidden) Displays extended information for uncaught Errors"
+  "falcondebug_FlagDescription":        "Runs this command in debug mode",
+  "falcondebugext_FlagDescription":     "(hidden) Runs this command in extended debug mode",
+  "falcondebugxl_FlagDescription":      "(hidden) Runs this command in XL debug mode",
+  "falcondebugerr_FlagDescription":     "Displays extended information for uncaught Errors",
+  "falcondebugsuccess_FlagDescription": "Displays extended information upon successful command completion"
 }
