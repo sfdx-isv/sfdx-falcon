@@ -73,15 +73,24 @@ ARGUMENTS
   GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to clone the project into
+  -d, --outputdir=outputdir                       [default: .] Directory to clone the AppExchange Demo Kit (ADK) project
+                                                  into
+
+  --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugerr                                Displays extended information for uncaught Errors
+
+  --falcondebugsuccess                            Displays extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:demo:clone git@github.com:GitHubUser/my-repository.git
   $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git \
-                              --outputdir ~/demos/appexchange-demo-kit-projects
+  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git
+  \                        --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
 _See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/clone.ts)_

@@ -22,7 +22,7 @@ import {core}                   from  '@salesforce/command';                // S
 import {flags}                  from  '@oclif/command';                     // Allows us to define our own custom flags for this command.
 import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // Helper object to get status back from Generators after they run.
 import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Required because this CLI command will launch a Yeoman Generator.
-import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
+import {validateLocalPath}      from  '../../../modules/sfdx-falcon-validators'; // Core validation function to check that local path values don't have invalid chars.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings

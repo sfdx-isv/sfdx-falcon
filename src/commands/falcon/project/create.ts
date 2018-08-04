@@ -7,8 +7,8 @@
  * @license       MIT
  * @requires      module:oclif/command
  * @requires      module:salesforce/command
- * @requires      ../../../yeoman-command-base
- * @requires      ../../../../messages/create
+ * @requires      module:local:sfdx-yeoman-command-base
+ * @requires      module:local:validators
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
  * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
@@ -18,11 +18,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';                // Salesforce CLI core library
-import {flags}                  from  '@oclif/command';                     // Allows us to define our own custom flags for this command.
-import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // Helper object to get status back from Generators after they run.
-import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Required because this CLI command will launch a Yeoman Generator.
-import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
+import {core}                     from  '@salesforce/command';                          // Salesforce CLI core library
+import {flags}                    from  '@oclif/command';                               // Allows us to define our own custom flags for this command.
+import {GeneratorStatus}          from  '../../../helpers/yeoman-helper';               // Helper object to get status back from Generators after they run.
+import {SfdxFalconYeomanCommand}  from  '../../../modules/sfdx-falcon-yeoman-command';  // Required because this CLI command will launch a Yeoman Generator.
+import {validateLocalPath}        from  '../../../modules/sfdx-falcon-validators';           // Core validation function to check that local path values don't have invalid chars.
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
@@ -40,7 +40,7 @@ const messages = core.Messages.loadMessages('sfdx-falcon', 'falconProjectCreate'
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconProjectCreate
- * @extends     SfdxYeomanCommand
+ * @extends     SfdxFalconYeomanCommand
  * @access      public
  * @version     1.0.0
  * @summary     Implements the CLI Command falcon:project:create
@@ -51,7 +51,7 @@ const messages = core.Messages.loadMessages('sfdx-falcon', 'falconProjectCreate'
  *              user's machine.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export default class FalconProjectCreate extends SfdxYeomanCommand {
+export default class FalconProjectCreate extends SfdxFalconYeomanCommand {
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Set command-level properties.

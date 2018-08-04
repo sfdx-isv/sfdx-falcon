@@ -26,18 +26,18 @@
 // tslint:disable no-console
 
 // Imports
-import * as path        from 'path';                            // Helps resolve local paths at runtime.
-import * as Generator   from 'yeoman-generator';                // Generator class must extend this.
-import * as yoValidate  from '../validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-import * as uxHelper    from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
-import * as gitHelper   from '../helpers/git-helper';           // Library of Git Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as path        from 'path';                                                // Helps resolve local paths at runtime.
+import * as Generator   from 'yeoman-generator';                                    // Generator class must extend this.
+import * as yoValidate  from '../modules/sfdx-falcon-validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as uxHelper    from '../helpers/ux-helper';                                // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper   from '../helpers/git-helper';                               // Library of Git Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from '../helpers/yeoman-helper';                            // Library of Yeoman Helper functions specific to SFDX-Falcon.
 
 // Requires
-const chalk           = require('chalk');                           // Utility for creating colorful console output.
-const debug           = require('debug')('create-falcon-project');  // Utility for debugging. set debug.enabled = true to turn on.
-const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
-const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
+const chalk           = require('chalk');                                           // Utility for creating colorful console output.
+const debug           = require('debug')('create-falcon-project');                  // Utility for debugging. set debug.enabled = true to turn on.
+const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
+const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
 
 // Interfaces
 interface interviewAnswers {

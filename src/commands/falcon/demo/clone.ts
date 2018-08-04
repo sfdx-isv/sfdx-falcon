@@ -14,45 +14,32 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {core}                   from  '@salesforce/command';                // Allows us to use the Messages Library from core.
+import {SfdxCommand}                  from  '@salesforce/command';                  // The CLI command we build must extend this class.
 import {Messages}                     from  '@salesforce/core';                     // Messages library that simplifies using external JSON for string reuse.
-import {flags}                  from  '@oclif/command';                     // Requried to create CLI command flags.
-import {GeneratorStatus}        from  '../../../helpers/yeoman-helper';     // Helper object to get status back from Generators after they run.
-import SfdxYeomanCommand        from  '../../../sfdx-yeoman-command';       // Base class that CLI commands in this project that use Yeoman should use.
-import {validateLocalPath}      from  '../../../validators/core-validator'; // Core validation function to check that local path values don't have invalid chars.
+import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
+import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
+
+import {GeneratorStatus}          from  '../../../helpers/yeoman-helper';               // Helper object to get status back from Generators after they run.
+import {validateLocalPath}        from  '../../../modules/sfdx-falcon-validators';      // Core validation function to check that local path values don't have invalid chars.
+
+import {SfdxFalconJsonResponse}   from  '../../../modules/sfdx-falcon-types';           // Why?
+import {SfdxFalconDebug}          from  '../../../modules/sfdx-falcon-debug';           // Why?
+import {SfdxFalconError}          from  '../../../modules/sfdx-falcon-error';           // Why?
+import {SfdxFalconStatus}         from  '../../../modules/sfdx-falcon-status';          // Why?
+
+import {SfdxFalconYeomanCommand}  from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
 
 
-import {SfdxFalconJsonResponse} from  '../../../modules/sfdx-falcon-types';       // Why?
-import {SfdxFalconDebug}        from  '../../../modules/sfdx-falcon-debug';       // Why?
-import {SfdxFalconError}        from  '../../../modules/sfdx-falcon-error';       // Why?
-import {SfdxFalconStatus}       from  '../../../modules/sfdx-falcon-status';      // Why?
-
-
-// Requires
-//const debug = require('debug')('falcon:demo:clone');                               // Utility for debugging. set debug.enabled = true to turn on.
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// SFDX Core library has the ability to import a JSON file with message strings
-// making it easy to separate logic from static output messages. There are 
-// two steps required to use this.
-//
-// Step 1:  Tell the Messages framework to look for and import a 'messages' 
-//          directory from inside the root of your project.
-// Step 2:  Create a Messages object representing a message bundle from inside
-//          your 'messages' directory.  The second param represents the name of
-//          the JSON file you're trying to load. 
-// 
-// Note that messages from @salesforce/command, @salesforce/core, or any library
-// that is using the messages framework can also be loaded this way by 
-// specifying the module name as the first parameter of loadMessages().
-//─────────────────────────────────────────────────────────────────────────────┘
+// Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
+const messages      = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
+const errorMessages = Messages.loadMessages('sfdx-falcon', 'falconErrorMessages');
+
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoClone
- * @extends     SfdxYeomanCommand
+ * @extends     SfdxFalconYeomanCommand
  * @summary     Implements the CLI Command falcon:demo:clone
  * @description Extends SfdxYeomanCommand, which itself extends SfdxCommand.  Implements the CLI
  *              Command falcon:demo:clone. This command allows a Salesforce DX developer to
@@ -63,25 +50,19 @@ const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export default class FalconDemoClone extends SfdxYeomanCommand {
-  //───────────────────────────────────────────────────────────────────────────┐
-  // These static properties give the Salesforce CLI a picture of what your
-  // command is and does. For example, the --help flag implemented by the
-  // SfdxCommand class uses the description and examples, and won't show this
-  // command at all if the 'hidden' property is set to TRUE.
-  //───────────────────────────────────────────────────────────────────────────┘
+export default class FalconDemoClone extends SfdxFalconYeomanCommand {
+
+  // Define the basic properties of this CLI command.
   public static description = messages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:demo:clone git@github.com:GitHubUser/my-repository.git`,
     `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git`,
-    `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git \\
-                           --outputdir ~/demos/appexchange-demo-kit-projects`
+    `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git\n\\` +
+    `                        --outputdir ~/demos/appexchange-demo-kit-projects`
   ];
     
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Identify which core SFDX arguments/features are required by this command.
-  //───────────────────────────────────────────────────────────────────────────┘
+  // Identify the core SFDX arguments/features required by this command.
   protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
   protected static requiresUsername       = false;  // True if an org username is REQUIRED.
   protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
@@ -96,7 +77,7 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
   public static args = [
     {
       name: 'GIT_REMOTE_URI',
-      description: messages.getMessage('gitRemoteUriArgDescription'),
+      description: messages.getMessage('gitRemoteUri_ArgDescription'),
       required: true,
       hidden: false
     }
@@ -114,39 +95,16 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
       char: 'd', 
       required: false,
       type: 'directory',
-      description: messages.getMessage('outputdirFlagDescription'),
+      description: messages.getMessage('outputdir_FlagDescription'),
       default: '.',
       hidden: false
     },
-    falcondebug: flags.boolean({
-      description: messages.getMessage('falcondebugFlagDescription'),  
-      required: false,
-      hidden: true
-    }),
-    falcondebugasync: flags.boolean({
-      description: messages.getMessage('falcondebugasyncFlagDescription'),  
-      required: false,
-      hidden: true
-    }),
-    falcondebugextended: flags.boolean({
-      description: messages.getMessage('falcondebugextendedFlagDescription'),  
-      required: false,
-      hidden: true
-    }),
-    falcondebugerrors: flags.boolean({
-      description: messages.getMessage('falcondebugerrorsFlagDescription'),  
-      required: false,
-      hidden: true
-    })
+    // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
+    ...SfdxFalconYeomanCommand.falconBaseflagsConfig
   };
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Define some private instance member variables that will be used to help
-  // build and deliver the JSON response.
-  //───────────────────────────────────────────────────────────────────────────┘
-  private statusReport:SfdxFalconStatus;        // Why?
-  private jsonResponse:SfdxFalconJsonResponse;  // Why?
-  private generatorStatus:GeneratorStatus;      // Why?
+  // Define a GeneratorStatus var to track what happens inside Yeoman.
+  private generatorStatus:GeneratorStatus;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -162,29 +120,19 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { // tslint:disable-line:no-any
 
+    // Initialize the SfdxFalconCommand base.
+    this.sfdxFalconCommandInit('falcon:demo:clone');
+
     // Grab values from CLI command arguments.
     const gitRemoteUriArg = this.args.GIT_REMOTE_URI;
 
     // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
-    const outputDirFlag           = this.flags.outputdir            ||  '.';
-    const debugModeFlag           = this.flags.falcondebug          ||  false;
-    const falconDebugFlag         = this.flags.falcondebug          ||  false;
-    const falconDebugAsyncFlag    = this.flags.falcondebugasync     ||  false;
-    const falconDebugExtendedFlag = this.flags.falcondebugextended  ||  false;
-    const falconDebugErrorsFlag   = this.flags.falcondebugerrors    ||  false;
+    const outputDirectory = this.flags.outputdir      ||  '.';
+    const debugModeFlag   = this.flags.falcondebug    ||  false;
 
-    // Specify the top-level SFDX-Falcon debugger namespaces to enable.
-    SfdxFalconDebug.enableDebuggers(['FALCON', 'FALCON_EXT', 'FALCON_XL']);
-
-    // Initialize the JSON response
-    this.jsonResponse = {
-      status: 1,
-      result: 'ERROR_RESPONSE_NOT_SET'
-    };
-
-    // Make sure that outputFirFlag has a valid local path
-    if (validateLocalPath(outputDirFlag) === false) {
-      throw new Error('Target Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
+    // Make sure that outputDirectory has a valid local path
+    if (validateLocalPath(outputDirectory) === false) {
+      throw new Error(errorMessages.getMessage('errInvalidProjectDirectory'));
     }
 
     //─────────────────────────────────────────────────────────────────────────┐
@@ -204,39 +152,15 @@ export default class FalconDemoClone extends SfdxYeomanCommand {
       commandName:      'falcon:demo:clone',
       generatorStatus:  this.generatorStatus,
       gitRemoteUri:     gitRemoteUriArg,
-      outputDir:        outputDirFlag,
+      outputDir:        outputDirectory,
       debugMode:        debugModeFlag,
       options: []
     })
     .then(statusReport => {this.onSuccess(statusReport)})
-    .catch(error => {SfdxFalconError.terminateWithError(error, 'falcon:demo:clone', falconDebugErrorsFlag)});
+    .catch(error => {this.onError(error)});
 
-    // Return empty JSON since this is meant to be a human-readable command only.
-    return this.jsonResponse;
+    // The JSON Response was populated in onSuccess(). Just need to return now.
+    return this.falconJsonResponse;
   }
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @function    onSuccess
-   * @param       {any}  statusReport
-   * @returns     {void}  
-   * @description ???
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(statusReport:any):void {
-    /*
-    this.statusReport = statusReport;
-    this.jsonResponse = {
-      status:  0,
-      result:  this.statusReport
-    }
-    SfdxFalconDebug.obj('FALCON:COMMAND:falcon:demo:clone', statusReport, `FalconDemoClone:onSuccess:statusReport:`);
-
-    console.log(`Demo Project was cloned successfully. Total elapsed time: ${statusReport.getRunTime(true)} seconds`);
-    //*/
-    // Print all status messages for the user.
-    this.generatorStatus.printStatusMessages();
-  }
 } // End of Class FalconDemoClone

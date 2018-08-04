@@ -23,13 +23,13 @@
 // tslint:disable no-console
 
 // Imports
-import * as path        from  'path';                             // Helps resolve local paths at runtime.
-import * as Generator   from  'yeoman-generator';                 // Generator class must extend this.
-import * as uxHelper    from  '../helpers/ux-helper';             // Library of UX Helper functions specific to SFDX-Falcon.
-import * as gitHelper   from  '../helpers/git-helper';            // Library of Git Helper functions specific to SFDX-Falcon.
-import * as sfdxHelper  from  '../helpers/sfdx-helper';           // Library of SFDX Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from  '../helpers/yeoman-helper';         // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import * as yoValidate  from  '../validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as path        from  'path';                                               // Helps resolve local paths at runtime.
+import * as Generator   from  'yeoman-generator';                                   // Generator class must extend this.
+import * as uxHelper    from  '../helpers/ux-helper';                               // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper   from  '../helpers/git-helper';                              // Library of Git Helper functions specific to SFDX-Falcon.
+import * as sfdxHelper  from  '../helpers/sfdx-helper';                             // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from  '../helpers/yeoman-helper';                           // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 //import {FalconDebug}    from  '../helpers/falcon-helper';         // Why?
 import {SfdxFalconStatus}         from  '../modules/sfdx-falcon-status';     // Why?
 
@@ -525,7 +525,7 @@ export default class CloneAppxDemoProject extends Generator {
     const localProjectPath  = path.join(targetDirectory, gitRepoName);
 
     // Quick message saying we're going to start cloning.
-    this.log(chalk`\n{blue Cloning project to ${this.userAnswers.targetDirectory}}\n`);
+    this.log(chalk`\n{yellow Cloning project to ${this.userAnswers.targetDirectory}}\n`);
 
     // Clone the Git Repository specified by gitRemoteUri into the target directory.
     try {
@@ -582,7 +582,7 @@ export default class CloneAppxDemoProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
 
     // Quick message saying we're going to update project files
-    this.log(chalk`\n{blue Customizing project files...}\n`);
+    this.log(chalk`\n{yellow Customizing project files...}\n`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Add custom config info to the local .sfdx-falcon project config file.
@@ -620,7 +620,7 @@ export default class CloneAppxDemoProject extends Generator {
     // Show an in-process Success Message telling the user that we just created
     // their project files.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.log(chalk`\n{blue Project files customized at ${this.destinationRoot()}}\n`);
+    this.log(chalk`\n{yellow Project files customized at ${this.destinationRoot()}}\n`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the install() step completed successfully.

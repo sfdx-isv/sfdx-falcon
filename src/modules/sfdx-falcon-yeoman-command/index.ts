@@ -1,39 +1,37 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          yeoman-command-base.ts
+ * @file          modules/sfdx-falcon-yeoman-command/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:salesforce/command
- * @requires      module:yeoman-environment
- * @summary       Exports SfdxYeomanCommand for use with custom Salesforce CLI commands.
+ * @requires      module:???
+ * @summary       Exports SfdxFalconYeomanCommand for use with custom Salesforce CLI commands.
  * @description   Exports an abstract class that adds support for running a Yeoman Generator inside
  *                of custom-built Salesforce CLI commands.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {SfdxCommand}  from '@salesforce/command';   // Required by child classe to create a CLI command
+import {SfdxFalconCommand}  from  '../sfdx-falcon-command'; // Why?
 
 // Requires
 const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @abstract
- * @class       SfdxYeomanCommand
- * @extends     SfdxCommand
- * @access      public
- * @version     1.0.0
+ * @class       SfdxFalconYeomanCommand
+ * @extends     SfdxFalconCommand
  * @summary     Abstract base class class for building Salesforce CLI commands that use Yeoman.
  * @description Classes that extend SfdxYeomanCommand will be able to run any Generator defined
  *              in the src/generators directory.  The file name in src/generators should match the 
  *              generatorType string passed into runYeomanGenerator().  For example, if 
  *              generatorType==="my-generator", then there MUST be a TS script file located at 
  *              src/generators/my-generator.ts.
+ * @version     1.0.0
+ * @public @abstract
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export default abstract class SfdxYeomanCommand extends SfdxCommand {
+export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
 
   // Entrypoint for child classes to kick off Yeoman Generators
   protected async runYeomanGenerator(generatorType: string, generatorOptions: object = {}) {
@@ -43,7 +41,7 @@ export default abstract class SfdxYeomanCommand extends SfdxCommand {
 
     // Register a generator with the Yeoman environment, based on generatorType.
     yeomanEnv.register(
-      require.resolve(`../generators/${generatorType}`),
+      require.resolve(`../../generators/${generatorType}`),
       `sfdx-falcon:${generatorType}`
     );
 
