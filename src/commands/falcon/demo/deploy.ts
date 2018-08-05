@@ -3,41 +3,34 @@
  * @file          commands/falcon/demo/deploy.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
  * @requires      module:validators/core
- * @summary       Implements the falcon:demo:deploy CLI command
+ * @summary       Implements the CLI command "falcon:demo:deploy"
  * @description   Salesforce CLI Plugin command (falcon:demo:deploy) that is expected to run inside
  *                of a fully-configured AppExchange Demo Kit (ADK) project.  Uses project and local
- *                settings from various JSON config files and uses them to power an Org Build that
- *                targets a non-scratch (ie. trial, DE, or sandbox) org specified by the local user.
+ *                settings from various JSON config files to power an Org Build.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
+// External Imports
 import {SfdxCommand}                  from  '@salesforce/command';                  // The CLI command we build must extend this class.
 import {Messages}                     from  '@salesforce/core';                     // Messages library that simplifies using external JSON for string reuse.
 import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
-import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
-import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
-import {validateLocalPath}            from  '../../../modules/sfdx-falcon-validators';   // Core validation function to check that local path values don't have invalid chars.
 
-import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
-import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
-import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
-import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
-import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
+// Local Imports
+import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
+import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Provides support for SfdxFalcon-based CLI commands.
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages      = Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
-const errorMessages = Messages.loadMessages('sfdx-falcon', 'falconErrorMessages');
+const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoDeploy');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoDeploy
  * @extends     SfdxFalconCommand
- * @summary     Implements the CLI Command falcon:demo:deploy
+ * @summary     Implements the CLI Command "falcon:demo:deploy"
  * @description TODO ????
  * @version     1.0.0
  * @public
@@ -92,39 +85,27 @@ export default class FalconDemoDeploy extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    run
-   * @returns     {Promise<any>}  This should resolve by returning a JSON object
-   *              that the CLI will then forward to the user if the --json flag
-   *              was set when this command was called.
-   * @description Entrypoint function used by the CLI when the user wants to
-   *              run the command 'sfdx falcon:demo:deploy'.
+   * @returns     {Promise<any>}  Resolves with a JSON object that the CLI will
+   *              pass to the user as stdout if the --json flag was set.
+   * @description Entrypoint function for "sfdx falcon:demo:deploy".
    * @version     1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { 
 
-    // Initialize the SfdxFalconCommand base.
-    this.sfdxFalconCommandInit('falcon:demo:validate');
-
-    // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
-    const projectDirectory  = this.flags.projectdir   ||  '.';
-    const demoConfigFile    = this.flags.configfile   ||  '';
-
-    // Make sure that projectDirectory has a valid local path
-    if (validateLocalPath(projectDirectory) === false) {
-      throw new Error(errorMessages.getMessage('errInvalidProjectDirectory'));
-    }
+    // Initialize the SfdxFalconCommand (required by ALL classes that extend SfdxFalconCommand).
+    this.sfdxFalconCommandInit('falcon:demo:deploy');
 
     // Instantiate an AppxDemoProject Object.
-    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(projectDirectory), demoConfigFile);
+    const appxDemoProject = await AppxDemoProject.resolve(this.projectDirectory, this.configFile);
     
-    // Run deployDemo(). The "errorJson" is an object created by JSON-parsing stderr output.
+    // Run deployDemo().
     await appxDemoProject.deployDemo()
-    .then(statusReport => {this.onSuccess(statusReport)})
-    .catch(error => {this.onError(error)});
+    .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return
+    .catch(error => {this.onError(error)});               // <-- Wraps any errors and displays to user
 
-    // The JSON Response was populated in onSuccess(). Just need to return now.
+    // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;
   }
-
-} // End of Class FalconDemoDeploy
+}

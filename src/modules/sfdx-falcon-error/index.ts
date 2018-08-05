@@ -107,7 +107,7 @@ export class SfdxFalconError {
     // Build an SfdxErrorConfig object
     let sfdxErrorConfig = new SfdxErrorConfig(
       'sfdx-falcon',          // Package Name
-      'falconErrorMessages',  // Bundle Name
+      'sfdxFalconError',      // Bundle Name
       'errDefault'            // Error Message Key
     );
 

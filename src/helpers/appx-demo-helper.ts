@@ -18,8 +18,8 @@
 // Imports
 import * as core                    from  '@salesforce/core';             // Allows us to use SFDX core functionality.
 import * as path                    from  'path';                         // Node's path library.
-import {readConfigFile}             from  '../helpers/config-helper';     // Why?
-import {SfdxCommandSequence}        from  '../helpers/sequence-helper';   // Why?
+import {readConfigFile}             from  './config-helper';     // Why?
+import {SfdxCommandSequence}        from  './sequence-helper';   // Why?
 import {INTENT}                     from  '../enums';                     // Why?
 
 import {AppxDemoProjectContext}         from  '../modules/sfdx-falcon-projects';  // Why?

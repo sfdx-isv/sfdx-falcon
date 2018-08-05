@@ -31,7 +31,7 @@ import * as Generator   from 'yeoman-generator';                                
 import * as yoValidate  from '../modules/sfdx-falcon-validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as uxHelper    from '../helpers/ux-helper';                                // Library of UX Helper functions specific to SFDX-Falcon.
 import * as gitHelper   from '../helpers/git-helper';                               // Library of Git Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from '../helpers/yeoman-helper';                            // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from '../modules/sfdx-falcon-yeoman-command/yeoman-helper';                            // Library of Yeoman Helper functions specific to SFDX-Falcon.
 
 // Requires
 const chalk           = require('chalk');                                           // Utility for creating colorful console output.

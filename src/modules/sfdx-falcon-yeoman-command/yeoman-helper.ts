@@ -12,10 +12,10 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import  {SfdxOrgInfo}         from './sfdx-helper';     // Used to build the YeomanChoice array for org lists.
+import  {SfdxOrgInfo}         from '../../helpers/sfdx-helper';     // Used to build the YeomanChoice array for org lists.
 import  * as path             from 'path';              // Node's path library.
-import  {StatusMessage}       from './ux-helper';       // Standard SFDX-Falcon Status Message type.
-import  {printStatusMessages} from './ux-helper';       // Utility function to print an array of Status Messages.
+import  {StatusMessage}       from '../../helpers/ux-helper';       // Standard SFDX-Falcon Status Message type.
+import  {printStatusMessages} from '../../helpers/ux-helper';       // Utility function to print an array of Status Messages.
 
 // Requires
 const debug   = require('debug')('yeoman-helper');      // Utility for debugging. set debug.enabled = true to turn on.

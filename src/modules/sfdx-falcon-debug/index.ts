@@ -10,7 +10,7 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxFalconError}  from  '../../modules/sfdx-falcon-error';  // Why?
+import {SfdxFalconError}  from  '../sfdx-falcon-error';  // Why?
 import {ERROR_TYPE}       from  '../../enums';                      // Why?
 
 const debug = require('debug');           // Why?

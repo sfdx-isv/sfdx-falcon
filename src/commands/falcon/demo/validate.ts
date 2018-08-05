@@ -30,7 +30,7 @@ import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-comman
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
 const messages      = Messages.loadMessages('sfdx-falcon', 'falconDemoValidate');
-const errorMessages = Messages.loadMessages('sfdx-falcon', 'falconErrorMessages');
+const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

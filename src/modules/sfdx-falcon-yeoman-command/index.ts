@@ -13,6 +13,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
 import {SfdxFalconCommand}  from  '../sfdx-falcon-command'; // Why?
+import {GeneratorStatus}    from  './yeoman-helper';               // Helper object to get status back from Generators after they run.
 
 // Requires
 const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment
@@ -33,8 +34,34 @@ const yeoman  = require('yeoman-environment');      // Required to create a Yeom
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
 
-  // Entrypoint for child classes to kick off Yeoman Generators
-  protected async runYeomanGenerator(generatorType: string, generatorOptions: object = {}) {
+  // Define Yeoman-specific members (on top of what's in SfdxFalconCommand).
+  protected generatorStatus:GeneratorStatus;
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    runYeomanGenerator
+   * @param       {string}  generatorType     Required. ???
+   * @param       {object}  generatorOptions  Required. ???
+   * @returns     {Promise<any>}  ???
+   * @description Runs the specified Yeoman generator using the given options.
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async runYeomanGenerator(generatorOptions:any) {
+
+    // Add any incoming generatorOptions to the standard defaults
+    let resolvedGeneratorOptions = {
+      // Default options
+      commandName:      this.falconCommandName,
+      generatorStatus:  this.generatorStatus,
+      options: [],
+      // User options
+      ...generatorOptions
+    }
+
+    // Pull the generator type out of the options.
+    let generatorType = resolvedGeneratorOptions.generatorType;
 
     // Create a Yeoman environment.
     const yeomanEnv = yeoman.createEnv();
@@ -45,18 +72,65 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
       `sfdx-falcon:${generatorType}`
     );
 
-    // Execute Yeoman's run() method to run the specified generator.
-    // Note that the callback passed to run() will always RESOLVE because 
-    // Generator.run() only implements then(), and not catch(). If any
-    // code invoked by Yeoman's run loop throws an Error, Yeoman won't catch
-    // it and a hard stop will be forced and the stacktrace shown the user.
+    // Run the Yeoman Generator
     return new Promise((resolve, reject) => {
-      yeomanEnv.run(`sfdx-falcon:${generatorType}`, generatorOptions, (results:any) => {
+      yeomanEnv.run(`sfdx-falcon:${generatorType}`, resolvedGeneratorOptions, (results:any) => {
         resolve(results);
       });
     });
   }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    sfdxFalconCommandInit
+   * @returns     {void}
+   * @description Initializes various SfdxFalconYeomandCommand structures before
+   *              calling the same init function from SfdxFalconCommand.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected sfdxFalconCommandInit(commandName:string='UNSPECIFIED_FALCON_YEOMAN_COMMAND'):void {
+
+    // Initialize the Generator Status object.
+    this.generatorStatus = new GeneratorStatus();
+    
+    // Now call the core init function in the parent class.
+    super.sfdxFalconCommandInit(commandName);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    onError
+   * @param       {any}   error Required. ???
+   * @returns     {void}
+   * @description ???
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected onError(error:any) {
+    super.onError(error);
+
+    // TODO: Implement special onError logic for an SfdxFalconYeomanCommand.
+    
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @function    onSuccess
+   * @param       {SfdxFalconStatus}  statusReport
+   * @returns     {void}  
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected onSuccess(statusReport:any):void {
+    this.generatorStatus.printStatusMessages();
+  }
 }
+
 /**
 * ─────────────────────────────────────────────────────────────────────────────────────────────────┐
 * Notes on Yeoman Generators:
