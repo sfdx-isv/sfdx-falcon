@@ -620,7 +620,13 @@ export default class CloneAppxDemoProject extends Generator {
     // Show an in-process Success Message telling the user that we just created
     // their project files.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.log(chalk`\n{yellow Project files customized at ${this.destinationRoot()}}\n`);
+    uxHelper.printStatusMessage({
+      type:     'success',
+      title:    `\nSuccess`,
+      message:  `Project files customized at ${this.destinationRoot()}\n`
+    });
+
+
 
     //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the install() step completed successfully.

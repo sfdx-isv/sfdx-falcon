@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/index.ts
+ * @file          modules/sfdx-falcon-recipe/string-substitution-map.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
@@ -10,178 +10,145 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxCliLogLevel} from '../sfdx-falcon-types';           // Why?
 
-export interface SfdxFalconRecipeContext {
-  devHubAlias:        string;
-  targetOrgAlias:     string;
-  targetIsScratchOrg: boolean;
-  projectPath:        string;
-  configPath:         string;
-  mdapiSourcePath:    string;
-  dataPath:           string;
-  logLevel:           SfdxCliLogLevel;
-  recipeObserver:     any;
-}
-export interface SfdxFalconStepGroupContext extends SfdxFalconRecipeContext {
-  stepGroupObserver:  any;
-}
-
-
+const falconSubstitutionMap = new Map<string, any>([
+  ['uuid',          generateUuid],
+  ['companyName',   fetchCompanyName],
+  ['recipeName',    fetchRecipeName],
+  ['recipeVersion', fetchRecipeVersion],
+  ['schemaVersion', fetchSchemaVersion]
+]);
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxFalconRecipe
+ * @class       StringSubstitutionMap
  * @summary     ???
  * @description ???
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconRecipe {
-
-  // Define read-only member variables.
-  private _recipeName:string;                           // Why?
-          get recipeName():string                       {return this._recipeName}
-  private _description:string;                          // Why?
-          get description():string                      {return this._description}
-  private _recipeType:RecipeType;                       // Why?
-          get recipeType():RecipeType                   {return this._recipeType}       
-  private _recipeVersion:string;                        // Why?
-          get recipeVersion():string                    {return this._recipeVersion}    
-  private _schemaVersion:string;                        // Why?
-          get schemaVersion():string                    {return this._schemaVersion}    
-  private _options:RecipeOptions;                       // Why?
-          get options():RecipeOptions                   {return this._options}          
-  private _recipeStepGroups:Array<RecipeStepGroup>;     // Why?
-          get recipeStepGroups():Array<RecipeStepGroup> {return this._recipeStepGroups} 
-  private _handlers:string;                             // Why?
-          get handlers():string                         {return this._handlers}         
-  //private _xxxxxxxxxx:string;     // Why?
-  //        get xxxxxxxxxx():string {return this._xxxxxxxxxx}
-
-  // Define the substitution map
+export class StringSubstitutionMap {
+  private substitutionMap:Map<string, any>    = new Map<string, any>();
+  private ignoreInvalidKeys:boolean           = false;
+  private openingTag:string                   = '<@';
+  private closingTag:string                   = '@>';
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      read
-   * @param       {string}  recipePath  ???
-   * @param       {string}  recipeFile  ???
+   * @constructs  StringSubstitutionMap
    * @description ???
    * @version     1.0.0
-   * @public @static @async
+   * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static async read(recipePath:string, recipeFile:string):Promise<SfdxFalconRecipe> {
-
-    // 1. Read file
-
-    // 2. Try to convert to object via JSON.parse (looking for first failure here)
-
-    // 3. Make sure to keep a string version  of the file.
-
-
-    return null;
+  public constructor (substitutionMap:Map<string,any>=falconSubstitutionMap, userOptions:any={}) {
+    this.substitutionMap = substitutionMap;
+    let defaultOptions = {
+      ignoreInvalidKeys:  false,
+      openingTag:         '<@',
+      closingTag:         '@>'
+    }
+    let resolvedOptions = {
+      ...defaultOptions,
+      ...userOptions
+    }
+    this.ignoreInvalidKeys  = resolvedOptions.ignoreInvalidKeys;
+    this.openingTag         = resolvedOptions.openingTag;
+    this.closingTag         = resolvedOptions.closingTag;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxFalconRecipe
-   * @param       {any} xxxx ???? 
-   * @param       {any} xxxx ???? 
-   * @description ???
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private constructor() {
-
-
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      compile
+   * @method      replaceStrings
    * @param       ???
    * @description ???
    * @version     1.0.0
-   * @public @async
+   * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async compile():Promise<SfdxFalconRecipe> {
-
-    return null;
+  public replaceStrings(contentBody:string):string {
+    return 'NOT_IMPLEMENTED';
   }
 
-
-
-
-
-
-
+}
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    ???
+ * @param       ???
+ * @returns     {string}  ???
+ * @description ???
+ * @version     1.0.0
+ * @private @async
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+function generateUuid():string {
+  return 'NOT_IMPLEMENTED';
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       RecipeOptions
- * @summary     ???
+ * @function    ???
+ * @returns     {string}  ???
  * @description ???
  * @version     1.0.0
- * @public
+ * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-class RecipeOptions {
-  private _haltOnError:boolean;             // Why?
-          get haltOnError():boolean         {return this._haltOnError}
-  private _skipGroups:Array<string>;        // Why?
-          get skipGroups():Array<string>    {return this._skipGroups}
-  private _skipActions:Array<string>;       // Why?
-          get skipActions():Array<string>   {return this._skipActions}
-  private _targetOrgs:Array<TargetOrg>;     // Why?
-          get targetOrgs():Array<TargetOrg> {return this._targetOrgs}
-
+function fetchCompanyName():string {
+  return 'NOT_IMPLEMENTED';
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       RecipeStepGroup
- * @summary     ???
+ * @function    ???
+ * @returns     {string}  ???
  * @description ???
  * @version     1.0.0
- * @public
+ * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-class RecipeStepGroup {
-
+function fetchRecipeName():string {
+  return 'NOT_IMPLEMENTED';
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @enum        RecipeType
- * @summary     ???
+ * @function    ???
+ * @returns     {string}  ???
  * @description ???
  * @version     1.0.0
- * @public
+ * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-enum RecipeType {
-  APPX_DEMO     = 'appx-demo-recipe',
-  APPX_PACKAGE  = 'appx-package-recipe'
+function fetchRecipeVersion():string {
+  return 'NOT_IMPLEMENTED';
+}
+
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    ???
+ * @returns     {string}  ???
+ * @description ???
+ * @version     1.0.0
+ * @private @async
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+function fetchSchemaVersion():string {
+  return 'NOT_IMPLEMENTED';
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       TargetOrg
- * @summary     ???
+ * @function    ???
+ * @returns     {string}  ???
  * @description ???
  * @version     1.0.0
- * @public
+ * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-class TargetOrg {
-  private _xxxxxxxxxx:string;     // Why?
-          get xxxxxxxxxx():string {return this._xxxxxxxxxx}
-  
+function xxxxxxxxx():string {
+  return 'NOT_IMPLEMENTED';
 }
-
 

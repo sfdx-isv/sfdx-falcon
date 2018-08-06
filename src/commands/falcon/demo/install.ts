@@ -33,6 +33,20 @@ const messages      = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall');
 const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 
+
+// DEVTEST
+
+import {CreateScratchOrg} from '../../../modules/sfdx-falcon-recipe/actions/create-scratch-org';
+import {SfdxCliLogLevel}  from '../../../modules/sfdx-falcon-types';           // Why?
+
+// DEVTEST
+
+
+
+
+
+
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoInstall
@@ -106,17 +120,36 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     // Initialize the SfdxFalconCommand base.
     this.sfdxFalconCommandInit('falcon:demo:install');
 
-    // Grab values from CLI command flags.  Set defaults for optional flags not set by user.
-    const projectDirectory  = this.flags.projectdir   ||  '.';
-    const demoConfigFile  = this.flags.configfile   ||  '';
 
-    // Make sure that projectDirectory has a valid local path
-    if (validateLocalPath(projectDirectory) === false) {
-      throw new Error(errorMessages.getMessage('errInvalidProjectDirectory'));
-    }
+    // DEVTEST
+    let myStepContext = {
+      devHubAlias:        ``,
+      targetOrgAlias:     ``,
+      targetIsScratchOrg: false,
+      projectPath:        ``,
+      configPath:         ``,
+      mdapiSourcePath:    ``,
+      dataPath:           '',
+      logLevel:           SfdxCliLogLevel.DEBUG,
+      recipeObserver:     null,
+      stepObserver:       null,
+      stepGroupObserver:  null
+    };
+    let myStepOptions = {
+      customOptionOne: 'Hooray',
+      customOptionsTwo: 'Boo'
+    };
+    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
+
+
+    return {};
+
+
+
+
 
     // Instantiate an AppxDemoProject Object.
-    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(projectDirectory), demoConfigFile);
+    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(this.projectDirectory), this.configFile);
     
     // Take the main action for this command. Success and errors handled by parent class.
     await appxDemoProject.deployDemo()
