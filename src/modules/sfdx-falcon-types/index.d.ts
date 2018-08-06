@@ -127,3 +127,12 @@ export interface FalconSequenceContext {
   logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   sequenceObserver:   any;
 }
+
+export enum SfdxCliLogLevel {
+  TRACE = 'trace',
+  DEBUG = 'debug',
+  INFO  = 'info',
+  WARN  = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal'
+}
