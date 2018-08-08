@@ -22,7 +22,7 @@ import {readConfigFile}             from  './config-helper';     // Why?
 import {SfdxCommandSequence}        from  './sequence-helper';   // Why?
 import {INTENT}                     from  '../enums';                     // Why?
 
-import {AppxDemoProjectContext}         from  '../modules/sfdx-falcon-projects';  // Why?
+import {AppxDemoProjectContext_OLD}         from  '../modules/sfdx-falcon-projects';  // Why?
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';     // Why?
 import {SfdxFalconStatus}               from  '../modules/sfdx-falcon-status';    // Why?
 import {AppxDemoLocalConfig}            from  '../modules/sfdx-falcon-types';     // Why?
@@ -54,7 +54,7 @@ const util          = require('util');
 export class AppxDemoProject {
 
   // Define class member variables/types.
-  private   context:                AppxDemoProjectContext; // Why?
+  private   context:                AppxDemoProjectContext_OLD; // Why?
   private   executionIntent:        INTENT;                 // Why?
   private   executingSequence:      boolean;                // Why?
  
@@ -82,7 +82,7 @@ export class AppxDemoProject {
     }
 
     // Initialize the Appx Demo Project Context variable.
-    this.context = new AppxDemoProjectContext();
+    this.context = new AppxDemoProjectContext_OLD();
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Attempt to pull data from the incoming parameters.  If the proper 

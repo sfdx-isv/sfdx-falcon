@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/actions/index.ts
+ * @file          modules/sfdx-falcon-recipe/engines/appx/actions/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
@@ -10,43 +10,28 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxFalconStepGroupContext} from  '../../../modules/sfdx-falcon-recipe';  // Why?
-import {SfdxFalconDebug}            from  '../../../modules/sfdx-falcon-debug';   // Why?
+// Import local modules
+import {AppxEngineContext}          from  '../../../engines/appx';  // Why?
+import {AppxEngineStepContext}      from  '../../../engines/appx';  // Why?
+import {AppxEngineActionType}       from  '../../../engines/appx';  // Why?
+import {AppxEngineActionResult}     from  '../../../engines/appx';  // Why?
+import {SfdxFalconDebug}            from  '../../../../../modules/sfdx-falcon-debug';   // Why?
 
 
-export interface SfdxFalconStepContext extends SfdxFalconStepGroupContext {
-  stepObserver: any;
-}
-export interface RecipeActionResult {
-  status:     number;
-  strResult:  string;
-  objResult:  object;
-}
-export interface RecipeActionError {
-  stepContext:  SfdxFalconStepContext;
-  stepOptions:  object;
-  errorObj:     Error;
-}
-export enum RecipeActionType {
-  SFDX_CLI_COMMAND    = 'sfdx-cli-command',
-  DIRECT_API_COMMAND  = 'direct-api-command',
-  SHELL_COMMAND       = 'shell-command',
-  UNSPECIFIED         = 'unspecified'
-}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxFalconRecipeAction
+ * @class       AppxEngineAction
  * @access      public
- * @description Base class for all "actions" that are supported by SFDX-Falcon recipes.
+ * @description Base class for all "actions" that are supported by the "Appx" Falcon Recipe Engine.
  * @version     1.0.0
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export abstract class SfdxFalconRecipeAction {
+export abstract class AppxEngineAction {
 
-  // Basic properties of every RecipeAction.
-  protected _actionType:RecipeActionType;           // Why?
-            get actionType():RecipeActionType       {return this._actionType}
+  // Basic properties of every AppxEngineAction.
+  protected _actionType:AppxEngineActionType;       // Why?
+            get actionType():AppxEngineActionType   {return this._actionType}
   protected _actionName:string;                     // Why?
             get actionName():string                 {return this._actionName}
   protected _successDelay:number;                   // Why?
@@ -54,9 +39,9 @@ export abstract class SfdxFalconRecipeAction {
   protected _errorDelay:number;                     // Why?
             get errorDelay():number                 {return this._errorDelay}
 
-  // Context and Options from the step that's calling the RecipeAction.
-  protected _stepContext:SfdxFalconStepContext;     // Why?
-            get stepContext():SfdxFalconStepContext {return this._stepContext}
+  // Context and Options from the step that's calling the AppxEngineAction.
+  protected _stepContext:AppxEngineStepContext;     // Why?
+            get stepContext():AppxEngineStepContext {return this._stepContext}
   protected _stepOptions:object;                    // Why?
             get stepOptions():object                {return this._stepOptions}
 
@@ -69,31 +54,31 @@ export abstract class SfdxFalconRecipeAction {
             get successMsg():string                 {return this._successMsg}
 
   // Abstract methods
-  public async abstract execute():Promise<RecipeActionResult>;
+  public async abstract execute():Promise<AppxEngineActionResult>;
   protected abstract    onSuccess(result:any):any;
   protected abstract    onError(error:any):any;
   public abstract       renderError(isErrorDebugEnabled:boolean):void;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxFalconRecipeAction
-   * @param       {any} xxxx ???? 
-   * @param       {any} xxxx ???? 
+   * @constructs  AppxEngineAction
+   * @param       {AppxEngineStepContext} stepContext ???? 
+   * @param       {any} stepOptions ???? 
    * @description ???
    * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected constructor(stepContext:SfdxFalconStepContext, stepOptions:object) {
+  protected constructor(stepContext:AppxEngineStepContext, stepOptions:any={}) {
 
     // VALIDATION: StepContext and StepOptions are both required.
     if (typeof stepContext === 'undefined' || typeof stepOptions === 'undefined') {
-      throw new Error (`ERROR_MISSING_PROPERTIES: Objects derived from SfdxFalconRecipeAction must `
+      throw new Error (`ERROR_MISSING_PROPERTIES: Objects derived from AppxEngineAction must `
                       +`initialize with values for stepContext and stepOptions`);
     }
 
     // VALIDATION: If the target is a Scratch Org, then a DevHub must be provided.
-    if (stepContext.targetIsScratchOrg === true && (!stepContext.devHubAlias)) {
+    if (stepContext.targetOrg.isScratchOrg === true && (!stepContext.devHubAlias)) {
       throw new Error (`ERROR_INVALID_CONFIG: Target Org is identified as a scratch org, but `
                       +`no DevHub Alias was provided`)
     }

@@ -10,22 +10,22 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxFalconDebug}        from '../../../modules/sfdx-falcon-debug';  // Why?
-import {SfdxFalconRecipeAction} from '../actions';                          // Why?
-import {RecipeActionResult}     from '../actions';                          // Why?
-import {RecipeActionType}       from '../actions';                          // Why?
-import {SfdxFalconStepContext}  from '../actions';                          // Why?
+import {SfdxFalconDebug}        from '../../../../../modules/sfdx-falcon-debug';  // Why?
+import {AppxEngineAction}       from '../../appx/actions';                        // Why?
+import {AppxEngineActionResult} from '../../appx';                                // Why?
+import {AppxEngineActionType}   from '../../appx/';                               // Why?
+import {AppxEngineStepContext}  from '../../appx/';                               // Why?
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       CreateScratchOrg
- * @extends     SfdxFalconRecipeAction
+ * @extends     AppxEngineAction
  * @access      public
  * @description Implements the action "create-scratch-org".
  * @version     1.0.0
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class CreateScratchOrg extends SfdxFalconRecipeAction {
+export class CreateScratchOrg extends AppxEngineAction {
 
 
 
@@ -39,13 +39,13 @@ export class CreateScratchOrg extends SfdxFalconRecipeAction {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(stepContext:SfdxFalconStepContext, stepOptions:object={}) {
+  constructor(stepContext:AppxEngineStepContext, stepOptions:object={}) {
 
     // Call parent constructor.
     super(stepContext, stepOptions);
 
     // Set the Action Type
-    this._actionType = RecipeActionType.SFDX_CLI_COMMAND
+    this._actionType = AppxEngineActionType.SFDX_CLI_COMMAND
 
     // Run Base Validation
     this.validateActionConfig();
@@ -61,7 +61,7 @@ export class CreateScratchOrg extends SfdxFalconRecipeAction {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute():Promise<RecipeActionResult> {
+  public async execute():Promise<AppxEngineActionResult> {
 
     return null;
 

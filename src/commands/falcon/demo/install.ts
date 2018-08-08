@@ -36,7 +36,8 @@ const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 // DEVTEST
 
-import {CreateScratchOrg} from '../../../modules/sfdx-falcon-recipe/actions/create-scratch-org';
+import {SfdxFalconRecipe} from '../../../modules/sfdx-falcon-recipe';
+import {CreateScratchOrg} from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
 import {SfdxCliLogLevel}  from '../../../modules/sfdx-falcon-types';           // Why?
 
 // DEVTEST
@@ -139,7 +140,17 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
       customOptionOne: 'Hooray',
       customOptionsTwo: 'Boo'
     };
-    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
+//    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
+
+    let recipeTest = await SfdxFalconRecipe.read('/Users/vchawla/git/ADK-projects/cloned/adk-project-1', 'demo-config', 'alternate-demo-config.json');
+
+    let compileOptions = {
+      optionOne: 'DEVTEST',
+      optionsTwo: 'DEV222TEST',
+      targetOrgAlias:'fscdrivewealth-scratch-org-demo'
+    }
+
+    let results = await recipeTest.compile(compileOptions);
 
 
     return {};
