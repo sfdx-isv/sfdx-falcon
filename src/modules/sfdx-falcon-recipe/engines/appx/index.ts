@@ -9,11 +9,20 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules
+import {Observable}               from  'rxjs';                                   // Why?
+
 // Import Local Modules
-import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';     // Why?
-import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';     // Why?
-import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';      // Why?
-import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';
+import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';  // Why?
+import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';  // Why?
+import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';   // Why?
+import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';              // Why?
+import {ListrTask}                from '../../../sfdx-falcon-types';              // Why?
+import {ListrExecutionOptions}    from '../../../sfdx-falcon-types';              // Why?
+
+// Require Modules
+const Listr                 = require('listr');                                   // Official Task Runner of Project Falcon ;-)
+const FalconUpdateRenderer  = require('falcon-listr-update-renderer');            // Custom renderer for Listr
 
 // Set the File Local Debug Namespace
 const dbgNs = 'RecipeEngine:appx:';
@@ -23,6 +32,7 @@ const dbgNs = 'RecipeEngine:appx:';
 //─────────────────────────────────────────────────────────────────────────────┘
 export interface AppxEngineContext {
   isExecuting:        boolean;
+  compileOptions:     any;
   devHubAlias:        string;
   targetOrg:          TargetOrg;
   haltOnError:        boolean;
@@ -35,14 +45,11 @@ export interface AppxEngineContext {
   recipeObserver:     any;
   status:             SfdxFalconStatus;
 }
-export interface AppxEngineStepGroupContext extends AppxEngineContext {
-  stepGroupObserver:  any;
+export interface AppxEngineActionContext extends AppxEngineContext {
+  listrExecOptions:  ListrExecutionOptions;
 }
-export interface AppxEngineStepContext      extends AppxEngineStepGroupContext {
-  stepObserver:  any;
-}
-export interface AppxEngineActionContext    extends AppxEngineStepContext {
-  actionObserver:  any;
+export interface AppxEngineActionExecutor {
+  (actionContext:AppxEngineActionContext, actionOptions:any):Promise<AppxEngineActionResult>;
 }
 export interface AppxEngineActionResult {
   type:       AppxEngineActionType;
@@ -53,9 +60,9 @@ export interface AppxEngineActionResult {
   objResult:  object;
 }
 export interface AppxEngineActionError {
-  stepContext:  AppxEngineStepContext;
-  stepOptions:  object;
-  errorObj:     Error;
+  actionContext:  AppxEngineActionContext;
+  actionOptions:  any;
+  errorObj:       Error;
 }
 export enum AppxEngineActionType {
   SFDX_CLI_COMMAND    = 'sfdx-cli-command',
@@ -113,7 +120,7 @@ export abstract class AppxRecipeEngine {
 
   // Declare class member vars.
   private   baseClsDbgNs:         string = 'AppxRecipeEngine';
-  protected actionMap:            Map<string, any>;
+  protected actionExecutorMap:    Map<string, any>;
   protected listrTasks:           any;
   protected recipe:               SfdxFalconRecipe;
   protected engineContext:        AppxEngineContext;
@@ -121,10 +128,8 @@ export abstract class AppxRecipeEngine {
 
   // Declare abstract methods.
   public    abstract async  execute(executionOptions:any):Promise<SfdxFalconStatus>;
-  protected abstract async  executeStep(step:AppxEngineStep, observer:any):Promise<AppxEngineStepResult>;
-  protected abstract async  initializeActionMap(compileOptions:any):Promise<void>;
-  protected abstract async  initializeRecipeEngineContext(compileOptions:any):Promise<void>;
-  protected abstract async  validateInnerRecipe(recipe:SfdxFalconRecipe):Promise<void>;
+  protected abstract async  initializeActionMap():Promise<void>;
+  protected abstract async  initializeRecipeEngineContext():Promise<void>;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -151,89 +156,151 @@ export abstract class AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async compile(recipe:SfdxFalconRecipe, compileOptions:any):Promise<any> {
 
-    // Validate the recipe.  If we make it through without an error, save a ref to this instance.
-    this.validateOuterRecipe(recipe);
-    this.validateInnerRecipe(recipe);
-    this.recipe = recipe;
+    // Make sure that the incoming recipe has been validated.
+    if (recipe.validated !== true) {
+      throw new Error(`ERROR_INVALID_RECIPE: Can not compile a recipe that has not been validated`);
+    }
+    else {
+      this.recipe = recipe;
+    }
 
-    // Initialize the Recipe Engine Context.
-    await this.initializeRecipeEngineContext(compileOptions);
+    // Initialize the Engine Context object and set the Compile Options to what was passed in.
+    this.engineContext = <AppxEngineContext>{};
+    this.engineContext.compileOptions = compileOptions;
 
-    // Initialize the Action Map for this engine.
-    await this.initializeActionMap(compileOptions);
+    // Initialize the Recipe Engine Context (implemented inside child class)
+    await this.initializeRecipeEngineContext();
+
+    // Initialize the Action Map for this engine (implemented inside child class).
+    await this.initializeActionMap();
  
-    // Prepare the Listr Tasks.
-    this.compileListrTasks(compileOptions);
+    // Prepare all Listr Tasks for this recipe (implemented here inside parent class)
+    this.listrTasks = this.compileParentTasks(this.recipe.recipeStepGroups);
 
-    // We should be done by this point. Debug and return
+    // We should be done by this point. Debug and return.
     SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, this, `${this.baseClsDbgNs}:constructor:this: `)
     return;
-
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      compileListrTasks
-   * @param       {any}  compileOptions Required.
-   * @returns     {void} ???
+   * @method      compileParentTasks
+   * @param       {Array<AppxEngineStepGroup>}  recipeStepGroups Required. ???
+   * @returns     {object} Returns an instantiated Listr object fully populated
+   *              with SubTasks.
    * @description ???
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private compileListrTasks(compileOptions:any):void {
+  private compileParentTasks(recipeStepGroups:Array<AppxEngineStepGroup>):object {
 
-    this.listrTasks = {};
+    // Create a Listr object to hold Falcon Command Sequence Steps as TASKS.
+    let parentTasks = new Listr({concurrent:false,collapse:false,renderer:FalconUpdateRenderer});
 
+    // Iterate over all Recipe Step Groups and create Listr Tasks / Groups as needed.
+    for (let recipeStepGroup of recipeStepGroups) {
+      
+      // Check if we need to skip compilation of this group
+      if (this.skipGroup(recipeStepGroup.alias) === true) {
+        continue;
+      }
+      // Check if the recipeStepGroup has any tasks
+      if (this.stepGroupHasActiveTasks(recipeStepGroup) === false) {
+        continue;
+      }
+
+      // Compile the SubTasks for this group and add them to the Parent Tasks we're creating
+      parentTasks.add({
+        title:  recipeStepGroup.stepGroupName,
+        task:   (listrContext) => { return this.compileSubTasks(recipeStepGroup, listrContext) }
+      });
+    }
+
+    // Return the Parent Tasks that we just created
+    return parentTasks;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      skipAction
-   * @param       {string}  actionToCheck Required. The Action to check.
-   * @returns     {boolean} Returns true if the action should be skipped.
+   * @method      compileSubTasks
+   * @param       {AppxRecipeStepGroup} recipeStepGroup Required. ???
+   * @param       {any}                 parentContext Required. ???
+   * @returns     {any} Returns an instantiated Listr object fully populated by
+   *              all active Sub Tasks based on the Recipe Step Group.
    * @description ???
    * @version     1.0.0
-   * @protected
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected skipAction(actionToCheck:string=''):boolean {
-    return false;
+  private compileSubTasks(recipeStepGroup:AppxEngineStepGroup, parentContext:any=null):any {
 
+    // Make sure we have at least one step in the group.
+    if (recipeStepGroup.recipeSteps.length < 1) {
+      throw new Error(`ERROR_NO_STEPS: The Recipe Step Group '${recipeStepGroup.stepGroupName}' contains no Steps`);
+    }
+
+    // Create a Listr object for the subtasks.
+    let listrSubTasks = new Listr({concurrent:false,collapse:false,renderer:FalconUpdateRenderer});
+
+    // For each Recipe Step, add a new SUB TASK to the group if the step's action is not on the skip list.
+    for (let recipeStep of recipeStepGroup.recipeSteps) {
+      if (this.skipAction(recipeStep.action) === true) {
+        continue;
+      }
+      listrSubTasks.add({
+        title:  recipeStep.stepName,
+        task:   (listrContext, thisTask) => {
+          return new Observable(observer => { 
+            let listrExecOptions:ListrExecutionOptions = {
+              listrContext: listrContext,
+              listrTask:    thisTask,
+              observer:     observer
+            }
+            this.executeStep(recipeStep, listrExecOptions)
+              .then(result => {observer.complete()})
+              .catch(error => {observer.error(error)});
+          });
+        }
+      });
+    }
+    // Return the Listr Sub Tasks to the caller.
+    return listrSubTasks;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      skipGroup
-   * @param       {string}  groupToCheck Required. The Step Group Name to check.
-   * @returns     {boolean} Returns true if the group should be skipped.
-   * @description ???
+   * @method      executeStep
+   * @param       {AppxEngineStep}  recipeStep  Required. The step to execute.
+   * @param       {ListrExecutionOptions} executionOptions  Required. Holds a
+   *              number of execution options (context, task, and observer).
+   * @returns     {Promise<any>}  Resolves with result from the Executor (or 
+   *              just void) if successful, otherwise rejects with Error
+   *              bubbled up from child calls.
+   * @description Given a valid Falcon Recipe Step object, tries to
+   *              route the requested Step Action to the appropriate Executor.
    * @version     1.0.0
-   * @protected
+   * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected skipGroup(groupToCheck:string=''):boolean {
-    return false;
+  private async executeStep(recipeStep:AppxEngineStep, listrExecOptions:ListrExecutionOptions):Promise<AppxEngineActionResult> {
 
-  }
+    // Build the context the Action Executor will need to correctly do its job.
+    let actionContext:AppxEngineActionContext =  { 
+      ...this.engineContext,
+      listrExecOptions: listrExecOptions
+    }
 
+    // Find the Action Executor for the specified 
+    let actionExecutor = this.actionExecutorMap.get(recipeStep.action);
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      startExecution
-   * @param       {any} xxxx ???? 
-   * @param       {any} xxxx ???? 
-   * @returns     {any}
-   * @description ???
-   * @version     1.0.0
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected startExecution():void {
+    if (typeof actionExecutor === 'undefined') {
+      throw new Error (`ERROR_UNKNOWN_ACTION: '${recipeStep.action}' is not recognized `
+                      +`by the ${this.recipe.recipeType} eninge`);
+    }
 
-
-
+    // Execute the Action.  The caller (a listr task) will handle .then() and .catch().
+    return await actionExecutor(actionContext, recipeStep.options);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -260,7 +327,77 @@ export abstract class AppxRecipeEngine {
     // Throw an error using the provided error message.
     throw new Error(errorMessage);
 
+  }
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      skipAction
+   * @param       {string}  actionToCheck Required. The Action to check.
+   * @returns     {boolean} Returns true if the action should be skipped.
+   * @description Checks if an action should be skipped during compile.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private skipAction(actionToCheck:string=''):boolean {
+    return this.recipe.options.skipActions.includes(actionToCheck);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      skipGroup
+   * @param       {string}  groupToCheck Required. The Step Group Name to check.
+   * @returns     {boolean} Returns true if the group should be skipped.
+   * @description Checks if a group of steps should be skipped during compile.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private skipGroup(groupToCheck:string=''):boolean {
+    return this.recipe.options.skipGroups.includes(groupToCheck);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      startExecution
+   * @param       {any} xxxx ???? 
+   * @param       {any} xxxx ???? 
+   * @returns     {any}
+   * @description ???
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected startExecution():void {
+
+
+
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      stepGroupHasActiveTasks
+   * @param       {AppxEngineStepGroup}  stepGroupToCheck Required. The Step
+   *              Group object that will be inspected by this method.
+   * @returns     {boolean} Returns true if the group has at least one active
+   *              step. An "active step" is one whose Action is not on the
+   *              skipActions list.
+   * @description Checks if a Step Group has at least one active step.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private stepGroupHasActiveTasks(stepGroupToCheck:AppxEngineStepGroup):boolean {
+    if (stepGroupToCheck.recipeSteps.length < 1) {
+      return false;
+    }    
+    for (let step of stepGroupToCheck.recipeSteps) {
+      if (this.skipAction(step.action) === false) {
+        return true;
+      }
+    }
+    // If we get this far, every single step action was on the skip list.
+    return false;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -270,10 +407,10 @@ export abstract class AppxRecipeEngine {
    * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @private
+   * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateHandler(handler:AppxEngineHandler):void {
+  private static validateHandler(handler:AppxEngineHandler):void {
     // TODO: Implement this validation method.
   }
   //───────────────────────────────────────────────────────────────────────────┐
@@ -283,14 +420,14 @@ export abstract class AppxRecipeEngine {
    * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @private
+   * @protected @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateOuterRecipe(recipe:SfdxFalconRecipe):void {
+  protected static validateOuterRecipe(recipe:SfdxFalconRecipe):void {
 
     // Make sure the Recipe contains an "options" key.
     if (typeof recipe.options === 'undefined') {
-      throw new Error (`ERROR_INVALID_RECIPE: Recipes in the AppX family (eg. '${this.recipe.recipeType}' `
+      throw new Error (`ERROR_INVALID_RECIPE: Recipes in the AppX family (eg. '${recipe.recipeType}' `
                       +`must provide values in the 'options' key of your recipe`);
     }
     // Make sure there is an Array of Skip Groups
@@ -318,7 +455,7 @@ export abstract class AppxRecipeEngine {
     }
     // Validate every member of the Taget Orgs array.
     for (let targetOrg of recipe.options.targetOrgs) {
-      this.validateTargetOrg(targetOrg);
+      AppxRecipeEngine.validateTargetOrg(targetOrg);
     }
     // Make sure there is an Array of Recipe Step Groups
     if (Array.isArray(recipe.recipeStepGroups) === false) {
@@ -328,7 +465,7 @@ export abstract class AppxRecipeEngine {
     }
     // Validate every member of the Taget Orgs array.
     for (let recipeStepGroup of recipe.recipeStepGroups) {
-      this.validateRecipeStepGroup(recipeStepGroup);
+      AppxRecipeEngine.validateRecipeStepGroup(recipeStepGroup);
     }
     // Make sure there is an Array of Handlers
     if (Array.isArray(recipe.handlers) === false) {
@@ -338,7 +475,7 @@ export abstract class AppxRecipeEngine {
     }
     // Validate every member of the Handlers array.
     for (let handler of recipe.handlers as Array<AppxEngineHandler>) {
-      this.validateHandler(handler);
+      AppxRecipeEngine.validateHandler(handler);
     }
     // Done with validation
     return;
@@ -351,10 +488,10 @@ export abstract class AppxRecipeEngine {
    * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @private
+   * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateRecipeStep(recipeStep:AppxEngineStep):void {
+  private static validateRecipeStep(recipeStep:AppxEngineStep):void {
 
     // TODO: Implement this validation method.
 
@@ -367,10 +504,10 @@ export abstract class AppxRecipeEngine {
    * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @private
+   * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateRecipeStepGroup(stepGroup:AppxEngineStepGroup):void {
+  private static validateRecipeStepGroup(stepGroup:AppxEngineStepGroup):void {
 
     // Make sure that the Step Group Name is a string
     if (typeof stepGroup.stepGroupName !== 'string' || stepGroup.stepGroupName === '') {
@@ -398,7 +535,7 @@ export abstract class AppxRecipeEngine {
     }
     // Validate every member of the Recipe Steps array.
     for (let recipeStep of stepGroup.recipeSteps) {
-      this.validateRecipeStep(recipeStep);
+      AppxRecipeEngine.validateRecipeStep(recipeStep);
     }
   }
 
@@ -412,7 +549,7 @@ export abstract class AppxRecipeEngine {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateTargetOrg(targetOrg:TargetOrg):void {
+  private static validateTargetOrg(targetOrg:TargetOrg):void {
 
     // Make sure that orgName is a string
     if (typeof targetOrg.orgName !== 'string' || targetOrg.orgName === '') {

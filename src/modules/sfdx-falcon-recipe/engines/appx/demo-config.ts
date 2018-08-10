@@ -93,22 +93,24 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
         pageSize: 5
       },
       {
-        type: 'confirm',
-        name: 'proceed',
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
         message:  (answerHash) => {
-          return `The scratch org '${answerHash.targetOrg.alias}' will be `
-                +`deleted before installing the demo. Proceed?`
+          return  `The scratch org '${answerHash.targetOrg.alias}' will be `
+                + `deleted before installing the demo. Proceed?`
         },
         when:     (answerHash) => {
           return (answerHash.targetOrg.isScratchOrg && answerHash.targetOrg !== 'CANCEL_INSTALLATION');
         }
       },
       {
-        type: 'confirm',
-        name: 'proceed',
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
         message:  (answerHash) => { 
-          return `The alias '${answerHash.targetOrg.alias}' must be associated `
-                +`with a compatible Salesforce org. Proceed with org validation?`
+          return  `The alias '${answerHash.targetOrg.alias}' must be associated `
+                + `with a compatible Salesforce org. Proceed with org validation?`
         },
         when:     (answerHash) => {
           return (! answerHash.targetOrg.isScratchOrg && answerHash.targetOrg !== 'CANCEL_INSTALLATION');
@@ -177,29 +179,14 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    * @method      execute
    * @param       {any} executionOptions ???? 
    * @returns     {Promise<SfdxFalconStatus>} ???
-   * @description ???
+   * @description Starts the execution of a compiled recipe. Implemented here
+   *              instead of in the base class so we can fine-tune error and
+   *              success handling resulting from the Listr Task execution.
    * @version     1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public async execute(executionOptions:any):Promise<SfdxFalconStatus> {
-
-    return null;
-
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      executeStep
-   * @param       {AppxEngineStep}  step ???
-   * @param       {any}             observer ???
-   * @returns     {Promise<AppxEngineStepResult>} ???
-   * @description ???
-   * @version     1.0.0
-   * @protected @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeStep(step:AppxEngineStep, observer:any):Promise<AppxEngineStepResult> {
 
     return null;
 
@@ -217,36 +204,32 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   protected async initializeActionMap():Promise<void> {
 
     // Build a map of Action "aliases" to function 
-    this.actionMap  = new Map<string, any>();
-    this.actionMap.set('create-scratch-org', new CreateScratchOrgAction(this.engineContext));
+    this.actionExecutorMap = new Map<string, any>();
+    this.actionExecutorMap.set('create-scratch-org', new CreateScratchOrgAction());
      
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      initializeRecipeEngineContext
-   * @param       {any}   compileOptions ???? 
    * @returns     {Promise<void>}  ???
    * @description ???
    * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async initializeRecipeEngineContext(compileOptions:any={}):Promise<void> {
-    if (typeof this.recipe === 'undefined') {
+  protected async initializeRecipeEngineContext():Promise<void> {
+    if (typeof this.recipe === 'undefined' || this.recipe.validated !== true) {
       throw new Error (`ERROR_RECIPE_NOT_VALIDATED: The call to initializeRecipeEngineContext () `
                       +`was made before the incoming recipe was validated`);
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, compileOptions, `${this.clsDbgNs}:initializeRecipeEngineContext:compileOptions `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext.compileOptions, `${this.clsDbgNs}:initializeRecipeEngineContext:this.engineContext.compileOptions: `);
 
-    // Initialize the Recipe Engine Context object.
-    this.engineContext = <AppxEngineContext>{};
- 
     // Initialize basic context values
-    this.engineContext.isExecuting  = false;
-    this.engineContext.devHubAlias  = compileOptions.devHubAlias;
-    this.engineContext.haltOnError  = this.recipe.options.haltOnError;
-    this.engineContext.status       = new SfdxFalconStatus();
+    this.engineContext.isExecuting    = false;
+    this.engineContext.devHubAlias    = this.engineContext.compileOptions.devHubAlias;
+    this.engineContext.haltOnError    = this.recipe.options.haltOnError;
+    this.engineContext.status         = new SfdxFalconStatus();
 
     // Set all the path related context values.
     this.engineContext.projectPath      = this.recipe.projectPath;
@@ -256,10 +239,10 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     this.engineContext.dataPath         = path.join(this.engineContext.projectPath, `demo-data`);
 
     // Set the log level. Default to ERROR if not specifed
-    this.engineContext.logLevel = compileOptions.logLevel || SfdxCliLogLevel.ERROR;
+    this.engineContext.logLevel = this.engineContext.compileOptions.logLevel || SfdxCliLogLevel.ERROR;
 
     // Finally, initialize the Target Org
-    await this.initializeTargetOrg(compileOptions.targetOrgAlias);
+    await this.initializeTargetOrg(this.engineContext.compileOptions.targetOrgAlias);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -277,9 +260,6 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // If Target Org Alias was NOT provided, ask the user to choose one of the defined targetOrgs.
     if (! targetOrgAlias) {
       targetOrgAlias = await this.askUserForTargetOrgAlias()
-        .catch(error => {
-          throw new Error (`ERROR_COMPILE_RECIPE_FAILED: Target org alias not specified`);
-        });
     }
 
     // Make sure the Target Org Option matches one of the target orgs.
@@ -303,10 +283,31 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    * @returns     {Promise<void>} ???
    * @description ???
    * @version     1.0.0
-   * @protected @async
+   * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async validateInnerRecipe(recipe:SfdxFalconRecipe):Promise<void> {
+  private static validateInnerRecipe(recipe:SfdxFalconRecipe):void {
     // Add any additonal "deep" validation here.
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateRecipe
+   * @param       {SfdxFalconRecipe}  recipe  Required.
+   * @returns     {void}  ???
+   * @description ???
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static validateRecipe(recipe:SfdxFalconRecipe):void {
+    // Sart by validating the OUTER recipe via the base class
+    AppxRecipeEngine.validateOuterRecipe(recipe);
+
+    // Next, validate the INNER recipe via this class
+    AppxDemoConfigEngine.validateInnerRecipe(recipe);
+
+    // If we get here without throwing an error, the recipe is VALID.
+    return;
   }
 } // End of class

@@ -11,14 +11,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import local modules
-import {waitASecond}            from  '../../../../sfdx-falcon-async';          // Why?
-import {SfdxFalconDebug}        from  '../../../../sfdx-falcon-debug';          // Why?
-import {SfdxCommandDefinition}  from  '../../../../sfdx-falcon-executors/sfdx'; // Why?
+import {waitASecond}              from  '../../../../sfdx-falcon-async';          // Why?
+import {SfdxFalconDebug}          from  '../../../../sfdx-falcon-debug';          // Why?
+import {SfdxCommandDefinition}    from  '../../../../sfdx-falcon-executors/sfdx'; // Why?
 
 // Import Internal Engine Modules
-import {AppxEngineContext}      from  '../../../engines/appx';                  // Why?
-import {AppxEngineActionType}   from  '../../../engines/appx';                  // Why?
-import {AppxEngineActionResult} from  '../../../engines/appx';                  // Why?
+import {AppxEngineContext}        from  '../../../engines/appx';                  // Why?
+import {AppxEngineActionContext}  from  '../../../engines/appx';                  // Why?
+import {AppxEngineActionType}     from  '../../../engines/appx';                  // Why?
+import {AppxEngineActionResult}   from  '../../../engines/appx';                  // Why?
 
 // Set the File Local Debug Namespace
 const dbgNs = 'appx-engine-action';
@@ -34,7 +35,6 @@ const dbgNs = 'appx-engine-action';
 export abstract class AppxEngineAction {
 
   // Base class members
-  protected engineContext:    AppxEngineContext           // Why?
   protected actionType:       AppxEngineActionType;       // Why?
   protected actionName:       string;                     // Why?
   protected successDelay:     number;                     // Why?
@@ -51,37 +51,23 @@ export abstract class AppxEngineAction {
   protected actionResult:     AppxEngineActionResult;     // Why?
 
   // Abstract methods
-  protected async abstract executeAction(actionOptions:any):Promise<any>;
+  protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<any>;
+  protected       abstract  validateActionOptions(actionOptions:any):void;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  AppxEngineAction
-   * @param       {AppxEngineContext} engineContext ???? 
    * @description ???
    * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected constructor(engineContext:AppxEngineContext) {
-
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, engineContext, `AppxEngineAction:constructor:engineContext: `);
-
-    // VALIDATION: EngineContext must be provided.
-    if (typeof engineContext === 'undefined') {
-      throw new Error (`ERROR_INVALID_ARGUMENT: Missing engineContext object when `
-                      +`constructing an AppxEngineAction object.`);
-    }
-
-    // VALIDATION: If the target is a Scratch Org, then a DevHub must be provided.
-    if (engineContext.targetOrg.isScratchOrg === true && (!engineContext.devHubAlias)) {
-      throw new Error (`ERROR_MISSING_CONFIG_INFO: Target Org is identified as a scratch org, but `
-                      +`no DevHub Alias was provided`)
-    }
+  protected constructor() {
 
     // Set default values for base properties.
-    this.engineContext    = engineContext;
     this.actionType       = AppxEngineActionType.UNSPECIFIED;
     this.actionName       = 'Unspecified Action';
+    this.clsDbgNs         = 'AppxEngineAction';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
@@ -93,7 +79,9 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      execute
-   * @param       {any}   actionOptions Optional. Any options that the command
+   * @param       {AppxEngineActionContext} actionContext Required. The context 
+   *              of the AppxEngine that is executing this action. 
+   * @param       {any} [actionOptions] Optional. Any options that the command
    *              execution logic will require in order to properly do its job.
    * @returns     {Promise<AppxEngineActionResult>}
    * @description Wraps custom logic that may perform any number of tasks into 
@@ -103,15 +91,21 @@ export abstract class AppxEngineAction {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(actionOptions:any={}):Promise<AppxEngineActionResult> {
+  public async execute(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<AppxEngineActionResult> {
 
-    // Reset the state of this Action.
+    // Validate the Action Context (implemented here by parent class)
+    this.validateActionContext(actionContext);
+
+    // Validate the Action Options (implemented by child class)
+    this.validateActionOptions(actionOptions);
+
+    // Reset the state of this Action (implemented here by parent class0)
     this.resetActionState();
 
     // Call the executeAction method and hendle success/errors
-    await this.executeAction(actionOptions)
-      .then(result => {this.onSuccess(result)})
-      .catch(error => {this.onError(error)});
+    await this.executeAction(actionContext, actionOptions)
+      .then(result => {this.onSuccess(actionContext, result)})
+      .catch(error => {this.onError(actionContext, error)});
 
     // Wait some number of seconds to give the user a chance to see the final status message.
     await waitASecond(this.successDelay);
@@ -123,14 +117,15 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
-   * @param       {Error} error ???? 
-   * @param       {any}   observer  ???? 
+   * @param       {AppxEngineActionContext} actionContext Required. ???
+   * @param       {Error} error ???
+   * @returns     {void}
    * @description ???
    * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(error:Error):any {
+  private onError(actionContext:AppxEngineActionContext, error:Error):void {
 
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, error, `AppxEngineAction:onError:error: `);
     throw error;
@@ -141,14 +136,15 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onSuccess
-   * @param       {any} result    ???? 
-   * @param       {any} observer  ???? 
+   * @param       {AppxEngineActionContext} actionContext Required. ???
+   * @param       {any} result  Required. ???
+   * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @public
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(result:any):any {
+  private onSuccess(actionContext:AppxEngineActionContext, result:any):void {
 
     // Debug
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, result, `${this.clsDbgNs}:onSuccess:result: `);
@@ -245,5 +241,29 @@ export abstract class AppxEngineAction {
     this.progressMessage  = '';
     this.errorMessage     = '';
     this.successMessage   = '';
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateActionContext
+   * @param       {AppxEngineActionContext} actionContext Required. ???
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private validateActionContext(actionContext:AppxEngineActionContext):void {
+
+    // VALIDATION: actionContext must be provided.
+    if (typeof actionContext === 'undefined') {
+      throw new Error (`ERROR_INVALID_ACTION_CONTEXT: Missing actionContxt object when `
+                      +`attempting to execute an AppxEngineAction`);
+    }
+
+    // VALIDATION: If the target is a Scratch Org, then a DevHub must be provided.
+    if (actionContext.targetOrg.isScratchOrg === true && (!actionContext.devHubAlias)) {
+      throw new Error (`ERROR_INVALID_ACTION_CONTEXT: Target Org is identified as a scratch org, but `
+                      +`a DevHub Alias was not provided`);
+    }
   }
 }

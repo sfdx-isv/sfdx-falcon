@@ -1,3 +1,5 @@
+import { Observable } from "rx";
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-types/index.d.ts
@@ -127,6 +129,28 @@ export interface FalconSequenceContext {
   logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   sequenceObserver:   any;
 }
+
+export interface ListrTask {
+  title:    string;
+  task:     ListrTaskFunction;
+  skip?:    boolean|ListrSkipFunction;
+  enabled?: boolean|ListrEnabledFunction;
+}
+export interface ListrEnabledFunction {
+  (context?:any):boolean;
+}
+export interface ListrSkipFunction {
+  (context?:any):boolean|string|Promise<boolean|string>;
+}
+export interface ListrTaskFunction {
+  (context?:any, task?:any):void|Promise<void>|Observable<any>; 
+}
+export interface ListrExecutionOptions {
+  listrContext: any;
+  listrTask:    any;
+  observer:     any;
+}
+
 
 export enum SfdxCliLogLevel {
   TRACE = 'trace',

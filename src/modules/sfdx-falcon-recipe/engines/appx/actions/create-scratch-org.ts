@@ -18,9 +18,10 @@ import {executeSfdxCommand}     from  '../../../../sfdx-falcon-executors/sfdx'; 
 import {SfdxShellResult}        from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
 
 // Import Internal Engine Modules
-import {AppxEngineAction}       from  '../../appx/actions';                       // Why?
-import {AppxEngineActionType}   from  '../../appx/';                              // Why?
-import {AppxEngineContext}      from  '../../appx/';                              // Why?
+import {AppxEngineAction}         from  '../../appx/actions';                       // Why?
+import {AppxEngineContext}        from  '../../appx/';                              // Why?
+import {AppxEngineActionContext}  from  '../../appx';                               // Why?
+import {AppxEngineActionType}     from  '../../appx/';                              // Why?
 
 // Set the File Local Debug Namespace
 const dbgNs = 'create-scratch-org-action';
@@ -40,16 +41,15 @@ export class CreateScratchOrgAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  CreateScratchOrgAction
-   * @param       {AppxEngineContext} engineContext ???? 
    * @description ???
    * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(engineContext:AppxEngineContext) {
+  constructor() {
 
     // Call parent constructor.
-    super(engineContext);
+    super();
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
@@ -72,11 +72,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionOptions:any={}):Promise<SfdxShellResult> {
-
-    // Validate Command Options
-    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
-    if (typeof actionOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxShellResult> {
 
     // Set the progress, error, and success messages for this action execution.
     this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
@@ -89,18 +85,18 @@ export class CreateScratchOrgAction extends AppxEngineAction {
       progressMsg:  this.progressMessage,
       errorMsg:     this.errorMessage,
       successMsg:   this.successMessage,
-      observer:     actionOptions.observer,
+      observer:     actionContext.listrExecOptions.observer,
       commandArgs:  [] as [string],
       commandFlags: {
-        FLAG_TARGETDEVHUBUSERNAME:  this.engineContext.devHubAlias,
-        FLAG_DEFINITIONFILE:        path.join(this.engineContext.configPath, actionOptions.scratchDefJson),
+        FLAG_TARGETDEVHUBUSERNAME:  actionContext.devHubAlias,
+        FLAG_DEFINITIONFILE:        path.join(actionContext.configPath, actionOptions.scratchDefJson),
         FLAG_SETALIAS:              actionOptions.scratchOrgAlias,
         FLAG_DURATIONDAYS:          30,
         FLAG_WAIT:                  10,
         FLAG_NONAMESPACE:           true,
         FLAG_SETDEFAULTUSERNAME:    true,
         FLAG_JSON:                  true,
-        FLAG_LOGLEVEL:              this.engineContext.logLevel
+        FLAG_LOGLEVEL:              actionContext.logLevel
       }
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${this.clsDbgNs}:execute:sfdxCommandDef: `);
@@ -108,4 +104,19 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
     return executeSfdxCommand(this.sfdxCommandDef);
   }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateActionOptions
+   * @param       {any}   actionOptions Required. ???
+   * @returns     {void}  
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected validateActionOptions(actionOptions:any):void {
+    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
+    if (typeof actionOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
+  }  
 }

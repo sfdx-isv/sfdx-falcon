@@ -67,6 +67,8 @@ export class SfdxFalconRecipe {
           get recipeTasks():any                         {return this._recipeTasks}
   private _recipeEngine:any;                            // Stores the Listr Tasks that will be run when the Recipe is executed.
           get recipeEngine():any                        {return this._recipeEngine}
+  private _validated:boolean;                           // TRUE if the recipe has been compiled.
+          get validated():boolean                       {return this._validated}
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -98,23 +100,24 @@ export class SfdxFalconRecipe {
     let recipePath = path.join(projectPath, recipeDirectory);
 
     // Read the SFDX-Falcon Recipe file specified by the caller.
-    let sfdxFalconRecipe:any = await SfdxFalconRecipe.resolveSfdxFalconRecipe(recipePath, recipeFile);
+    let recipe:any = await SfdxFalconRecipe.resolveSfdxFalconRecipe(recipePath, recipeFile);
 
     // Validate the overall Recipe before continuing.
-    SfdxFalconRecipe.validateOverallRecipe(sfdxFalconRecipe);
+    SfdxFalconRecipe.validate(recipe);
 
     // Instantiate an SfdxFalconRecipe object so we can populate and return it.
     let sfdxFR = new SfdxFalconRecipe();
 
+    sfdxFR._validated         = true;
     sfdxFR._projectPath       = projectPath;
-    sfdxFR._recipeName        = sfdxFalconRecipe.recipeName;
-    sfdxFR._description       = sfdxFalconRecipe.description;
-    sfdxFR._recipeType        = sfdxFalconRecipe.recipeType;
-    sfdxFR._recipeVersion     = sfdxFalconRecipe.recipeVersion;
-    sfdxFR._schemaVersion     = sfdxFalconRecipe.schemaVersion;
-    sfdxFR._options           = sfdxFalconRecipe.options;
-    sfdxFR._recipeStepGroups  = sfdxFalconRecipe.recipeStepGroups;
-    sfdxFR._handlers          = sfdxFalconRecipe.handlers;
+    sfdxFR._recipeName        = recipe.recipeName;
+    sfdxFR._description       = recipe.description;
+    sfdxFR._recipeType        = recipe.recipeType;
+    sfdxFR._recipeVersion     = recipe.recipeVersion;
+    sfdxFR._schemaVersion     = recipe.schemaVersion;
+    sfdxFR._options           = recipe.options;
+    sfdxFR._recipeStepGroups  = recipe.recipeStepGroups;
+    sfdxFR._handlers          = recipe.handlers;
 
     // Done with the initial read.  Return the SfdxFalconRecipe we just created.
     return sfdxFR;
@@ -206,7 +209,7 @@ export class SfdxFalconRecipe {
   
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      validateOverallRecipe
+   * @method      validate
    * @param       {SfdxFalconProjectContext}  sfdxFPC Required. ???
    * @returns     {void}  ???
    * @description ???
@@ -214,12 +217,24 @@ export class SfdxFalconRecipe {
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateOverallRecipe(sfdxFalconRecipe:any):void {
+  private static validate(sfdxFalconRecipe:any):void {
 
     // Validate top-level Falcon Recipe config.
     let validationResponse = SfdxFalconRecipe.validateTopLevelProperties(sfdxFalconRecipe);
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_RECIPE: The selected recipe has missing/invalid settings (${validationResponse}).`)
+    }
+
+    // Let the specific Recipe Engine take a shot at validation.
+    switch (sfdxFalconRecipe.recipeType) {
+      case RecipeType.APPX_DEMO:
+        AppxDemoConfigEngine.validateRecipe(sfdxFalconRecipe);
+        break;
+      case RecipeType.APPX_PACKAGE:
+        //AppxPackageConfigEngine.validateRecipe(sfdxFalconRecipe);
+        break;
+      default:
+        throw new Error (`ERROR_INVALID_RECIPE: The value '${sfdxFalconRecipe.recipeType}' is not a valid recipe type`)
     }
   }
 
