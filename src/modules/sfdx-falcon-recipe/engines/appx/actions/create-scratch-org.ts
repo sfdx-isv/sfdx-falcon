@@ -99,7 +99,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
         FLAG_LOGLEVEL:              actionContext.logLevel
       }
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${this.clsDbgNs}:execute:sfdxCommandDef: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${this.clsDbgNs}:executeAction:sfdxCommandDef: `);
 
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
     return executeSfdxCommand(this.sfdxCommandDef);

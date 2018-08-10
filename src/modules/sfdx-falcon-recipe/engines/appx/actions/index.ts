@@ -16,7 +16,6 @@ import {SfdxFalconDebug}          from  '../../../../sfdx-falcon-debug';        
 import {SfdxCommandDefinition}    from  '../../../../sfdx-falcon-executors/sfdx'; // Why?
 
 // Import Internal Engine Modules
-import {AppxEngineContext}        from  '../../../engines/appx';                  // Why?
 import {AppxEngineActionContext}  from  '../../../engines/appx';                  // Why?
 import {AppxEngineActionType}     from  '../../../engines/appx';                  // Why?
 import {AppxEngineActionResult}   from  '../../../engines/appx';                  // Why?
@@ -127,7 +126,7 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┘
   private onError(actionContext:AppxEngineActionContext, error:Error):void {
 
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, error, `AppxEngineAction:onError:error: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, error, `${this.clsDbgNs}:onError:error: `);
     throw error;
     // TODO: Add Implementation
 
@@ -147,7 +146,8 @@ export abstract class AppxEngineAction {
   private onSuccess(actionContext:AppxEngineActionContext, result:any):void {
 
     // Debug
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, result, `${this.clsDbgNs}:onSuccess:result: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, actionContext, `${this.clsDbgNs}:onSuccess:actionContext: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, result,        `${this.clsDbgNs}:onSuccess:result: `);
 
     // Prep the Action Result based on an (unexpected) string result.
     if (typeof result === 'string' || typeof result === 'undefined') {
