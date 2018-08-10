@@ -36,9 +36,9 @@ const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 // DEVTEST
 
-import {SfdxFalconRecipe} from '../../../modules/sfdx-falcon-recipe';
-import {CreateScratchOrg} from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
-import {SfdxCliLogLevel}  from '../../../modules/sfdx-falcon-types';           // Why?
+import {SfdxFalconRecipe}       from '../../../modules/sfdx-falcon-recipe';
+import {CreateScratchOrgAction} from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
+import {SfdxCliLogLevel}        from '../../../modules/sfdx-falcon-types';           // Why?
 
 // DEVTEST
 
@@ -123,6 +123,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
 
 
     // DEVTEST
+    /*
     let myStepContext = {
       devHubAlias:        ``,
       targetOrgAlias:     ``,
@@ -140,18 +141,20 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
       customOptionOne: 'Hooray',
       customOptionsTwo: 'Boo'
     };
-//    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
-
+    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
+    //*/
+    
     let recipeTest = await SfdxFalconRecipe.read('/Users/vchawla/git/ADK-projects/cloned/adk-project-1', 'demo-config', 'alternate-demo-config.json');
 
     let compileOptions = {
+//      targetOrgAlias:'fscdrivewealth-scratch-org-demo',
       optionOne: 'DEVTEST',
       optionsTwo: 'DEV222TEST',
-      targetOrgAlias:'fscdrivewealth-scratch-org-demo'
+      devHubAlias:  'PBO_DevHub'
     }
 
-    let results = await recipeTest.compile(compileOptions);
-
+    let compiledRecipe = await recipeTest.compile(compileOptions);
+    SfdxFalconDebug.obj('FALCON:DEVTEST', recipeTest, 'DEVTEST:compiledRecipe');
 
     return {};
 

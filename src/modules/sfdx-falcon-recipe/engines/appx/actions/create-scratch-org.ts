@@ -15,13 +15,11 @@ import * as path                from  'path';                                   
 // Import Local Modules
 import {SfdxFalconDebug}        from  '../../../../sfdx-falcon-debug';            // Why?
 import {executeSfdxCommand}     from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
-import {waitASecond}            from  '../../../../sfdx-falcon-async';            // Why?
+import {SfdxShellResult}        from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
 
 // Import Internal Engine Modules
 import {AppxEngineAction}       from  '../../appx/actions';                       // Why?
-import {AppxEngineActionResult} from  '../../appx';                               // Why?
 import {AppxEngineActionType}   from  '../../appx/';                              // Why?
-import {AppxEngineStepContext}  from  '../../appx/';                              // Why?
 import {AppxEngineContext}      from  '../../appx/';                              // Why?
 
 // Set the File Local Debug Namespace
@@ -32,9 +30,9 @@ const dbgNs = 'create-scratch-org-action';
 /**
  * @class       CreateScratchOrg
  * @extends     AppxEngineAction
- * @access      public
  * @description Implements the action "create-scratch-org".
  * @version     1.0.0
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class CreateScratchOrgAction extends AppxEngineAction {
@@ -53,27 +51,28 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     // Call parent constructor.
     super(engineContext);
 
-    // Set the Action Type
+    // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
     this.actionName       = 'Create Scratch Org';
     this.clsDbgNs         = 'CreateScratchOrgAction';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
-    
-    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      execute
-   * @returns     {void}
-   * @description ???
+   * @method      executeAction
+   * @param       {any}   actionOptions Optional. Any options that the command
+   *              execution logic will require in order to properly do its job.
+   * @returns     {Promise<AppxEngineActionResult>}
+   * @description Performs the custom logic that's wrapped by the execute method
+   *              of the base class.
    * @version     1.0.0
-   * @public @async
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(actionOptions:any={}):Promise<AppxEngineActionResult> {
+  protected async executeAction(actionOptions:any={}):Promise<SfdxShellResult> {
 
     // Validate Command Options
     if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
@@ -106,15 +105,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${this.clsDbgNs}:execute:sfdxCommandDef: `);
 
-    // Execute the SFDX Command using an SFDX Executor function.
-    await executeSfdxCommand(this.sfdxCommandDef)
-      .then(result => {this.onSuccess(result)})
-      .catch(error => {this.onError(error)});
-
-    // Wait some number of seconds to give the user a chance to see the final status message.
-    await waitASecond(this.successDelay);
-
-    // Return whatever was put together by the onSuccess() method.
-    return this.actionResult;
+    // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
+    return executeSfdxCommand(this.sfdxCommandDef);
   }
 }

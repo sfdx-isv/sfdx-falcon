@@ -5,7 +5,6 @@
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
  * @license       MIT
- * @requires      module:???
  * @summary       ???
  * @description   ???
  */
@@ -13,21 +12,14 @@
 // Import Local Modules
 import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';     // Why?
 import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';     // Why?
-import {TargetOrg}                from '../../../../modules/sfdx-falcon-recipe';     // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';      // Why?
-import { SfdxFalconDebug } from '../../../sfdx-falcon-debug';
+import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';
+
+// Set the File Local Debug Namespace
+const dbgNs = 'RecipeEngine:appx:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
-// Declare interfaces for AppxEngine
-// - AppxEngineContext/AppxEngineStepGroupContext/AppxEngineStepContext
-// - AppxEngineActionResult
-// - AppxEngineActionError
-// - AppxEngineActionType
-// - AppxEngineHandler
-// - AppxEngineStepGroup
-// - AppxEngineStep
-// - AppxEngineStepResult
-// - AppxEngineStepResultStatus
+// Declare interfaces for AppxEngine (and derived classes)
 //─────────────────────────────────────────────────────────────────────────────┘
 export interface AppxEngineContext {
   isExecuting:        boolean;
@@ -46,11 +38,17 @@ export interface AppxEngineContext {
 export interface AppxEngineStepGroupContext extends AppxEngineContext {
   stepGroupObserver:  any;
 }
-export interface AppxEngineStepContext extends AppxEngineStepGroupContext {
+export interface AppxEngineStepContext      extends AppxEngineStepGroupContext {
   stepObserver:  any;
 }
+export interface AppxEngineActionContext    extends AppxEngineStepContext {
+  actionObserver:  any;
+}
 export interface AppxEngineActionResult {
+  type:       AppxEngineActionType;
+  cmdDef:     any;
   status:     number;
+  message:    string;
   strResult:  string;
   objResult:  object;
 }
@@ -93,13 +91,19 @@ export enum AppxEngineStepResultStatus {
   WARNING = 'warning',
   ERROR   = 'error'  
 }
-
-
-
+interface TargetOrg {
+  orgName:        string;
+  alias:          string;
+  description:    string;
+  isScratchOrg:   boolean;
+  scratchDefJson: string;
+  orgReqsJson:    string;
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       AppxRecipeEngine
+ * @summary     ???
  * @description ???
  * @version     1.0.0
  * @public @abstract
@@ -108,43 +112,64 @@ export enum AppxEngineStepResultStatus {
 export abstract class AppxRecipeEngine {
 
   // Declare class member vars.
+  private   baseClsDbgNs:         string = 'AppxRecipeEngine';
   protected actionMap:            Map<string, any>;
   protected listrTasks:           any;
   protected recipe:               SfdxFalconRecipe;
   protected engineContext:        AppxEngineContext;
+  protected engineStatus:         SfdxFalconStatus;
 
   // Declare abstract methods.
   public    abstract async  execute(executionOptions:any):Promise<SfdxFalconStatus>;
   protected abstract async  executeStep(step:AppxEngineStep, observer:any):Promise<AppxEngineStepResult>;
-  protected abstract        initializeRecipeEngineContext(compileOptions:any):void;
-  protected abstract        initializeActionMap(compileOptions:any):void;
+  protected abstract async  initializeActionMap(compileOptions:any):Promise<void>;
+  protected abstract async  initializeRecipeEngineContext(compileOptions:any):Promise<void>;
+  protected abstract async  validateInnerRecipe(recipe:SfdxFalconRecipe):Promise<void>;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  AppxRecipeEngine
-   * @description ???
+   * @description Empty, private constructor. Instantiate with compileRecipe().
    * @version     1.0.0
-   * @public
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(recipe:SfdxFalconRecipe, compileOptions:any) {
+  protected constructor() {
+    // Constructor is INTENTIONALLY empty.  Do not add code here.
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      compile
+   * @param       {SfdxFalconRecipe}  recipe  Required.
+   * @param       {any}               compileOptions  Required.
+   * @returns     {Promise<any>} ???
+   * @description ???
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async compile(recipe:SfdxFalconRecipe, compileOptions:any):Promise<any> {
 
     // Validate the recipe.  If we make it through without an error, save a ref to this instance.
-    this.validateRecipe(recipe);
+    this.validateOuterRecipe(recipe);
+    this.validateInnerRecipe(recipe);
     this.recipe = recipe;
 
     // Initialize the Recipe Engine Context.
-    this.initializeRecipeEngineContext(compileOptions);
+    await this.initializeRecipeEngineContext(compileOptions);
 
     // Initialize the Action Map for this engine.
-    this.initializeActionMap(compileOptions);
+    await this.initializeActionMap(compileOptions);
  
     // Prepare the Listr Tasks.
     this.compileListrTasks(compileOptions);
 
     // We should be done by this point. Debug and return
-    SfdxFalconDebug.obj('FALCON_XL:appx-recipie-engine', this, `AppxRecipeEngine:constructor:this: `)
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, this, `${this.baseClsDbgNs}:constructor:this: `)
     return;
+
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -224,6 +249,16 @@ export abstract class AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected killExecution(errorMessage:string):void {
 
+    // Use a generic Error Message if one was not passed in to us.
+    if (errorMessage === '') {
+      errorMessage = 'ERROR_UNKOWN_EXCEPTION: An unknown error has occured';
+    }
+
+    // Stop the timer so we can get an accurate Run Time if desired.
+    this.engineStatus.stopTimer();
+
+    // Throw an error using the provided error message.
+    throw new Error(errorMessage);
 
 
   }
@@ -243,7 +278,7 @@ export abstract class AppxRecipeEngine {
   }
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      validateRecipe
+   * @method      validateOuterRecipe
    * @param       {SfdxFalconRecipe} recipe Required. 
    * @returns     {void}
    * @description ???
@@ -251,7 +286,7 @@ export abstract class AppxRecipeEngine {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private validateRecipe(recipe:SfdxFalconRecipe):void {
+  private validateOuterRecipe(recipe:SfdxFalconRecipe):void {
 
     // Make sure the Recipe contains an "options" key.
     if (typeof recipe.options === 'undefined') {
@@ -277,10 +312,9 @@ export abstract class AppxRecipeEngine {
                       +`${typeof recipe.options.haltOnError}`);
     }
     // Make sure there is an Array of Target Orgs
-    if (Array.isArray(recipe.options.targetOrgs) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array of Target Orgs must be provided in the `
-                      +`'options.targetOrgs' key of your recipe. The value you provided was of type `
-                      +`${typeof recipe.options.targetOrgs}`);
+    if (Array.isArray(recipe.options.targetOrgs) === false || recipe.options.targetOrgs.length < 1) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array with at least one Target Org must be provided in the `
+                      +`'options.targetOrgs' key of your recipe.`);
     }
     // Validate every member of the Taget Orgs array.
     for (let targetOrg of recipe.options.targetOrgs) {

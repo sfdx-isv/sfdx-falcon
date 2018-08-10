@@ -18,13 +18,22 @@ import * as path                        from  'path';                           
 import {SfdxCliLogLevel}                from  '../sfdx-falcon-types';             // Why?
 import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';  // Why?
 import {AppxDemoConfigEngine}           from  './engines/appx/demo-config';
+import {SfdxFalconStatus}               from  '../sfdx-falcon-status';                       // Why?
 
+//─────────────────────────────────────────────────────────────────────────────┐
+// Declare interfaces for SFDX-Falcon Recipes.
+//─────────────────────────────────────────────────────────────────────────────┘
+enum RecipeType {
+  APPX_DEMO     = 'appx:demo-recipe',
+  APPX_PACKAGE  = 'appx:package-recipe'
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconRecipe
- * @summary     ???
- * @description ???
+ * @summary     Represents an SFDX-Falcon "recipe"
+ * @description Use the SfdxFalconRecipe.read() static method to locate an SFDX-Falcon recipe in
+ *              the local environment and then provide compile/execute cabability on that recipe.
  * @version     1.0.0
  * @public
  */
@@ -37,17 +46,17 @@ export class SfdxFalconRecipe {
   private _description:string;                          // Short description (eg. "FSC-DriveWealth Demo")
           get description():string                      {return this._description}
   private _recipeType:RecipeType;                       // Type of recipe. (eg. "appx-demo-config")
-          get recipeType():RecipeType                   {return this._recipeType}       
+          get recipeType():RecipeType                   {return this._recipeType}
   private _recipeVersion:string;                        // Recipe version (eg. "1.0.0")
-          get recipeVersion():string                    {return this._recipeVersion}    
+          get recipeVersion():string                    {return this._recipeVersion}
   private _schemaVersion:string;                        // Schema version (eg. "1.0.0")
-          get schemaVersion():string                    {return this._schemaVersion}    
-  private _options:RecipeOptions;                       // Sets options for executing this recipe
-          get options():RecipeOptions                   {return this._options}          
+          get schemaVersion():string                    {return this._schemaVersion}
+  private _options:any;                                 // Sets options for executing this recipe
+          get options():any                             {return this._options}
   private _recipeStepGroups:Array<any>;                 // Groups of steps to execute when the recipe runs
-          get recipeStepGroups():Array<any>             {return this._recipeStepGroups} 
+          get recipeStepGroups():Array<any>             {return this._recipeStepGroups}
   private _handlers:Array<any>;                         // Special handler actions
-          get handlers():Array<any>                     {return this._handlers}         
+          get handlers():Array<any>                     {return this._handlers}
 
   // Define read-only vars that DO NOT come from the Recipe File.
   private _compiled:boolean;                            // TRUE if the recipe has been compiled.
@@ -58,6 +67,19 @@ export class SfdxFalconRecipe {
           get recipeTasks():any                         {return this._recipeTasks}
   private _recipeEngine:any;                            // Stores the Listr Tasks that will be run when the Recipe is executed.
           get recipeEngine():any                        {return this._recipeEngine}
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  SfdxFalconRecipe
+   * @description EMPTY CONSTRUCTOR. SfdxFalconRecipe.read() should be used to
+   *              instantiate SFDX Falcon Recipes.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private constructor() {
+    // Intentionally Empty.
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -114,7 +136,7 @@ export class SfdxFalconRecipe {
     // Figure out which Engine to use
     switch (this._recipeType) {
       case RecipeType.APPX_DEMO:
-        this._recipeEngine = new AppxDemoConfigEngine(this, compileOptions);
+        this._recipeEngine = await AppxDemoConfigEngine.compileRecipe(this, compileOptions);
         break;
       case RecipeType.APPX_PACKAGE:
         //this._recipeEngine = new AppxPackageRecipeEngine(this, compileOptions);
@@ -126,15 +148,20 @@ export class SfdxFalconRecipe {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxFalconRecipe
-   * @description Empty constructor. SfdxFalconRecipe.read() should be used to
-   *              instantiate SFDX Falcon Recipes.
+   * @method      execute
+   * @param       {any}  executionOptions Optional. ???
+   * @returns     {Promise<any>}  ???
+   * @description ???
    * @version     1.0.0
-   * @private
+   * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private constructor() {
-    // Intentionally Empty.
+  public async execute(executionOptions:any={}):Promise<any> {
+
+    // Ask the compiled engine to Execute.
+    await this._recipeEngine.execute(executionOptions);
+
+    // TODO: Implement then() and catch() for the above call.
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -229,93 +256,3 @@ export class SfdxFalconRecipe {
     }
   }
 } // End of SfdxFalconRecipe class.
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       RecipeOptions
- * @summary     ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-class RecipeOptions {
-  private _haltOnError:boolean;             // Why?
-          get haltOnError():boolean         {return this._haltOnError}
-  private _skipGroups:Array<string>;        // Why?
-          get skipGroups():Array<string>    {return this._skipGroups}
-  private _skipActions:Array<string>;       // Why?
-          get skipActions():Array<string>   {return this._skipActions}
-  private _targetOrgs:Array<TargetOrg>;     // Why?
-          get targetOrgs():Array<TargetOrg> {return this._targetOrgs}
-
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       RecipeStepGroup
- * @summary     ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class RecipeStepGroup {
-  stepGroupName:  string;
-  alias:          string;
-  description:    string;
-  recipeSteps:    Array<any>;
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       RecipeStep
- * @summary     ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class RecipeStep {
-  stepName:  string;
-  description:    string;
-  action:         string;
-  options:        {any};
-  onSuccess:      string;
-  onError:        string;
-}
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @enum        RecipeType
- * @summary     ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-enum RecipeType {
-  APPX_DEMO     = 'appx:demo-recipe',
-  APPX_PACKAGE  = 'appx:package-recipe'
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       TargetOrg
- * @summary     ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class TargetOrg {
-  public  orgName:        string;
-  public  alias:          string;
-  public  description:    string;
-  public  isScratchOrg:   boolean;
-  public  scratchDefJson: string;
-  public  orgReqsJson:    string;
-}
-
-
