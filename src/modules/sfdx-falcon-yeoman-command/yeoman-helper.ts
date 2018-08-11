@@ -31,12 +31,23 @@ export interface ConfirmationAnswers {
   abort:    boolean;
 }
 export interface YeomanChoice {
-  name:   string;
-  value:  string;
-  short:  string;
-  type?:  string;
-  line?:  string;
+  name:       string;
+  value:      string;
+  short:      string;
+  type?:      string;
+  line?:      string;
 }
+export interface YeomanCheckboxChoice extends YeomanChoice {
+  key?:       string;
+  checked?:   boolean;
+  disabled?:  boolean|string|YeomanChoiceDisabledFunction;
+}
+export interface YeomanChoiceDisabledFunction {
+  (answers:any):boolean|string
+}
+
+
+
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Initialize debug settings.  These should be set FALSE to give the caller
