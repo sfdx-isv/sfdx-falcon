@@ -17,7 +17,6 @@ import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';
 import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';  // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';   // Why?
 import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';              // Why?
-import {ListrTask}                from '../../../sfdx-falcon-types';              // Why?
 import {ListrExecutionOptions}    from '../../../sfdx-falcon-types';              // Why?
 
 // Require Modules
@@ -25,25 +24,29 @@ const Listr                 = require('listr');                                 
 const FalconUpdateRenderer  = require('falcon-listr-update-renderer');            // Custom renderer for Listr
 
 // Set the File Local Debug Namespace
-const dbgNs = 'RecipeEngine:appx:';
+const dbgNs     = 'RecipeEngine:appx:';
+const clsDbgNs  = 'AppxRecipeEngine:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Declare interfaces for AppxEngine (and derived classes)
 //─────────────────────────────────────────────────────────────────────────────┘
 export interface AppxEngineContext {
-  isExecuting:        boolean;
   compileOptions:     any;
-  devHubAlias:        string;
-  targetOrg:          TargetOrg;
+  recipeObserver:     any;
+  executing:          boolean;
+  initialized:        boolean;
   haltOnError:        boolean;
+  skipGroups:         Array<string>;
+  skipActions:        Array<string>;
+  devHubAlias:        string;
   projectPath:        string;
   configPath:         string;
   mdapiSourcePath:    string;
   sfdxSourcePath:     string;
   dataPath:           string;
   logLevel:           SfdxCliLogLevel;
-  recipeObserver:     any;
   status:             SfdxFalconStatus;
+  targetOrg:          TargetOrg;
 }
 export interface AppxEngineActionContext extends AppxEngineContext {
   listrExecOptions:  ListrExecutionOptions;
@@ -52,12 +55,13 @@ export interface AppxEngineActionExecutor {
   (actionContext:AppxEngineActionContext, actionOptions:any):Promise<AppxEngineActionResult>;
 }
 export interface AppxEngineActionResult {
-  type:       AppxEngineActionType;
-  cmdDef:     any;
-  status:     number;
-  message:    string;
-  strResult:  string;
-  objResult:  object;
+  action:     string;                 // Name (identifier) of the executed Action
+  type:       AppxEngineActionType;   // Type of Action being executed (ie. CLI or JSForce)
+  cmdDef:     any;                    // The "command definition". Varies by type of command.
+  status:     number;                 // Status indicator, taken from executed command. 
+  message:    string;                 // Brief message on what happened when the action was executed.
+  strResult:  string;                 // Result of the executed command as a string.
+  objResult:  object;                 // If the result can be converted to an object, this would hold it.
 }
 export interface AppxEngineActionError {
   actionContext:  AppxEngineActionContext;
@@ -98,7 +102,7 @@ export enum AppxEngineStepResultStatus {
   WARNING = 'warning',
   ERROR   = 'error'  
 }
-interface TargetOrg {
+export interface TargetOrg {
   orgName:        string;
   alias:          string;
   description:    string;
@@ -119,17 +123,23 @@ interface TargetOrg {
 export abstract class AppxRecipeEngine {
 
   // Declare class member vars.
-  private   baseClsDbgNs:         string = 'AppxRecipeEngine';
   protected actionExecutorMap:    Map<string, any>;
   protected listrTasks:           any;
   protected recipe:               SfdxFalconRecipe;
+  protected preBuildStepGroups:   Array<AppxEngineStepGroup>;
+  protected postBuildStepGroups:  Array<AppxEngineStepGroup>;
   protected engineContext:        AppxEngineContext;
   protected engineStatus:         SfdxFalconStatus;
 
   // Declare abstract methods.
-  public    abstract async  execute(executionOptions:any):Promise<SfdxFalconStatus>;
-  protected abstract async  initializeActionMap():Promise<void>;
+  public    abstract async  execute(executionOptions:any):  Promise<SfdxFalconStatus>;
+  protected abstract async  initializeActionMap():          Promise<void>;
+  protected abstract async  initializePostBuildStepGroups():Promise<void>;
+  protected abstract async  initializePreBuildStepGroups(): Promise<void>;
   protected abstract async  initializeRecipeEngineContext():Promise<void>;
+  protected abstract async  initializeSkipActions():        Promise<void>;
+  protected abstract async  initializeSkipGroups():         Promise<void>;
+  protected abstract async  initializeTargetOrg():          Promise<void>;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -164,21 +174,66 @@ export abstract class AppxRecipeEngine {
       this.recipe = recipe;
     }
 
-    // Initialize the Engine Context object and set the Compile Options to what was passed in.
-    this.engineContext = <AppxEngineContext>{};
+    // Initialize object/array member variables.
+    this.engineContext        = <AppxEngineContext>{};
+    this.engineStatus         = new SfdxFalconStatus();
+    this.preBuildStepGroups   = new Array<AppxEngineStepGroup>();
+    this.postBuildStepGroups  = new Array<AppxEngineStepGroup>();
+
+    // Save any compile options passed in by the caller.
     this.engineContext.compileOptions = compileOptions;
 
     // Initialize the Recipe Engine Context (implemented inside child class)
     await this.initializeRecipeEngineContext();
 
+    // Initialize the pre-build Step Groups (implemented inside child class)
+    await this.initializePreBuildStepGroups();
+
+    // Initialize the post-build Step Groups (implemented inside child class)
+    await this.initializePostBuildStepGroups();
+
+    // Initialize the Target Org (implemented inside child class).
+    await this.initializeTargetOrg();
+
+    // Initialize the Skip Groups (implemented inside child class).
+    await this.initializeSkipActions();
+
+    // Initialize the Skip Groups (implemented inside child class).
+    await this.initializeSkipGroups();
+
     // Initialize the Action Map for this engine (implemented inside child class).
     await this.initializeActionMap();
- 
-    // Prepare all Listr Tasks for this recipe (implemented here inside parent class)
-    this.listrTasks = this.compileParentTasks(this.recipe.recipeStepGroups);
+
+    // Validate Engine Initialization (implemented here inside parent class).
+    this.validateEngine();
+
+    // Compile all of the Listr Tasks for this engine (implemented here inside parent class)
+    this.compileAllTasks();
 
     // We should be done by this point. Debug and return.
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, this, `${this.baseClsDbgNs}:constructor:this: `)
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, this, `${clsDbgNs}constructor:this: `)
+    return;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      compileAllTasks
+   * @returns     {void}
+   * @description Compiles all of the Listr tasks required by the recipe and
+   *              adds them to the listrTasks member var.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private compileAllTasks():void {
+
+    // Make sure the Engine Context has been marked as initialized.
+    if (this.engineContext.initialized !== true) {
+      throw new Error (`ERROR_ENGINE_NOT_INITIALIZED: The engine must be fully initialized before `
+                      +`compiling all tasks.`);
+    }
+    // Call compileParentTasks() from the Recipe's "Step Group root" and all tasks should compile.
+    this.listrTasks = this.compileParentTasks(this.recipe.recipeStepGroups);
     return;
   }
 
@@ -340,7 +395,7 @@ export abstract class AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private skipAction(actionToCheck:string=''):boolean {
-    return this.recipe.options.skipActions.includes(actionToCheck);
+    return this.engineContext.skipActions.includes(actionToCheck);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -354,7 +409,7 @@ export abstract class AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private skipGroup(groupToCheck:string=''):boolean {
-    return this.recipe.options.skipGroups.includes(groupToCheck);
+    return this.engineContext.skipGroups.includes(groupToCheck);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -402,6 +457,53 @@ export abstract class AppxRecipeEngine {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      validateEngine
+   * @returns     {void}
+   * @description Validates the overall state of the AppxRecipeEngine and 
+   *              determines if it is ready for compilation.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private validateEngine():void {
+
+    // Make sure the Action/Executor Map exists and has at least one mapped action.
+    if (this.actionExecutorMap instanceof Map && this.actionExecutorMap.size > 0) {
+      throw new Error (`ERROR_INVALID_ENGINE: actionExecutorMap is invalid or empty. `
+                      +`Check your implementation of initializeActionMap() to troubleshoot.`);
+    }
+    // Make sure the Engine has an array of pre-build Step Groups (OK if array is empty)
+    if (Array.isArray(this.preBuildStepGroups) === false) {
+      throw new Error (`ERROR_INVALID_ENGINE: preBuildStepGroups is not an array. `
+                      +`Check your implementation of initializePreBuildStepGroups() to troubleshoot.`);
+    }
+    // Make sure the Engine has an array of post-build Step Groups (OK if array is empty)
+    if (Array.isArray(this.postBuildStepGroups) === false) {
+      throw new Error (`ERROR_INVALID_ENGINE: postBuildStepGroups is not an array. `
+                      +`Check your implementation of initializePostBuildStepGroups() to troubleshoot.`);
+    }
+    // Make sure the Engine Context has a Target Org with an alias
+    if ((! this.engineContext.targetOrg)  || (! this.engineContext.targetOrg.alias)) {
+      throw new Error (`ERROR_INVALID_ENGINE_CONTEXT: engineContext.targetOrg is invalid or empty. `
+                      +`Check your implementation of initializeTargetOrg() to troubleshoot.`);
+    }
+    // Make sure the Engine Context has an Array of Skip Actions
+    if (Array.isArray(this.engineContext.skipActions) === false) {
+      throw new Error (`ERROR_INVALID_ENGINE_CONTEXT: engineContext.skipActions is invalid. `
+                      +`Check your implementation of initializeSkipActions() to troubleshoot.`);
+    }
+    // Make sure the Engine Context has an Array of Skip Groups
+    if (Array.isArray(this.engineContext.skipGroups) === false) {
+      throw new Error (`ERROR_INVALID_ENGINE_CONTEXT: engineContext.skipGroups is invalid. `
+                      +`Check your implementation of initializeSkipGroups() to troubleshoot.`);
+    }
+    // If we get here, it's safe to say the engine has been successfully initialized.
+    this.engineContext.initialized = true;
+    return;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      validateHandler
    * @param       {AppxEngineHandler} handler Required. 
    * @returns     {void}
@@ -411,8 +513,10 @@ export abstract class AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static validateHandler(handler:AppxEngineHandler):void {
+
     // TODO: Implement this validation method.
   }
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateOuterRecipe

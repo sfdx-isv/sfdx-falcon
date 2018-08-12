@@ -20,20 +20,33 @@ import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepResult}     from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineContext}        from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+import {TargetOrg}                from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';            // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';             // Why?
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
+import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 
 // Import Actions supported by this engine (appx:demo-config).
-import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';        // Why?
+import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';          // Why?
 
 // Requires
 const inquirer  = require('inquirer');                                              // Provides UX for getting feedback from the user.
 const chalk     = require('chalk');                                                 // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs = 'RecipeEngine:appx:demo-config:';
+const dbgNs     = 'RecipeEngine:appx:demo-config:';
+const clsDbgNs  = 'AppxDemoConfigEngine:';
 
+//─────────────────────────────────────────────────────────────────────────────┐
+// Declare interfaces for AppxDemoConfigEngine
+//─────────────────────────────────────────────────────────────────────────────┘
+export interface AppxDemoConfigCompileOptions {
+  targetOrgAlias: string;
+  haltOnError:    boolean;
+  skipOrgRefresh: boolean;
+  skipGroups:     Array<string>;
+  skipActions:    Array<string>;
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -47,8 +60,128 @@ const dbgNs = 'RecipeEngine:appx:demo-config:';
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
-  // Only define clsDbgNs. Everything else is in the base class.
-  private clsDbgNs:string = 'AppxDemoConfigEngine';
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      askUserForSkipGroups
+   * @returns     {Promise<Array<string>>} Resolves with an Array of strings
+   *              representing the FINAL set of "Skip Groups".  This will end
+   *              up determining what actually gets compiled.
+   * @description Runs an Inquirer interview to present the user with a list of
+   *              Step groups and the ability to select/deselect them to 
+   *              compose the final set of "Skip Groups".
+   * @version     1.0.0
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async askUserForSkipGroups():Promise<Array<string>> {
+  
+    let iqPromptOne = [
+      {
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
+        message:  'Set advanced options now?',
+        when:     true
+      },
+      {
+        type:     'confirm',
+        name:     'reallyProceed',
+        default:  false,
+        message:  (answerHash) => {
+          return `${chalk.red('Warning:')} Only advanced users should set these options. Proceed anyway?`
+        },
+        when:     (answerHash) => {
+          return (answerHash.proceed);
+        }
+      }
+    ];
+
+    // Prompt the user, then return the current SkipGroups (basically, user is accepting defaults).
+    console.log('');
+    let userSelectionsOne = await inquirer.prompt(iqPromptOne);
+    if (userSelectionsOne.reallyProceed === false) {
+      return this.recipe.options.skipGroups;
+    }
+
+    // If we get here, we're going to ask the user to customize which StepGroups will execute.
+    // Start by defining the choices array for Inquirer.
+    let stepGroupChoices = new Array<YeomanCheckboxChoice>();
+    for (let recipeStepGroup of this.recipe.recipeStepGroups as Array<AppxEngineStepGroup>) {
+      stepGroupChoices.push({
+        name:     recipeStepGroup.stepGroupName,
+        value:    recipeStepGroup.alias,
+        short:    recipeStepGroup.stepGroupName,
+        checked:  (! this.recipe.options.skipGroups.includes(recipeStepGroup.alias))
+      });
+    }
+
+    // Define the Inquirer Prompt (this powers the user interatcion in the CLI).
+    let iqPromptTwo = [
+      {
+        type:     'checkbox',
+        name:     'stepGroupChoices',
+        message:  'Which install steps should be executed?',
+        choices:  stepGroupChoices,
+        pageSize: 8,
+        filter:  (userInput) => {
+          for (let stepGroupChoice of stepGroupChoices) {
+            if (userInput.includes(stepGroupChoice.value)) stepGroupChoice.checked = true;
+            else stepGroupChoice.checked = false;            
+          }
+          return userInput;
+        }
+      },
+      {
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
+        message:  (answerHash) => {
+          return  `Proceed with installation?`
+        },
+        when:     true
+      },
+      {
+        type: 'confirm',
+        name: 'tryAgain',
+        message:  (answerHash) => {
+          return `Would you like to change your selections?`
+        },
+        when:     (answerHash) => {
+          return (! answerHash.proceed);
+        }
+      }
+    ];
+
+    // Run the Inquirer prompt in a loop until the user wants out.
+    let userSelectionsTwo
+    do {
+      console.log('');
+      userSelectionsTwo = await inquirer.prompt(iqPromptTwo);
+    } while (userSelectionsTwo.proceed === false && userSelectionsTwo.tryAgain === true)
+
+    // One more line break.
+    console.log('');
+
+    // Debug
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelectionsTwo, `${clsDbgNs}askUserForSkipGroups:userSelections: `);
+
+    // If the user did not affirmatively ask to PROCEED, then we must exit.
+    if (userSelectionsTwo.proceed === false) {
+      throw new Error(`INSTALLATION_CANCELLED: Installation cancelled at user's request`);
+    }
+
+    // Go through the stepGroupChoices and build final Skip Groups using choices marked FALSE.
+    let finalSkipGroups = new Array<string>();
+    for (let stepGroupChoice of stepGroupChoices) {
+      if (stepGroupChoice.checked === false) {
+        finalSkipGroups.push(stepGroupChoice.value);
+      }
+    }
+
+    // Done! This list of Skip Groups should be respected when the recipe is compiled.
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, finalSkipGroups, `${clsDbgNs}askUserForSkipGroups:finalSkipGroups: `);
+    return finalSkipGroups;
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -80,7 +213,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     targetOrgChoices.push({
       name:   `Cancel Installation`,
       value:  `CANCEL_INSTALLATION`,
-      short:  `Demo Installation Canceled`
+      short:  `Installation Canceled`
     });
     
     // Define the Inquirer Prompt (this powers the user interatcion in the CLI).
@@ -135,11 +268,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
       userSelections = await inquirer.prompt(iqPrompt);
     } while (userSelections.proceed === false && userSelections.tryAgain === true)
 
-    // One more line break.
-    console.log('');
-
     // Debug
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelections, `${this.clsDbgNs}:askUserForTargetOrgAlias:userSelections: `);
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelections, `${clsDbgNs}askUserForTargetOrgAlias:userSelections: `);
 
     // If the user did not affirmatively ask to PROCEED, then we must exit.
     if (userSelections.proceed === false) {
@@ -206,7 +336,70 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Build a map of Action "aliases" to function 
     this.actionExecutorMap = new Map<string, any>();
     this.actionExecutorMap.set('create-scratch-org', new CreateScratchOrgAction());
-     
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializePostBuildStepGroups
+   * @returns     {Promise<void>}  ???
+   * @description ???
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async initializePostBuildStepGroups():Promise<void> {
+    // Intentionally empty. No post-build steps needed for AppxDemoConfigEngine.
+    // DEBUG (see all the pre-build step groups added in this call).
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.postBuildStepGroups, `${clsDbgNs}initializePostBuildStepGroups:this.postBuildStepGroups: `);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializePreBuildStepGroups
+   * @returns     {Promise<void>}  ???
+   * @description ???
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async initializePreBuildStepGroups():Promise<void> {
+
+    // If the Target Org is scratch AND skipOrgRefresh not specified as a compile option
+    if (this.engineContext.targetOrg.isScratchOrg && this.engineContext.compileOptions.skipOrgRefresh !== true) {
+
+      // Build an additional Recipe Step Group (RSG) to handle scratch org refresh.
+      let rebuildScratchOrgRSG:AppxEngineStepGroup = {
+        stepGroupName:  "Refresh Scratch Org",
+        alias:          "appx:demo-recipe:rebuild-scratch-org",
+        description:    "Refresh (delete then create) the target scratch org before installing the demo",
+        recipeSteps:  [
+          {
+            stepName:     'Delete Current Scratch Org',
+            description:  'Deletes the current scratch org',
+            action:       'delete-scratch-org',
+            options:  {
+              scratchOrgAlias:  `${this.engineContext.targetOrg.alias}`
+            }
+          },
+          {
+            stepName:     'Create New Scratch Org',
+            description:  'Creates a new scratch org for this demo',
+            action:       'create-scratch-org',
+            options:  {
+              scratchOrgAlias:  `${this.engineContext.targetOrg.alias}`,
+              scratchDefJson:   `${this.engineContext.targetOrg.scratchDefJson}`
+            }
+          }
+        ]
+      };
+
+      // Add the new "Rebuild Scratch Org" Step Group to the pre-build Step Groups array.
+      this.preBuildStepGroups.push(rebuildScratchOrgRSG);
+    }
+
+    // DEBUG (see all the pre-build step groups added in this call).
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.preBuildStepGroups, `${clsDbgNs}initializePreBuildStepGroups:this.preBuildStepGroups: `);
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -219,17 +412,19 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async initializeRecipeEngineContext():Promise<void> {
+
+    // Make sure that the recipe has been set and validated.
     if (typeof this.recipe === 'undefined' || this.recipe.validated !== true) {
       throw new Error (`ERROR_RECIPE_NOT_VALIDATED: The call to initializeRecipeEngineContext () `
                       +`was made before the incoming recipe was validated`);
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext.compileOptions, `${this.clsDbgNs}:initializeRecipeEngineContext:this.engineContext.compileOptions: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext.compileOptions, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext.compileOptions: `);
 
     // Initialize basic context values
-    this.engineContext.isExecuting    = false;
-    this.engineContext.devHubAlias    = this.engineContext.compileOptions.devHubAlias;
-    this.engineContext.haltOnError    = this.recipe.options.haltOnError;
-    this.engineContext.status         = new SfdxFalconStatus();
+    this.engineContext.executing    = false;
+    this.engineContext.devHubAlias  = this.engineContext.compileOptions.devHubAlias;
+    this.engineContext.haltOnError  = this.recipe.options.haltOnError;
+    this.engineContext.status       = new SfdxFalconStatus();
 
     // Set all the path related context values.
     this.engineContext.projectPath      = this.recipe.projectPath;
@@ -241,39 +436,93 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Set the log level. Default to ERROR if not specifed
     this.engineContext.logLevel = this.engineContext.compileOptions.logLevel || SfdxCliLogLevel.ERROR;
 
-    // Finally, initialize the Target Org
-    await this.initializeTargetOrg(this.engineContext.compileOptions.targetOrgAlias);
+
+    // Final DEBUG before returning.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializeSkipActions
+   * @returns     {Promise<void>} ???
+   * @description ???
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async initializeSkipActions():Promise<void> {
+
+    // If Compile Options define Skip Actions, that overrides the recipe.
+    if (Array.isArray(this.engineContext.compileOptions.skipActions)) {
+      this.engineContext.skipActions = this.engineContext.compileOptions.skipActions
+      return;
+    }
+
+    // If we get here, just use the Skip Actions from the Recipe.
+    this.engineContext.skipActions = this.recipe.options.skipActions;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializeSkipGroups
+   * @returns     {Promise<void>} ???
+   * @description ???
+   * @version     1.0.0
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async initializeSkipGroups():Promise<void> {
+
+    // If Compile Options define Skip Groups, that overrides the recipe AND user choice.
+    if (Array.isArray(this.engineContext.compileOptions.skipGroups)) {
+      this.engineContext.skipGroups = this.engineContext.compileOptions.skipGroups
+      return;
+    }
+
+    // Check if the Recipe allows the user to customize the installation.
+    if (this.recipe.options.noCustomInstall) {
+      this.engineContext.skipGroups = this.recipe.options.skipGroups;
+      return;
+    }
+
+    // If we get here, then we let the user decide what the Skip Groups are.
+    this.engineContext.skipGroups = await this.askUserForSkipGroups();
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      initializeTargetOrg
-   * @param       {string}  targetOrgAlias ???? 
-   * @returns     {void} ???
+   * @returns     {Promise<void>} ???
    * @description ???
    * @version     1.0.0
-   * @private @async
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private async initializeTargetOrg(targetOrgAlias:string):Promise<void> {
+  protected async initializeTargetOrg():Promise<void> {
 
-    // If Target Org Alias was NOT provided, ask the user to choose one of the defined targetOrgs.
+    // If Target Org Alias not provided in Compile Options, ask user to choose one of the defined targetOrgs.
+    let targetOrgAlias = this.engineContext.compileOptions.targetOrgAlias;
     if (! targetOrgAlias) {
       targetOrgAlias = await this.askUserForTargetOrgAlias()
     }
 
-    // Make sure the Target Org Option matches one of the target orgs.
+    // Make sure the Target Org Option matches one of the target orgs in the recipe.
+    let selectedTargetOrg = null;
     for (let targetOrg of this.recipe.options.targetOrgs) {
       if (targetOrg.alias === targetOrgAlias) {
-        this.engineContext.targetOrg = targetOrg;
+        selectedTargetOrg = targetOrg;
       }
     }
 
     // Make sure we found a match and populated the targetOrg member var.
-    if (typeof this.engineContext.targetOrg === 'undefined') {
+    if (selectedTargetOrg === null) {
       throw new Error (`ERROR_COMPILE_RECIPE_FAILED: The specified Target Org Alias '${targetOrgAlias}'  `
                       +`does not match any of the targetOrgs in your recipe`);
     }
+
+    // Set the Engine Context's Target Org.
+    this.engineContext.targetOrg = selectedTargetOrg;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

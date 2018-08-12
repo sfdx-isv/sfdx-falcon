@@ -15,10 +15,12 @@ import * as core                        from  '@salesforce/core';               
 import * as path                        from  'path';                             // Why?
 
 // Local Imports
-import {SfdxCliLogLevel}                from  '../sfdx-falcon-types';             // Why?
 import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';  // Why?
 import {AppxDemoConfigEngine}           from  './engines/appx/demo-config';
-import {SfdxFalconStatus}               from  '../sfdx-falcon-status';                       // Why?
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'sfdx-falcon-recipe:';
+const clsDbgNs  = 'SfdxFalconRecipe:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Declare interfaces for SFDX-Falcon Recipes.
@@ -134,7 +136,7 @@ export class SfdxFalconRecipe {
   //───────────────────────────────────────────────────────────────────────────┘
   public async compile(compileOptions:any={}):Promise<void> {    
 
-    SfdxFalconDebug.obj('FALCON_EXT:sfdx-falcon-recipe', compileOptions, `SfdxFalconRecipe:compile:compileOptions: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, compileOptions, `${clsDbgNs}compile:compileOptions: `);
 
     // Figure out which Engine to use
     switch (this._recipeType) {
@@ -187,7 +189,7 @@ export class SfdxFalconRecipe {
       isGlobal:   false,
       isState:    false,
     }
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-recipe', configOptions, `SfdxFalconRecipe:resolveSfdxFalconRecipe:configOptions: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
 
     // Using the options set above, retrieve the SFDX-Falcon Recipe file.
     let sfdxFalconRecipeFile = await core.ConfigFile.retrieve(configOptions);
@@ -197,11 +199,11 @@ export class SfdxFalconRecipe {
       let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
       throw new Error(`ERROR_CONFIG_NOT_FOUND: Recipe does not exist - ${combinedPath}`);
     }
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-recipe', sfdxFalconRecipeFile, `SfdxFalconRecipe:resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconRecipeFile, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
 
     // Convert the SFDX-Falcon Recipe file to an object
     let sfdxFalconRecipe:any = sfdxFalconRecipeFile.toObject() as any;
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-recipe', sfdxFalconRecipe, `SfdxFalconRecipe:resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconRecipe, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
 
     // Done. Return the resolved Recipe object to the caller.
     return sfdxFalconRecipe;
@@ -220,10 +222,7 @@ export class SfdxFalconRecipe {
   private static validate(sfdxFalconRecipe:any):void {
 
     // Validate top-level Falcon Recipe config.
-    let validationResponse = SfdxFalconRecipe.validateTopLevelProperties(sfdxFalconRecipe);
-    if (validationResponse !== true) {
-      throw new Error(`ERROR_INVALID_RECIPE: The selected recipe has missing/invalid settings (${validationResponse}).`)
-    }
+    SfdxFalconRecipe.validateTopLevelProperties(sfdxFalconRecipe);
 
     // Let the specific Recipe Engine take a shot at validation.
     switch (sfdxFalconRecipe.recipeType) {
@@ -242,15 +241,14 @@ export class SfdxFalconRecipe {
   /**
    * @method      validateTopLevelProperties
    * @param       {any}  sfdxFalconRecipe Required. ???
-   * @returns     {boolean|Array<string>}  Returns TRUE if the top-level
-   *              properties of the Recipe are valid. If not valid, returns an
-   *              array of strings listing each key that had an invalid value.
-   * @description ???
+   * @returns     {void}  Throws Error listring invalid/missing top-level keys.
+   * @description Given an SFDX-Falcon Recipe, throws an error with a list of
+   *              missing/invalid keys. Nothing happens validation is successful.
    * @version     1.0.0
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateTopLevelProperties(sfdxFalconRecipe:any):boolean|Array<string>  {
+  private static validateTopLevelProperties(sfdxFalconRecipe:any):void  {
     let invalidConfigKeys = new Array<string>();
 
     // Validate the high-level recipe config
@@ -263,11 +261,9 @@ export class SfdxFalconRecipe {
     if (! sfdxFalconRecipe.recipeStepGroups)   invalidConfigKeys.push('recipeStepGroups');
     if (! sfdxFalconRecipe.handlers)           invalidConfigKeys.push('handlers');
 
+    // Check if any invalid keys were found.
     if (invalidConfigKeys.length > 0) {
-      return invalidConfigKeys;
-    }
-    else {
-      return true;
+      throw new Error(`ERROR_INVALID_RECIPE: The selected recipe has missing/invalid settings (${invalidConfigKeys}).`)
     }
   }
 } // End of SfdxFalconRecipe class.

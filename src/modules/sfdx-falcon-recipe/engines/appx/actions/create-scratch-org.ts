@@ -24,7 +24,8 @@ import {AppxEngineActionContext}  from  '../../appx';                           
 import {AppxEngineActionType}     from  '../../appx/';                              // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs = 'create-scratch-org-action';
+const dbgNs     = 'create-scratch-org-action:';
+const clsDbgNs  = 'CreateScratchOrgAction:';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -53,8 +54,8 @@ export class CreateScratchOrgAction extends AppxEngineAction {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
-    this.actionName       = 'Create Scratch Org';
-    this.clsDbgNs         = 'CreateScratchOrgAction';
+    this.actionName       = 'create-scratch-org';
+    this.description      = 'Create Scratch Org';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
@@ -99,7 +100,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
         FLAG_LOGLEVEL:              actionContext.logLevel
       }
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${this.clsDbgNs}:executeAction:sfdxCommandDef: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
     return executeSfdxCommand(this.sfdxCommandDef);

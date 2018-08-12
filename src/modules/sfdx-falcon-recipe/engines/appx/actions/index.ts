@@ -5,7 +5,6 @@
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
  * @license       MIT
- * @requires      module:???
  * @summary       ???
  * @description   ???
  */
@@ -21,7 +20,8 @@ import {AppxEngineActionType}     from  '../../../engines/appx';                
 import {AppxEngineActionResult}   from  '../../../engines/appx';                  // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs = 'appx-engine-action';
+const dbgNs     = 'appx-engine-action:';
+const clsDbgNs  = 'AppxEngineAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -36,13 +36,13 @@ export abstract class AppxEngineAction {
   // Base class members
   protected actionType:       AppxEngineActionType;       // Why?
   protected actionName:       string;                     // Why?
+  protected description:      string;                     // Why?
   protected successDelay:     number;                     // Why?
   protected errorDelay:       number;                     // Why?
   protected progressDelay:    number;                     // Why?
   protected progressMessage:  string;                     // Basic progress message (defined inside execute)
   protected successMessage:   string;                     // Basic success message (defined inside execute)
   protected errorMessage:     string;                     // Basic error message (defined inside execute)
-  protected clsDbgNs:         string;                     // Class name when used as part of Debug Messages.
   protected sfdxCommandDef:   SfdxCommandDefinition;      // Holds the command definition when executing Salesforce CLI commands.
   protected jsfCommandDef:    any;                        // Holds the command definition for a JSForce command.
   protected shellCommandDef:  any;                        // Placeholder (Why?)
@@ -65,8 +65,8 @@ export abstract class AppxEngineAction {
 
     // Set default values for base properties.
     this.actionType       = AppxEngineActionType.UNSPECIFIED;
-    this.actionName       = 'Unspecified Action';
-    this.clsDbgNs         = 'AppxEngineAction';
+    this.actionName       = 'unspecified-action';
+    this.description      = 'Unspecified Action';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
@@ -126,7 +126,7 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┘
   private onError(actionContext:AppxEngineActionContext, error:Error):void {
 
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, error, `${this.clsDbgNs}:onError:error: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, error, `${clsDbgNs}onError:error: `);
     throw error;
     // TODO: Add Implementation
 
@@ -146,8 +146,11 @@ export abstract class AppxEngineAction {
   private onSuccess(actionContext:AppxEngineActionContext, result:any):void {
 
     // Debug
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, actionContext, `${this.clsDbgNs}:onSuccess:actionContext: `);
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, result,        `${this.clsDbgNs}:onSuccess:result: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, actionContext, `${clsDbgNs}onSuccess:actionContext: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, result,        `${clsDbgNs}onSuccess:result: `);
+
+    // Set the Action Name (same for all types)
+    this.actionResult.action = this.actionName;
 
     // Prep the Action Result based on an (unexpected) string result.
     if (typeof result === 'string' || typeof result === 'undefined') {
@@ -179,7 +182,7 @@ export abstract class AppxEngineAction {
     }
 
     // Debug
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.actionResult, `${this.clsDbgNs}:onSuccess:this.actionResult: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.actionResult, `${clsDbgNs}onSuccess:this.actionResult: `);
     return;
   }
 
