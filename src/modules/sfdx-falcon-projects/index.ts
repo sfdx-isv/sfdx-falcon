@@ -5,7 +5,6 @@
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       ???
  * @description   ???
- * @requires      module:???
  * @version       1.0.0
  * @license       MIT
  */
@@ -15,8 +14,8 @@ import * as core                    from  '@salesforce/core';             // All
 import * as path                    from  'path';                         // Node's path library.
 
 // Local Imports
-import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';     // Why?
-
+import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';      // Why?
+import {SfdxFalconRecipeResult}         from  '../sfdx-falcon-recipe';                // Why?
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Falcon Config (Project, Local, and Global)
@@ -242,6 +241,95 @@ export class SfdxFalconProjectContext {
 
     // Return the local config object to the caller.
     return sfdxFalconLocalConfig;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      compileAndRunRecipe
+   * @param       {string}  recipeName  Required. Name of the .json Recipe file
+   *              as found within the Config Path of this project.
+   * @param       {any}     [compileOptions]  Optional. Object containing any
+   *              sort of options that may be useful to the Engine tht the 
+   *              Recipe is specified to use.
+   * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
+   *              populated SFDX-Falcon Recipe Result on success or bubbles
+   *              up thrown errors that should be caught and handled by the
+   *              caller.
+   * @description Compiles and runs the recipe
+   * @version     1.0.0
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async compileAndRunRecipe(recipeName:string, compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+
+    return null;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      runChosenRecipe
+   * @param       {any} [compileOptions]  Optional. Object containing any
+   *              sort of options that may be useful to the Engine tht the 
+   *              Recipe is specified to use.
+   * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
+   *              populated SFDX-Falcon Recipe Result on success or bubbles
+   *              up thrown errors that should be caught and handled by the
+   *              caller.
+   * @description Usses the console to present the user with choices of recipe
+   *              to run based on either the "demo recipes" or "developer recipes"
+   *              key in the respective "appxPackage" or "appxDemo" keys.
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async runChosenRecipe(compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+
+    return null;
+
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      runDefaultRecipe
+   * @param       {any} [compileOptions]  Optional. Object containing any
+   *              sort of options that may be useful to the Engine tht the 
+   *              Recipe is specified to use.
+   * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
+   *              populated SFDX-Falcon Recipe Result on success or bubbles
+   *              up thrown errors that should be caught and handled by the
+   *              caller.
+   * @description ???
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async runDefaultRecipe(compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+
+    return null;
+
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      runSpecifiedRecipe
+   * @param       {string}  recipeName  Required. Name of the .json Recipe file
+   *              as found within the Config Path of this project.
+   * @param       {any}     [compileOptions]  Optional. Object containing any
+   *              sort of options that may be useful to the Engine tht the 
+   *              Recipe is specified to use.
+   * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
+   *              populated SFDX-Falcon Recipe Result on success or bubbles
+   *              up thrown errors that should be caught and handled by the
+   *              caller.
+   * @description ???
+   * @version     1.0.0
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async runSpecifiedRecipe(recipeName:string, compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+
+    return null;
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
