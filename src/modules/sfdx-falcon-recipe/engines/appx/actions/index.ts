@@ -37,6 +37,7 @@ export abstract class AppxEngineAction {
   protected actionType:       AppxEngineActionType;       // Why?
   protected actionName:       string;                     // Why?
   protected description:      string;                     // Why?
+  protected command:          string;                     // Why?
   protected successDelay:     number;                     // Why?
   protected errorDelay:       number;                     // Why?
   protected progressDelay:    number;                     // Why?
@@ -51,6 +52,7 @@ export abstract class AppxEngineAction {
 
   // Abstract methods
   protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<any>;
+  protected       abstract  initializeAction():void;
   protected       abstract  validateActionOptions(actionOptions:any):void;
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -58,10 +60,10 @@ export abstract class AppxEngineAction {
    * @constructs  AppxEngineAction
    * @description ???
    * @version     1.0.0
-   * @protected
+   * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected constructor() {
+  public constructor() {
 
     // Set default values for base properties.
     this.actionType       = AppxEngineActionType.UNSPECIFIED;
@@ -73,6 +75,10 @@ export abstract class AppxEngineAction {
     this.progressMessage  = `Executing ${this.actionName}`;
     this.errorMessage     = `Error while executing ${this.actionName}`;
     this.successMessage   = `Successfully executed ${this.actionName}`;
+
+    // Give the child class the chance to initialize over the defaults
+    this.initializeAction();
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

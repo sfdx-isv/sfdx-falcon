@@ -13,7 +13,10 @@
 import {Observable}               from  'rxjs';                                   // Why?
 
 // Import Local Modules
+import {SfdxFalconProject}        from '../../../../modules/sfdx-falcon-project'; // Why?
 import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';  // Why?
+import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';  // Why?
+import {SfdxFalconRecipeResult}   from '../../../../modules/sfdx-falcon-recipe';  // Why?
 import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';  // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';   // Why?
 import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';              // Why?
@@ -39,11 +42,12 @@ export interface AppxEngineContext {
   skipGroups:         Array<string>;
   skipActions:        Array<string>;
   devHubAlias:        string;
-  projectPath:        string;
-  configPath:         string;
-  mdapiSourcePath:    string;
-  sfdxSourcePath:     string;
-  dataPath:           string;
+  projectContext:     SfdxFalconProject;
+//  projectPath:        string;
+//  configPath:         string;
+//  mdapiSourcePath:    string;
+//  sfdxSourcePath:     string;
+//  dataPath:           string;
   logLevel:           SfdxCliLogLevel;
   status:             SfdxFalconStatus;
   targetOrg:          TargetOrg;
@@ -132,7 +136,7 @@ export abstract class AppxRecipeEngine {
   protected engineStatus:         SfdxFalconStatus;
 
   // Declare abstract methods.
-  public    abstract async  execute(executionOptions:any):  Promise<SfdxFalconStatus>;
+  public    abstract async  execute(executionOptions:any):  Promise<SfdxFalconRecipeResult>;
   protected abstract async  initializeActionMap():          Promise<void>;
   protected abstract async  initializePostBuildStepGroups():Promise<void>;
   protected abstract async  initializePreBuildStepGroups(): Promise<void>;
@@ -144,9 +148,11 @@ export abstract class AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  AppxRecipeEngine
-   * @description Empty, private constructor. Instantiate with compileRecipe().
+   * @description Empty constructor. Create instances of derived classes by 
+   *              calling the static method compileRecipe(), which should be
+   *              implemented on the derived class.
    * @version     1.0.0
-   * @private
+   * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected constructor() {
@@ -520,14 +526,14 @@ export abstract class AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateOuterRecipe
-   * @param       {SfdxFalconRecipe} recipe Required. 
+   * @param       {SfdxFalconRecipeJson} recipe Required. 
    * @returns     {void}
    * @description ???
    * @version     1.0.0
    * @protected @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected static validateOuterRecipe(recipe:SfdxFalconRecipe):void {
+  protected static validateOuterRecipe(recipe:SfdxFalconRecipeJson):void {
 
     // Make sure the Recipe contains an "options" key.
     if (typeof recipe.options === 'undefined') {

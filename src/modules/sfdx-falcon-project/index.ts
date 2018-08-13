@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-projects/index.ts
+ * @file          modules/sfdx-falcon-project/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       ???
@@ -15,7 +15,12 @@ import * as path                    from  'path';                         // Nod
 
 // Local Imports
 import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';      // Why?
+import {SfdxFalconRecipe}               from  '../sfdx-falcon-recipe';                // Why?
 import {SfdxFalconRecipeResult}         from  '../sfdx-falcon-recipe';                // Why?
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'sfdx-falcon-project:';
+const clsDbgNs  = 'SfdxFalconProject:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Falcon Config (Project, Local, and Global)
@@ -74,14 +79,14 @@ export interface AppxPackageLocalConfig {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxFalconProjectContext
+ * @class       SfdxFalconProject
  * @access      public
  * @version     1.0.0
  * @summary     ????
  * @description ????
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconProjectContext {
+export class SfdxFalconProject {
 
   // Keep references of all Parsed JSON config files in the SFDX-Falcon project.
   private _sfdxAggregateConfig:any;
@@ -96,6 +101,10 @@ export class SfdxFalconProjectContext {
   // Make note of all the PATHS within the SFDX-Falcon project.
   private _projectPath:string;
           get projectPath():string                      {return this._projectPath}
+  private _falconConfigPath:string;
+          get falconConfigPath():string                 {return this._falconConfigPath}
+  private _templatesPath:string;
+          get templatesPath():string                    {return this._templatesPath}
   private _configPath:string;
           get configPath():string                       {return this._configPath}
   private _mdapiSourcePath:string;
@@ -104,89 +113,87 @@ export class SfdxFalconProjectContext {
           get sfdxSourcePath():string                   {return this._sfdxSourcePath}
   private _dataPath:string;
           get dataPath():string                         {return this._dataPath}
-  private _shellToolsPath:  string;
-          get shellToolsPath():string                   {return this._shellToolsPath}
+  private _docsPath:  string;
+          get docsPath():string                         {return this._docsPath}
+  private _toolsPath:  string;
+          get toolsPath():string                        {return this._toolsPath}
+  private _tempPath:  string;
+          get tempPath():string                         {return this._tempPath}
 
-  // TODO: Any other project-level config?
+  // Git / VCS related project properties
+  private _trackedByGit:  string;
+          get trackedByGit():string                     {return this._trackedByGit}
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxFalconProjectContext
+   * @constructs  SfdxFalconProject
    * @description Private constructor. Should only be called by resolve().
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private constructor() {
-    // All object initialization tasks are handled inside resolve().
+    // Intentionally empty. Use resolve() to instantiate .
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      resolve
-   * @param       {string}  projectDirectory  Required. ???
-   * @param       {string}  [recipeOverride]  Optional. ???
-   * @returns     {Promise<SfdxFalconProjectContext>} Resolves with an instance
-   *              of an SfdxFalconProjectContext object that represents the
+   * @param       {string}  projectPath  Required. Path to a valid SFDX-Falcon
+   *              project inside the user's local environment.
+   * @returns     {Promise<SfdxFalconProject>} Resolves with an instance
+   *              of an SfdxFalconProject object that represents the
    *              project found at the projectRoot using a combination of SFDX
    *              and SFDX-Falcon config files.
    * @description Given the path to an SFDX-Falcon project directory, 
-   *              initializes an SfdxFalconProjectContext object and returns
+   *              initializes an SfdxFalconProject object and returns
    *              it to the caller.
    * @version     1.0.0
    * @public @static @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static async resolve(projectDirectory:string, recipeOverride:string=''):Promise<SfdxFalconProjectContext> {
+  public static async resolve(projectPath:string):Promise<SfdxFalconProject> {
 
-    // Instantiate an SfdxFalconProjectContext object
-    let sfdxFPC = new SfdxFalconProjectContext();
+    // Instantiate an SfdxFalconProject Object
+    let sfdxFPO = new SfdxFalconProject();
 
-    // Resolve the aggregated config (local, global, and sfdx-project.json) for the SFDX project.
-    sfdxFPC._sfdxAggregateConfig  = await SfdxFalconProjectContext.resolveAggregatedSfdxConfig(projectDirectory);
+    // Initialize project configuration variables
+    await SfdxFalconProject.initializeConfig(projectPath, sfdxFPO);
 
-    // Pull the SFDX-Falcon Project Config out of the aggregated SFDX project config.
-    sfdxFPC._falconProjectConfig  = sfdxFPC._sfdxAggregateConfig.plugins.sfdxFalcon;
+    // Initialize the paths for this project (all are relative to Project Path).
+    await SfdxFalconProject.initializePaths(projectPath, sfdxFPO);
 
-    // Resolve the LOCAL SFDX-Falcon Config
-    sfdxFPC._falconLocalConfig    = await SfdxFalconProjectContext.resolveSfdxFalconLocalConfig(projectDirectory);
-
-    // Resolve the GLOBAL SFDX-Falcon Config
-    sfdxFPC._falconGlobalConfig   = await SfdxFalconProjectContext.resolveGlobalSfdxFalconConfig();
-
-    // If a recipeOverride was passed in, assign it to the new SFDX Falcon Project Context.
-    if (recipeOverride) {
-      sfdxFPC._falconProjectConfig.defaultRecipe = recipeOverride;
-      SfdxFalconDebug.str('FALCON_XL:sfdx-falcon-projects', recipeOverride, `SfdxFalconProjectContext:resolve:recipeOverride: `);
-    }
+    // Initialize anything related to Source Tracking
+    await SfdxFalconProject.initializeSourceTracking(projectPath, sfdxFPO);
 
     // Validate the overall configuration as specified by the config files we just resolved.
-    SfdxFalconProjectContext.validateOverallConfig(sfdxFPC);
-    
-    // The SFDX-Falcon Project Context should now be verified a a basic level. Return it to the caller.
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', sfdxFPC, `SfdxFalconProjectContext:resolve:sfdxFPC: `);
-    return sfdxFPC;
+    await SfdxFalconProject.validateOverallConfig(sfdxFPO);
+
+    // The SFDX-Falcon Project Object should now be validated a a basic level. Return it to the caller.
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFPO, `${clsDbgNs}resolve:sfdxFPO: `);
+    return sfdxFPO;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      resolveAggregatedSfdxConfig
-   * @param       {string}  projectDirectory  Required. ???
+   * @param       {string}  projectPath  Required. ???
    * @returns     {Promise<object>} ???
    * @description ???
    * @version     1.0.0
    * @private @static @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static async resolveAggregatedSfdxConfig(projectDirectory:string):Promise<object> {
+  private static async resolveAggregatedSfdxConfig(projectPath:string):Promise<object> {
 
     // Resolve an SFDX Project from the provided project directory.
-    let sfdxProject = await core.SfdxProject.resolve(projectDirectory);
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', sfdxProject, `SfdxFalconProjectContext:resolveAggregatedSfdxConfig:sfdxProject: `);
+    let sfdxProject = await core.SfdxProject.resolve(projectPath);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxProject, `${clsDbgNs}:resolveAggregatedSfdxConfig:sfdxProject: `);
 
     // Get the aggregated config (local, global, and sfdx-project.json) for the SFDX project.
     let sfdxAggregateConfig = await sfdxProject.resolveProjectConfig();
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', sfdxAggregateConfig, `SfdxFalconProjectContext:resolveAggregatedSfdxConfig:sfdxAggregateConfig: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxAggregateConfig, `${clsDbgNs}resolveAggregatedSfdxConfig:sfdxAggregateConfig: `);
 
     return sfdxAggregateConfig;
   }
@@ -223,7 +230,7 @@ export class SfdxFalconProjectContext {
       isGlobal:   false,
       isState:    false,
     }
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', configOptions, `SfdxFalconProjectContext:resolveSfdxFalconLocalConfig:configOptions: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconLocalConfig:configOptions: `);
 
     // Using the options set above, retrieve the local SFDX-Falcon Config file.
     let sfdxFalconLocalConfigFile = await core.ConfigFile.retrieve(configOptions);
@@ -233,11 +240,11 @@ export class SfdxFalconProjectContext {
       let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
       throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${combinedPath}`);
     }
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', sfdxFalconLocalConfigFile, `SfdxFalconProjectContext:resolveSfdxFalconLocalConfig:falconLocalConfigFile: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconLocalConfigFile, `${clsDbgNs}resolveSfdxFalconLocalConfig:falconLocalConfigFile: `);
 
     // Convert the SFDX-Falcon Local Config file to an object.
     let sfdxFalconLocalConfig:SfdxFalconLocalConfig = sfdxFalconLocalConfigFile.toObject() as any;
-    SfdxFalconDebug.obj('FALCON_XL:sfdx-falcon-projects', sfdxFalconLocalConfig, `SfdxFalconProjectContext:resolveSfdxFalconLocalConfig:sfdxFalconLocalConfig: `);
+    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconLocalConfig, `${clsDbgNs}resolveSfdxFalconLocalConfig:sfdxFalconLocalConfig: `);
 
     // Return the local config object to the caller.
     return sfdxFalconLocalConfig;
@@ -245,12 +252,89 @@ export class SfdxFalconProjectContext {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      initializeConfig
+   * @param       {string}  projectPath Required. ???
+   * @param       {SfdxFalconProject} sfdxFPO Required. ???
+   * @returns     {Promise<void>} ???
+   * @description Resolves various config files and saves copies of all relevant
+   *              configuration JSON inside the given SFDX-Falcon Project Object.
+   * @version     1.0.0
+   * @private @static @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static async initializeConfig(projectPath:string, sfdxFPO:SfdxFalconProject):Promise<void> {
+    
+    // Resolve the aggregated config (local, global, and sfdx-project.json) for the SFDX project.
+    sfdxFPO._sfdxAggregateConfig  = await SfdxFalconProject.resolveAggregatedSfdxConfig(projectPath);
+
+    // Pull the SFDX-Falcon Project Config out of the aggregated SFDX project config.
+    sfdxFPO._falconProjectConfig  = sfdxFPO._sfdxAggregateConfig.plugins.sfdxFalcon;
+
+    // Resolve the LOCAL SFDX-Falcon Config
+    sfdxFPO._falconLocalConfig    = await SfdxFalconProject.resolveSfdxFalconLocalConfig(projectPath);
+
+    // Resolve the GLOBAL SFDX-Falcon Config
+    sfdxFPO._falconGlobalConfig   = await SfdxFalconProject.resolveGlobalSfdxFalconConfig();
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializePaths
+   * @param       {string}  projectPath  Required. ???
+   * @param       {SfdxFalconProject} sfdxFPO  Required. ???
+   * @returns     {Promise<void>} ???
+   * @description Initializes all of the path variables inside the given SFDX-
+   *              Falcon Project Object.
+   * @version     1.0.0
+   * @private @static @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static async initializePaths(projectPath:string, sfdxFPO:SfdxFalconProject):Promise<void> {
+
+    // We have a valid project configuration. Now we can set paths.
+    sfdxFPO._projectPath      = projectPath;
+    sfdxFPO._falconConfigPath = path.join(projectPath, `.sfdx-falcon`);
+    sfdxFPO._templatesPath    = path.join(projectPath, `.templates`);
+    sfdxFPO._configPath       = path.join(projectPath, `config`);
+    sfdxFPO._mdapiSourcePath  = path.join(projectPath, `mdapi-source`);
+    sfdxFPO._sfdxSourcePath   = path.join(projectPath, `sfdx-source`);
+    sfdxFPO._dataPath         = path.join(projectPath, `data`);
+    sfdxFPO._docsPath         = path.join(projectPath, `docs`);
+    sfdxFPO._toolsPath        = path.join(projectPath, `tools`);
+    sfdxFPO._tempPath         = path.join(projectPath, `temp`);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializeSourceTracking
+   * @param       {string}  projectPath  Required. ???
+   * @param       {SfdxFalconProject} sfdxFPO  Required. ???
+   * @returns     {Promise<void>} ???
+   * @description Initializes all project variables related to source tracking.
+   *              For now (ie. Aug 2018) this is more placeholder for future
+   *              feature expansion than anything else.
+   * @version     1.0.0
+   * @private @static @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static async initializeSourceTracking(projectPath:string, sfdxFPO:SfdxFalconProject):Promise<void> {
+
+    // TODO: Implement this method (check if project is tracked by Git)
+    // Find out if this project is currently tracked by Git
+    sfdxFPO._trackedByGit = null;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      compileAndRunRecipe
    * @param       {string}  recipeName  Required. Name of the .json Recipe file
    *              as found within the Config Path of this project.
-   * @param       {any}     [compileOptions]  Optional. Object containing any
-   *              sort of options that may be useful to the Engine tht the 
+   * @param       {any}     [compileOptions]  Optional. Object containing
+   *              options/overrides that are relevant to the Engine that the 
    *              Recipe is specified to use.
+   * @param       {any}     [executionOptions]  Optional. Object containing any
+   *              options/overrides that are relevant when the Recipe's
+   *              execute() method is called.
    * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
@@ -260,17 +344,27 @@ export class SfdxFalconProjectContext {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private async compileAndRunRecipe(recipeName:string, compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+  private async compileAndRunRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
-    return null;
+    // Read the specified Recipe.
+    let recipeToRun = await SfdxFalconRecipe.read(this, recipeName);
+
+    // Compile the Recipe.
+    await recipeToRun.compile(compileOptions);
+
+    // Execute the Recipe
+    return await recipeToRun.execute(executionOptions);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      runChosenRecipe
-   * @param       {any} [compileOptions]  Optional. Object containing any
-   *              sort of options that may be useful to the Engine tht the 
+   * @param       {any}     [compileOptions]  Optional. Object containing
+   *              options/overrides that are relevant to the Engine that the 
    *              Recipe is specified to use.
+   * @param       {any}     [executionOptions]  Optional. Object containing any
+   *              options/overrides that are relevant when the Recipe's
+   *              execute() method is called.
    * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
@@ -282,18 +376,21 @@ export class SfdxFalconProjectContext {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runChosenRecipe(compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+  public async runChosenRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
-    return null;
+    throw new Error(`ERROR_NOT_IMPLEMENTED: Method runChosenRecipe() is not yet implemented`);
 
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      runDefaultRecipe
-   * @param       {any} [compileOptions]  Optional. Object containing any
-   *              sort of options that may be useful to the Engine tht the 
+   * @param       {any}     [compileOptions]  Optional. Object containing
+   *              options/overrides that are relevant to the Engine that the 
    *              Recipe is specified to use.
+   * @param       {any}     [executionOptions]  Optional. Object containing any
+   *              options/overrides that are relevant when the Recipe's
+   *              execute() method is called.
    * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
@@ -303,10 +400,11 @@ export class SfdxFalconProjectContext {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runDefaultRecipe(compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+  public async runDefaultRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
-    return null;
-
+    // Get the name of the default recipe from the internally held Falcon Project Config.
+    let recipeName = this._falconProjectConfig.defaultRecipe;
+    return await this.compileAndRunRecipe(recipeName, compileOptions, executionOptions);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -314,9 +412,12 @@ export class SfdxFalconProjectContext {
    * @method      runSpecifiedRecipe
    * @param       {string}  recipeName  Required. Name of the .json Recipe file
    *              as found within the Config Path of this project.
-   * @param       {any}     [compileOptions]  Optional. Object containing any
-   *              sort of options that may be useful to the Engine tht the 
+   * @param       {any}     [compileOptions]  Optional. Object containing
+   *              options/overrides that are relevant to the Engine that the 
    *              Recipe is specified to use.
+   * @param       {any}     [executionOptions]  Optional. Object containing any
+   *              options/overrides that are relevant when the Recipe's
+   *              execute() method is called.
    * @returns     {Promise<SfdxFalconRecipeResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
@@ -326,16 +427,16 @@ export class SfdxFalconProjectContext {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runSpecifiedRecipe(recipeName:string, compileOptions:any={}):Promise<SfdxFalconRecipeResult> {
+  public async runSpecifiedRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
-    return null;
-
+    // Run the recipe specified by the caller. Recipe file must be found in the config directory.
+    return await this.compileAndRunRecipe(recipeName, compileOptions, executionOptions);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateFalconGlobalConfig
-   * @param       {SfdxFalconProjectContext}  sfdxFPC Required.
+   * @param       {SfdxFalconProject}  sfdxFPO Required.
    * @returns     {boolean|Array<string>}  Returns TRUE if the GLOBAL config for
    *              SFDX-Falcon is valid. If not valid, returns an array of 
    *              strings listing each key that had an invalid value.
@@ -344,18 +445,18 @@ export class SfdxFalconProjectContext {
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateFalconGlobalConfig(sfdxFPC:SfdxFalconProjectContext):boolean|Array<string> {
+  private static validateFalconGlobalConfig(sfdxFPO:SfdxFalconProject):boolean|Array<string> {
     let invalidConfigKeys = new Array<string>();
 
     // Falcon Global config is not yet implemented. Keeping this here as a placeholder for future dev.
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
 
     // These keys are optional.  Keeping them here commented out in case I require them later.
-    //if (! sfdxFPC._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
+    //if (! sfdxFPO._falconGlobalConfig.xxxxxxxxxxx)     invalidConfigKeys.push('xxxxxxxxxxx');
 
     if (invalidConfigKeys.length > 0) {
       return invalidConfigKeys;
@@ -368,7 +469,7 @@ export class SfdxFalconProjectContext {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateFalconLocalConfig
-   * @param       {SfdxFalconProjectContext}  sfdxFPC Required.
+   * @param       {SfdxFalconProject}  sfdxFPO Required.
    * @returns     {boolean|Array<string>}  Returns TRUE if the LOCAL config for
    *              SFDX-Falcon is valid. If not valid, returns an array of 
    *              strings listing each key that had an invalid value.
@@ -377,13 +478,13 @@ export class SfdxFalconProjectContext {
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateFalconLocalConfig(sfdxFPC:SfdxFalconProjectContext):boolean|Array<string> {
+  private static validateFalconLocalConfig(sfdxFPO:SfdxFalconProject):boolean|Array<string> {
     let invalidConfigKeys = new Array<string>();
 
-    if (! sfdxFPC._falconLocalConfig.devHubAlias)     invalidConfigKeys.push('devHubAlias');
+    if (! sfdxFPO._falconLocalConfig.devHubAlias)     invalidConfigKeys.push('devHubAlias');
 
     // These keys are optional.  Keeping them here commented out in case I require them later.
-    //if (! sfdxFPC._falconLocalConfig.envHubAlias)     invalidConfigKeys.push('envHubAlias');
+    //if (! sfdxFPO._falconLocalConfig.envHubAlias)     invalidConfigKeys.push('envHubAlias');
 
     if (invalidConfigKeys.length > 0) {
       return invalidConfigKeys;
@@ -396,7 +497,7 @@ export class SfdxFalconProjectContext {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateFalconProjectConfig
-   * @param       {SfdxFalconProjectContext}  sfdxFPC Required.
+   * @param       {SfdxFalconProject}  sfdxFPO Required.
    * @returns     {boolean|Array<string>}  Returns TRUE if the PROJECT config
    *              for SFDX-Falcon is valid. If not valid, returns an array of 
    *              strings listing each key that had an invalid value.
@@ -405,21 +506,21 @@ export class SfdxFalconProjectContext {
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateFalconProjectConfig(sfdxFPC:SfdxFalconProjectContext):boolean|Array<string> {
+  private static validateFalconProjectConfig(sfdxFPO:SfdxFalconProject):boolean|Array<string> {
     let invalidConfigKeys = new Array<string>();
 
-    if (! sfdxFPC._falconProjectConfig.projectAlias)    invalidConfigKeys.push('projectAlias');
-    if (! sfdxFPC._falconProjectConfig.projectName)     invalidConfigKeys.push('projectName');
-    if (! sfdxFPC._falconProjectConfig.projectType)     invalidConfigKeys.push('projectType');
-    if (! sfdxFPC._falconProjectConfig.defaultRecipe)   invalidConfigKeys.push('defaultRecipe');
-    if (! sfdxFPC._falconProjectConfig.projectVersion)  invalidConfigKeys.push('projectVersion');
-    if (! sfdxFPC._falconProjectConfig.schemaVersion)   invalidConfigKeys.push('schemaVersion');
-    if (! sfdxFPC._falconProjectConfig.pluginVersion)   invalidConfigKeys.push('pluginVersion');
-    if (! sfdxFPC._falconProjectConfig.schemaVersion)   invalidConfigKeys.push('schemaVersion');
+    if (! sfdxFPO._falconProjectConfig.projectAlias)    invalidConfigKeys.push('projectAlias');
+    if (! sfdxFPO._falconProjectConfig.projectName)     invalidConfigKeys.push('projectName');
+    if (! sfdxFPO._falconProjectConfig.projectType)     invalidConfigKeys.push('projectType');
+    if (! sfdxFPO._falconProjectConfig.defaultRecipe)   invalidConfigKeys.push('defaultRecipe');
+    if (! sfdxFPO._falconProjectConfig.projectVersion)  invalidConfigKeys.push('projectVersion');
+    if (! sfdxFPO._falconProjectConfig.schemaVersion)   invalidConfigKeys.push('schemaVersion');
+    if (! sfdxFPO._falconProjectConfig.pluginVersion)   invalidConfigKeys.push('pluginVersion');
+    if (! sfdxFPO._falconProjectConfig.schemaVersion)   invalidConfigKeys.push('schemaVersion');
 
     // I'm thinking of making these optional keys. Commenting them out for now.
-    //if (! sfdxFPC._falconProjectConfig.gitRemoteUri)    invalidConfigKeys.push('gitRemoteUri');
-    //if (! sfdxFPC._falconProjectConfig.gitHubUrl)       invalidConfigKeys.push('gitHubUrl');
+    //if (! sfdxFPO._falconProjectConfig.gitRemoteUri)    invalidConfigKeys.push('gitRemoteUri');
+    //if (! sfdxFPO._falconProjectConfig.gitHubUrl)       invalidConfigKeys.push('gitHubUrl');
   
     if (invalidConfigKeys.length > 0) {
       return invalidConfigKeys;
@@ -432,85 +533,31 @@ export class SfdxFalconProjectContext {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateOverallConfig
-   * @param       {SfdxFalconProjectContext}  sfdxFPC Required. ???
-   * @returns     {void}  ???
+   * @param       {SfdxFalconProject}  sfdxFPO Required. ???
+   * @returns     {Promise<void>} ???
    * @description ???
    * @version     1.0.0
-   * @private @static
+   * @private @static @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateOverallConfig(sfdxFPC:SfdxFalconProjectContext):void {
+  private static async validateOverallConfig(sfdxFPO:SfdxFalconProject):Promise<void> {
 
     // Validate Falcon Project config
-    let validationResponse = SfdxFalconProjectContext.validateFalconProjectConfig(sfdxFPC);
+    let validationResponse = SfdxFalconProject.validateFalconProjectConfig(sfdxFPO);
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_CONFIG: Configuration for "plugins.sfdxFalcon" in sfdx-project.json has missing/invalid settings (${validationResponse}).`)
     }
 
     // Validate Falcon Local config
-    validationResponse = SfdxFalconProjectContext.validateFalconLocalConfig(sfdxFPC);
+    validationResponse = SfdxFalconProject.validateFalconLocalConfig(sfdxFPO);
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_CONFIG: Configuration in ".sfdx-falcon/sfdx-falcon-config.json" has missing/invalid settings (${validationResponse}).`)
     }
 
     // Validate Falcon Global config
-    validationResponse = SfdxFalconProjectContext.validateFalconGlobalConfig(sfdxFPC);
+    validationResponse = SfdxFalconProject.validateFalconGlobalConfig(sfdxFPO);
     if (validationResponse !== true) {
       throw new Error(`ERROR_INVALID_CONFIG: Configuration in "~/.sfdx/sfdx-falcon-config.json" has missing/invalid settings (${validationResponse}).`)
     }
-  }
-}
-
-
-// TODO: The code below is deprecated and must be erased.
-
-
-
-
-
-export interface AppxDemoLocalConfig_OLD {
-  demoValidationOrgAlias: string;
-  demoDeploymentOrgAlias: string;
-  devHubAlias:            string;
-  envHubAlias:            string;
-}
-
-export interface AppxDemoProjectConfig_OLD {
-  demoAlias:        string;
-  demoConfig:       string;
-  demoTitle:        string;
-  demoType:         string;
-  demoVersion:      string;
-  gitHubUrl:        string;
-  gitRemoteUri:     string;
-  partnerAlias:     string;
-  partnerName:      string;
-  schemaVersion:    string;
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       AppxDemoProjectContext
- * @access      public
- * @version     1.0.0
- * @summary     ????
- * @description ????
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class AppxDemoProjectContext_OLD {
-  // Interface
-  public config: {
-    local:    AppxDemoLocalConfig_OLD;
-    project:  AppxDemoProjectConfig_OLD;
-    global:   any;
-  }
-  public path: string;
-  // Constructor
-  constructor() {
-    this.config = {
-      local:    <AppxDemoLocalConfig_OLD>{},
-      project:  <AppxDemoProjectConfig_OLD>{},
-      global:   {}
-    };
   }
 }

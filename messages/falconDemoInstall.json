@@ -1,5 +1,3 @@
 {
-  "commandDescription": "Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org",
-  "configfile_FlagDescription": "Overrides the 'demoConfig' setting from sfdx-project.json in the ADK project",
-  "projectdir_FlagDescription": "Path to a directory that contains a fully-configured ADK project"
+  "commandDescription": "Runs a Demo Installation Recipe to build an ADK-based demo org"
 }

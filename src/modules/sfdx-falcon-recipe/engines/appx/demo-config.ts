@@ -15,6 +15,8 @@ import * as path              from  'path';                                     
 // Import Local Modules
 import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Why?
 import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Why?
+import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Why?
+import {SfdxFalconRecipeResult}   from '../../../sfdx-falcon-recipe';                       // Why?
 import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
@@ -27,7 +29,7 @@ import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeom
 import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 
 // Import Actions supported by this engine (appx:demo-config).
-import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';          // Why?
+import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';                  // Why?
 
 // Requires
 const inquirer  = require('inquirer');                                              // Provides UX for getting feedback from the user.
@@ -307,8 +309,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      execute
-   * @param       {any} executionOptions ???? 
-   * @returns     {Promise<SfdxFalconStatus>} ???
+   * @param       {any} [executionOptions]  Optional. 
+   * @returns     {Promise<SfdxFalconRecipeResult>} ???
    * @description Starts the execution of a compiled recipe. Implemented here
    *              instead of in the base class so we can fine-tune error and
    *              success handling resulting from the Listr Task execution.
@@ -316,8 +318,9 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any):Promise<SfdxFalconStatus> {
+  public async execute(executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
+    
     return null;
 
   }
@@ -426,16 +429,11 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     this.engineContext.haltOnError  = this.recipe.options.haltOnError;
     this.engineContext.status       = new SfdxFalconStatus();
 
-    // Set all the path related context values.
-    this.engineContext.projectPath      = this.recipe.projectPath;
-    this.engineContext.configPath       = path.join(this.engineContext.projectPath, `demo-config`);
-    this.engineContext.mdapiSourcePath  = path.join(this.engineContext.projectPath, `mdapi-source`);
-    this.engineContext.sfdxSourcePath   = null;
-    this.engineContext.dataPath         = path.join(this.engineContext.projectPath, `demo-data`);
+    // Store a reference to the Recipe's Project Context.
+    this.engineContext.projectContext = this.recipe.projectContext;
 
     // Set the log level. Default to ERROR if not specifed
     this.engineContext.logLevel = this.engineContext.compileOptions.logLevel || SfdxCliLogLevel.ERROR;
-
 
     // Final DEBUG before returning.
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
@@ -528,33 +526,33 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateInnerRecipe
-   * @param       {SfdxFalconRecipe}  recipe  Required.
+   * @param       {SfdxFalconRecipeJson}  sfdxFalconRecipeJson  Required.
    * @returns     {Promise<void>} ???
    * @description ???
    * @version     1.0.0
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static validateInnerRecipe(recipe:SfdxFalconRecipe):void {
+  private static validateInnerRecipe(sfdxFalconRecipeJson:SfdxFalconRecipeJson):void {
     // Add any additonal "deep" validation here.
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateRecipe
-   * @param       {SfdxFalconRecipe}  recipe  Required.
+   * @param       {SfdxFalconRecipeJson}  sfdxFalconRecipeJson  Required.
    * @returns     {void}  ???
    * @description ???
    * @version     1.0.0
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static validateRecipe(recipe:SfdxFalconRecipe):void {
+  public static validateRecipe(sfdxFalconRecipeJson:SfdxFalconRecipeJson):void {
     // Sart by validating the OUTER recipe via the base class
-    AppxRecipeEngine.validateOuterRecipe(recipe);
+    AppxRecipeEngine.validateOuterRecipe(sfdxFalconRecipeJson);
 
     // Next, validate the INNER recipe via this class
-    AppxDemoConfigEngine.validateInnerRecipe(recipe);
+    AppxDemoConfigEngine.validateInnerRecipe(sfdxFalconRecipeJson);
 
     // If we get here without throwing an error, the recipe is VALID.
     return;

@@ -1,12 +1,12 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/actions/create-scratch-org.ts
+ * @file          modules/sfdx-falcon-recipe/actions/delete-scratch-org.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
  * @license       MIT
- * @summary       Exposes the CLI Command force:org:create
- * @description   Creates a new scratch org when given an Alias and a scratch-def.json file.
+ * @summary       Exposes the CLI Command force:org:delete
+ * @description   Marks the specified scratch org for deletion.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
@@ -23,20 +23,20 @@ import {AppxEngineActionContext}  from  '../../appx';                           
 import {AppxEngineActionType}     from  '../../appx/';                              // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'create-scratch-org-action:';
-const clsDbgNs  = 'CreateScratchOrgAction:';
+const dbgNs     = 'delete-scratch-org-action:';
+const clsDbgNs  = 'DeleteScratchOrgAction:';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       CreateScratchOrgAction
+ * @class       DeleteScratchOrgAction
  * @extends     AppxEngineAction
- * @description Implements the action "create-scratch-org".
+ * @description Implements the action "delete-scratch-org".
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class CreateScratchOrgAction extends AppxEngineAction {
+export class DeleteScratchOrgAction extends AppxEngineAction {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -53,9 +53,9 @@ export class CreateScratchOrgAction extends AppxEngineAction {
   protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxShellResult> {
 
     // Set the progress, error, and success messages for this action execution.
-    this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
-    this.errorMessage     = `Failed to create scratch org using ${actionOptions.scratchDefJson}`;
-    this.successMessage   = `Scratch org '${actionOptions.scratchOrgAlias}' created successfully using ${actionOptions.scratchDefJson}`;
+    this.progressMessage  = `Marking scratch org '${actionOptions.scratchOrgAlias}' for deletion`;
+    this.errorMessage     = `Request to mark scratch org '${actionOptions.scratchOrgAlias}' for deletion failed`;
+    this.successMessage   = `Scratch org '${actionOptions.scratchOrgAlias}' successfully marked for deletion`;
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     this.sfdxCommandDef = {
@@ -96,9 +96,9 @@ export class CreateScratchOrgAction extends AppxEngineAction {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
-    this.actionName       = 'create-scratch-org';
-    this.command          = 'force:org:create';
-    this.description      = 'Create Scratch Org';
+    this.actionName       = 'delete-scratch-org';
+    this.command          = 'force:org:delete';
+    this.description      = 'Delete Scratch Org';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;

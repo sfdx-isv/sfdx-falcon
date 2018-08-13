@@ -1,4 +1,9 @@
 {
+  "configfile_FlagDescription":       "Overrides 'demoRecipes' setting from sfdx-project.json to run a specific Recipe",
+  "extendedoptions_FlagDescription":  "Options for overriding internal settings passed as a JSON string",
+  "projectdir_FlagDescription":       "Path to a directory that contains a fully-configured ADK project",
+
+
   "falcondebug_FlagDescription":        "Runs this command in debug mode",
   "falcondebugext_FlagDescription":     "(hidden) Runs this command in extended debug mode",
   "falcondebugxl_FlagDescription":      "(hidden) Runs this command in XL debug mode",

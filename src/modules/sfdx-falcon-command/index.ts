@@ -40,7 +40,7 @@ import {validateLocalPath}            from  '../sfdx-falcon-validators';  // Cor
 // specifying the module name as the first parameter of loadMessages().
 //─────────────────────────────────────────────────────────────────────────────┘
 Messages.importMessagesDirectory(__dirname);
-const commandMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
+const baseMessages  = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
 const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 
@@ -72,6 +72,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected targetDirectory:string;                     // Why?
   protected recipeFile:string;                          // Why?
   protected configFile:string;                          // Why?
+  protected extendedOptions:{any}                       // Why?
 
   // Member vars for commonly implemented arguments.
   protected gitRemoteUri:string;                        // Why?
@@ -94,27 +95,27 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public static falconBaseflagsConfig = {
     falcondebug: flags.boolean({
-      description: commandMessages.getMessage('falcondebug_FlagDescription'),  
+      description: baseMessages.getMessage('falcondebug_FlagDescription'),  
       required: false,
       hidden: false
     }),
     falcondebugext: flags.boolean({
-      description: commandMessages.getMessage('falcondebugext_FlagDescription'),  
+      description: baseMessages.getMessage('falcondebugext_FlagDescription'),  
       required: false,
       hidden: true
     }),
     falcondebugxl: flags.boolean({
-      description: commandMessages.getMessage('falcondebugxl_FlagDescription'),  
+      description: baseMessages.getMessage('falcondebugxl_FlagDescription'),  
       required: false,
       hidden: true
     }),
     falcondebugerr: flags.boolean({
-      description: commandMessages.getMessage('falcondebugerr_FlagDescription'),  
+      description: baseMessages.getMessage('falcondebugerr_FlagDescription'),  
       required: false,
       hidden: false
     }),
     falcondebugsuccess: flags.boolean({
-      description: commandMessages.getMessage('falcondebugsuccess_FlagDescription'),  
+      description: baseMessages.getMessage('falcondebugsuccess_FlagDescription'),  
       required: false,
       hidden: false
     })
@@ -146,6 +147,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.targetDirectory          = path.resolve(this.flags.targetdir  ||  '.');
     this.recipeFile               = path.resolve(this.flags.recipefile ||  '.');
     this.configFile               = path.resolve(this.flags.configfile ||  '.');
+    this.extendedOptions          = JSON.parse((this.flags.extendedOptions || '{}'));
   
     // Read the incoming values for all COMMON ARGS. (not all of these will have values)
     this.gitRemoteUri             = this.args.GIT_REMOTE_URI        ||  '';

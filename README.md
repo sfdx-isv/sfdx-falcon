@@ -154,7 +154,7 @@ _See code: [src/commands/falcon/demo/deploy.ts](https://github.com/sfdx-isv/sfdx
 
 ## `sfdx-falcon falcon:demo:install`
 
-Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org
+Runs a Demo Installation Recipe to build an ADK-based demo org
 
 ```
 USAGE
@@ -164,8 +164,11 @@ OPTIONS
   -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
-  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
-                                                  project
+  -f, --configfile=configfile                     Overrides 'demoRecipes' setting from sfdx-project.json to run a
+                                                  specific Recipe
+
+  -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
+                                                  JSON string
 
   --falcondebug                                   Runs this command in debug mode
 

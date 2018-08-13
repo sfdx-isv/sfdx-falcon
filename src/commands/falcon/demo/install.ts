@@ -8,44 +8,35 @@
  * @requires      module:???
  * @summary       Implements the falcon:demo:install CLI command
  * @description   Salesforce CLI Plugin command (falcon:demo:install) that is expected to run inside
- *                of a fully-configured AppExchange Demo Kit (ADK) project.  Uses project and local
+ *                of a fully-configured AppExchange Demo Kit (ADK) project.  Takes project and local
  *                settings from various JSON config files and uses them to power an Org Build 
  *                based on the SFDX Falcon Recipe selected by the user.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
-import {SfdxCommand}                  from  '@salesforce/command';                  // The CLI command we build must extend this class.
-import {Messages}                     from  '@salesforce/core';                     // Messages library that simplifies using external JSON for string reuse.
-import {flags}                        from  '@oclif/command';                       // Requried to create CLI command flags.
-import * as path                      from  'path';                                 // Helps resolve local paths at runtime.
-import {AppxDemoProject}              from  '../../../helpers/appx-demo-helper';    // Provides information and actions related to an ADK project
-import {validateLocalPath}            from  '../../../modules/sfdx-falcon-validators';   // Core validation function to check that local path values don't have invalid chars.
+// Import External Modules
+import {SfdxCommand}                  from  '@salesforce/command';  // The CLI command we build must extend this class.
+import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
+import {flags}                        from  '@oclif/command';       // Requried to create CLI command flags.
+import * as path                      from  'path';                 // Helps resolve local paths at runtime.
 
-import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
+// Import Local Modules
+import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
+import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
 import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
 import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
 import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
-import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
+import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
+import {validateLocalPath}            from  '../../../modules/sfdx-falcon-validators';  // Core validation function to check that local path values don't have invalid chars.
 
-// Use SfdxCore's Messages framework to get the message bundle for this command.
+import {SfdxFalconRecipe}             from '../../../modules/sfdx-falcon-recipe';
+import {CreateScratchOrgAction}       from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
+import {SfdxCliLogLevel}              from '../../../modules/sfdx-falcon-types';           // Why?
+
+// Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages      = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall');
-const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
-
-
-
-// DEVTEST
-
-import {SfdxFalconRecipe}       from '../../../modules/sfdx-falcon-recipe';
-import {CreateScratchOrgAction} from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
-import {SfdxCliLogLevel}        from '../../../modules/sfdx-falcon-types';           // Why?
-
-// DEVTEST
-
-
-
-
-
+const baseMessages    = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
+const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall');
+const errorMessages   = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -53,7 +44,10 @@ import {SfdxCliLogLevel}        from '../../../modules/sfdx-falcon-types';      
  * @class       FalconDemoInstall
  * @extends     SfdxFalconCommand
  * @summary     Implements the CLI Command falcon:demo:install
- * @description TODO ????
+ * @description Reads an SFDX-Falcon Recipe (either the one specified as the project default inside
+ *              sfdx-project.json or one specified at the command line) and uses the resulting
+ *              compiled Recipe to perform a set of tasks that should result in a demo org being
+ *              built to the specifications of the SFDX Falcon Recipe.
  * @version     1.0.0
  * @public
  */
@@ -61,7 +55,7 @@ import {SfdxCliLogLevel}        from '../../../modules/sfdx-falcon-types';      
 export default class FalconDemoInstall extends SfdxFalconCommand {
 
   // Define the basic properties of this CLI command.
-  public static description = messages.getMessage('commandDescription');
+  public static description = commandMessages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:demo:install`,
@@ -89,7 +83,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
       char: 'd', 
       required: false,
       type: 'directory',
-      description: messages.getMessage('projectdir_FlagDescription'),
+      description: baseMessages.getMessage('projectdir_FlagDescription'),
       default: '.',
       hidden: false
     },
@@ -97,9 +91,18 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
       char: 'f', 
       required: false,
       type: 'filepath',
-      description: messages.getMessage('configfile_FlagDescription'),
+      description: baseMessages.getMessage('configfile_FlagDescription'),
       hidden: false
     },
+    extendedoptions: {
+      char: 'x', 
+      required: false,
+      type: 'string',
+      description: baseMessages.getMessage('extendedoptions_FlagDescription'),
+      default: '{}',
+      hidden: false
+    },
+    
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconCommand.falconBaseflagsConfig
   };
@@ -118,60 +121,24 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> { 
 
-    // Initialize the SfdxFalconCommand base.
+    // Initialize the SfdxFalconCommand base (DO NOT REMOVE THIS LINE OF CODE!)
     this.sfdxFalconCommandInit('falcon:demo:install');
 
+    // Resolve the Project Directory (specified by the user) to a Project Path.
+    let projectPath = path.resolve(this.projectDirectory)
 
-    // DEVTEST
-    /*
-    let myStepContext = {
-      devHubAlias:        ``,
-      targetOrgAlias:     ``,
-      targetIsScratchOrg: false,
-      projectPath:        ``,
-      configPath:         ``,
-      mdapiSourcePath:    ``,
-      dataPath:           '',
-      logLevel:           SfdxCliLogLevel.DEBUG,
-      recipeObserver:     null,
-      stepObserver:       null,
-      stepGroupObserver:  null
-    };
-    let myStepOptions = {
-      customOptionOne: 'Hooray',
-      customOptionsTwo: 'Boo'
-    };
-    let myAction = new CreateScratchOrg(myStepContext, myStepOptions);
-    //*/
+    // Instantiate the SFDX-Falcon Project residing at the Project Path.
+    const sfdxFalconProject = await SfdxFalconProject.resolve(projectPath);
     
-    let recipeTest = await SfdxFalconRecipe.read('/Users/vchawla/git/ADK-projects/cloned/adk-project-1', 'demo-config', 'alternate-demo-config.json');
+    // If the user passed any Extended Options, use them as Compile Options.
+    let compileOptions = this.extendedOptions;
 
-    let compileOptions = {
-//      targetOrgAlias:'fscdrivewealth-scratch-org-demo',
-      optionOne: 'DEVTEST',
-      optionsTwo: 'DEV222TEST',
-      devHubAlias:  'PBO_DevHub'
-    }
+    // Run the Default Recipe as specified by the project.
+    await sfdxFalconProject.runDefaultRecipe(compileOptions)
+      .then(recipeResult => {this.onSuccess(recipeResult)})   // Implemented by parent class
+      .catch(error => {this.onError(error)});                 // Implemented by parent class
 
-    let compiledRecipe = await recipeTest.compile(compileOptions);
-    SfdxFalconDebug.obj('FALCON:DEVTEST', recipeTest, 'DEVTEST:compiledRecipe');
-
-    return {};
-
-
-
-
-
-    // Instantiate an AppxDemoProject Object.
-    const appxDemoProject = await AppxDemoProject.resolve(path.resolve(this.projectDirectory), this.configFile);
-    
-    // Take the main action for this command. Success and errors handled by parent class.
-    await appxDemoProject.deployDemo()
-      .then(statusReport => {this.onSuccess(statusReport)})
-      .catch(error => {this.onError(error)});
-
-    // The JSON Response was populated in onSuccess(). Just need to return now.
+    // Return the JSON Response that was populated by onSuccess().
     return this.falconJsonResponse;
   }
-
 } // End of Class FalconDemoInstall

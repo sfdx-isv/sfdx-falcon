@@ -22,7 +22,7 @@ import {readConfigFile}             from  './config-helper';     // Why?
 import {SfdxCommandSequence}        from  './sequence-helper';   // Why?
 import {INTENT}                     from  '../enums';                     // Why?
 
-import {AppxDemoProjectContext_OLD}         from  '../modules/sfdx-falcon-projects';  // Why?
+//import {AppxDemoProjectContext_OLD}     from  '../modules/sfdx-falcon-project';  // Why?
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';     // Why?
 import {SfdxFalconStatus}               from  '../modules/sfdx-falcon-status';    // Why?
 import {AppxDemoLocalConfig}            from  '../modules/sfdx-falcon-types';     // Why?
@@ -30,6 +30,50 @@ import {AppxDemoProjectConfig}          from  '../modules/sfdx-falcon-types';   
 import {FalconCommandSequence}          from  '../modules/sfdx-falcon-types';     // Why?
 import {FalconCommandSequenceGroup}     from  '../modules/sfdx-falcon-types';     // Why?
 import {FalconSequenceContext}          from  '../modules/sfdx-falcon-types';     // Why?
+
+
+
+interface AppxDemoLocalConfig_OLD {
+  demoValidationOrgAlias: string;
+  demoDeploymentOrgAlias: string;
+  devHubAlias:            string;
+  envHubAlias:            string;
+}
+
+interface AppxDemoProjectConfig_OLD {
+  demoAlias:        string;
+  demoConfig:       string;
+  demoTitle:        string;
+  demoType:         string;
+  demoVersion:      string;
+  gitHubUrl:        string;
+  gitRemoteUri:     string;
+  partnerAlias:     string;
+  partnerName:      string;
+  schemaVersion:    string;
+}
+
+
+// --------------------------------------------- BEGIN TEMP WORKAROUND ----------------------------------
+
+class AppxDemoProjectContext_OLD {
+  // Interface
+  public config: {
+    local:    AppxDemoLocalConfig_OLD;
+    project:  AppxDemoProjectConfig_OLD;
+    global:   any;
+  }
+  public path: string;
+  // Constructor
+  constructor() {
+    this.config = {
+      local:    <AppxDemoLocalConfig_OLD>{},
+      project:  <AppxDemoProjectConfig_OLD>{},
+      global:   {}
+    };
+  }
+}
+// --------------------------------------------- END OF TEMP WORKAROUND ----------------------------------
 
 
 
