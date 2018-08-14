@@ -23,13 +23,15 @@ import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx
 import {AppxEngineStepResult}     from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineContext}        from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {TargetOrg}                from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';            // Why?
-import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';             // Why?
+import {SfdxFalconStatus}         from '../../../sfdx-falcon-status';                       // Why?
+import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';                        // Why?
+import {ListrContext}             from '../../../sfdx-falcon-types';                        // Why?
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 
 // Import Actions supported by this engine (appx:demo-config).
 import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';                  // Why?
+import {DeleteScratchOrgAction} from '../appx/actions/delete-scratch-org';                  // Why?
 
 // Requires
 const inquirer  = require('inquirer');                                              // Provides UX for getting feedback from the user.
@@ -108,7 +110,29 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // If we get here, we're going to ask the user to customize which StepGroups will execute.
     // Start by defining the choices array for Inquirer.
     let stepGroupChoices = new Array<YeomanCheckboxChoice>();
+
+    // Build choices for the PRE-BUILD Recipe Step Groups
+    for (let recipeStepGroup of this.preBuildStepGroups as Array<AppxEngineStepGroup>) {
+      stepGroupChoices.push({
+        name:     recipeStepGroup.stepGroupName,
+        value:    recipeStepGroup.alias,
+        short:    recipeStepGroup.stepGroupName,
+        checked:  (! this.recipe.options.skipGroups.includes(recipeStepGroup.alias))
+      });
+    }
+
+    // Build choices for the CORE Recipe Step Groups
     for (let recipeStepGroup of this.recipe.recipeStepGroups as Array<AppxEngineStepGroup>) {
+      stepGroupChoices.push({
+        name:     recipeStepGroup.stepGroupName,
+        value:    recipeStepGroup.alias,
+        short:    recipeStepGroup.stepGroupName,
+        checked:  (! this.recipe.options.skipGroups.includes(recipeStepGroup.alias))
+      });
+    }
+
+    // Build choices for the POST-BUILD Recipe Step Groups
+    for (let recipeStepGroup of this.postBuildStepGroups as Array<AppxEngineStepGroup>) {
       stepGroupChoices.push({
         name:     recipeStepGroup.stepGroupName,
         value:    recipeStepGroup.alias,
@@ -302,27 +326,38 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   public static async compileRecipe(recipe:SfdxFalconRecipe, compileOptions:any):Promise<AppxDemoConfigEngine> {
     let compiledRecipeEngine = new AppxDemoConfigEngine();
+
+
+
     await compiledRecipeEngine.compile(recipe, compileOptions);
     return compiledRecipeEngine;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      execute
+   * @method      executeListrTasks
    * @param       {any} [executionOptions]  Optional. 
-   * @returns     {Promise<SfdxFalconRecipeResult>} ???
-   * @description Starts the execution of a compiled recipe. Implemented here
-   *              instead of in the base class so we can fine-tune error and
-   *              success handling resulting from the Listr Task execution.
+   * @returns     {Promise<ListrContext>} Resolves with a ListrContext object
+   *              (basically, a type alias for "any" since Listr doesn't expose
+   *              a TypeScript type for their code).
+   * @description Executes the Listr Tasks that were previously compiled into
+   *              this Engine. Implemented here instead of in the base class so
+   *              we can fine-tune error and success handling resulting from 
+   *              the Listr Task execution.
    * @version     1.0.0
-   * @public @async
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
+  protected async executeListrTasks(executionOptions:any={}):Promise<ListrContext> {
 
-    
-    return null;
+    // Execute the Listr Tasks that were compiled into this Engine.
+    let listrContext = await this.listrTasks.run();
 
+    // Do a little bit of debug...
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, listrContext, `${clsDbgNs}executeListrTasks:listrContext: `);
+
+    // Return the Listr Context
+    return listrContext;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -339,6 +374,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Build a map of Action "aliases" to function 
     this.actionExecutorMap = new Map<string, any>();
     this.actionExecutorMap.set('create-scratch-org', new CreateScratchOrgAction());
+    this.actionExecutorMap.set('delete-scratch-org', new DeleteScratchOrgAction());
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -423,17 +459,24 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext.compileOptions, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext.compileOptions: `);
 
-    // Initialize basic context values
-    this.engineContext.executing    = false;
-    this.engineContext.devHubAlias  = this.engineContext.compileOptions.devHubAlias;
-    this.engineContext.haltOnError  = this.recipe.options.haltOnError;
-    this.engineContext.status       = new SfdxFalconStatus();
-
     // Store a reference to the Recipe's Project Context.
     this.engineContext.projectContext = this.recipe.projectContext;
 
-    // Set the log level. Default to ERROR if not specifed
-    this.engineContext.logLevel = this.engineContext.compileOptions.logLevel || SfdxCliLogLevel.ERROR;
+    // Check for DevHub Alias override.
+    this.engineContext.devHubAlias  = this.engineContext.compileOptions.devHubAlias
+                                      || this.engineContext.projectContext.falconLocalConfig.devHubAlias;
+
+    // Check for Halt on Error override.
+    this.engineContext.haltOnError  = this.engineContext.compileOptions.haltOnError
+                                      || this.recipe.options.haltOnError;
+
+    // Check for Log Level override. Default to ERROR if not specifed.
+    this.engineContext.logLevel     = this.engineContext.compileOptions.logLevel 
+                                      || SfdxCliLogLevel.ERROR;
+
+    // Initialize basic context values
+    this.engineContext.executing    = false;
+    this.engineContext.status       = new SfdxFalconStatus();
 
     // Final DEBUG before returning.
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
@@ -499,6 +542,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async initializeTargetOrg():Promise<void> {
 
+    SfdxFalconDebug.debugMessage(`FALCON_EXT:${dbgNs}`, `We got to initializeTargetOrg()`);
+
     // If Target Org Alias not provided in Compile Options, ask user to choose one of the defined targetOrgs.
     let targetOrgAlias = this.engineContext.compileOptions.targetOrgAlias;
     if (! targetOrgAlias) {
@@ -518,6 +563,9 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
       throw new Error (`ERROR_COMPILE_RECIPE_FAILED: The specified Target Org Alias '${targetOrgAlias}'  `
                       +`does not match any of the targetOrgs in your recipe`);
     }
+
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, selectedTargetOrg, `${clsDbgNs}initializeTargetOrg:selectedTargetOrg: `);
+
 
     // Set the Engine Context's Target Org.
     this.engineContext.targetOrg = selectedTargetOrg;

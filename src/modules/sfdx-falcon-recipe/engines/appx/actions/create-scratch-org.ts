@@ -13,9 +13,13 @@
 import * as path                from  'path';                                     // Node's path library.
 
 // Import Local Modules
-import {SfdxFalconDebug}        from  '../../../../sfdx-falcon-debug';            // Why?
-import {executeSfdxCommand}     from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
-import {SfdxShellResult}        from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';            // Why?
+
+import {SfdxFalconExecutorResponse} from  '../../../../sfdx-falcon-executors';        // Why?
+import {SfdxFalconExecutorStatus}   from  '../../../../sfdx-falcon-executors';        // Why?
+
+import {executeSfdxCommand}         from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
+import {SfdxShellResult}            from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
 
 // Import Internal Engine Modules
 import {AppxEngineAction}         from  '../../appx/actions';                       // Why?
@@ -25,7 +29,6 @@ import {AppxEngineActionType}     from  '../../appx/';                          
 // Set the File Local Debug Namespace
 const dbgNs     = 'create-scratch-org-action:';
 const clsDbgNs  = 'CreateScratchOrgAction:';
-
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -37,6 +40,42 @@ const clsDbgNs  = 'CreateScratchOrgAction:';
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class CreateScratchOrgAction extends AppxEngineAction {
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializeAction
+   * @returns     {void}
+   * @description Sets member variables based on the specifics of this action.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected initializeAction():void {
+
+    // Set values for all the base member vars to better define THIS AppxEngineAction.
+    this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
+    this.actionName       = 'create-scratch-org';
+    this.command          = 'force:org:create';
+    this.description      = 'Create Scratch Org';
+    this.successDelay     = 2;
+    this.errorDelay       = 2;
+    this.progressDelay    = 1000;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateActionOptions
+   * @param       {any}   actionOptions Required. ???
+   * @returns     {void}  
+   * @description ???
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected validateActionOptions(actionOptions:any):void {
+    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
+    if (typeof actionOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
+  }  
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -80,42 +119,6 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
-    return executeSfdxCommand(this.sfdxCommandDef);
+    return await executeSfdxCommand(this.sfdxCommandDef);
   }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      initializeAction
-   * @returns     {void}
-   * @description Sets member variables based on the specifics of this action.
-   * @version     1.0.0
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected initializeAction():void {
-
-    // Set values for all the base member vars to better define THIS AppxEngineAction.
-    this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
-    this.actionName       = 'create-scratch-org';
-    this.command          = 'force:org:create';
-    this.description      = 'Create Scratch Org';
-    this.successDelay     = 2;
-    this.errorDelay       = 2;
-    this.progressDelay    = 1000;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateActionOptions
-   * @param       {any}   actionOptions Required. ???
-   * @returns     {void}  
-   * @description ???
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected validateActionOptions(actionOptions:any):void {
-    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
-    if (typeof actionOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
-  }  
 }

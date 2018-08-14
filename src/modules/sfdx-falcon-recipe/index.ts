@@ -104,7 +104,7 @@ export class SfdxFalconRecipe {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private constructor() {
-    // Intentionally Empty.
+    // Intentionally Empty. Instantiate SfdxFalconRecipe objects with read();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -189,7 +189,7 @@ export class SfdxFalconRecipe {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any={}):Promise<any> {
+  public async execute(executionOptions:any={}):Promise<SfdxFalconRecipeResult> {
 
     // Make sure that the Recipe has been compiled before allowing execution.
     if (this._compiled !== true) {
@@ -198,9 +198,15 @@ export class SfdxFalconRecipe {
     }
 
     // Ask the Recipe Engine (determined during compile) to execute the recipe.
-    await this._recipeEngine.execute(executionOptions);
+    let recipeExecutionResult = await this._recipeEngine.execute(executionOptions);
 
-    // TODO: Implement then() and catch() for the above call.
+    // Use stardard Debug to show results (results from the engine will use EXT or XL Debug)
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, recipeExecutionResult, `${clsDbgNs}execute:recipeExecutionResult: `);
+
+    // TODO: Implement any sort of user messaging here (eg. "All done! Command took 135 seconds")
+    console.log(`Recipe Executed Successfully`);
+
+    return recipeExecutionResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

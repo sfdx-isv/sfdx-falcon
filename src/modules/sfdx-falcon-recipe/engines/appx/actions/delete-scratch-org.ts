@@ -9,9 +9,6 @@
  * @description   Marks the specified scratch org for deletion.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import * as path                from  'path';                                     // Node's path library.
-
 // Import Local Modules
 import {SfdxFalconDebug}        from  '../../../../sfdx-falcon-debug';            // Why?
 import {executeSfdxCommand}     from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
@@ -26,7 +23,6 @@ import {AppxEngineActionType}     from  '../../appx/';                          
 const dbgNs     = 'delete-scratch-org-action:';
 const clsDbgNs  = 'DeleteScratchOrgAction:';
 
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       DeleteScratchOrgAction
@@ -37,6 +33,46 @@ const clsDbgNs  = 'DeleteScratchOrgAction:';
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class DeleteScratchOrgAction extends AppxEngineAction {
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      initializeAction
+   * @returns     {void}
+   * @description Sets member variables based on the specifics of this action.
+   *              Think of it as a consstructor for this instance of the derived
+   *              class.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected initializeAction():void {
+
+    // Set values for all the base member vars to better define THIS AppxEngineAction.
+    this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
+    this.actionName       = 'delete-scratch-org';
+    this.command          = 'force:org:delete';
+    this.description      = 'Delete Scratch Org';
+    this.successDelay     = 2;
+    this.errorDelay       = 2;
+    this.progressDelay    = 1000;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateActionOptions
+   * @param       {any}   actionOptions Required. The options that should be
+   *              validated because they are required by this specific action.
+   * @returns     {void}  
+   * @description Given an object containing Action Options, make sure that 
+   *              everything expected by this Action in order to properly
+   *              execute has been provided.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected validateActionOptions(actionOptions:any):void {
+    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
+  }  
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -66,13 +102,9 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
       observer:     actionContext.listrExecOptions.observer,
       commandArgs:  [] as [string],
       commandFlags: {
+        FLAG_TARGETUSERNAME:        actionContext.targetOrg.alias,
         FLAG_TARGETDEVHUBUSERNAME:  actionContext.devHubAlias,
-        FLAG_DEFINITIONFILE:        path.join(actionContext.projectContext.configPath, actionOptions.scratchDefJson),
-        FLAG_SETALIAS:              actionOptions.scratchOrgAlias,
-        FLAG_DURATIONDAYS:          30,
-        FLAG_WAIT:                  10,
-        FLAG_NONAMESPACE:           true,
-        FLAG_SETDEFAULTUSERNAME:    true,
+        FLAG_NOPROMPT:              true,
         FLAG_JSON:                  true,
         FLAG_LOGLEVEL:              actionContext.logLevel
       }
@@ -80,42 +112,15 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
-    return executeSfdxCommand(this.sfdxCommandDef);
+    let sfdxShellResult = await executeSfdxCommand(this.sfdxCommandDef)
+                                .catch(sfdxShellResult => {
+                                  SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, sfdxShellResult, `${clsDbgNs}executeAction:executeSfdxCommand:catch:sfdxShellResult: `);
+                                  // We need to suppress errors here because we might be trying to delete
+                                  // a scratch org that does not exist.
+                                  // Override the status so the caller does not think this call returned an error
+                                  sfdxShellResult.status = 0;
+                                  return sfdxShellResult;
+                                });
+    return sfdxShellResult;
   }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      initializeAction
-   * @returns     {void}
-   * @description Sets member variables based on the specifics of this action.
-   * @version     1.0.0
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected initializeAction():void {
-
-    // Set values for all the base member vars to better define THIS AppxEngineAction.
-    this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
-    this.actionName       = 'delete-scratch-org';
-    this.command          = 'force:org:delete';
-    this.description      = 'Delete Scratch Org';
-    this.successDelay     = 2;
-    this.errorDelay       = 2;
-    this.progressDelay    = 1000;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateActionOptions
-   * @param       {any}   actionOptions Required. ???
-   * @returns     {void}  
-   * @description ???
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected validateActionOptions(actionOptions:any):void {
-    if (typeof actionOptions.scratchOrgAlias === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchOrgAlias'`);
-    if (typeof actionOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
-  }  
 }

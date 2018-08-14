@@ -23,9 +23,14 @@ import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';             
 import {SfdxFalconError}              from  '../sfdx-falcon-error';               // Why?
 import {SfdxFalconStatus}             from  '../sfdx-falcon-status';              // Why?
 import {waitASecond}                  from  '../sfdx-falcon-async';               // Why?
+import {SfdxFalconExecutorResponse}   from  '../sfdx-falcon-executors';           // Why?
+import {SfdxFalconExecutorStatus}     from  '../sfdx-falcon-executors';           // Why?
 
 // Requies
 const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.
+
+// Set the File Local Debug Namespace
+const dbgNs = 'Executor:sfdx:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Interfaces specific to the sfdx-executor
@@ -51,21 +56,23 @@ export interface SfdxCommandDefinition {
 /**
  * @function    executeSfdxCommand
  * @param       {SfdxCommandDefinition} sfdxCommandDef  Required. Defines the command to be run.
- * @returns     {Promise<SfdxShellResult>}  Resolves with an SFDX Shell Result on success.
+ * @returns     {Promise<SfdxFalconExecutorResponse>} Resolves with and SFDX-Falcon Executor
+ *              Response object on success.
  * @description Executes an SFDX command based on the SfdxCommandDefinition passed in.
  * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):Promise<SfdxShellResult> {
+export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):Promise<SfdxFalconExecutorResponse> {
+
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
-  SfdxFalconDebug.str('FALCON_EXT:sfdx-executor', sfdxCommandString, `executeSfdxCommand:sfdxCommandString: `);
+  SfdxFalconDebug.str(`FALCON:${dbgNs}`, sfdxCommandString, `executeSfdxCommand:sfdxCommandString: `);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
 
-    // Create a SfdxFalconStatus object to help report on elapsed time.
+    // Create an SfdxFalconStatus object to help report on elapsed time.
     let status = new SfdxFalconStatus(true);
 
     // Declare function-local string buffers for stdout and stderr streams.
@@ -82,34 +89,43 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     const progressNotifications 
       = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, status, sfdxCommandDef.observer);
 
-    // Handle stdout data stream. This can fire multiple times in one shell.exec() call.
+    // Capture stdout data stream. NOTE: We only care about the last output sent to the buffer.
     childProcess.stdout.on('data', (stdOutDataStream) => {
-      stdOutBuffer += stdOutDataStream;
+      // By not using += we are deciding to ONLY keep the last thing sent to stdout.
+      stdOutBuffer = stdOutDataStream; 
     });
 
-    // Handle stderr "data". Anything here means an error occured
+    // Handle stderr "data". Anything here means an error occured. Build the buffer
     childProcess.stderr.on('data', (stdErrDataStream) => {
       stdErrBuffer += stdErrDataStream;
     });
 
     // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
-    // FYI: Ignore the code and signal vars. They don't work.
+    // FYI: Ignore the "code" and "signal" vars. They don't work.
     childProcess.stdout.on('close', (code, signal) => {
 
       // Stop the progress notifications for this command.
       FalconProgressNotifications.finish(progressNotifications);
 
+      // Create and initialize an Executor Response.
+      let executorResponse = new SfdxFalconExecutorResponse(`executeSfdxCommand`);
+      executorResponse.cmdObj   = sfdxCommandDef;
+      executorResponse.cmdRaw   = sfdxCommandString;
+      executorResponse.duration = status.getRunTime() as number;
+
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
-        reject(SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
+        let cliError = SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg);
+        executorResponse.cliError(cliError);
+        reject(executorResponse);
       }
       else {
-        let sfdxShellResult = new SfdxShellResult(stdOutBuffer, sfdxCommandString);
+        executorResponse.parse(stdOutBuffer);
         updateObserver(sfdxCommandDef.observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);
-        resolve(sfdxShellResult);
+        resolve(executorResponse);
       }
     });
-  }) as Promise<SfdxShellResult>;
+  }) as Promise<SfdxFalconExecutorResponse>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -338,25 +354,28 @@ export async function scanConnectedOrgs():Promise<any> {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxShellResult {
 
-  public cmd:     string;           // A copy of the CLI command that was executed
-  public error:   Error;            // Error object in case of exceptions.
-  public json:    any;              // Result of the call, converted to JSON.
-  public raw:     any;              // Raw result from the CLI.
-  public status:  number;           // Status code returned by the CLI command after execution.
+  public cmd:       string;           // A copy of the CLI command that was executed
+  public error:     Error;            // Error object in case of exceptions.
+  public falconErr: SfdxFalconError;  // A Falcon Error Object (if provided)
+  public json:      any;              // Result of the call, converted to JSON.
+  public raw:       any;              // Raw result from the CLI.
+  public status:    number;           // Status code returned by the CLI command after execution.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  SfdxShellResult
    * @param       {string} rawResult Required. ???
    * @param       {string} cmdString Optional. ???
+   * @param       {SfdxFalconError} falconError Optional. ???
    * @description ???
    * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public constructor(rawResult:string, cmdString:string='') {
-    this.cmd  = cmdString || 'NOT_PROVIDED';
-    this.raw  = rawResult;
+  public constructor(rawResult:string, cmdString:string='', falconError?:SfdxFalconError) {
+    this.cmd        = cmdString || 'NOT_PROVIDED';
+    this.raw        = rawResult;
+    this.falconErr  = falconError || {} as any;
     try {
       // Try to parse the result into a object.
       this.json      = JSON.parse(rawResult);

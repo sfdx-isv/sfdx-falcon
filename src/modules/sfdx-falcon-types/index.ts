@@ -150,6 +150,7 @@ export interface ListrExecutionOptions {
   listrTask:    any;
   observer:     any;
 }
+export type ListrContext = any;
 
 
 export enum SfdxCliLogLevel {
