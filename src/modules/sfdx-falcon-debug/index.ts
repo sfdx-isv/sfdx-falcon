@@ -43,9 +43,6 @@ export class SfdxFalconDebug {
     // Get the "top namespace", ie. the substring up to the first ":".
     let topNamespace = namespace.substring(0, namespace.indexOf(':'));
 
-    //DEVTEST
-    //console.log(`checkEnabled:topNamespace: %s = %s${SfdxFalconDebug.printLineBreaks()}`, topNamespace, SfdxFalconDebug.enabledDebuggers.get(topNamespace));
-
     // Find out if the topNamespace is set to TRUE in the enabledDebuggers map.
     return SfdxFalconDebug.enabledDebuggers.get(topNamespace);
   }
@@ -62,9 +59,6 @@ export class SfdxFalconDebug {
     for (let namespace of namespaces) {
       SfdxFalconDebug.enabledDebuggers.set(namespace, true);
     }
-    //DEVTEST
-    //console.log(`SfdxFalconDebug.enabledDebuggers:\n%O${SfdxFalconDebug.printLineBreaks()}`, SfdxFalconDebug.enabledDebuggers);
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
