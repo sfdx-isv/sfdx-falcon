@@ -10,13 +10,12 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // External Imports
-import * as core                    from  '@salesforce/core';             // Allows us to use SFDX core functionality.
-import * as path                    from  'path';                         // Node's path library.
-
+import * as core                    from  '@salesforce/core';                 // Library. Allows us to use SFDX core functionality.
+import * as path                    from  'path';                             // Library. Node's built-in path library.
 // Local Imports
-import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';      // Why?
-import {SfdxFalconRecipe}               from  '../sfdx-falcon-recipe';                // Why?
-import {SfdxFalconRecipeResult}         from  '../sfdx-falcon-recipe';                // Why?
+import {SfdxFalconDebug}            from  '../../modules/sfdx-falcon-debug';  // Class. Internal Debug module
+import {SfdxFalconRecipe}           from  '../sfdx-falcon-recipe';            // Class. Allows you to read, compile, and run an SFDX-Falcon Recipe.
+import {SfdxFalconRecipeResult}     from  '../sfdx-falcon-recipe';            // Interface. Represents the result of running an SFDX-Falcon Recipe.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'sfdx-falcon-project:';
