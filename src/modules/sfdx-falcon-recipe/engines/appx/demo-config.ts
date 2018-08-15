@@ -542,8 +542,6 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async initializeTargetOrg():Promise<void> {
 
-    SfdxFalconDebug.debugMessage(`FALCON_EXT:${dbgNs}`, `We got to initializeTargetOrg()`);
-
     // If Target Org Alias not provided in Compile Options, ask user to choose one of the defined targetOrgs.
     let targetOrgAlias = this.engineContext.compileOptions.targetOrgAlias;
     if (! targetOrgAlias) {

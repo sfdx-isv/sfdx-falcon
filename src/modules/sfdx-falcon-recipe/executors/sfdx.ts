@@ -14,17 +14,15 @@
 // Import External Modules
 import {Aliases}                      from  '@salesforce/core';                   // Why?
 
-// Import Local Helpers
-import {updateObserver}               from  '../sfdx-falcon-notifications';       // Why?
-import {FalconProgressNotifications}  from  '../sfdx-falcon-notifications';       // Why?
-
 // Import Local Modules
-import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';               // Why?
-import {SfdxFalconError}              from  '../sfdx-falcon-error';               // Why?
-import {SfdxFalconStatus}             from  '../sfdx-falcon-status';              // Why?
-import {waitASecond}                  from  '../sfdx-falcon-async';               // Why?
-import {SfdxFalconExecutorResponse}   from  '../sfdx-falcon-executors';           // Why?
-import {SfdxFalconExecutorStatus}     from  '../sfdx-falcon-executors';           // Why?
+import {waitASecond}                  from  '../../sfdx-falcon-async';              // Why?
+import {SfdxFalconDebug}              from  '../../sfdx-falcon-debug';              // Why?
+import {SfdxFalconError}              from  '../../sfdx-falcon-error';              // Why?
+import {updateObserver}               from  '../../sfdx-falcon-notifications';      // Why?
+import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';      // Why?
+import {SfdxFalconExecutorResponse}   from  '../../sfdx-falcon-recipe/executors';   // Why?
+import {SfdxFalconExecutorStatus}     from  '../../sfdx-falcon-recipe/executors';   // Why?
+import {SfdxFalconStatus}             from  '../../sfdx-falcon-status';             // Why?
 
 // Requies
 const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.

@@ -135,11 +135,17 @@ export class SfdxFalconDebug {
   static displayFalconError(falconError:SfdxFalconError) {
     let falconErrorColor = 'blue';
     let errorColor, errorLabel;
+
+    // Output the core Error info
     console.log('');
     console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
     console.log(chalk`{${falconErrorColor} Error Name:}  ${falconError.name}`);
     console.log(chalk`{${falconErrorColor} Error Msg:}   ${falconError.falconMessage}`);
     console.log(chalk`{${falconErrorColor} Status Code:} ${falconError.status}`);
+    console.log(chalk`{${falconErrorColor} Details:}   \n${falconError.message}`);
+    console.log(chalk`{${falconErrorColor} Raw Error:} \n${falconError.errRaw}`);
+        
+    // See if there is a "traditional" Error object (ie. an object with a "stack" property)
     if (typeof falconError.errObj.stack !== 'undefined') {
       switch (falconError.type) {
         case ERROR_TYPE.CLI_ERROR:
@@ -166,7 +172,10 @@ export class SfdxFalconDebug {
       if (falconError.errObj.action)    console.log(chalk`{${errorColor} ${errorLabel} Suggested Actions:} \n${falconError.errObj.action}`);
       if (falconError.errObj.stack)     console.log(chalk`{${errorColor} ${errorLabel} Stacktrace:}        \n${falconError.errObj.stack}`);
     }
-    console.log(chalk`{${falconErrorColor} Raw Error:}\n${falconError.errRaw}`);
+    else {
+      // We don't have a traditional Error Object, but there might still be something interesting there.
+      console.log(chalk`{${falconErrorColor} Obj Error:}\n${util.inspect(falconError.errObj, {depth:8, colors:true})}`);
+    }
     console.log('');
   }
 

@@ -16,7 +16,9 @@ import {SfdxErrorConfig}                from  '@salesforce/core';               
 import {ERROR_TYPE}                     from  '../../enums';                          // Why?
 import {FalconProgressNotifications}    from  '../../helpers/notification-helper'     // Why?
 import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';               // Why?
-
+import {SfdxFalconExecutorResponse}     from  '../sfdx-falcon-recipe/executors';
+import {SfdxFalconActionResponse}       from  '../sfdx-falcon-recipe/engines';
+import {SfdxFalconEngineResponse}       from  '../sfdx-falcon-recipe/engines';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -32,8 +34,10 @@ export class SfdxFalconError {
   public  name:           string;
   public  message:        string;
   public  falconMessage:  string;
+  public  friendlyInfo:   string;
   public  status:         number;
   public  type:           ERROR_TYPE;
+  public  source:         string;
   public  errRaw:         string;
   public  errObj:         any;
 
@@ -44,15 +48,59 @@ export class SfdxFalconError {
     if (error instanceof SfdxFalconError) {
       return error;
     }
+    if (error instanceof SfdxFalconExecutorResponse) {
+      error as SfdxFalconExecutorResponse;
+      return {
+        name:           `UNEXPECTED_EXECUTOR_ERROR (${error.name})`,
+        message:        `${error.message}`,
+        falconMessage:  `Unexpected error while running Executor '${error.name}'`,
+        friendlyInfo:   error.message.split('\n')[0] || 'No additional details available',
+        type:           ERROR_TYPE.EXECUTOR_ERROR,
+        source:         `SfdxFalconExecutorResponse`,
+        status:         error.code | -999,
+        errObj:         error.respObj,
+        errRaw:         error.respRaw
+      }
+    }    
+    if (error instanceof SfdxFalconActionResponse) {
+      error as SfdxFalconActionResponse;
+      return {
+        name:           `UNEXPECTED_ACTION_ERROR (${error.actionName})`,
+        message:        `${error.actionMessage}`,
+        falconMessage:  `Unexpected error while executing Action '${error.actionName}'`,
+        friendlyInfo:   error.actionMessage.split('\n')[0] || 'No additional details available',
+        type:           ERROR_TYPE.ACTION_ERROR,
+        source:         `SfdxFalconActionResponse`,
+        status:         -999,
+        errObj:         error.execResponses,
+        errRaw:         error.actionOptions
+      }
+    }
+    if (error instanceof SfdxFalconEngineResponse) {
+      error as SfdxFalconEngineResponse;
+      return {
+        name:           `UNEXPECTED_RECIPE_ENGINE_ERROR (${error.engineName})`,
+        message:        `${error.engineMessage}`,
+        falconMessage:  `Unexpected error while '${error.engineName}' ran Recipe '${error.recipeName}'`,
+        friendlyInfo:   error.engineMessage || 'No additional details available',
+        type:           ERROR_TYPE.ENGINE_ERROR,
+        source:         `SfdxFalconEngineResponse`,
+        status:         -999,
+        errObj:         error.actionResponses,
+        errRaw:         `N/A`
+      }
+    }
     else {
       return {
         name:           `UNEXPECTED_ERROR (${error.name})`,
         message:        `${error.message}`,
         falconMessage:  `There has been an unexpected error`,
+        friendlyInfo:   error.message || 'No additional details available',
         type:           ERROR_TYPE.INTERNAL_ERROR,
-        status:   -999,
-        errObj:   error,
-        errRaw:   error.toString()
+        source:         `${error.constructor.name}`,
+        status:         -999,
+        errObj:         error,
+        errRaw:         error.toString()
       }
     }
   }
@@ -70,9 +118,11 @@ export class SfdxFalconError {
     } catch (e) {
       // Could not parse the stderr string.
       falconError.type          = ERROR_TYPE.UNPARSED_ERROR;
+      falconError.source        = 'UNPARSED_CLI_ERROR'
       falconError.name          = `UNPARSED_CLI_ERROR`;
       falconError.message       = `Unparsed CLI Error`;
       falconError.falconMessage = `The CLI threw an error that could not be parsed`;
+      falconError.friendlyInfo  = `No additional information available`
       falconError.status        = -1;
       falconError.errObj        = <any>{};
       return falconError;
@@ -87,11 +137,13 @@ export class SfdxFalconError {
     }
 
     // Wrap the parsed error as best we can
-    falconError.type    = ERROR_TYPE.CLI_ERROR;
-    falconError.name    = stdErrJson.name;
-    falconError.message = stdErrJson.message;
-    falconError.status  = stdErrJson.status;
-    falconError.errObj  = stdErrJson;
+    falconError.type          = ERROR_TYPE.CLI_ERROR;
+    falconError.source        = 'PARSED_CLI_ERROR';
+    falconError.name          = stdErrJson.name;
+    falconError.message       = stdErrJson.message;
+    falconError.status        = stdErrJson.status;
+    falconError.errObj        = stdErrJson;
+    falconError.friendlyInfo  = stdErrJson.message || 'No additional details available';
 
     return falconError;
   }
@@ -116,8 +168,7 @@ export class SfdxFalconError {
       SfdxFalconDebug.displayFalconError(falconError);
     }
 
-    // Merge the custom Falcon message and the standard SFDX into our output.
-    sfdxErrorConfig.setErrorTokens([falconError.falconMessage, falconError.errObj.message]);
+    sfdxErrorConfig.setErrorTokens([falconError.falconMessage, falconError.friendlyInfo]);
 
     // Search the SFDX error message to see if we can figure out a recommended action.
     switch (true) {

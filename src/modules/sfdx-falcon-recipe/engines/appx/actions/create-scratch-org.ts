@@ -10,24 +10,25 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path                from  'path';                                     // Node's path library.
+import * as path                from  'path';                               // Node's path library.
 
 // Import Local Modules
-import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';            // Why?
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Internal Debug module
 
-import {SfdxFalconExecutorResponse} from  '../../../../sfdx-falcon-executors';        // Why?
-import {SfdxFalconExecutorStatus}   from  '../../../../sfdx-falcon-executors';        // Why?
-
-import {executeSfdxCommand}         from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
-import {SfdxShellResult}            from  '../../../../sfdx-falcon-executors/sfdx';   // Why?
+// Imports Related to Executors
+import {SfdxFalconExecutorResponse} from  '../../../executors';         // Why?
+import {SfdxFalconExecutorStatus}   from  '../../../executors';         // Why?
+import {executeSfdxCommand}         from  '../../../executors/sfdx';    // Why?
+import {SfdxShellResult}            from  '../../../executors/sfdx';    // Why?
 
 // Import Internal Engine Modules
-import {AppxEngineAction}         from  '../../appx/actions';                       // Why?
-import {AppxEngineActionContext}  from  '../../appx';                               // Why?
-import {AppxEngineActionType}     from  '../../appx/';                              // Why?
+import {AppxEngineAction}           from  '../../appx/actions';           // Why?
+import {AppxEngineActionContext}    from  '../../appx';                   // Why?
+import {AppxEngineActionType}       from  '../../appx/';                  // Why?
+import {SfdxFalconActionType}       from  '../../../engines';             // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'create-scratch-org-action:';
+const dbgNs     = 'action:create-scratch-org:';
 const clsDbgNs  = 'CreateScratchOrgAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -53,7 +54,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
   protected initializeAction():void {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
-    this.actionType       = AppxEngineActionType.SFDX_CLI_COMMAND
+    this.actionType       = SfdxFalconActionType.SFDX_CLI;
     this.actionName       = 'create-scratch-org';
     this.command          = 'force:org:create';
     this.description      = 'Create Scratch Org';
@@ -65,11 +66,14 @@ export class CreateScratchOrgAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateActionOptions
-   * @param       {any}   actionOptions Required. ???
+   * @param       {any}   actionOptions Required. The options that should be
+   *              validated because they are required by this specific action.
    * @returns     {void}  
-   * @description ???
+   * @description Given an object containing Action Options, make sure that 
+   *              everything expected by this Action in order to properly
+   *              execute has been provided.
    * @version     1.0.0
-   * @private
+   * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected validateActionOptions(actionOptions:any):void {
@@ -82,14 +86,14 @@ export class CreateScratchOrgAction extends AppxEngineAction {
    * @method      executeAction
    * @param       {any}   actionOptions Optional. Any options that the command
    *              execution logic will require in order to properly do its job.
-   * @returns     {Promise<AppxEngineActionResult>}
+   * @returns     {Promise<void>}
    * @description Performs the custom logic that's wrapped by the execute method
    *              of the base class.
    * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxShellResult> {
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<void> {
 
     // Set the progress, error, and success messages for this action execution.
     this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
@@ -118,7 +122,17 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
-    // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
-    return await executeSfdxCommand(this.sfdxCommandDef);
+    // Run the executor then store or throw the result. If you want to override error handling, do it here.
+    await executeSfdxCommand(this.sfdxCommandDef)
+      .then(execSuccessResult => {
+        this.actionResponse.execSuccess(execSuccessResult);
+      })
+      .catch(execErrorResult  => {
+        this.actionResponse.execFailure(execErrorResult);
+        throw execErrorResult;
+      });
+
+    // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
+    return;
   }
 }
