@@ -116,6 +116,9 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
         this.actionResponse.execSuccess(execSuccessResponse);
       })
       .catch(execErrorResponse => {
+        // Debug here since we're processing the error response.
+        SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execErrorResponse, `${clsDbgNs}executeAction:executeSfdxCommand:catch:execErrorResponse: `);
+
         // Check if the Executor Error Response is due to a thrown Error (not a FAILURE).
         if (execErrorResponse.status === SfdxFalconExecutorStatus.ERROR) {
           this.actionResponse.execFailure(execErrorResponse);
