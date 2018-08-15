@@ -113,12 +113,12 @@ export class InstallPackageAction extends AppxEngineAction {
 
     // Run the executor then store or throw the result. If you want to override error handling, do it here.
     await executeSfdxCommand(this.sfdxCommandDef)
-      .then(execSuccessResult => {
-        this.actionResponse.execSuccess(execSuccessResult);
+      .then(execSuccessResponse => {
+        this.actionResponse.execSuccess(execSuccessResponse);
       })
-      .catch(execErrorResult  => {
-        this.actionResponse.execFailure(execErrorResult);
-        throw execErrorResult;
+      .catch(execErrorResponse  => {
+        this.actionResponse.execFailure(execErrorResponse);
+        throw execErrorResponse;
       });
 
     // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
