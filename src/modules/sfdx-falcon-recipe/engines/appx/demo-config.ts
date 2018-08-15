@@ -13,25 +13,28 @@
 import * as path              from  'path';                                               // Why?
 
 // Import Local Modules
-import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Why?
-import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Why?
-import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Why?
+import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Class. Internal Debug module
+import {SfdxFalconStatus}         from '../../../sfdx-falcon-status';                       // Class. Helps track status of internal operations.
+import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';                        // Enum. Represents the LogLevel types from the Salesforce CLI.
+import {ListrContext}             from '../../../sfdx-falcon-types';                        // Type. Alias to "any". Used in project to make code easier to read.
+// Recipe Imports
+import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Class. Represents an instance of a valid SFDX-Falcon Recipe.
+import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Interface. Representation of the JSON schema for an SFDX-Falcon Recipe configuration file.
 import {SfdxFalconRecipeResult}   from '../../../sfdx-falcon-recipe';                       // Why?
+// Recipe Engine Imports
 import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepResult}     from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineContext}        from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {TargetOrg}                from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {SfdxFalconStatus}         from '../../../sfdx-falcon-status';                       // Why?
-import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';                        // Why?
-import {ListrContext}             from '../../../sfdx-falcon-types';                        // Why?
+// Action Imports (determines what is supported by appx:demo-config engine)
+import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';                // Why?
+import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';                // Why?
+import {InstallPackageAction}     from '../appx/actions/install-package';                   // Why?
+// Local Helpers
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
-
-// Import Actions supported by this engine (appx:demo-config).
-import {CreateScratchOrgAction} from '../appx/actions/create-scratch-org';                  // Why?
-import {DeleteScratchOrgAction} from '../appx/actions/delete-scratch-org';                  // Why?
 
 // Requires
 const inquirer  = require('inquirer');                                              // Provides UX for getting feedback from the user.
@@ -371,10 +374,11 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async initializeActionMap():Promise<void> {
 
-    // Build a map of Action "aliases" to function 
+    // Build a map of Action "aliases" to instances of the Action Classes that implement that alias.
     this.actionExecutorMap = new Map<string, any>();
     this.actionExecutorMap.set('create-scratch-org', new CreateScratchOrgAction());
     this.actionExecutorMap.set('delete-scratch-org', new DeleteScratchOrgAction());
+    this.actionExecutorMap.set('install-package',    new InstallPackageAction());
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
