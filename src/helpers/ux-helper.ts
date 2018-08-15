@@ -355,32 +355,3 @@ export class SfdxFalconKeyValueTable {
     );
   }
 }
-
-
-
-
-
-    //DEVTEST
-    /*
-    this.generatorStatus.addMessage({
-      type: 'info',
-      title:  'My Info Message',
-      message:  'This is my informational message.  Hooray!'
-    });
-    this.generatorStatus.addMessage({
-      type: 'error',
-      title:  'Error!',
-      message:  'This is my scary error message!'
-    });
-    this.generatorStatus.addMessage({
-      type: 'success',
-      title:  'WOHOO! We Did it! Here is how',
-      message:  'As you can tell, this is a success message'
-    });
-    this.generatorStatus.addMessage({
-      type: 'warning',
-      title:  'DANGER',
-      message:  'Danger, Will Robinson.  This is a warning message'
-    });
-    this.generatorStatus.printStatusMessages();
-    //*/
