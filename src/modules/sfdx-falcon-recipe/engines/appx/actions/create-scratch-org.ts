@@ -10,22 +10,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path                from  'path';                               // Node's path library.
-
+import * as path                    from  'path';                           // Module. Node's path library.
 // Import Local Modules
-import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Internal Debug module
-
-// Imports Related to Executors
-import {SfdxFalconExecutorResponse} from  '../../../executors';         // Why?
-import {SfdxFalconExecutorStatus}   from  '../../../executors';         // Why?
-import {executeSfdxCommand}         from  '../../../executors/sfdx';    // Why?
-import {SfdxShellResult}            from  '../../../executors/sfdx';    // Why?
-
-// Import Internal Engine Modules
-import {AppxEngineAction}           from  '../../appx/actions';           // Why?
-import {AppxEngineActionContext}    from  '../../appx';                   // Why?
-import {AppxEngineActionType}       from  '../../appx/';                  // Why?
-import {SfdxFalconActionType}       from  '../../../engines';             // Why?
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
+// Executor Imports
+import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
+// Engine/Action Imports
+import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
+import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
+import {SfdxFalconActionType}       from  '../../../engines';               // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'action:create-scratch-org:';
