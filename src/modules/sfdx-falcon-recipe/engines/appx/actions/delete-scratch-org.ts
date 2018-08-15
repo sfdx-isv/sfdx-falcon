@@ -3,23 +3,22 @@
  * @file          modules/sfdx-falcon-recipe/actions/delete-scratch-org.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
  * @summary       Exposes the CLI Command force:org:delete
  * @description   Marks the specified scratch org for deletion.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {SfdxFalconDebug}        from  '../../../../sfdx-falcon-debug';            // Why?
-import {executeSfdxCommand}     from  '../../../executors/sfdx';                  // Why?
-import {SfdxShellResult}        from  '../../../executors/sfdx';                  // Why?
-
-// Import Internal Engine Modules
-import {AppxEngineAction}         from  '../../appx/actions';                     // Why?
-import {AppxEngineActionContext}  from  '../../appx';                             // Why?
-import {AppxEngineActionType}     from  '../../appx/';                            // Why?
-import {SfdxFalconActionType}     from  '../../../engines';             // Why?
-import { SfdxFalconExecutorResponse } from '../../../executors';
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
+// Executor Imports
+import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
+import {SfdxFalconExecutorResponse} from  '../../../executors';             // Class. Primary way for Executors to communicate status with callers.
+import {SfdxFalconExecutorStatus}   from  '../../../executors';             // Enum. Represents the status of an Executor as part of an SFDX-Falcon Executor Response.
+// Engine/Action Imports
+import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
+import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
+import {SfdxFalconActionType}       from  '../../../engines';               // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'action:delete-scratch-org:';
@@ -117,11 +116,27 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
         this.actionResponse.execSuccess(execSuccessResponse);
       })
       .catch(execErrorResponse => {
-        SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execErrorResponse, `${clsDbgNs}executeAction:executeSfdxCommand:catch:execErrorResponse: `);
-        // Suppress errors here because we might be deleting a scratch org that doesn't exist.
-        let newExecResult = new SfdxFalconExecutorResponse('Suppressed Scratch Org Deletion Error');
-        newExecResult.parse(execErrorResponse);
-        this.actionResponse.execSuccess(newExecResult);
+        // Check if the Executor Error Response is due to a thrown Error (not a FAILURE).
+        if (execErrorResponse.status === SfdxFalconExecutorStatus.ERROR) {
+          this.actionResponse.execFailure(execErrorResponse);
+          throw execErrorResponse;
+        }
+        // Check if the execErrorResponse is a directly thrown Error
+        if (execErrorResponse instanceof Error) {
+          let newExecErrorResponse = new SfdxFalconExecutorResponse('executeSfdxCommand');
+          newExecErrorResponse.error(execErrorResponse)
+          this.actionResponse.execFailure(newExecErrorResponse);
+          throw newExecErrorResponse;  
+        }
+        // Finally, suppress any FAILURES because we might be deleting a scratch org that doesn't exist.
+        execErrorResponse.code    = -1;                                       // Change code to "warning" (-1)
+        execErrorResponse.message = `WARNING: ${execErrorResponse.message}`;  // Massage the message
+        execErrorResponse.status  = SfdxFalconExecutorStatus.WARNING;         // Change status to WARNING
+
+        // Put this execErrorResponse in the SUCCESS array
+        this.actionResponse.execSuccess(execErrorResponse);
+
+        // Done! DO NOT THROW!
       });
 
     // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
