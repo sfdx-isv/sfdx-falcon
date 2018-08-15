@@ -14,29 +14,29 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {SfdxCommand}                  from  '@salesforce/command';  // The CLI command we build must extend this class.
+//import {SfdxCommand}                  from  '@salesforce/command';  // The CLI command we build must extend this class.
 import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
-import {flags}                        from  '@oclif/command';       // Requried to create CLI command flags.
+//import {flags}                        from  '@oclif/command';       // Requried to create CLI command flags.
 import * as path                      from  'path';                 // Helps resolve local paths at runtime.
 
 // Import Local Modules
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
-import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
-import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
-import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
-import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
-import {validateLocalPath}            from  '../../../modules/sfdx-falcon-validators';  // Core validation function to check that local path values don't have invalid chars.
+//import {SfdxFalconDebug}              from  '../../../modules/sfdx-falcon-debug';   // Why?
+//import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Why?
+//import {SfdxFalconStatus}             from  '../../../modules/sfdx-falcon-status';  // Why?
+//import {SfdxFalconJsonResponse}       from  '../../../modules/sfdx-falcon-types';   // Why?
+//import {validateLocalPath}            from  '../../../modules/sfdx-falcon-validators';  // Core validation function to check that local path values don't have invalid chars.
 
-import {SfdxFalconRecipe}             from '../../../modules/sfdx-falcon-recipe';
-import {CreateScratchOrgAction}       from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
-import {SfdxCliLogLevel}              from '../../../modules/sfdx-falcon-types';           // Why?
+//import {SfdxFalconRecipe}             from '../../../modules/sfdx-falcon-recipe';
+//import {CreateScratchOrgAction}       from '../../../modules/sfdx-falcon-recipe/engines/appx/actions/create-scratch-org';
+//import {SfdxCliLogLevel}              from '../../../modules/sfdx-falcon-types';           // Why?
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
 const baseMessages    = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
 const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall');
-const errorMessages   = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
+//const errorMessages   = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
