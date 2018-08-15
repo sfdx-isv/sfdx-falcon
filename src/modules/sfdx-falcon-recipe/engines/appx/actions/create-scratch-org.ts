@@ -3,10 +3,10 @@
  * @file          modules/sfdx-falcon-recipe/actions/create-scratch-org.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
  * @summary       Exposes the CLI Command force:org:create
  * @description   Creates a new scratch org when given an Alias and a scratch-def.json file.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
@@ -117,12 +117,12 @@ export class CreateScratchOrgAction extends AppxEngineAction {
 
     // Run the executor then store or throw the result. If you want to override error handling, do it here.
     await executeSfdxCommand(this.sfdxCommandDef)
-      .then(execSuccessResult => {
-        this.actionResponse.execSuccess(execSuccessResult);
+      .then(execSuccessResponse => {
+        this.actionResponse.execSuccess(execSuccessResponse);
       })
-      .catch(execErrorResult  => {
-        this.actionResponse.execFailure(execErrorResult);
-        throw execErrorResult;
+      .catch(execErrorResponse  => {
+        this.actionResponse.execFailure(execErrorResponse);
+        throw execErrorResponse;
       });
 
     // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
