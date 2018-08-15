@@ -134,8 +134,8 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
 
     // Initialize the JSON response
     this.falconJsonResponse = {
-      status: 0,
-      result: 'RESPONSE_NOT_SPECIFIED'
+      falconStatus: 0,
+      falconResult: 'RESPONSE_NOT_SPECIFIED'
     };
   
     // Set the command name
@@ -211,8 +211,8 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected onSuccess(statusReport:any):void {
     this.falconCommandStatus = {...this.falconCommandStatus, ...statusReport};
     this.falconJsonResponse = {
-      status:  0,
-      result:  this.falconCommandStatus
+      falconStatus:  this.falconCommandStatus.statusCode || -1,
+      falconResult:  this.falconCommandStatus || 'Unknown'
     }
     SfdxFalconDebug.obj(`FALCON_SUCCESS:${this.falconCommandName}`, this.falconCommandStatus, `SfdxFalconCommand:onSuccess:statusReport: `);
     
