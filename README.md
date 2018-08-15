@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.3 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.3 darwin-x64 node-v10.1.0
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -32,9 +32,7 @@ USAGE
 * [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`](#sfdx-falcon-falcondemoclone-git-remote-uri)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
-* [`sfdx-falcon falcon:demo:deploy`](#sfdx-falcon-falcondemodeploy)
 * [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
-* [`sfdx-falcon falcon:demo:validate`](#sfdx-falcon-falcondemovalidate)
 * [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
 * [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
 * [`sfdx-falcon hello:org [FILE]`](#sfdx-falcon-helloorg-file)
@@ -118,40 +116,6 @@ EXAMPLES
 
 _See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/create.ts)_
 
-## `sfdx-falcon falcon:demo:deploy`
-
-Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org
-
-```
-USAGE
-  $ sfdx-falcon falcon:demo:deploy
-
-OPTIONS
-  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
-                                                  project
-
-  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
-                                                  project
-
-  --falcondebug                                   Runs this command in debug mode
-
-  --falcondebugerr                                Displays extended information for uncaught Errors
-
-  --falcondebugsuccess                            Displays extended information upon successful command completion
-
-  --json                                          format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:demo:deploy
-  $ sfdx falcon:demo:deploy --projectdir ~/demos/adk-projects/my-adk-project
-  $ sfdx falcon:demo:deploy --projectdir ~/demos/adk-projects/my-adk-project \
-                            --configfile my-alternate-demo-config.json
-```
-
-_See code: [src/commands/falcon/demo/deploy.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/deploy.ts)_
-
 ## `sfdx-falcon falcon:demo:install`
 
 Runs a Demo Installation Recipe to build an ADK-based demo org
@@ -188,40 +152,6 @@ EXAMPLES
 ```
 
 _See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/install.ts)_
-
-## `sfdx-falcon falcon:demo:validate`
-
-Validates an ADK-based demo by deploying it to a scratch org
-
-```
-USAGE
-  $ sfdx-falcon falcon:demo:validate
-
-OPTIONS
-  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
-                                                  project
-
-  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
-                                                  project
-
-  --falcondebug                                   Runs this command in debug mode
-
-  --falcondebugerr                                Displays extended information for uncaught Errors
-
-  --falcondebugsuccess                            Displays extended information upon successful command completion
-
-  --json                                          format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:demo:validate
-  $ sfdx falcon:demo:validate --projectdir ~/demos/adk-projects/my-adk-project
-  $ sfdx falcon:demo:validate --projectdir ~/demos/adk-projects/my-adk-project \
-                              --configfile my-alternate-demo-config.json
-```
-
-_See code: [src/commands/falcon/demo/validate.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/validate.ts)_
 
 ## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
 
