@@ -21,14 +21,14 @@ const falconSubstitutionMap = new Map<string, any>([
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       StringSubstitutionMap
+ * @class       StringSubstitution
  * @summary     ???
  * @description ???
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class StringSubstitutionMap {
+export class StringSubstitution {
   private substitutionMap:Map<string, any>    = new Map<string, any>();
   private ignoreInvalidKeys:boolean           = false;
   private openingTag:string                   = '<@';
