@@ -1,5 +1,0 @@
-{
-  "commandDescription": "Validates an ADK-based demo by deploying it to a scratch org",
-  "configfile_FlagDescription": "Overrides the 'demoConfig' setting from sfdx-project.json in the ADK project",
-  "projectdir_FlagDescription": "Path to a directory that contains a fully-configured ADK project"
-}
