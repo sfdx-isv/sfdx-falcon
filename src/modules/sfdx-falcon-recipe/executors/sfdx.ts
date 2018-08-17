@@ -114,7 +114,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
         let cliError = SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg);
-        executorResponse.cliError(cliError);
+        executorResponse.convertToCliError(cliError);
         reject(executorResponse);
       }
       else {

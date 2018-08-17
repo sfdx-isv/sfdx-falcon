@@ -124,8 +124,8 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
 
     // Run the Default Recipe as specified by the project.
     await sfdxFalconProject.runDefaultRecipe(compileOptions)
-      .then(recipeResult => {this.onSuccess(recipeResult)})   // Implemented by parent class
-      .catch(error => {this.onError(error)});                 // Implemented by parent class
+      .then(recipeSuccessResult => {this.onSuccess(recipeSuccessResult)})   // Implemented by parent class
+      .catch(recipeErrorResult => {this.onError(recipeErrorResult)});                 // Implemented by parent class
 
     // Return the JSON Response that was populated by onSuccess().
     return this.falconJsonResponse;

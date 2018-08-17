@@ -3,7 +3,6 @@
  * @file          modules/sfdx-falcon-debug/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @requires      module:???
  * @summary       ???
  * @description   ???
  * @version       1.0.0
@@ -126,50 +125,26 @@ export class SfdxFalconDebug {
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static displayFalconError(falconError:SfdxFalconError) {
+  static displayFalconError(falconError:SfdxFalconError, inspectDepth:number=3) {
     let falconErrorColor = 'blue';
-    let errorColor, errorLabel;
+    let systemErrorColor = 'yellow';
 
     // Output the core Error info
     console.log('');
     console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
-    console.log(chalk`{${falconErrorColor} Error Name:}  ${falconError.name}`);
-    console.log(chalk`{${falconErrorColor} Error Msg:}   ${falconError.falconMessage}`);
-    console.log(chalk`{${falconErrorColor} Status Code:} ${falconError.status}`);
-    console.log(chalk`{${falconErrorColor} Details:}   \n${falconError.message}`);
-    console.log(chalk`{${falconErrorColor} Raw Error:} \n${falconError.errRaw}`);
-        
-    // See if there is a "traditional" Error object (ie. an object with a "stack" property)
-    if (typeof falconError.errObj.stack !== 'undefined') {
-      switch (falconError.type) {
-        case ERROR_TYPE.CLI_ERROR:
-          errorColor = 'yellow';
-          errorLabel = 'CLI';
-          break;
-        case ERROR_TYPE.INTERNAL_ERROR:
-          errorColor = 'magenta';
-          errorLabel = 'Internal';
-          break;
-        case ERROR_TYPE.FALCON_ERROR:
-          errorColor = 'green';
-          errorLabel = 'Falcon';
-          break;
-        default:
-          errorColor = 'red';
-          errorLabel = 'Unknown';
-          break;
-      }
-      if (falconError.errObj.name)      console.log(chalk`{${errorColor} ${errorLabel} Error Name:}  ${falconError.errObj.name}`);
-      if (falconError.errObj.message)   console.log(chalk`{${errorColor} ${errorLabel} Error Msg:}   ${falconError.errObj.message}`);
-      if (falconError.errObj.status)    console.log(chalk`{${errorColor} ${errorLabel} Status Code:} ${falconError.errObj.status}`);
-      if (falconError.errObj.warnings)  console.log(chalk`{${errorColor} ${errorLabel} Warnings:}    ${util.inspect(falconError.errObj.warnings, {depth:8, colors:true})}`);
-      if (falconError.errObj.action)    console.log(chalk`{${errorColor} ${errorLabel} Suggested Actions:} \n${falconError.errObj.action}`);
-      if (falconError.errObj.stack)     console.log(chalk`{${errorColor} ${errorLabel} Stacktrace:}        \n${falconError.errObj.stack}`);
+    console.log(chalk`{${falconErrorColor} Falcon Error Type:}    ${falconError.type}`);
+    console.log(chalk`{${falconErrorColor} Falcon Error Name:}    ${falconError.name}`);
+    console.log(chalk`{${falconErrorColor} Falcon Error Source:}  ${falconError.source}`);
+    console.log(chalk`{${falconErrorColor} Falcon Error Status:}  ${falconError.status}`);
+    console.log(chalk`{${falconErrorColor} Falcon Error Msg:}     ${falconError.message}`);
+    console.log(chalk`{${falconErrorColor} Falcon Message:}       ${falconError.falconMessage}`);
+    console.log(chalk`{${falconErrorColor} Falcon Info:}          ${falconError.friendlyInfo}`);
+    if (falconError.error instanceof Error) {
+      console.log(chalk`{${systemErrorColor} System Error Name:}    ${falconError.error.name}`);
+      console.log(chalk`{${systemErrorColor} System Error Msg:}     ${falconError.error.message}`);
+      console.log(chalk`{${systemErrorColor} System Error Stack:} \n${falconError.error.stack}`);  
     }
-    else {
-      // We don't have a traditional Error Object, but there might still be something interesting there.
-      console.log(chalk`{${falconErrorColor} Obj Error:}\n${util.inspect(falconError.errObj, {depth:8, colors:true})}`);
-    }
+    console.log(chalk`{${falconErrorColor} Falcon Error Detail: (Depth ${inspectDepth})}\n${util.inspect(falconError.details, {depth:inspectDepth, colors:true})}`);
     console.log('');
   }
 

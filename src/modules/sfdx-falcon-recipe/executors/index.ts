@@ -29,20 +29,22 @@ export enum SfdxFalconExecutorStatus {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconExecutorResponse {
-  public name:     string;
-  public status:   SfdxFalconExecutorStatus;
-  public code:     number;
-  public message:  string;
-  public cmdRaw:   string;
-  public cmdObj:   any;
-  public respRaw:  string;
-  public respObj:  any;
-  public duration: number;
+  public name:      string;
+  public status:    SfdxFalconExecutorStatus;
+  public code:      number;
+  public error:     Error;
+  public message:   string;
+  public cmdRaw:    string;
+  public cmdObj:    any;
+  public respRaw:   string;
+  public respObj:   any;
+  public duration:  number;
 
   public constructor(name:string) {
     this.name     = name;
     this.status   = SfdxFalconExecutorStatus.UNKNOWN;
     this.code     = -999;                               // Zero is success. Positive ints are failure. Negative ints are warnings/unknown.
+    this.error    = null;
     this.message  = `Executor ${name}: Status Unknown`;
     this.cmdRaw   = null;
     this.cmdObj   = {};
@@ -57,18 +59,16 @@ export class SfdxFalconExecutorResponse {
     newExecResponse.status   = SfdxFalconExecutorStatus.ERROR;
     newExecResponse.code     = 999;
     newExecResponse.message  = `${error.name}: ${error.message}`;
-    newExecResponse.respObj  = error;
-    newExecResponse.respRaw  = error.stack;
+    newExecResponse.error    = error;
     return newExecResponse;
   }
 
   // If you already HAVE an existing SFDX-Falcon Executor Response, convert it to an ERROR.
-  public error(error:Error):void {
+  public convertToError(error:Error):void {
     this.status   = SfdxFalconExecutorStatus.ERROR;
     this.code     = 999;
     this.message  = `${error.name}: ${error.message}`;
-    this.respObj  = error;
-    this.respRaw  = error.stack;
+    this.error    = error;
   }
 
   // Wrap CLI Errors. These are marked as FAILURES because their results are are somewhat expected.
@@ -76,16 +76,18 @@ export class SfdxFalconExecutorResponse {
     let newExecResponse = new SfdxFalconExecutorResponse(executorName);
     newExecResponse.status   = SfdxFalconExecutorStatus.FAILURE;
     newExecResponse.code     = cliError.status;
+    newExecResponse.error    = null;
     newExecResponse.message  = cliError.falconMessage;
     newExecResponse.respObj  = cliError;
-    newExecResponse.respRaw  = cliError.errRaw;
+    newExecResponse.respRaw  = cliError.details.respRaw;
     return newExecResponse;
   }
 
   // If you already HAVE an existing SFDX-Falcon Executor Response, convert it to a CLI Error.
-  public cliError(cliError:SfdxFalconError):void {
+  public convertToCliError(cliError:SfdxFalconError):void {
     this.status   = SfdxFalconExecutorStatus.FAILURE;
     this.code     = cliError.status;
+    this.error    = null;
     this.message  = cliError.falconMessage;
     this.respObj  = cliError;
   }
@@ -157,11 +159,11 @@ export class SfdxFalconExecutorResponse {
     }
     if (execResponse.code < 0) {
       execResponse.status   = SfdxFalconExecutorStatus.WARNING;
-      execResponse.message  = execResponse.respObj.message || `WARNING: Executor ${execResponse.name} may have succeeded but provided an unexpected response`
+      execResponse.message  = execResponse.respObj.message || `WARNING: Executor ${execResponse.name} may have succeeded but provided an unexpected response`;
     }
     if (execResponse.code > 0) {
-      execResponse.status   = SfdxFalconExecutorStatus.ERROR;
-      execResponse.message  = execResponse.respObj.message || `ERROR: Executor ${execResponse.name} appears to have failed in an unexpected way`
+      execResponse.status   = SfdxFalconExecutorStatus.FAILURE;
+      execResponse.message  = execResponse.respObj.message || `FAILURE: Executor ${execResponse.name} appears to have failed in an unexpected way`;
     }
   }
 }
