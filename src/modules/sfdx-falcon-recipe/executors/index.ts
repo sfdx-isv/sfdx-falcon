@@ -44,7 +44,7 @@ export class SfdxFalconExecutorResponse {
     this.name     = name;
     this.status   = SfdxFalconExecutorStatus.UNKNOWN;
     this.code     = -999;                               // Zero is success. Positive ints are failure. Negative ints are warnings/unknown.
-    this.error    = null;
+    this.error    = {} as any;
     this.message  = `Executor ${name}: Status Unknown`;
     this.cmdRaw   = null;
     this.cmdObj   = {};
@@ -76,7 +76,7 @@ export class SfdxFalconExecutorResponse {
     let newExecResponse = new SfdxFalconExecutorResponse(executorName);
     newExecResponse.status   = SfdxFalconExecutorStatus.FAILURE;
     newExecResponse.code     = cliError.status;
-    newExecResponse.error    = null;
+    newExecResponse.error    = {} as any;
     newExecResponse.message  = cliError.falconMessage;
     newExecResponse.respObj  = cliError;
     newExecResponse.respRaw  = cliError.details.respRaw;
@@ -87,7 +87,7 @@ export class SfdxFalconExecutorResponse {
   public convertToCliError(cliError:SfdxFalconError):void {
     this.status   = SfdxFalconExecutorStatus.FAILURE;
     this.code     = cliError.status;
-    this.error    = null;
+    this.error    = {} as any;
     this.message  = cliError.falconMessage;
     this.respObj  = cliError;
   }

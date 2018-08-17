@@ -116,13 +116,13 @@ export class SfdxFalconActionResponse {
     this.actionMessage  = `Action ${this.actionName}: Status Unknown`;
     this.execResponses  = new Array<SfdxFalconExecutorResponse>();
     this.duration       = 0;
-    this.error          = null;
+    this.error          = {} as any;
   }
 
   public execComplete():void {
     this.actionStatus   =  SfdxFalconActionStatus.SUCCESS;
     this.actionMessage  =  `Action ${this.actionName} has successfully run ${this.execResponses.length} Executor${this.execResponses.length === 1 ? '' : 's' }`;
-    this.error          = null;
+    this.error          = {} as any;
     this.actionDetail   = {
       actionStatus:     this.actionStatus,
       executorsRun:     this.execResponses.length,
@@ -180,7 +180,7 @@ export class SfdxFalconActionResponse {
         break;
       case SfdxFalconExecutorStatus.FAILURE:
         this.actionStatus   = SfdxFalconActionStatus.FAILURE;
-        this.error          = null;
+        this.error          = {} as any;
         this.actionMessage  = `Action ${this.actionName} failed while executing ${execFailureResponse.name}`;
         this.actionDetail   = {
           actionStatus:     this.actionStatus,
@@ -195,7 +195,7 @@ export class SfdxFalconActionResponse {
         };
       default:
         this.actionStatus   = SfdxFalconActionStatus.UNKNOWN;
-        this.error          = null;
+        this.error          = {} as any;
         this.actionMessage  = `Action ${this.actionName} experienced an unknown failure while executing ${execFailureResponse.name}`;
         this.actionDetail   = {
           actionStatus:     this.actionStatus,
@@ -238,7 +238,7 @@ export class SfdxFalconEngineResponse {
     this.engineDuration   = 0;
     this.recipeName       = recipeName;
     this.actionResponses  = new Array<SfdxFalconActionResponse>();
-    this.error            = null;
+    this.error            = {} as any;
     this.engineDetail   = {
       engineStatus:       this.engineStatus,
       actionsRun:         0,
@@ -250,7 +250,7 @@ export class SfdxFalconEngineResponse {
   public actionComplete():void {
     this.engineStatus   = SfdxFalconEngineStatus.SUCCESS;
     this.engineMessage  = `Engine ${this.engineName} has successfully executed ${this.actionResponses.length} Action${this.actionResponses.length === 1 ? '' : 's' }`;
-    this.error          = null;
+    this.error          = {} as any;
     this.engineDetail   = {
       engineStatus:       this.engineStatus,
       actionsRun:         this.actionResponses.length,
@@ -310,7 +310,7 @@ export class SfdxFalconEngineResponse {
         break;
       case SfdxFalconActionStatus.FAILURE:
         this.engineStatus   = SfdxFalconEngineStatus.FAILURE;
-        this.error          = null;
+        this.error          = {} as any;
         this.engineMessage  = `Engine ${this.engineName} failed while running ${actionFailureResponse.actionName}`;
         this.engineDetail   = {
           engineStatus:       this.engineStatus,
@@ -322,7 +322,7 @@ export class SfdxFalconEngineResponse {
         };
       default:
         this.engineStatus   = SfdxFalconEngineStatus.UNKNOWN;
-        this.error          = null;
+        this.error          = {} as any;
         this.engineMessage  = `Engine ${this.engineName} failed in an unknown manner while executing ${actionFailureResponse.actionName}`;
         this.engineDetail   = {
           engineStatus:       this.engineStatus,
@@ -369,7 +369,7 @@ export class SfdxFalconRecipeResponse {
     this.recipeMessage    = `Recipe ${this.recipeName}: Status Unknown while running ${this.recipeEngines}`;
     this.recipeDuration   = 0;
     this.recipeName       = recipeName;
-    this.error            = null;
+    this.error            = {} as any;
     this.recipeDetail     = {
       recipeStatus:       this.recipeStatus,
       enginesRun:         0,

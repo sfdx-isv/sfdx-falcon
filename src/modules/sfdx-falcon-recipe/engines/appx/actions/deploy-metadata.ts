@@ -90,9 +90,9 @@ export class DeployMetadataAction extends AppxEngineAction {
   protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconExecutorResponse> {
 
     // Set the progress, error, and success messages for this action execution.
-    this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
-    this.errorMessage     = `Failed to create scratch org using ${actionOptions.scratchDefJson}`;
-    this.successMessage   = `Scratch org '${actionOptions.scratchOrgAlias}' created successfully using ${actionOptions.scratchDefJson}`;
+    this.progressMessage  = `Deploying MDAPI source from ${actionOptions.mdapiSource}`;
+    this.errorMessage     = `Deployment failed for MDAPI source '${actionOptions.mdapiSource}'`;
+    this.successMessage   = `Deployment of '${actionOptions.mdapiSource}' succeeded`;
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     this.sfdxCommandDef = {
@@ -103,15 +103,12 @@ export class DeployMetadataAction extends AppxEngineAction {
       observer:     actionContext.listrExecOptions.observer,
       commandArgs:  new Array<string>(),
       commandFlags: {
-        FLAG_TARGETDEVHUBUSERNAME:  actionContext.devHubAlias,
-        FLAG_DEFINITIONFILE:        path.join(actionContext.projectContext.configPath, actionOptions.scratchDefJson),
-        FLAG_SETALIAS:              actionOptions.scratchOrgAlias,
-        FLAG_DURATIONDAYS:          30,
-        FLAG_WAIT:                  10,
-        FLAG_NONAMESPACE:           true,
-        FLAG_SETDEFAULTUSERNAME:    true,
-        FLAG_JSON:                  true,
-        FLAG_LOGLEVEL:              actionContext.logLevel
+        FLAG_TARGETUSERNAME:  actionContext.targetOrg.alias,
+        FLAG_DEPLOYDIR:       path.join(actionContext.projectContext.mdapiSourcePath, actionOptions.mdapiSource),
+        FLAG_WAIT:            5,
+        FLAG_TESTLEVEL:       'NoTestRun',
+        FLAG_JSON:            true,
+        FLAG_LOGLEVEL:        actionContext.logLevel
       }
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
@@ -130,8 +127,5 @@ export class DeployMetadataAction extends AppxEngineAction {
         // If you want to add additional FAILURE handling behavior, do it here.
         throw execErrorResponse;
       });
-
-    // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
-//    return;
   }
 }

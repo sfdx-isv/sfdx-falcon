@@ -39,8 +39,8 @@ export class SfdxFalconError {
   public  falconMessage:  string;
   public  friendlyInfo:   string;
   public  message:        string;
-  public  details:        any;
   public  error:          Error;
+  public  details:        any;
 
   private constructor() {
     // Intentionally empty
@@ -141,7 +141,7 @@ export class SfdxFalconError {
         details:  {
           unknownError: objectToWrap
         },
-        error:          null
+        error:          new Error(`UNEXPECTED_ERROR: ${objectToWrap.name}`)
       }
     }
   }
