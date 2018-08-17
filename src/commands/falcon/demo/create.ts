@@ -3,27 +3,24 @@
  * @file          commands/falcon/demo/create.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:salesforce/command
- * @requires      module:salesforce/core
- * @requires      module:oclif/command
- * @requires      module:sfdx-falcon-yeoman-command
  * @summary       Yeoman Generator for scaffolding an AppExchange Demo Kit (ADK) project.
  * @description   Salesforce CLI Plugin command (falcon:demo:create) that allows a Salesforce DX
  *                developer to create an empty project based on the AppExchange Demo Kit (ADK)
  *                template.  Once the ADK project is created, the user is guided through an 
  *                interview where they define key ADK project settings which are then used to
  *                customize the ADK project scaffolding that gets created on their local machine.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // External Imports
-import {SfdxCommand}                  from  '@salesforce/command';                          // The CLI command we build must extend this class.
+//import {SfdxCommand}                  from  '@salesforce/command';                          // The CLI command we build must extend this class.
 import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
 import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
 
 // Local Imports
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
+import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
@@ -89,7 +86,7 @@ export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
   public async run(): Promise<any> {
 
     // Initialize the SfdxFalconCommand (required by ALL classes that extend SfdxFalconCommand).
-    this.sfdxFalconCommandInit('falcon:demo:clone');
+    this.sfdxFalconCommandInit('falcon:demo:clone', SfdxFalconCommandType.APPX_DEMO);
 
     // Run a Yeoman Generator to interact with and run tasks for the user.
     await super.runYeomanGenerator({

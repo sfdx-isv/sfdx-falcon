@@ -9,9 +9,6 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import * as path              from  'path';                                               // Why?
-
 // Import Local Modules
 import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Class. Internal Debug module
 import {SfdxFalconStatus}         from '../../../sfdx-falcon-status';                       // Class. Helps track status of internal operations.
@@ -20,18 +17,20 @@ import {ListrContext}             from '../../../sfdx-falcon-types';            
 // Recipe Imports
 import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Class. Represents an instance of a valid SFDX-Falcon Recipe.
 import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Interface. Representation of the JSON schema for an SFDX-Falcon Recipe configuration file.
-import {SfdxFalconRecipeResult}   from '../../../sfdx-falcon-recipe';                       // Why?
 // Recipe Engine Imports
+//import {SfdxFalconRecipeResponse} from '../../../sfdx-falcon-recipe/engines';               // Class. Contains the response a Recipe Engine builds when running an SFDX-Falcon Recipe.
 import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {AppxEngineStepResult}     from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {AppxEngineContext}        from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {TargetOrg}                from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+//import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+//import {AppxEngineStepResult}     from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+//import {AppxEngineContext}        from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+//import {TargetOrg}                from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 // Action Imports (determines what is supported by appx:demo-config engine)
 import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';                // Why?
 import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';                // Why?
 import {InstallPackageAction}     from '../appx/actions/install-package';                   // Why?
+import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';                   // Why?
+
 // Local Helpers
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
@@ -328,17 +327,20 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static async compileRecipe(recipe:SfdxFalconRecipe, compileOptions:any):Promise<AppxDemoConfigEngine> {
-    let compiledRecipeEngine = new AppxDemoConfigEngine();
 
+    // Instantiate a new Appx Demo Config Engine
+    let compiledRecipeEngine = new AppxDemoConfigEngine('appx:demo-config', recipe.recipeName);
 
-
+    // Compile the engine with the given Recipe and Compile Options (implemented by base class)
     await compiledRecipeEngine.compile(recipe, compileOptions);
+
+    // Return the compiled Engine. It should be ready for the caller to run.
     return compiledRecipeEngine;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      executeListrTasks
+   * @method      executeEngine
    * @param       {any} [executionOptions]  Optional. 
    * @returns     {Promise<ListrContext>} Resolves with a ListrContext object
    *              (basically, a type alias for "any" since Listr doesn't expose
@@ -351,13 +353,13 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeListrTasks(executionOptions:any={}):Promise<ListrContext> {
+  protected async executeEngine(executionOptions:any={}):Promise<ListrContext> {
 
     // Execute the Listr Tasks that were compiled into this Engine.
     let listrContext = await this.listrTasks.run();
 
     // Do a little bit of debug...
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, listrContext, `${clsDbgNs}executeListrTasks:listrContext: `);
+    SfdxFalconDebug.debugObject(`FALCON:${dbgNs}`, listrContext, `${clsDbgNs}executeEngine:listrContext: `);
 
     // Return the Listr Context
     return listrContext;
@@ -376,9 +378,10 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
     // Build a map of Action "aliases" to instances of the Action Classes that implement that alias.
     this.actionExecutorMap = new Map<string, any>();
-    this.actionExecutorMap.set('create-scratch-org', new CreateScratchOrgAction());
-    this.actionExecutorMap.set('delete-scratch-org', new DeleteScratchOrgAction());
-    this.actionExecutorMap.set('install-package',    new InstallPackageAction());
+    this.actionExecutorMap.set('create-scratch-org',  new CreateScratchOrgAction());
+    this.actionExecutorMap.set('delete-scratch-org',  new DeleteScratchOrgAction());
+    this.actionExecutorMap.set('deploy-metadata',     new DeployMetadataAction());
+    this.actionExecutorMap.set('install-package',     new InstallPackageAction());
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

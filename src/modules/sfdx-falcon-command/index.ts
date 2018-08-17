@@ -3,7 +3,6 @@
  * @file          modules/sfdx-falcon-command/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @requires      module:salesforce/command
  * @summary       Exports SfdxFalconCommand for use with creating custom Salesforce CLI commands.
  * @description   ???
  * @version       1.0.0
@@ -23,6 +22,23 @@ import {SfdxFalconStatus}             from  '../sfdx-falcon-status';      // Why
 import {SfdxFalconJsonResponse}       from  '../sfdx-falcon-types';       // Why?
 import {validateLocalPath}            from  '../sfdx-falcon-validators';  // Core validation function to check that local path values don't have invalid chars.
 
+//─────────────────────────────────────────────────────────────────────────────┐
+// Enums and Interfaces used to support SFDX-Falcon Commands
+//─────────────────────────────────────────────────────────────────────────────┘
+export enum SfdxFalconCommandStatus {
+  EXECUTING = 'EXECUTING',
+  SUCCESS   = 'SUCCESS',
+  FAILURE   = 'FAILURE',
+  ERROR     = 'ERROR',
+  WARNING   = 'WARNING',
+  UNKNOWN   = 'UNKNOWN'
+}
+export enum SfdxFalconCommandType {
+  APPX_PACKAGE    = 'APPX_PACKAGE',
+  APPX_DEMO       = 'APPX_DEMO',
+  APPX_EXTENSION  = 'APPX_EXTENSION',
+  UNKNOWN         = 'UNKNOWN'
+}
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // SFDX Core library has the ability to import a JSON file with message strings
@@ -43,7 +59,6 @@ Messages.importMessagesDirectory(__dirname);
 const baseMessages  = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
 const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @abstract
@@ -62,9 +77,10 @@ const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
 export abstract class SfdxFalconCommand extends SfdxCommand {
 
   // These help build and deliver a JSON response once command execution is done.
-  protected falconCommandName:string;                   // Why?
-  protected falconCommandStatus:SfdxFalconStatus;       // Why?
-  protected falconJsonResponse:SfdxFalconJsonResponse;  // Why?
+  protected falconCommandName:string;                         // Why?
+  protected falconCommandStatus:SfdxFalconStatus;             // Why?
+  protected falconCommandResponse:SfdxFalconCommandResponse;  // Why?
+  protected falconJsonResponse:SfdxFalconJsonResponse;        // Why?
 
   // Member vars for commonly implemented flags.
   protected outputDirectory:string;                     // Why?
@@ -124,13 +140,15 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    sfdxFalconCommandInit
+   * @param       {string}  commandName Required. ???
+   * @param       {SfdxFalconCommandType} commandType Required. ???
    * @returns     {void}
    * @description Initializes various SfdxFalconCommand structures.
    * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected sfdxFalconCommandInit(commandName:string='UNSPECIFIED_FALCON_COMMAND') {
+  protected sfdxFalconCommandInit(commandName:string='UNSPECIFIED_FALCON_COMMAND', commandType:SfdxFalconCommandType) {
 
     // Initialize the JSON response
     this.falconJsonResponse = {
@@ -168,6 +186,14 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     if (this.falconDebugXlFlag)       enabledDebuggers.push('FALCON_XL');
     if (this.falconDebugErrFlag)      enabledDebuggers.push('FALCON_ERR');
     if (this.falconDebugSuccessFlag)  enabledDebuggers.push('FALCON_SUCCESS');
+
+    // Initialize the SFDX-Falcon Command Response object
+    this.falconCommandResponse = new SfdxFalconCommandResponse();
+    this.falconCommandResponse.commandName    = commandName;
+    this.falconCommandResponse.commandType    = commandType;
+    this.falconCommandResponse.commandFlags   = this.flags;
+    this.falconCommandResponse.commandArgs    = this.args;
+    this.falconCommandResponse.commandStatus  = SfdxFalconCommandStatus.EXECUTING;
 
     // Enable the specified debuggers.
     SfdxFalconDebug.enableDebuggers(enabledDebuggers);
@@ -208,20 +234,52 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected onSuccess(statusReport:any):void {
-    this.falconCommandStatus = {...this.falconCommandStatus, ...statusReport};
-    this.falconJsonResponse = {
-      falconStatus:  this.falconCommandStatus.statusCode || -1,
-      falconResult:  this.falconCommandStatus || 'Unknown'
-    }
-    SfdxFalconDebug.obj(`FALCON_SUCCESS:${this.falconCommandName}`, this.falconCommandStatus, `SfdxFalconCommand:onSuccess:statusReport: `);
-    
-    if (typeof this.falconCommandStatus.getRunTime !== 'undefined') {
-      console.log(`Command Successful. Total elapsed time: ${this.falconCommandStatus.getRunTime(true)} seconds`);
-    }
-    else {
-      console.log(`Command Successful`);
-    }
-  }
+  protected onSuccess(successDetails:any):void {
 
+    // Stop the Status Report's timer
+    this.falconCommandStatus.stopTimer();
+
+    this.falconCommandResponse.commandStatus    = SfdxFalconCommandStatus.SUCCESS;
+    this.falconCommandResponse.detailsObj       = successDetails;
+    this.falconCommandResponse.commandDuration  = this.falconCommandStatus.getRunTime() as number;
+    this.falconCommandResponse.commandMessage   = `${this.falconCommandResponse.commandName} completed successfully `
+                                                + `in ${this.falconCommandResponse.commandDuration} seconds`;
+    // Debug   
+    SfdxFalconDebug.obj(`FALCON_SUCCESS:${this.falconCommandResponse}`, this.falconCommandResponse, `SfdxFalconCommand:onSuccess:this.falconCommandResponse: `);
+    
+  }
 } // End of class SfdxFalconCommand
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       SfdxFalconCommandResponse
+ * @access      public
+ * @version     1.0.0
+ * @summary     Standard return structure for SFDX-Falcon based commands.
+ * @description Provides a consistent structure for sharing results from internal actions that are
+ *              initiated by a SFDX-Falcon based command.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class SfdxFalconCommandResponse {
+  commandName:      string;
+  commandStatus:    SfdxFalconCommandStatus;
+  commandType:      SfdxFalconCommandType;
+  commandFlags:     any;
+  commandArgs:      any;
+  commandMessage:   string;
+  commandDuration:  number;
+  detailsRaw:       string;
+  detailsObj:       any;
+
+  constructor(commandName:string='falcon:unknown') {
+    this.commandName      = commandName;
+    this.commandStatus    = SfdxFalconCommandStatus.UNKNOWN;
+    this.commandType      = SfdxFalconCommandType.UNKNOWN;
+    this.commandFlags     = null;
+    this.commandArgs      = null;
+    this.commandMessage   = `SFDX-Falcon CLI Command '${this.commandName}'`;
+    this.commandDuration  = 0;
+    this.detailsRaw       = null;
+    this.detailsObj       = {}
+  }
+}

@@ -21,8 +21,6 @@ import {SfdxFalconActionResponse}   from  '../../../engines';
 import {SfdxFalconActionType}       from  '../../../engines';
 import {SfdxFalconActionStatus}     from  '../../../engines';
 import {AppxEngineActionContext}    from  '../../../engines/appx';                  // Why?
-import {AppxEngineActionType}       from  '../../../engines/appx';                  // Why?
-import {AppxEngineActionResult}     from  '../../../engines/appx';                  // Why?
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'appx-engine-action:';
@@ -56,7 +54,7 @@ export abstract class AppxEngineAction {
   protected anyCliCommandDef: any;                        // Placeholder (Why?)
 
   // Abstract methods
-  protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<void>;
+  protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconExecutorResponse>;
   protected       abstract  initializeAction():void;
   protected       abstract  validateActionOptions(actionOptions:any):void;
 
@@ -118,8 +116,8 @@ export abstract class AppxEngineAction {
 
     // Call the executeAction method and hendle success/errors
     await this.executeAction(actionContext, actionOptions)
-      .then(voidResult  =>  {this.onSuccess()})
-      .catch(voidResult =>  {throw this.actionResponse});
+      .then(execSuccessResponse =>  {this.onSuccess(execSuccessResponse)})
+      .catch(execErrorResponse  =>  {this.onError(execErrorResponse)});
 
     // Wait some number of seconds to give the user a chance to see the final status message.
     await waitASecond(this.successDelay);
@@ -131,40 +129,55 @@ export abstract class AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
-   * @param       {AppxEngineActionContext} actionContext Required. ???
-   * @param       {Error} error ???
+   * @param       {SfdxFalconExecutorResponse}  execErrorResponse Required.
    * @returns     {void}
-   * @description ???
+   * @description Handles rejected calls returning from this.executeAction()
+   *              calls made to the child class.
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError():void {
+  private onError(execErrorResponse:SfdxFalconExecutorResponse):void {
 
-//    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.actionResponse, `${clsDbgNs}onError:this.actionResponse: `);
-//    throw this.actionResponse;
+    // Debug the contents of the Executor Response.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execErrorResponse, `${clsDbgNs}onError:execErrorResponse: `);
 
+    // Make sure that whatever came back is actually an SFDX-Falcon Executor Response
+    execErrorResponse = SfdxFalconExecutorResponse.wrap(execErrorResponse);
+
+    // Add the Executor Response to the Action Response we're building as a FAILURE.
+    this.actionResponse.execFailure(execErrorResponse);
+
+    // Since thie was a FAILUIRE, throw the Action Response to inform the caller who started the Engine.
+    throw this.actionResponse;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onSuccess
+   * @param       {SfdxFalconExecutorResponse}  execSuccessResponse Required.
    * @returns     {void}
    * @description ???
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess():void {
+  private onSuccess(execSuccessResponse:SfdxFalconExecutorResponse):void {
 
-    // Write the whole 
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.actionResponse, `${clsDbgNs}onSuccess:this.actionResponse: `);
+    // Make sure that we were provided with an SFDX-Falcon Executor Response.
+    if ((execSuccessResponse instanceof SfdxFalconExecutorResponse) !== true) {
+      let typeError = new TypeError (`ERROR_INVALID_TYPE: AppxEngineAction.onSuccess() expects an argument that's an instance  `
+                                    +`of 'SfdxFalconExecutorResponse', not '${execSuccessResponse.constructor.name}'`);
+    }
 
+    // Debug the contents of the Executor Response.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execSuccessResponse, `${clsDbgNs}onSuccess:execSuccessResponse: `);
 
+    // Add the Executor Response to the Action Response we're building.
+    this.actionResponse.execSuccess(execSuccessResponse);
 
-    // Debug
-//    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.actionResult, `${clsDbgNs}onSuccess:this.actionResult: `);
-  //  return;
+    // Done.
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

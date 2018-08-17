@@ -1,14 +1,17 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/actions/install-package.ts
+ * @file          modules/sfdx-falcon-recipe/actions/deploy-metadata.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
+ * @summary       Exposes the CLI Command force:mdapi:deploy
+ * @description   Deploys Salesforce metadata via the MDAPI from the given metadata source directory
+ *                to the target org.
  * @version       1.0.0
  * @license       MIT
- * @summary       Exposes the CLI Command force:package:install
- * @description   Installs a First-Generation managed or unmanaged package into the target org.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules
+import * as path                    from  'path';                           // Module. Node's path library.
 // Import Local Modules
 import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
 // Executor Imports
@@ -20,19 +23,19 @@ import {AppxEngineActionContext}    from  '../../appx';                     // I
 import {SfdxFalconActionType}       from  '../../../engines';               // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'action:install-package:';
-const clsDbgNs  = 'InstallPackageAction:';
+const dbgNs     = 'action:deploy-metadata:';
+const clsDbgNs  = 'DeployMetadataAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       InstallPackageAction
+ * @class       DeployMetadataAction
  * @extends     AppxEngineAction
- * @description Implements the action "install-package".
+ * @description Implements the action "deploy-metadata".
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class InstallPackageAction extends AppxEngineAction {
+export class DeployMetadataAction extends AppxEngineAction {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -47,9 +50,9 @@ export class InstallPackageAction extends AppxEngineAction {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
-    this.actionName       = 'install-package';
-    this.command          = 'force:package:install';
-    this.description      = 'Install Package';
+    this.actionName       = 'deploy-metadata';
+    this.command          = 'force:mdapi:deploy';
+    this.description      = 'Deploy Metadata';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
@@ -69,9 +72,8 @@ export class InstallPackageAction extends AppxEngineAction {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected validateActionOptions(actionOptions:any):void {
-    if (typeof actionOptions.packageName       === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'packageName'`);
-    if (typeof actionOptions.packageVersionId  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'packageVersionId'`);
-  }
+    if (typeof actionOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
+  }  
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -88,9 +90,9 @@ export class InstallPackageAction extends AppxEngineAction {
   protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconExecutorResponse> {
 
     // Set the progress, error, and success messages for this action execution.
-    this.progressMessage  = `Installing '${actionOptions.packageName}' (${actionOptions.packageVersionId}) into ${actionContext.targetOrg.alias}`;
-    this.errorMessage     = `Installation of package '${actionOptions.packageName}' (${actionOptions.packageVersionId}) failed`;
-    this.successMessage   = `Package '${actionOptions.packageName}' (${actionOptions.packageVersionId}) successfully installed into ${actionContext.targetOrg.alias}`;
+    this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
+    this.errorMessage     = `Failed to create scratch org using ${actionOptions.scratchDefJson}`;
+    this.successMessage   = `Scratch org '${actionOptions.scratchOrgAlias}' created successfully using ${actionOptions.scratchDefJson}`;
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     this.sfdxCommandDef = {
@@ -101,13 +103,15 @@ export class InstallPackageAction extends AppxEngineAction {
       observer:     actionContext.listrExecOptions.observer,
       commandArgs:  new Array<string>(),
       commandFlags: {
-        FLAG_TARGETUSERNAME:  actionContext.targetOrg.alias,
-        FLAG_PACKAGE:         actionOptions.packageVersionId,
-        FLAG_WAIT:            10,
-        FLAG_PUBLISHWAIT:     10,
-        FLAG_NOPROMPT:        true,
-        FLAG_JSON:            true,
-        FLAG_LOGLEVEL:        actionContext.logLevel
+        FLAG_TARGETDEVHUBUSERNAME:  actionContext.devHubAlias,
+        FLAG_DEFINITIONFILE:        path.join(actionContext.projectContext.configPath, actionOptions.scratchDefJson),
+        FLAG_SETALIAS:              actionOptions.scratchOrgAlias,
+        FLAG_DURATIONDAYS:          30,
+        FLAG_WAIT:                  10,
+        FLAG_NONAMESPACE:           true,
+        FLAG_SETDEFAULTUSERNAME:    true,
+        FLAG_JSON:                  true,
+        FLAG_LOGLEVEL:              actionContext.logLevel
       }
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
@@ -126,5 +130,8 @@ export class InstallPackageAction extends AppxEngineAction {
         // If you want to add additional FAILURE handling behavior, do it here.
         throw execErrorResponse;
       });
+
+    // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
+//    return;
   }
 }

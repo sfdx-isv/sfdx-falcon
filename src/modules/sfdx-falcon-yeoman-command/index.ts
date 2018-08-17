@@ -3,7 +3,6 @@
  * @file          modules/sfdx-falcon-yeoman-command/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @requires      module:???
  * @summary       Exports SfdxFalconYeomanCommand for use with custom Salesforce CLI commands.
  * @description   Exports an abstract class that adds support for running a Yeoman Generator inside
  *                of custom-built Salesforce CLI commands.
@@ -12,8 +11,9 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Imports
-import {SfdxFalconCommand}  from  '../sfdx-falcon-command'; // Why?
-import {GeneratorStatus}    from  './yeoman-helper';               // Helper object to get status back from Generators after they run.
+import {SfdxFalconCommand}      from  '../sfdx-falcon-command'; // Abstract Class. Custom SFDX-Falcon base class for SFDX Commands.
+import {SfdxFalconCommandType}  from  '../sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
+import {GeneratorStatus}        from  './yeoman-helper';        // Helper object to get status back from Generators after they run.
 
 // Requires
 const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment
@@ -83,6 +83,8 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    sfdxFalconCommandInit
+   * @param       {string}  commandName Required. ???
+   * @param       {SfdxFalconCommandType} commandType Required. ???
    * @returns     {void}
    * @description Initializes various SfdxFalconYeomandCommand structures before
    *              calling the same init function from SfdxFalconCommand.
@@ -90,13 +92,13 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected sfdxFalconCommandInit(commandName:string='UNSPECIFIED_FALCON_YEOMAN_COMMAND'):void {
+  protected sfdxFalconCommandInit(commandName:string='UNSPECIFIED_FALCON_YEOMAN_COMMAND', commandType:SfdxFalconCommandType):void {
 
     // Initialize the Generator Status object.
     this.generatorStatus = new GeneratorStatus();
     
     // Now call the core init function in the parent class.
-    super.sfdxFalconCommandInit(commandName);
+    super.sfdxFalconCommandInit(commandName, commandType);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

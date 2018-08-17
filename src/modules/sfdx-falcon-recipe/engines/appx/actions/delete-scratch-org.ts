@@ -78,14 +78,14 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
    * @method      executeAction
    * @param       {any}   actionOptions Optional. Any options that the command
    *              execution logic will require in order to properly do its job.
-   * @returns     {Promise<void>}
+   * @returns     {Promise<SfdxFalconExecutorResponse>}
    * @description Performs the custom logic that's wrapped by the execute method
    *              of the base class.
    * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<void> {
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconExecutorResponse> {
 
     // Set the progress, error, and success messages for this action execution.
     this.progressMessage  = `Marking scratch org '${actionOptions.scratchOrgAlias}' for deletion`;
@@ -99,7 +99,7 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
       errorMsg:     this.errorMessage,
       successMsg:   this.successMessage,
       observer:     actionContext.listrExecOptions.observer,
-      commandArgs:  [] as [string],
+      commandArgs:  new Array<string>(),
       commandFlags: {
         FLAG_TARGETUSERNAME:        actionContext.targetOrg.alias,
         FLAG_TARGETDEVHUBUSERNAME:  actionContext.devHubAlias,
@@ -111,38 +111,32 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
     // Execute the SFDX Command using an SFDX Executor. Base class handles success/error.
-    await executeSfdxCommand(this.sfdxCommandDef)
+    return await executeSfdxCommand(this.sfdxCommandDef)
       .then(execSuccessResponse => {
-        this.actionResponse.execSuccess(execSuccessResponse);
+        // Make sure any resolved promises are wrapped as an SFDX-Falcon Executor Response.
+        execSuccessResponse = SfdxFalconExecutorResponse.wrap(execSuccessResponse, 'executeSfdxCommand');
+        // If you want to add additional SUCCESS handling behavior, do it here.
+        return execSuccessResponse;
       })
       .catch(execErrorResponse => {
+        // Make sure any rejected promises are wrapped as an SFDX-Falcon Executor Response.
+        execErrorResponse = SfdxFalconExecutorResponse.wrap(execErrorResponse, 'executeSfdxCommand');
+
         // Debug here since we're processing the error response.
         SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execErrorResponse, `${clsDbgNs}executeAction:executeSfdxCommand:catch:execErrorResponse: `);
 
         // Check if the Executor Error Response is due to a thrown Error (not a FAILURE).
         if (execErrorResponse.status === SfdxFalconExecutorStatus.ERROR) {
-          this.actionResponse.execFailure(execErrorResponse);
           throw execErrorResponse;
         }
-        // Check if the execErrorResponse is a directly thrown Error
-        if (execErrorResponse instanceof Error) {
-          let newExecErrorResponse = new SfdxFalconExecutorResponse('executeSfdxCommand');
-          newExecErrorResponse.error(execErrorResponse)
-          this.actionResponse.execFailure(newExecErrorResponse);
-          throw newExecErrorResponse;  
-        }
-        // Finally, suppress any FAILURES because we might be deleting a scratch org that doesn't exist.
+        
+        // Suppress any FAILURES because we might be deleting a scratch org that doesn't exist.
         execErrorResponse.code    = -1;                                       // Change code to "warning" (-1)
         execErrorResponse.message = `WARNING: ${execErrorResponse.message}`;  // Massage the message
         execErrorResponse.status  = SfdxFalconExecutorStatus.WARNING;         // Change status to WARNING
 
-        // Put this execErrorResponse in the SUCCESS array
-        this.actionResponse.execSuccess(execErrorResponse);
-
-        // Done! DO NOT THROW!
+        // Done! Now we RETURN...WE DO NOT THROW!
+        return execErrorResponse;
       });
-
-    // The Action has now been run. Code in the base class will handle the return to the Engine->Recipe->User.
-    return;
   }
 }

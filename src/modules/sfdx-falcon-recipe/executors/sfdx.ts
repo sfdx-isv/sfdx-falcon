@@ -45,7 +45,7 @@ export interface SfdxCommandDefinition {
   progressMsg:    string;           // Why?
   errorMsg:       string;           // Why?
   successMsg:     string;           // Why?
-  commandArgs:    [string];         // Why?
+  commandArgs:    Array<string>;    // Why?
   commandFlags:   any;              // Why?
   observer:       any;              // Why?
 }
