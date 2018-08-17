@@ -21,7 +21,6 @@ import {SfdxFalconActionResponse}       from  '../sfdx-falcon-recipe/engines';
 import {SfdxFalconEngineResponse}       from  '../sfdx-falcon-recipe/engines';
 import {SfdxFalconRecipeResponse}       from  '../sfdx-falcon-recipe/engines';
 
-import {renderRecipeError}              from  '../sfdx-falcon-ux/error-renderer'; // Core validation function to check that local path values don't have invalid chars.
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
