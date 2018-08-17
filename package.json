@@ -30,7 +30,7 @@
     "@oclif/dev-cli": "^1.15.4",
     "@oclif/plugin-help": "1",
     "@oclif/test": "^1.1.0",
-    "@oclif/tslint": "^1.1.2",
+    "@oclif/tslint": "^2.0.0",
     "@salesforce/dev-config": "1.1.2",
     "@types/chai": "^4.1.4",
     "@types/jsforce": "^1.8.13",
