@@ -76,6 +76,9 @@ OPTIONS
 
   --falcondebug                                   Runs this command in debug mode
 
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
   --falcondebugerr                                Displays extended information for uncaught Errors
 
   --falcondebugsuccess                            Displays extended information upon successful command completion
@@ -104,9 +107,16 @@ USAGE
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
   --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
   --falcondebugerr                                Displays extended information for uncaught Errors
+
   --falcondebugsuccess                            Displays extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
@@ -135,6 +145,9 @@ OPTIONS
                                                   JSON string
 
   --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
 
   --falcondebugerr                                Displays extended information for uncaught Errors
 
@@ -167,9 +180,16 @@ ARGUMENTS
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to clone the project into
   --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
   --falcondebugerr                                Displays extended information for uncaught Errors
+
   --falcondebugsuccess                            Displays extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
@@ -192,9 +212,16 @@ USAGE
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
   --falcondebug                                   Runs this command in debug mode
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
   --falcondebugerr                                Displays extended information for uncaught Errors
+
   --falcondebugsuccess                            Displays extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES

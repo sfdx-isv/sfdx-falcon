@@ -95,6 +95,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected gitRemoteUri:string;                        // Why?
 
   // Member vars for ALL debug flags
+  protected falconDebugDepthFlag:number     = 2;        // Why?
   protected falconDebugFlag:boolean         = false;    // Why?
   protected falconDebugExtFlag:boolean      = false;    // Why?
   protected falconDebugXlFlag:boolean       = false;    // Why?
@@ -116,6 +117,13 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       required: false,
       hidden: false
     }),
+    falcondebugdepth: {
+      description: baseMessages.getMessage('falcondebugdepth_FlagDescription'),
+      required: false,
+      hidden: false,
+      type: 'number',
+      default: 2
+    },
     falcondebugext: flags.boolean({
       description: baseMessages.getMessage('falcondebugext_FlagDescription'),  
       required: false,
@@ -172,6 +180,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.gitRemoteUri             = this.args.GIT_REMOTE_URI        ||  '';
 
     // Read the incoming values for all DEBUG flags.
+    this.falconDebugDepthFlag     = this.flags.falcondebugdepth     ||  2;
     this.falconDebugFlag          = this.flags.falcondebug          ||  false;
     this.falconDebugExtFlag       = this.flags.falcondebugext       ||  false;
     this.falconDebugXlFlag        = this.flags.falcondebugxl        ||  false;
@@ -197,7 +206,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.falconCommandResponse.commandStatus  = SfdxFalconCommandStatus.EXECUTING;
 
     // Enable the specified debuggers.
-    SfdxFalconDebug.enableDebuggers(enabledDebuggers);
+    SfdxFalconDebug.enableDebuggers(enabledDebuggers, this.falconDebugDepthFlag);
 
     // Perform validation of common flags and args.
     if (validateLocalPath(this.outputDirectory) === false) {

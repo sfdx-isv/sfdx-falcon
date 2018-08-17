@@ -29,6 +29,7 @@ export class SfdxFalconDebug {
   private static debuggers:Map<string,any>              = new Map();
   private static enabledDebuggers:Map<string, boolean>  = new Map<string, boolean>();
   public  static lineBreaks:number                      = 5;
+  public  static debugDepth:number                      = 2;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -54,10 +55,11 @@ export class SfdxFalconDebug {
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static enableDebuggers(namespaces:Array<string>):void {
+  public static enableDebuggers(namespaces:Array<string>, debugDepth:number=2):void {
     for (let namespace of namespaces) {
       SfdxFalconDebug.enabledDebuggers.set(namespace, true);
     }
+    SfdxFalconDebug.debugDepth = debugDepth;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -125,7 +127,7 @@ export class SfdxFalconDebug {
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static displayFalconError(falconError:SfdxFalconError, inspectDepth:number=3) {
+  static displayFalconError(falconError:SfdxFalconError, inspectDepth:number=2) {
     let falconErrorColor = 'blue';
     let systemErrorColor = 'yellow';
 
