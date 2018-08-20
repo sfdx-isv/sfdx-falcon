@@ -155,12 +155,12 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
         cmdResult.addChild(errorResult);
       })
 
-
-
-
-
-
     // DEVTEST --------------------------------
+
+
+
+
+
 
     // Run the Default Recipe as specified by the project.
     await sfdxFalconProject.runDefaultRecipe(compileOptions)

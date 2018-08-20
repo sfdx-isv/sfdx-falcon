@@ -10,12 +10,16 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import { SfdxFalconError2 } from "../sfdx-falcon-error/index.2";
-import { SfdxFalconDebug } from "../sfdx-falcon-debug";
+import { SfdxFalconError2 } from '../sfdx-falcon-error/index.2';
+import { SfdxFalconDebug }  from '../sfdx-falcon-debug';
 
 // Require Modules
 const chalk = require('chalk'); // Why?
 const util  = require('util');  // Why?
+
+// Set the File Local Debug Namespace and Class Name
+const dbgNs     = 'FALCON_RESULT:';
+const clsDbgNs  = 'SfdxFalconResult:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -85,8 +89,8 @@ export const enum SfdxFalconResultType {
 export class SfdxFalconResult {
 
   // Private static vars
-  private static  labelColor:string   = 'blue';
-  private static  detailColor:string  = 'yellow';
+//  private static  labelColor:string   = 'blue';
+//  private static  detailColor:string  = 'yellow';
 
   // Public member vars
   public name:            string;
@@ -167,9 +171,9 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public addChild(childResult:SfdxFalconResult):this {
-    // DEVTEST
-    console.log(`Called addChild() with this childResult:\n%O`, childResult);
 
+    // Debug
+    SfdxFalconDebug.obj(`${dbgNs}:${this.type}:`, childResult, `${clsDbgNs}addChild:childResult: `);
 
     // Make sure we are getting an SFDX-Falcon Result.
     if ((childResult instanceof SfdxFalconResult) !== true) {
@@ -416,21 +420,21 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderErrorDetail(result:SfdxFalconResult, options:SfdxFalconResultRenderOptions):string {
-    let renderResult  = '';
-    let indent        = '';
 
     // If there is no Error Object as part of the Result, render an empty object ({}).
     if (typeof result.errObj === 'undefined' || Object.keys(result.errObj).length === 0) {
-      return chalk`\n{${options.labelColor} Result Error:}      {${options.valueColor} ${'{}'}}`;
+      return '';
     }
+
+    let renderResult  = '';
+    let indent        = '';
 
     // We have an Error to render.
     renderResult += 
-        chalk`\n{${options.labelColor} Result Error:}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Name:}      {${options.valueColor} ${result.errObj.name}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Message:}   {${options.valueColor} ${result.errObj.message}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Exit Code:} {${options.valueColor} ${result.errObj.exitCode}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Stack:}     {${options.valueColor} ${result.errObj.stack}}`
+        chalk`\n{${options.errorLabelColor} ${indent}Result Error:}      {${options.valueColor} ${result.errObj.name}}`
+      + chalk`\n{${options.errorLabelColor} ${indent}Message:}           {${options.valueColor} ${result.errObj.message}}`
+      + chalk`\n{${options.errorLabelColor} ${indent}Exit Code:}         {${options.valueColor} ${result.errObj.exitCode}}`
+      + chalk`\n{${options.errorLabelColor} ${indent}Stack:} {${options.valueColor} ${result.errObj.stack}}`
       + chalk`\n{${options.errorLabelColor} ${indent}Falcon Stack:} {${options.valueColor} ${result.errObj.falconStack}}`
       + chalk`\n{${options.errorLabelColor} ${indent}Actions:}   {${options.valueColor} ${result.errObj.actions}}`
       + chalk`\n{${options.errorLabelColor} ${indent}Falcon Data (Depth=${options.errorInspectDepth}):} {reset ${util.inspect(result.errObj.falconData, {depth:options.errorInspectDepth, colors:true})}}`

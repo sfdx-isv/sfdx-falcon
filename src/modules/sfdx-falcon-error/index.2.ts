@@ -9,7 +9,10 @@
  * @description   Types and classes relevant throughout the SFDX-Falcon Recipe Module
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {SfdxError} from '@salesforce/core';
+import {SfdxError}                      from  '@salesforce/core';                     // Why?
+import {SfdxErrorConfig}                from  '@salesforce/core';                     // Why?
+import {FalconProgressNotifications}    from  '../sfdx-falcon-notifications'          // Why?
+import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';                 // Why?
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -40,8 +43,12 @@ export interface CliErrorDetail {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconError2 extends SfdxError {
 
+  // Private Members
   private _falconStack: string;   // Keeps a record of each member in the SFDX-Falcon chain that touches this error.
   private _falconData:  any;      // Additional information that's relevant to this error.
+
+  // Property Accessors
+  public get friendlyMessage() {return `Temporary Friendly Message`;}
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -135,6 +142,64 @@ export class SfdxFalconError2 extends SfdxError {
   public setFalconData(data:any={}):this {
     this._falconData = data;
     return this;
+  }
+  
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      terminateWithError
+   * @param       {Error} error  Required. Error that's causing the termination.
+   * @param       {string}  commandName Required. Command being terminated.
+   * @param       {boolean} [showErrorDebug]  Optional. Determines if extended
+   *              debugging output for the terminating Error will be shown.
+   * @description Kills all ongoing async code (ie. Progress Notifications) and
+   *              possibly renders an Error Debug before throwing an SfdxError
+   *              so that the CLI can present user-friendly error info.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static terminateWithError(error:any, commandName:string, showErrorDebug:boolean=false):void {
+  
+    // Make sure any outstanding notifications are killed.
+    FalconProgressNotifications.killAll();
+    
+    // Make sure that whatever we get is wrapped as a Falcon Error.
+    let falconError = SfdxFalconError2.wrap(error);
+
+    // Display a formatted version of the stdError before throwing the SfdxError.
+    // TODO: Move all Error Rendering/Display logic into this class
+    if (showErrorDebug) {
+      SfdxFalconDebug.displayFalconError(falconError, SfdxFalconDebug.debugDepth);
+    }
+
+    // Build an SfdxErrorConfig object
+    let sfdxErrorConfig = new SfdxErrorConfig(
+      'sfdx-falcon',          // Package Name
+      'sfdxFalconError',      // Bundle Name
+      'errDefault'            // Error Message Key
+    );
+
+    // Designate the core Message and extra "friendly info" as tokens for the final Error Message output
+    sfdxErrorConfig.setErrorTokens([falconError.message, falconError.friendlyMessage]);
+
+    // Search the SFDX error message to see if we can figure out a recommended action.
+    switch (true) {
+      case /VMC_DEV_TEST1/.test(falconError.message):
+        sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
+        break;
+      case /^ERROR_UNKNOWN_ACTION:/.test(falconError.message):
+        sfdxErrorConfig.addAction('ACTIONFOR_ERROR_UNKNOWN_ACTION');
+        break;
+      case /VMC_DEV_TEST3/.test(falconError.message):
+        sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
+        break;
+    }
+
+    // Create an SFDX Error, set the command name, and throw it.
+    let sfdxError = SfdxError.create(sfdxErrorConfig);
+    sfdxError.commandName = commandName;
+    throw sfdxError;  
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
