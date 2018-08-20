@@ -15,7 +15,7 @@ import {SfdxError}                      from  '@salesforce/core';               
 import {SfdxErrorConfig}                from  '@salesforce/core';                     // Why?
 import {ERROR_TYPE}                     from  '../../enums';                          // Why?
 import {FalconProgressNotifications}    from  '../../helpers/notification-helper'     // Why?
-import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';               // Why?
+import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';                 // Why?
 import {SfdxFalconExecutorResponse}     from  '../sfdx-falcon-recipe/executors';
 import {SfdxFalconActionResponse}       from  '../sfdx-falcon-recipe/engines';
 import {SfdxFalconEngineResponse}       from  '../sfdx-falcon-recipe/engines';

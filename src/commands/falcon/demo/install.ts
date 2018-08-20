@@ -3,14 +3,13 @@
  * @file          commands/falcon/demo/install.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:???
  * @summary       Implements the falcon:demo:install CLI command
  * @description   Salesforce CLI Plugin command (falcon:demo:install) that is expected to run inside
  *                of a fully-configured AppExchange Demo Kit (ADK) project.  Takes project and local
  *                settings from various JSON config files and uses them to power an Org Build 
  *                based on the SFDX Falcon Recipe selected by the user.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
@@ -21,6 +20,17 @@ import * as path                      from  'path';                 // Helps res
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
+
+
+// DEVTEST
+import {SfdxFalconError2}             from  '../../../modules/sfdx-falcon-error/index.2'; // Why?
+import {SfdxCliError}                 from  '../../../modules/sfdx-falcon-error/index.2'; // Why?
+import { SfdxFalconResult, SfdxFalconResultType } from '../../../modules/sfdx-falcon-result';
+import { SfdxFalconDebug } from '../../../modules/sfdx-falcon-debug';
+const util  = require('util');            // Why?
+// DEVTEST
+
+
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
@@ -122,6 +132,36 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     // If the user passed any Extended Options, use them as Compile Options.
     let compileOptions = this.extendedOptions;
 
+
+    // DEVTEST --------------------------------
+    let cmdResultOptions = {
+      startNow:       true,
+      bubbleError:    false,
+      bubbleFailure:  false
+    }
+    let cmdResult = new SfdxFalconResult(`${this.falconCommandName}`, SfdxFalconResultType.COMMAND, cmdResultOptions)
+
+    let inspectDepth = 8;
+    await myFuncThree()
+      .then(successResult => {
+        console.log(`SUCCESS_RESULT: (Depth ${inspectDepth})\n${util.inspect(successResult, {depth:inspectDepth, colors:true})}`)
+        cmdResult.addChild(successResult);
+        return successResult;
+      })
+      .catch(errorResult => {
+        console.log(`ERROR_RESULT: (Depth ${inspectDepth})\n${util.inspect(errorResult, {depth:inspectDepth, colors:true})}`)
+        errorResult.debugResult();
+        SfdxFalconDebug.displayFalconError(errorResult);
+        cmdResult.addChild(errorResult);
+      })
+
+
+
+
+
+
+    // DEVTEST --------------------------------
+
     // Run the Default Recipe as specified by the project.
     await sfdxFalconProject.runDefaultRecipe(compileOptions)
       .then(recipeSuccessResult => {this.onSuccess(recipeSuccessResult)})   // Implemented by parent class
@@ -131,3 +171,63 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     return this.falconJsonResponse;
   }
 } // End of Class FalconDemoInstall
+
+
+
+
+async function myFuncOne() {
+
+  let falconResult = new SfdxFalconResult('Result from myFuncOne', SfdxFalconResultType.EXECUTOR);
+  let successObject = {
+    name: 'Marlon',
+    city: 'Oceanside',
+    state: 'CA',
+    hobbies: ['surfing', 'reading', 'hiking']
+  }
+  falconResult.success(successObject);
+  return falconResult;
+}
+
+async function myFuncTwo() {
+
+  let falconResult = new SfdxFalconResult('Result from myFuncTwo', SfdxFalconResultType.ACTION);
+
+  let successString = 'myFuncTwo() was a smashing success!';
+
+  await myFuncOne()
+    .then(successResult => {
+      falconResult.addChild(successResult);
+      return successResult;
+    })
+    .catch(errorResult => {
+      falconResult.addChild(errorResult);
+      return errorResult;
+    });
+
+  falconResult.success({message: 'successString'});
+
+  return falconResult;
+}
+
+async function myFuncThree() {
+  let frOptions = {bubbleError: true, bubbleFailure:true};
+
+  let falconResult = new SfdxFalconResult('Result from myFuncThree', SfdxFalconResultType.ENGINE, frOptions);
+  
+
+
+  await myFuncTwo()
+    .then(successResult => {
+      falconResult.addChild(successResult);
+
+      successResult.debugResult();
+
+      falconResult.throw('OMG! What happened here?');
+    })
+    .catch(errorResult => {
+      falconResult.addChild(errorResult);
+      return errorResult;
+    });
+  
+  return falconResult;
+}
