@@ -16,10 +16,9 @@ import {SfdxErrorConfig}                from  '@salesforce/core';               
 import {ERROR_TYPE}                     from  '../../enums';                          // Why?
 import {FalconProgressNotifications}    from  '../../helpers/notification-helper'     // Why?
 import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';                 // Why?
-import {SfdxFalconExecutorResponse}     from  '../sfdx-falcon-recipe/executors';
-import {SfdxFalconActionResponse}       from  '../sfdx-falcon-recipe/engines';
-import {SfdxFalconEngineResponse}       from  '../sfdx-falcon-recipe/engines';
-import {SfdxFalconRecipeResponse}       from  '../sfdx-falcon-recipe/engines';
+
+
+export {SfdxFalconError2} from './index.2';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -66,6 +65,7 @@ export class SfdxFalconError {
       }
     }
     // Handle instance of SFDX-Falcon Executor Response
+    /*
     if (objectToWrap instanceof SfdxFalconExecutorResponse) {
       objectToWrap as SfdxFalconExecutorResponse;
       return {
@@ -113,7 +113,6 @@ export class SfdxFalconError {
         error:          objectToWrap.error
       }
     }
-    //*
     if (objectToWrap instanceof SfdxFalconRecipeResponse) {
       objectToWrap as SfdxFalconRecipeResponse;
       return {

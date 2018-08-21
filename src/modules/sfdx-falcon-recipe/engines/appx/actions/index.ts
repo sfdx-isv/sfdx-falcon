@@ -10,17 +10,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import local modules
-import {waitASecond}              from  '../../../../sfdx-falcon-async';          // Why?
-import {SfdxFalconDebug}          from  '../../../../sfdx-falcon-debug';          // Why?
-import {SfdxFalconResult, SfdxFalconResultStatus, SfdxFalconResultType}         from  '../../../../sfdx-falcon-result';         // Why?
-
-import {SfdxFalconExecutorResponse} from  '../../../executors';
+import {waitASecond}                from  '../../../../sfdx-falcon-async';          // Why?
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';          // Why?
+import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result';         // Why?
+import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result';         // Why?
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result';         // Why?
+// Executor Imports
 import {SfdxCommandDefinition}      from  '../../../executors/sfdx';                // Why?
-
-// Import Internal Engine Modules
-import {SfdxFalconActionResponse}   from  '../../../engines';
-import {SfdxFalconActionType}       from  '../../../engines';
-import {SfdxFalconActionStatus}     from  '../../../engines';
+// Engine/Action Imports
+import {SfdxFalconActionType}       from  '../../../types';                         // Enum. Represents types of SfdxFalconActions.
 import {AppxEngineActionContext}    from  '../../../engines/appx';                  // Why?
 
 // Set the File Local Debug Namespace
@@ -153,7 +151,7 @@ export abstract class AppxEngineAction {
     // Reset the state of this Action (implemented here by parent class0)
     this.resetActionState(actionContext, actionOptions);
 
-    // Call the executeAction method and hendle success/errors
+    // Call the executeAction method and handle success/errors
     let falconActionResult:SfdxFalconResult = await this.executeAction(actionContext, actionOptions)
       .then(falconActionResult  =>  {return this.onSuccess(falconActionResult)})
       .catch(falconActionResult =>  {return this.onError(falconActionResult)});
@@ -184,8 +182,9 @@ export abstract class AppxEngineAction {
     // Make sure any rejected promises are wrapped as an SFDX-Falcon Result.
     falconActionResult = SfdxFalconResult.wrap(falconActionResult, 'ActionResult (REJECTED)', SfdxFalconResultType.ACTION);
 
-    // Close out the ACTION Result if its status is still WAITING.
+    // If the ACTION Result still WAITING, then the Child class did not complete the Result.  Do that now.
     if (falconActionResult.status === SfdxFalconResultStatus.WAITING) {
+      
       // NOTE: By passing its own errObj, the error() method will handle a missing Error Object.
       falconActionResult.error(falconActionResult.errObj);
     }
@@ -215,7 +214,7 @@ export abstract class AppxEngineAction {
     // Debug the contents of the Action Result.
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconActionResult, `${clsDbgNs}onSuccess:falconActionResult: `);
 
-    // Close out the ACTION Result if its status is still WAITING.
+    // If the ACTION Result still WAITING, then the Child class did not complete the Result.  Do that now.
     if (falconActionResult.status === SfdxFalconResultStatus.WAITING) {
       falconActionResult.success();
     }

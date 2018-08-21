@@ -21,7 +21,7 @@ import {executeSfdxCommand}         from  '../../../executors/sfdx';        // F
 // Engine/Action Imports
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
-import {SfdxFalconActionType}       from  '../../../engines';               // Enum. Represents types of SfdxFalconActions.
+import {SfdxFalconActionType}       from  '../../../types/';               // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'action:create-scratch-org:';
@@ -139,8 +139,8 @@ export class CreateScratchOrgAction extends AppxEngineAction {
 
         // OPTIONAL: If you want to add additional ERROR handling behavior, do it here.
 
-        // Make sure any rejected promises are wrapped as an ERROR wrapped as a Result.
-        falconExecutorResult = SfdxFalconResult.wrap(SfdxFalconError2.wrap(falconExecutorResult), 'ExecutorResult (REJECTED)', SfdxFalconResultType.EXECUTOR);
+        // Make sure any rejected promises are wrapped as an ERROR Result.
+        falconExecutorResult = SfdxFalconResult.wrapRejectedPromise(falconExecutorResult, 'ExecutorResult (REJECTED)', SfdxFalconResultType.EXECUTOR);
         
         // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
         return falconActionResult.addChild(falconExecutorResult);

@@ -14,21 +14,31 @@ import * as core                        from  '@salesforce/core';               
 import * as path                        from  'path';                               // Why?
 // Import Local Modules
 import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';    // Why?
+import {SfdxFalconError2}               from  '../../modules/sfdx-falcon-error';    // Why?
 import {SfdxFalconProject}              from  '../../modules/sfdx-falcon-project';  // Why?
+import {SfdxFalconResult}               from  '../../modules/sfdx-falcon-result';   // Why?
+import {SfdxFalconResultStatus}         from  '../../modules/sfdx-falcon-result';   // Why?
+import {SfdxFalconResultType}           from  '../../modules/sfdx-falcon-result';   // Why?
 // Engine/Action Imports
 import {AppxDemoConfigEngine}           from  './engines/appx/demo-config';         // Why?
 import {AppxRecipeEngine}               from  './engines/appx';                     // Why?
-import {RecipeType}                     from  './engines';                          // Why?
-import {SfdxFalconRecipeResponse}       from  './engines';                          // Why?
-import {SfdxFalconEngineResponse}       from  './engines';                          // Why?
+// Import Recipe-Specific Types
+import {RecipeType}                     from  './types';                            // Why?
+
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'sfdx-falcon-recipe:';
 const clsDbgNs  = 'SfdxFalconRecipe:';
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Declare interfaces for SFDX-Falcon Recipes.
-//─────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   SfdxFalconRecipeJson
+ * @summary     Represents an SFDX-Falcon "recipe"
+ * @description Defines the expected JSON schema of an SFDX-Falcon Recipe file.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface SfdxFalconRecipeJson {
   recipeName:       string;
   description:      string;
@@ -79,8 +89,10 @@ export class SfdxFalconRecipe {
           get recipeTasks():any                         {return this._recipeTasks}
   private _recipeEngine:AppxRecipeEngine;               // The instance of an SFDX-Falcon Recipe Engine that can be run by this Recipe.
           get recipeEngine():AppxRecipeEngine           {return this._recipeEngine}
-  private _recipeResponse:SfdxFalconRecipeResponse;     // Consolidates responses from Recipe Engine runs and holds info to send back to caller.
-          get recipeResponse():SfdxFalconRecipeResponse {return this._recipeResponse}
+  private _falconRecipeResult:SfdxFalconResult;         // Tracks results from the Recipe Engine runs and holds info to send back to caller.
+          get falconRecipeResult():SfdxFalconResult     {return this._falconRecipeResult}
+  private _falconRecipeResultDetail:any;                // Holds the DETAIL information that will be part of the RECIPE Result.
+          get falconRecipeResultDetail():any            {return this._falconRecipeResultDetail}
   private _validated:boolean;                           // TRUE if the recipe has been compiled.
           get validated():boolean                       {return this._validated}
 
@@ -136,9 +148,27 @@ export class SfdxFalconRecipe {
     sfdxFR._handlers          = recipe.handlers;
 
     // Initialize members that DO NOT get info from the Recipe File
-    sfdxFR._validated         = true;
-    sfdxFR._projectContext    = sfdxFPO;
-    sfdxFR._recipeResponse    = new SfdxFalconRecipeResponse(sfdxFR.recipeName);
+    sfdxFR._validated           = true;
+    sfdxFR._projectContext      = sfdxFPO;
+
+    // Setup the RECIPE Result.
+    sfdxFR._falconRecipeResult  = 
+      new SfdxFalconResult(sfdxFR.recipeName, SfdxFalconResultType.RECIPE,
+                          { startNow:       false,  // Don't count time spent by the user answering prompts.
+                            bubbleError:    true,
+                            bubbleFailure:  true});
+
+    // Setup the shell of the DETAIL for the RECIPE Result.
+    sfdxFR._falconRecipeResultDetail = {projectContext:       sfdxFR._projectContext,
+                                        recipeEngine:         null,
+                                        recipeName:           sfdxFR.recipeName,
+                                        recipeDescription:    sfdxFR._description,
+                                        recipeType:           sfdxFR._recipeType,
+                                        recipeVersion:        sfdxFR._recipeVersion,
+                                        recipeSchemaVersion:  sfdxFR._schemaVersion,
+                                        recipeOptions:        sfdxFR._options,
+                                        recipeStepGroups:     sfdxFR._recipeStepGroups,
+                                        recipeHandlers:       sfdxFR._handlers};
 
     // Done with the initial read.  Return the SfdxFalconRecipe we just created.
     return sfdxFR;
@@ -171,19 +201,26 @@ export class SfdxFalconRecipe {
 
     // If we get here, it means the recipe compiled successfully.
     this._compiled = true;
+
+    // Add the compiled Recipe to the DETAIL that will go with the RECIPE Result.
+    this._falconRecipeResultDetail.recipeEngine = this._recipeEngine;
+
+    // Done with compile
+    return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      execute
    * @param       {any}  executionOptions Optional. ???
-   * @returns     {Promise<any>}  ???
-   * @description ???
+   * @returns     {Promise<SfdxFalconResult>}  ???
+   * @description Executes the the SFDX-Falcon Recipe that was compiled during
+   *              the SfdxFalconRecipe.read() process.
    * @version     1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any={}):Promise<SfdxFalconRecipeResponse> {
+  public async execute(executionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Make sure that the Recipe has been compiled before allowing execution.
     if (this._compiled !== true) {
@@ -201,57 +238,63 @@ export class SfdxFalconRecipe {
       });
 
     // Use stardard Debug to show the entire Recipe Response results.
-    SfdxFalconDebug.debugObject(`FALCON:${dbgNs}`, this._recipeResponse, `${clsDbgNs}execute:this._recipeResponse: `);
+    SfdxFalconDebug.debugObject(`FALCON:${dbgNs}`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
 
     // Render a "success message" to the user via the Console.
     this.renderSuccessMessage();
 
     // Return the SFDX-Falcon Recipe Response to the caller.
-    return this._recipeResponse;
+    return this._falconRecipeResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
-   * @param       {SfdxFalconEngineResponse}  engineErrorResponse Required.
+   * @param       {SfdxFalconResult}  engineError Required.
    * @returns     {void}
    * @description Handles rejected calls returning from this.executeEngine().
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(engineErrorResponse:SfdxFalconEngineResponse):void {
+  private onError(engineError:SfdxFalconResult):void {
 
-    // Debug the contents of the Engine Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, engineErrorResponse, `${clsDbgNs}onError:engineErrorResponse: `);
+    // Make sure any rejected promises are wrapped as an ERROR Result.
+    let falconEngineResult = SfdxFalconResult.wrapRejectedPromise(engineError, 'EngineResult (REJECTED)', SfdxFalconResultType.ENGINE);
 
-    // Put the Engine Response into the FAILURE bucket of the Recipe Response
-    this._recipeResponse.engineFailure(engineErrorResponse);
+    // Debug the contents of the RECIPE Result in it's final state.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);
+    
+    // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
+    this._falconRecipeResult.addChild(falconEngineResult);
 
-    // Since thie was a FAILUIRE, throw the Action Response to inform the caller who started the Engine.
-    throw this._recipeResponse;
+    // Debug the contents of the RECIPE Result in it's final state.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.falconRecipeResult, `${clsDbgNs}onError:this.falconRecipeResult: `);
+
+    // Throw the ENGINE Result so the caller (likely a COMMAND) knows what happened.
+    throw this._falconRecipeResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onSuccess
-   * @param       {SfdxFalconEngineResponse}  engineSuccessResponse Required.
+   * @param       {SfdxFalconResult}  falconEngineResult Required.
    * @returns     {void}
    * @description Called upon successful return from this.execute().
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(engineSuccessResponse:SfdxFalconEngineResponse):void {
+  private onSuccess(falconEngineResult:SfdxFalconResult):void {
 
     // Debug the contents of the Engine Success Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, engineSuccessResponse, `${clsDbgNs}onSuccess:engineSuccessResponse: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconEngineResult, `${clsDbgNs}onSuccess:falconEngineResult: `);
 
     // Add the successful engine to the Recipe's array of engine success.
-    this._recipeResponse.engineSuccess(engineSuccessResponse);
+    this._falconRecipeResult.addChild(falconEngineResult);
 
     // Right now, we're only running one Recipe at a time, so mark the Recipe as complete, too.
-    this._recipeResponse.engineComplete();
+    this._falconRecipeResult.success();
 
     // Done.
     return;

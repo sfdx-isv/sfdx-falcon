@@ -12,20 +12,21 @@
 // Import External Modules
 import {Observable}               from  'rxjs';                                           // Why?
 // Import Local Modules
-import {SfdxFalconDebug}          from '../../../../modules/sfdx-falcon-debug';           // Why?
-import {SfdxFalconProject}        from '../../../../modules/sfdx-falcon-project';         // Why?
-import {SfdxFalconStatus}         from '../../../../modules/sfdx-falcon-status';          // Why?
+import {SfdxFalconDebug}          from  '../../../../modules/sfdx-falcon-debug';          // Why?
+import {SfdxFalconResult}         from  '../../../../modules/sfdx-falcon-result';         // Why?
+import {SfdxFalconResultStatus}   from  '../../../../modules/sfdx-falcon-result';         // Why?
+import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result';         // Why?
+//import {SfdxFalconStatus}         from  '../../../../modules/sfdx-falcon-status';         // Why?
 // Import Local Types
 import {ListrContext}             from '../../../../modules/sfdx-falcon-types';           // Type. Alias to "any". Used in project to make code easier to read.
 import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';           // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';           // Why?
-// Recipe Imports
+// Project/Recipe/Engine Imports
 import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';          // Why?
 import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';          // Why?
-import {SfdxFalconActionResponse} from '../../../../modules/sfdx-falcon-recipe/engines';  // Why?
-import {SfdxFalconEngineResponse} from '../../../../modules/sfdx-falcon-recipe/engines';  // Why?
 import {AppxEngineAction}         from '../appx/actions';                                 // Why?
-
+import {SfdxFalconProject}        from  '../../../../modules/sfdx-falcon-project';        // Why?
+import { SfdxFalconError2 } from '../../../sfdx-falcon-error/index.2';
 
 // Require Modules
 const Listr                 = require('listr');                                   // Official Task Runner of Project Falcon ;-)
@@ -49,36 +50,13 @@ export interface AppxEngineContext {
   devHubAlias:        string;
   projectContext:     SfdxFalconProject;
   logLevel:           SfdxCliLogLevel;
-  status:             SfdxFalconStatus;
   targetOrg:          TargetOrg;
 }
 export interface AppxEngineActionContext extends AppxEngineContext {
   listrExecOptions:  ListrExecutionOptions;
 }
 export interface AppxEngineActionFunction {
-  (actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconActionResponse>;
-}
-/*
-export interface AppxEngineActionResult {
-  action:     string;                 // Name (identifier) of the executed Action
-  type:       AppxEngineActionType;   // Type of Action being executed (ie. CLI or JSForce)
-  cmdDef:     any;                    // The "command definition". Varies by type of command.
-  status:     number;                 // Status indicator, taken from executed command. 
-  message:    string;                 // Brief message on what happened when the action was executed.
-  strResult:  string;                 // Result of the executed command as a string.
-  objResult:  object;                 // If the result can be converted to an object, this would hold it.
-}
-export interface AppxEngineActionError {
-  actionContext:  AppxEngineActionContext;
-  actionOptions:  any;
-  errorObj:       Error;
-}
-*/
-export enum AppxEngineActionType {
-  SFDX_CLI_COMMAND    = 'sfdx-cli-command',
-  DIRECT_API_COMMAND  = 'direct-api-command',
-  SHELL_COMMAND       = 'shell-command',
-  UNSPECIFIED         = 'unspecified'
+  (actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconResult>;
 }
 export interface AppxEngineHandler {
   handlerName: string;
@@ -104,9 +82,9 @@ export interface AppxEngineStepResult {
   data:     any;
 }
 export enum AppxEngineStepResultStatus {
-  SUCCESS = 'success',
-  WARNING = 'warning',
-  ERROR   = 'error'  
+  SUCCESS = 'SUCCESS',
+  WARNING = 'WARNING',
+  ERROR   = 'ERROR'  
 }
 export interface TargetOrg {
   orgName:        string;
@@ -120,8 +98,9 @@ export interface TargetOrg {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       AppxRecipeEngine
- * @summary     ???
- * @description ???
+ * @summary     Abstract class for Appx Recipe Engines.
+ * @description Abstract class for creating custom SFDX-Falcon Recipe Engines for Appx flavored
+ *              projects.
  * @version     1.0.0
  * @public @abstract
  */
@@ -129,14 +108,15 @@ export interface TargetOrg {
 export abstract class AppxRecipeEngine {
 
   // Declare class member vars.
-  protected actionExecutorMap:    Map<string, AppxEngineAction>;
-  protected listrTasks:           any;
-  protected recipe:               SfdxFalconRecipe;
-  protected engineResponse:       SfdxFalconEngineResponse;
-  protected preBuildStepGroups:   Array<AppxEngineStepGroup>;
-  protected postBuildStepGroups:  Array<AppxEngineStepGroup>;
-  protected engineContext:        AppxEngineContext;
-  protected engineStatus:         SfdxFalconStatus;
+  protected actionExecutorMap:        Map<string, AppxEngineAction>;
+  protected listrTasks:               any;
+  protected recipe:                   SfdxFalconRecipe;
+  protected falconEngineResult:       SfdxFalconResult;
+  protected falconEngineResultDetail: any;
+  protected preBuildStepGroups:       Array<AppxEngineStepGroup>;
+  protected postBuildStepGroups:      Array<AppxEngineStepGroup>;
+  protected engineContext:            AppxEngineContext;
+//  protected engineStatus:         SfdxFalconStatus;
 
   // Declare abstract methods.
   protected abstract async  executeEngine(executionOptions:any):  Promise<ListrContext>;
@@ -165,11 +145,24 @@ export abstract class AppxRecipeEngine {
   protected constructor(engineName:string, recipeName:string) {
     // Initialize object/array member variables.
     this.engineContext        = <AppxEngineContext>{};
-    this.engineStatus         = new SfdxFalconStatus();
     this.preBuildStepGroups   = new Array<AppxEngineStepGroup>();
     this.postBuildStepGroups  = new Array<AppxEngineStepGroup>();
-    this.engineResponse       = new SfdxFalconEngineResponse(engineName, recipeName);
     this.listrTasks           = null;
+
+    // Setup the ENGINE Result.
+    this.falconEngineResult   = 
+      new SfdxFalconResult(`${engineName}:${recipeName}`, SfdxFalconResultType.ENGINE,
+                          { startNow:       false,  // Don't count time spent by the user answering prompts.
+                            bubbleError:    false,
+                            bubbleFailure:  true});
+
+    // Setup the shell of the DETAIL for the ENGINE Result.
+    this.falconEngineResultDetail = { projectContext:   null,
+                                      recipeName:       recipeName,
+                                      engineName:       engineName,
+                                      engineContext:    null,
+                                      supportedActions: null};
+    // Done with constructor
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -216,6 +209,9 @@ export abstract class AppxRecipeEngine {
 
     // STEP SEVEN: Initialize the Action Map for this engine (implemented inside child class).
     await this.initializeActionMap();
+
+    // STEP EIGHT: Initialize the Detail Object for this ENGINE Result.
+    this.initializeEngineResultDetail();
 
     // Validate Engine Initialization (implemented here inside parent class).
     this.validateEngine();
@@ -342,13 +338,26 @@ export abstract class AppxRecipeEngine {
               observer:     observer
             }
             this.executeStep(recipeStep, listrExecOptions)
-              .then(actionSuccessResponse => {
-                this.engineResponse.actionSuccess(actionSuccessResponse);
+              .then(falconActionResult => {
+                this.falconEngineResult.addChild(falconActionResult);
                 observer.complete();
               })
-              .catch(actionFailureResponse => {
-                this.engineResponse.actionFailure(actionFailureResponse);
-                observer.error(actionFailureResponse);
+              .catch(falconActionResult => {
+                // Make sure we ONLY deal with an SFDX-Falcon Result
+                falconActionResult = 
+                  SfdxFalconResult.wrapRejectedPromise(
+                    falconActionResult, 
+                    `ActionResult (REJECTED)`,
+                    SfdxFalconResultType.ACTION
+                  );
+                try {
+                  // If ENGINE Result's "bubbleError" is FALSE, call observer.complete() to suppress the error.
+                  this.falconEngineResult.addChild(falconActionResult);
+                  observer.complete();
+                } catch (falconEngineError) {
+                  // If ENGINE Result's "bubbleError" is TRUE, call observer.error() to bubble the error.
+                  observer.error(falconEngineError);
+                }
               });
           });
         }
@@ -368,15 +377,16 @@ export abstract class AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private endExecution():void {
-    // Start the status timer.
-    this.engineStatus.stopTimer();
+    
+    // OPTIONAL: Add any post-execution closing tasks here.
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      execute
    * @param       {any} [executionOptions]  Optional. 
-   * @returns     {Promise<SfdxFalconRecipeResponse>} ???
+   * @returns     {Promise<SfdxFalconResult>} Resolves with the SFDX-Falcon
+   *              Result for this ENGINE.
    * @description Starts the execution of a compiled recipe.  Execution starutp
    *              and cleanup are handled here in the base class. Relies on the
    *              extended class to actually execute the Listr Tasks, though. 
@@ -386,26 +396,26 @@ export abstract class AppxRecipeEngine {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any={}):Promise<SfdxFalconEngineResponse> {
+  public async execute(executionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Make sure that the Engine is compiled by checking for at least one Listr Task.
     if (this.listrTasks == null) {
       throw new Error('ERROR_RECIPE_NOT_COMPILED: AppxRecipeEngine.execute() called before compiling a Recipe');
     }
 
-    // Let the engine know that execution is starting
+    // Perform any pre-engine-run logic
     this.startExecution();
 
     // Ask the child class to execute the Listr Tasks that are currently compiled into the Engine.
     await this.executeEngine(executionOptions)
-      .then(listrContextSuccess  => {this.onSuccess(listrContextSuccess)})
-      .catch(listrContextFailure => {this.onError(listrContextFailure)});
+      .then(listrContext  => {this.onSuccess(listrContext)})
+      .catch(listrError   => {this.onError(listrError)}); // This SHOULD always be an ENGINE Result in an ERROR state.
 
     // Run the execution closing tasks.
     this.endExecution();
 
-    // Return the SFDX-Falcon Engine Response for this instance (should be fully populated)
-    return this.engineResponse;
+    // Return the SFDX-Falcon Result for this ENGINE instance (should be fully populated)
+    return this.falconEngineResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -414,8 +424,8 @@ export abstract class AppxRecipeEngine {
    * @param       {AppxEngineStep}  recipeStep  Required. The step to execute.
    * @param       {ListrExecutionOptions} executionOptions  Required. Holds a
    *              number of execution options (context, task, and observer).
-   * @returns     {Promise<SfdxFalconActionResponse>}  Resolves AND rejects with
-   *              an SFDX-Falcon Action Response object.  If any other type
+   * @returns     {Promise<SfdxFalconResult>}  Resolves AND rejects with
+   *              an SFDX-Falcon Result object.  If any other type
    *              of object bubbles up, it should be an Error.
    * @description Given a valid Falcon Recipe Step object, tries to
    *              route the requested Step Action to the appropriate Executor.
@@ -423,7 +433,7 @@ export abstract class AppxRecipeEngine {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private async executeStep(recipeStep:AppxEngineStep, listrExecOptions:ListrExecutionOptions):Promise<SfdxFalconActionResponse> {
+  private async executeStep(recipeStep:AppxEngineStep, listrExecOptions:ListrExecutionOptions):Promise<SfdxFalconResult> {
 
     // Build the context the Action Executor will need to correctly do its job.
     let actionContext:AppxEngineActionContext =  { 
@@ -444,77 +454,90 @@ export abstract class AppxRecipeEngine {
     return await actionExecutor.execute(actionContext, recipeStep.options);
   }
 
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      killExecution
-   * @param       {any} xxxx ???? 
-   * @param       {any} xxxx ???? 
-   * @returns     {any}
+   * @method      initializeEngineResultDetail
+   * @returns     {void}
    * @description ???
    * @version     1.0.0
-   * @protected
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  /*
-  protected killExecution(errorMessage:string):void {
+  private initializeEngineResultDetail():void {
+    
+    // Finish configuring the DETAIL for the ENGINE Result.
+    this.falconEngineResultDetail.projectContext    = this.engineContext.projectContext;
+    this.falconEngineResultDetail.engineContext     = this.engineContext;
+    this.falconEngineResultDetail.supportedActions  = this.actionExecutorMap.keys();
 
-    // Use a generic Error Message if one was not passed in to us.
-    if (errorMessage === '') {
-      errorMessage = 'ERROR_UNKOWN_EXCEPTION: An unknown error has occured';
-    }
-
-    // Stop the timer so we can get an accurate Run Time if desired.
-    this.engineStatus.stopTimer();
-
-    // Throw an error using the provided error message.
-    throw new Error(errorMessage);
-
+    // Set the detail of the ENGINE Result.
+    this.falconEngineResult.setDetail(this.falconEngineResultDetail);    
   }
-  //*/
   
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
-   * @param       {ListrContext}  listrContextError Required.
+   * @param       {any}  listrError  Required. This SHOULD always be an ENGINE
+   *              Result (this.falconEngineResult, to be exact)...BUT there is
+   *              a small chance this may be some other kind of error.
    * @returns     {void}
    * @description Handles rejected calls returning from this.executeEngine().
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(listrContextError:ListrContext):void {
+  private onError(listrError:any):void {
 
-    // Debug the contents of the Executor Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrContextError, `${clsDbgNs}onError:listrContextError: `);
+    // Make sure that what we got here is an SFDX-Falcon Result, of type ENGINE, with status ERROR.
+    if (! SfdxFalconResult.validate(listrError, SfdxFalconResultType.ENGINE, SfdxFalconResultStatus.ERROR)) {
 
-    // The Engine Response should have ERROR, FAILURE, or UNKNOWN status.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineResponse, `${clsDbgNs}onError:this.engineResponse: `);
+      // We got something we were not expecting. Debug the contents of listrError.
+      SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrError, `${clsDbgNs}onError:listrError: `);
 
-    // Stop the timer so we can get an accurate Run Time if desired.
-    this.engineStatus.stopTimer();
+      // Create an Error to throw.
+      let falconError = new SfdxFalconError2(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
+                                            +`got an unexpected result from listr.run()`);
 
-    // Since thie was a FAILUIRE, throw the Action Response to inform the caller who started the Engine.
-    throw this.engineResponse;
+      // Throw the ENGINE with the error just created
+      this.falconEngineResult.throw(falconError);
+    }
+
+    // Debug the contents of listrError
+    let lastActionResult = this.falconEngineResult.children[this.falconEngineResult.children.length-1];
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, lastActionResult, `${clsDbgNs}onError:lastActionResult: `);
+
+    // Debug the contents of the ENGINE Result in it's final state.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.falconEngineResult, `${clsDbgNs}onError:this.falconEngineResult: `);
+
+    // Throw the ENGINE Result so the caller (likely a RECIPE) knows what happened.
+    throw this.falconEngineResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onSuccess
-   * @param       {ListrContext}  listrContextSuccess Required.
+   * @param       {ListrContext}  listrContext  Required.
    * @returns     {void}
    * @description Called upon successful return from this.executeEngine().
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(listrContextSuccess:ListrContext):void {
+  private onSuccess(listrContext:ListrContext):void {
 
     // Debug the contents of the Listr Context
     // TODO: Do we really need to know what's in the Listr Context var?
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrContextSuccess, `${clsDbgNs}onSuccess:listrContextSuccess: `);
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrContext, `${clsDbgNs}onSuccess:listrContext: `);
+
+    if (this.falconEngineResult.status === SfdxFalconResultStatus.FAILURE) {
+      if (this.engineContext.haltOnError) {
+        // TODO: Add custom "failure bubble" logic here. Logic may need to go in the Listr .then() function, though.
+      }
+    }
 
     // All Actions should now be COMPlETE. Let the SFDX-Falcon Engine Response object know.
-    this.engineResponse.actionComplete();
+    this.falconEngineResult.success();
 
     // Done.
     return;
@@ -552,14 +575,14 @@ export abstract class AppxRecipeEngine {
   /**
    * @method      startExecution
    * @returns     {void}
-   * @description Lets the Engine know that execution is starting.
+   * @description Executes pre-engine-run logic right before running Listr tasks.
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private startExecution():void {
-    // Start the status timer.
-    this.engineStatus.startTimer();
+
+    // OPTIONAL: Place any pre-engine-run logic here.
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

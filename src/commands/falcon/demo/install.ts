@@ -134,6 +134,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
 
 
     // DEVTEST --------------------------------
+    /*
     let cmdResultOptions = {
       startNow:       true,
       bubbleError:    false,
@@ -154,7 +155,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
         SfdxFalconDebug.displayFalconError(errorResult);
         cmdResult.addChild(errorResult);
       })
-
+    //*/
     // DEVTEST --------------------------------
 
 
@@ -164,8 +165,8 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
 
     // Run the Default Recipe as specified by the project.
     await sfdxFalconProject.runDefaultRecipe(compileOptions)
-      .then(recipeSuccessResult => {this.onSuccess(recipeSuccessResult)})   // Implemented by parent class
-      .catch(recipeErrorResult => {this.onError(recipeErrorResult)});                 // Implemented by parent class
+      .then(falconRecipeResult  => {this.onSuccess(falconRecipeResult)})  // Implemented by parent class
+      .catch(falconRecipeResult => {this.onError(falconRecipeResult)});   // Implemented by parent class
 
     // Return the JSON Response that was populated by onSuccess().
     return this.falconJsonResponse;

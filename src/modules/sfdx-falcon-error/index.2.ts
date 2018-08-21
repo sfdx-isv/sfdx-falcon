@@ -225,7 +225,8 @@ export class SfdxFalconError2 extends SfdxError {
       falconError = new SfdxFalconError2(error.message, `SfdxFalconError2 (${error.name})`);
     }
     else {
-      falconError = new SfdxFalconError2(`${error}`, `SfdxFalconError2 (Unknown)`);
+      falconError       = new SfdxFalconError2(`${error}`, `SfdxFalconError2 (Unknown)`);
+      falconError.data  = {unknownObj: error}
     }
 
     // Return the new Falcon Error

@@ -9,13 +9,16 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// External Imports
+// Import External Modules
 import * as core                    from  '@salesforce/core';                 // Library. Allows us to use SFDX core functionality.
 import * as path                    from  'path';                             // Library. Node's built-in path library.
-// Local Imports
-import {SfdxFalconDebug}            from  '../../modules/sfdx-falcon-debug';  // Class. Internal Debug module
+// Import Local Modules
+import {SfdxFalconDebug}            from  '../sfdx-falcon-debug';             // Class. Internal Debug module
 import {SfdxFalconRecipe}           from  '../sfdx-falcon-recipe';            // Class. Allows you to read, compile, and run an SFDX-Falcon Recipe.
-import {SfdxFalconRecipeResponse}   from  '../sfdx-falcon-recipe/engines';    // Class. Contains the response a Recipe Engine builds when running an SFDX-Falcon Recipe.
+import {SfdxFalconResult}           from  '../sfdx-falcon-result';            // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultType}       from  '../sfdx-falcon-result';            // Enum. Represents types of SfdxFalconResults.
+import {SfdxFalconResultStatus}     from  '../sfdx-falcon-result';            // Enum. Represents the status of SfdxFalconResults.
+
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'sfdx-falcon-project:';
@@ -334,8 +337,8 @@ export class SfdxFalconProject {
    * @param       {any}     [executionOptions]  Optional. Object containing any
    *              options/overrides that are relevant when the Recipe's
    *              execute() method is called.
-   * @returns     {Promise<SfdxFalconRecipeResponse>}  Resolves with a fully 
-   *              populated SFDX-Falcon Recipe Result on success or bubbles
+   * @returns     {Promise<SfdxFalconResult>}  Resolves with a fully populated
+   *              SFDX-Falcon RECIPE Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
    *              caller.
    * @description Compiles and runs the recipe
@@ -343,7 +346,7 @@ export class SfdxFalconProject {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private async compileAndRunRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResponse> {
+  private async compileAndRunRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Read the specified Recipe.
     let recipeToRun = await SfdxFalconRecipe.read(this, recipeName);
@@ -364,7 +367,7 @@ export class SfdxFalconProject {
    * @param       {any}     [executionOptions]  Optional. Object containing any
    *              options/overrides that are relevant when the Recipe's
    *              execute() method is called.
-   * @returns     {Promise<SfdxFalconRecipeResponse>}  Resolves with a fully 
+   * @returns     {Promise<SfdxFalconResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
    *              caller.
@@ -375,7 +378,7 @@ export class SfdxFalconProject {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runChosenRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResponse> {
+  public async runChosenRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconResult> {
 
     throw new Error(`ERROR_NOT_IMPLEMENTED: Method runChosenRecipe() is not yet implemented`);
 
@@ -390,7 +393,7 @@ export class SfdxFalconProject {
    * @param       {any}     [executionOptions]  Optional. Object containing any
    *              options/overrides that are relevant when the Recipe's
    *              execute() method is called.
-   * @returns     {Promise<SfdxFalconRecipeResponse>}  Resolves with a fully 
+   * @returns     {Promise<SfdxFalconResult>}  Resolves with a fully 
    *              populated SFDX-Falcon Recipe Result on success or bubbles
    *              up thrown errors that should be caught and handled by the
    *              caller.
@@ -399,7 +402,7 @@ export class SfdxFalconProject {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runDefaultRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResponse> {
+  public async runDefaultRecipe(compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Get the name of the default recipe from the internally held Falcon Project Config.
     let recipeName = this._falconProjectConfig.defaultRecipe;
@@ -426,7 +429,7 @@ export class SfdxFalconProject {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async runSpecifiedRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconRecipeResponse> {
+  public async runSpecifiedRecipe(recipeName:string, compileOptions:any={}, executionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Run the recipe specified by the caller. Recipe file must be found in the config directory.
     return await this.compileAndRunRecipe(recipeName, compileOptions, executionOptions);

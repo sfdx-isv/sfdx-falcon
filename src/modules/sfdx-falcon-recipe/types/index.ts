@@ -11,6 +11,34 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @enum        RecipeType
+ * @description Describes the types of SFDX-Falcon Recipes (well, technically the Recipe Engines).
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export enum RecipeType {
+  APPX_DEMO     = 'appx:demo-recipe',
+  APPX_PACKAGE  = 'appx:package-recipe'
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @enum        SfdxFalconActionType
+ * @description Describes the types of SFDX-Falcon Recipe Actions.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export enum SfdxFalconActionType {
+  SFDX_CLI      = 'sfdx-cli',
+  SFDC_API      = 'salesforce-api',
+  SHELL_COMMAND = 'shell-command',
+  PLUGIN        = 'plugin',
+  UNSPECIFIED   = 'unspecified'
+}
 
 
 

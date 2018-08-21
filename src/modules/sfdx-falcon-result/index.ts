@@ -88,10 +88,6 @@ export const enum SfdxFalconResultType {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconResult {
 
-  // Private static vars
-//  private static  labelColor:string   = 'blue';
-//  private static  detailColor:string  = 'yellow';
-
   // Public member vars
   public name:            string;
   public type:            SfdxFalconResultType;
@@ -117,6 +113,14 @@ export class SfdxFalconResult {
     if (this._endTime !== 0) {return this._endTime - this._startTime;}
     // The clock is still running (no end time yet), so return the current duration.
     return (new Date().getTime() - this._startTime);
+  }
+  public get durationSecs():number {
+    return this.duration / 1000;
+  }
+  public get durationString():string {
+    let durationSeconds = Math.floor(this.durationSecs);
+    if (durationSeconds < 60) return `${durationSeconds}s`;
+    return `${Math.floor(durationSeconds/60)}m ${durationSeconds%60}s`;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -170,19 +174,24 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public addChild(childResult:SfdxFalconResult):this {
+  public addChild(childResult:SfdxFalconResult, requireValidChildResult:boolean=true):this {
 
     // Debug
     SfdxFalconDebug.obj(`${dbgNs}:${this.type}:`, childResult, `${clsDbgNs}addChild:childResult: `);
 
-    // Make sure we are getting an SFDX-Falcon Result.
-    if ((childResult instanceof SfdxFalconResult) !== true) {
-
-      // Try to wrap the non-SfdxFalconResult and then attempt to add it as a child.
-      childResult = SfdxFalconResult.wrap(childResult, 'UNKNOWN RESULT', SfdxFalconResultType.UNKNOWN);
-      this.addChild(childResult);
-      return this;
+    // If a valid Child Result is required, perform the check before moving on.
+    if (requireValidChildResult) {
+      SfdxFalconResult.isValid(childResult);
     }
+
+    // If the Child Result is NOT an SfdxFalconResult already, wrap it up as one then call addChild() again.
+    if ((childResult instanceof SfdxFalconResult) !== true) {
+      childResult = SfdxFalconResult.wrap(childResult, 'UNKNOWN RESULT', SfdxFalconResultType.UNKNOWN);      
+      return this.addChild(childResult);
+    }
+
+    // Make sure that this Result has been started.
+    this.start();
 
     // Add the Child Result to the array of children for this Result.
     this.children.push(childResult);
@@ -190,8 +199,11 @@ export class SfdxFalconResult {
     // Special handling of BUBBLED FAILURE results...
     if (childResult.status === SfdxFalconResultStatus.FAILURE) {
       if (this._bubbleFailure) {
-        this.failure(childResult);
-        return this;
+        this.failure(null);
+      }
+      else {
+        // Mark this instance with WARNING status _without_ "finishing" (ie. this.failure()) yet.
+        this._status = SfdxFalconResultStatus.WARNING;
       }
     }
 
@@ -200,10 +212,13 @@ export class SfdxFalconResult {
       if (this._bubbleError) {
         this.throw(childResult.errObj);
       }
+      else {
+        // Mark this instance with WARNING status _without_ "finishing" (ie. this.failure()) yet.
+        this._status = SfdxFalconResultStatus.WARNING;
+      }
     }
 
-    // All special handling is done. Make sure Start Time is set then return this Result.
-    this.start();
+    // Return this instance (for possible chaining).
     return this;
   }
 
@@ -239,7 +254,7 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      error
-   * @param       {Error}  errorDetail  Required.
+   * @param       {Error}  errorObject  Required.
    * @returns     {this}  Returns "this" instance to support method chaining.
    * @description Sets the stop time to NOW, marks status as ERROR, sets this
    *              Result's detail to an empty object, and stores the provided
@@ -248,27 +263,29 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public error(errorDetail?:Error):this {
+  public error(errorObject:Error, errorDetail?:any):this {
 
     // Make sure we start with an Error
-    if ((errorDetail instanceof Error) !== true) {
-      if (typeof errorDetail === 'string') {
-        errorDetail = new Error(errorDetail);
+    if ((errorObject instanceof Error) !== true) {
+      if (typeof errorObject === 'string') {
+        errorObject = new Error(errorObject);
       }
       else {
-        errorDetail = new Error(`ERROR_RESULT: An unknown error occured while building results for ${this.name}`);
+        errorObject = new Error(`ERROR_RESULT: An unknown error occured while building results for ${this.name}`);
       }
     }
 
     // Wrap the error in an SfdxFalconError2
-    let falconError = SfdxFalconError2.wrap(errorDetail);
+    let falconError = SfdxFalconError2.wrap(errorObject);
 
     // Add a message to the Falcon Stack of this error.
     falconError.addToStack(`at Result '${this.name}' of type '${this.type}' at duration ${this.duration}`);
 
-    // Since this is an error, make sure the detail member var is an empty object.
-    this.detail = {};
-
+    // Leave current Detail unchanged if errorDetail was not defined.
+    if (typeof errorDetail !== 'undefined' && typeof errorDetail === 'object') {
+      this.detail = errorDetail;
+    }
+    
     // Store the error as our result AND as the errObj and set status to ERROR.
     this.errObj = falconError;
 
@@ -282,21 +299,23 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      failure
-   * @param       {object}  failureResult  Required.
+   * @param       {object}  failureDetail Required. Details related to the result.
    * @returns     {this}  Returns "this" instance to support method chaining.
    * @description Sets the stop time to NOW, marks status as FAILURE, and stores
-   *              the provided "failure result" as the result.
+   *              the provided "failure detail" as the detail for this result.
    * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public failure(failureResult:object={}):this {
+  public failure(failureDetail:object=null):this {
 
     // Stop the timer with an ERROR end status.
     this.finish(SfdxFalconResultStatus.FAILURE);
 
     // Set the result (handles non-object input)
-    this.setDetail(failureResult);
+    this.setDetail(failureDetail);
+
+    // TODO: Throw this instance if bubbleFailure is TRUE.
 
     // Return this instance (for possible chaining).
     return this;
@@ -306,14 +325,65 @@ export class SfdxFalconResult {
   /**
    * @method      finish
    * @param       {SfdxFalconResultStatus}  finalStatus Required.
-   * @returns     {void}
+   * @returns     {SfdxFalconResultStatus}  This Result's actual final status.
    * @description Sets the stop time to NOW if it hasn't been set before and
-   *              sets the final status to whatever is passed in.
+   *              sets the final status to whatever is passed in, as long as
+   *              the incoming status is of higher priority than the current
+   *              status.  Priorities are:
+   *                6 - ERROR
+   *                5 - FAILURE
+   *                4 - WARNING
+   *                3 - SUCCESS
+   *                2 - UNKNOWN
+   *                1 - WAITING
+   *                0 - INITIALIZED
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private finish(finalStatus:SfdxFalconResultStatus):void {
+  private finish(finalStatus:SfdxFalconResultStatus=SfdxFalconResultStatus.UNKNOWN):SfdxFalconResultStatus {
+
+    // Make sure the caller isn't trying to finish with INITIALIZED or WAITING.
+    if (finalStatus === SfdxFalconResultStatus.INITIALIZED || finalStatus === SfdxFalconResultStatus.WAITING) {
+      throw new SfdxFalconError2(`ERROR_INVALID_ARGUMENT: SfdxFalconResult.finish() does `
+                                +`not accept INITIALIZED or WAITING for Final Status`);
+    }
+
+    // Since we're about to finish, make sure that we've started.
+    this.start();
+
+    // Change this Result's status as long as the new status is higher priority than the old one.
+    switch(finalStatus) {
+      case SfdxFalconResultStatus.ERROR:
+        this._status = finalStatus;
+        break;
+      case SfdxFalconResultStatus.FAILURE:
+        if (this._status !== SfdxFalconResultStatus.ERROR) {
+          this._status = finalStatus;
+        }
+        break;
+      case SfdxFalconResultStatus.WARNING:
+        if (this._status !== SfdxFalconResultStatus.ERROR 
+            && this._status !== SfdxFalconResultStatus.FAILURE) {
+          this._status = finalStatus;
+        }
+        break;
+      case SfdxFalconResultStatus.SUCCESS:
+        if (this._status !== SfdxFalconResultStatus.ERROR
+            && this._status !== SfdxFalconResultStatus.FAILURE
+              && this._status !== SfdxFalconResultStatus.WARNING) {
+          this._status = finalStatus;
+        }
+        break;
+      case SfdxFalconResultStatus.UNKNOWN:
+        if (this._status !== SfdxFalconResultStatus.ERROR
+          && this._status !== SfdxFalconResultStatus.FAILURE
+            && this._status !== SfdxFalconResultStatus.WARNING
+              && this._status !== SfdxFalconResultStatus.SUCCESS) {
+          this._status = finalStatus;
+        }
+        break;
+    }
 
     // Only set the end time if it hasn't been set before AND the start time was set.
     if (this._endTime === 0 && this._startTime !== 0) {
@@ -321,14 +391,36 @@ export class SfdxFalconResult {
       this._endTime = d.getTime();
     }
 
-    // Default status to UNKNOWN if not provided by caller.
-    if (typeof finalStatus === 'undefined') {
-      finalStatus = SfdxFalconResultStatus.UNKNOWN;
+    // Done.
+    return this._status;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      isValid
+   * @param       {any}  objectToCheck  Required. The object that will be 
+   *              checked to see if it's a valid SFDX-Falcon Result.
+   * @returns     {void}  
+   * @description Given any object, determines if that object is an SFDX-Falcon
+   *              Result and throws an SfdxFalconError2 if not.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static isValid(objectToCheck:any):void {
+
+    // If the incoming object is an SfdxFalconResult, we're all good.
+    if (objectToCheck instanceof SfdxFalconResult) {
+      return;
     }
 
-    // Set status and return.
-    this._status = finalStatus;
-    return;
+    // The object is NOT an SfdxFalconResult.  Prepare an error to throw.
+    let falconError = new SfdxFalconError2(`ERROR_INVALID_RESULT: Expected an SfdxFalconResult`, 'SfdxFalconError2');
+    falconError.message  += (objectToCheck.constructor) ? ` but got '${objectToCheck.contructor.name}'` : '';
+    falconError.data      = {unknownObject: objectToCheck};
+
+    // Throw the error.
+    throw falconError;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -494,29 +586,34 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      setDetail
-   * @param       {object}  result  Required.
+   * @param       {object}  incomingDetail  Required.
    * @returns     {object}  Returns the object that was saved to this.detail.
    * @description Parses the given result and saves it to this object's result.
    * @version     1.0.0
-   * @private
+   * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private setDetail(result:any):object {
+  public setDetail(incomingDetail:any):object {
+
+    // If the Incoming Detail is NULL, don't do anything.
+    if (incomingDetail == null) {
+      return this.detail;
+    }
 
     // If we get an Error, pass it to this.error and exit.
-    if (result instanceof Error) {
-      this.error(result);
+    if (incomingDetail instanceof Error) {
+      this.error(incomingDetail);
       return this.detail;
     }
 
     // Convert any non-object result into an object
-    if (typeof result !== 'object') {
+    if (typeof incomingDetail !== 'object') {
       this.detail = {
-        rawResult:  `${result}`
+        rawResult:  `${incomingDetail}`
       }
     }
     else {
-      this.detail = result;
+      this.detail = incomingDetail;
     }
 
     // Return the object we just set (useful if the caller needed the wrapped version)
@@ -533,19 +630,16 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┘
   public start():this {
 
-    // If status is anything other than INITIALIZED, do nothing.
-    if (this._status !== SfdxFalconResultStatus.INITIALIZED) {
-      return this;
-    }
-
     // Only set the start time if it hasn't been set before.
     if (this._startTime === 0) {
       let d = new Date();
       this._startTime = d.getTime();
     }
 
-    // Set the status to WAITING (one step forward from INITIALIZED).
-    this._status = SfdxFalconResultStatus.WAITING;
+    // If status is INITIALIZED, move it one step forward to WAITING.
+    if (this._status === SfdxFalconResultStatus.INITIALIZED) {
+      this._status = SfdxFalconResultStatus.WAITING;
+    }
 
     // Return this instance (for possible chaining).
     return this;
@@ -562,7 +656,7 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public success(successDetail:object={}):this {
+  public success(successDetail:object=null):this {
 
     // Stop the timer with a SUCCESS end status.
     this.finish(SfdxFalconResultStatus.SUCCESS);
@@ -578,14 +672,14 @@ export class SfdxFalconResult {
   /**
    * @method      throw
    * @param       {any}  anyResult  Required.
-   * @returns     {void}  No return (guaranteed throw)
+   * @returns     {SfdxFalconResult}  Throws this instance of SfdxFalconResult
    * @description Sets the stop time to NOW, marks status as ERROR, and stores
    *              the provided result as an Error object then throws this.
    * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public throw(anyResult:any):void {
+  public throw(anyResult:any):SfdxFalconResult {
     this.error(anyResult);
     throw this;
   }
@@ -593,7 +687,7 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      warning
-   * @param       {object}  warningResult  Required.
+   * @param       {object}  warningDetail  Required.
    * @returns     {this}  Returns "this" instance to support method chaining.
    * @description Sets the stop time to NOW, marks status as WARNING, and stores
    *              the provided "warning result" as the result.
@@ -601,13 +695,13 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public warning(warningResult:object={}):this {
+  public warning(warningDetail:object=null):this {
 
     // Stop the timer with a WARNING end status.
     this.finish(SfdxFalconResultStatus.WARNING);
 
     // Set the result (handles non-object input)
-    this.setDetail(warningResult);
+    this.setDetail(warningDetail);
 
     // Return this instance (for possible chaining).
     return this;
@@ -616,7 +710,7 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      unknown
-   * @param       {object}  unknownResult  Required.
+   * @param       {object}  unknownDetail  Required.
    * @returns     {this}  Returns "this" instance to support method chaining.
    * @description Sets the stop time to NOW, marks status as UNKNOWN, and stores
    *              the provided "unknown result" as the result.
@@ -624,13 +718,13 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public unknown(unknownResult:object={}):this {
+  public unknown(unknownDetail:object=null):this {
 
     // Stop the timer with a WARNING end status.
     this.finish(SfdxFalconResultStatus.UNKNOWN);
 
     // Set the result (handles non-object input)
-    this.setDetail(unknownResult);
+    this.setDetail(unknownDetail);
 
     // Return this instance (for possible chaining).
     return this;
@@ -638,9 +732,59 @@ export class SfdxFalconResult {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      validate
+   * @param       {any}  objectToCheck  Required. The object that will be 
+   *              checked to see if it's a valid SFDX-Falcon Result.
+   * @param       {SfdxFalconResultType}  expectedResultType  Required. Type of 
+   *              SFDX-Falcon Result you expect to find.
+   * @param       {SfdxFalconResultStatus} [status] Optional. The status that
+   *              you expect the SFDX-Falcon Result to have.
+   * @returns     {boolean}  Returns TRUE if the Object to Check matches all
+   *              specified criteria, FALSE if otherwise.
+   * @description Given an Object to check, an SFDX-Falcon Result Type, and 
+   *              (optionally) an SFDX-Falcon Result Status, determines if the
+   *              Object matches the specified criteria and returns TRUE if 
+   *              it does.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static validate(objectToCheck:any, expectedType?:SfdxFalconResultType, expectedStatus?:SfdxFalconResultStatus):boolean {
+
+    // Start by making sure we actually have an SFDX-Falcon Result.
+    try {
+      SfdxFalconResult.isValid(objectToCheck);
+    } catch (e) {
+      return false;
+    }
+
+    // If an EXPECTED TYPE was provided, see if we have the right TYPE of Result.
+    if (expectedType) {
+      if (objectToCheck.type !== expectedType) {
+        return false;
+      }  
+    }
+
+    // If an EXPECTED STATUS was provided, check against that, too.
+    if (expectedStatus) {
+      if (objectToCheck.status !== expectedStatus) {
+        return false;
+      }
+    }
+
+    // If we get here, we've got a validated SFDX-Falcon Result Object
+    return true;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      wrap
    * @param       {any}  thingToWrap  Required.  The thing (string, object,
    *              error, whatever) that is being wrapped.
+   * @param       {string}  name  Required. The name of the new Result.
+   * @param       {SfdxFalconResultType}  type  Required. Type of the new Result.
+   * @param       {any} [options] Optional. Options are "startNow", 
+   *              "bubbleError", and "bubbleFailure".
    * @returns     {SfdxFalconResult}  Returns a new SFDX-Falcon Result
    * @description Instantiates an SFDX-Falcon Result object and tries to 
    *              populate it as best as possible.
@@ -680,54 +824,35 @@ export class SfdxFalconResult {
     // Return the Result
     return newFalconResult
   }
-}
-
-
-
-
-
-
-
-
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxCliError
-   * @param       {string}  stdErrBuffer  Required. Results from an stderr
-   *              stream resulting from a call to a Salesforce CLI command.
-   * @description ???
+   * @method      wrapRejectedPromise
+   * @param       {any}  rejectedPromiseData  Required.  The data passed into
+   *              a catch() function that's hung off of a rejected Promise.
+   * @param       {string}  name  Required. The name of the new Result.
+   * @param       {SfdxFalconResultType}  type  Required. Type of the new Result.
+   * @param       {any} [options] Optional. Options are "startNow", 
+   *              "bubbleError", and "bubbleFailure".
+   * @returns     {SfdxFalconResult}  Returns a new SFDX-Falcon Result
+   * @description Tries to figure out what's in the Rejected Promise Data and
+   *              then instantiates an SFDX-Falcon Result object and tries to 
+   *              populate it as best as possible.
    * @version     1.0.0
-   * @public
+   * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  public static wrapRejectedPromise(rejectedPromiseData:any, resultName:string, resultType:SfdxFalconResultType=SfdxFalconResultType.UNKNOWN, resultOptions:any={}):SfdxFalconResult {
 
+    // If it's already an SFDX-Falcon Result, return it.
+    if (rejectedPromiseData instanceof SfdxFalconResult) {
+      return rejectedPromiseData;
+    }
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+    // Now we FORCE creation of an SFDX-Falcon Error, regardless of whatever the rejectedPromiseData is.
+    let rejectedPromiseError = SfdxFalconError2.wrap(rejectedPromiseData);
 
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+    // Now we WRAP the error as an SFDX-Falcon Result.
+    return SfdxFalconResult.wrap(rejectedPromiseError, resultName, resultType, resultOptions)
+  }
+}

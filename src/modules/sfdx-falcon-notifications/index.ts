@@ -12,8 +12,8 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {SfdxFalconStatus} from '../sfdx-falcon-status';                       // Why?
-
+import {SfdxFalconStatus} from  '../sfdx-falcon-status';      // Why?
+import {SfdxFalconResult} from  '../sfdx-falcon-result';      // Why?
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -50,6 +50,21 @@ export class FalconProgressNotifications {
 
     // Set the interval and save a ref to it.
     let timeoutRef = setInterval(progressNotification, interval, status, message, observer);
+    FalconProgressNotifications.timeoutRefs.push(timeoutRef);
+
+    // return the timeoutRef
+    return timeoutRef;
+  }
+  // REFACTOR_IN_PROGRESS
+  static start2(message:string, interval:number, result:SfdxFalconResult, observer:any):any {
+
+    // Initialize the timeoutRefs array if this is the first time star() is called.
+    if (typeof FalconProgressNotifications.timeoutRefs === 'undefined') {
+      FalconProgressNotifications.timeoutRefs = new Array();
+    }
+
+    // Set the interval and save a ref to it.
+    let timeoutRef = setInterval(progressNotification, interval, result, message, observer);
     FalconProgressNotifications.timeoutRefs.push(timeoutRef);
 
     // return the timeoutRef
@@ -105,6 +120,10 @@ export class FalconProgressNotifications {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function progressNotification(status:SfdxFalconStatus, message:string, observer:any):void {
   updateObserver(observer, `[${status.getRunTime(true)}s] ${message}`);
+}
+// REFACTOR_IN_PROGRESS
+function progressNotification2(result:SfdxFalconResult, message:string, observer:any):void {
+  updateObserver(observer, `[${result.durationString}s] ${message}`);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

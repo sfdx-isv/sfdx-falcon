@@ -21,14 +21,8 @@ const util  = require('util');
 //─────────────────────────────────────────────────────────────────────────────┐
 // Declare Enums used across SFDX-Falcon Recipe sub-modules.
 //─────────────────────────────────────────────────────────────────────────────┘
-export enum SfdxFalconActionType {
-  SFDX_CLI      = 'sfdx-cli',
-  SFDC_API      = 'salesforce-api',
-  SHELL_COMMAND = 'shell-command',
-  PLUGIN        = 'plugin',
-  UNSPECIFIED   = 'unspecified'
-}
-export enum SfdxFalconActionStatus {
+/*
+export enum SfdxFalconActionStatus_DELETE_THIS {
   EXECUTING = 'EXECUTING',
   SUCCESS   = 'SUCCESS',
   FAILURE   = 'FAILURE',
@@ -52,10 +46,11 @@ export enum SfdxFalconRecipeStatus {
   WARNING   = 'WARNING',
   UNKNOWN   = 'UNKNOWN'
 }
-
+//*/
 //─────────────────────────────────────────────────────────────────────────────┐
 // Declare Response Detail interfaces (Action and Engine)
 //─────────────────────────────────────────────────────────────────────────────┘
+/*
 export interface SfdxFalconErrorFailureDetail {
   totalRuntime:       number;
   errorCode?:         number;
@@ -68,7 +63,7 @@ export interface SfdxFalconErrorFailureDetail {
   failureRespObj?:    any;
 }
 export interface SfdxFalconActionResponseDetail extends SfdxFalconErrorFailureDetail {
-  actionStatus:       SfdxFalconActionStatus;
+  actionStatus:       SfdxFalconActionStatus_DELETE_THIS;
   executorsRun:       number;
   attemptedCmdRaw?:   string;
   attemptedCmdObj?:   any;
@@ -85,19 +80,21 @@ export interface SfdxFalconRecipeResponseDetail extends SfdxFalconErrorFailureDe
   successfulEngines:  Array<string>;
   failedEngine?:      any;
 }
+//*/
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxFalconActionResponse
+ * @class       SfdxFalconActionResponse_DELETE_THIS
  * @description Provides a structure for tracking one or more SFDX-Falcon Executors that are being
  *              run by an SFDX-Falcon Action.
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconActionResponse {
+/*
+export class SfdxFalconActionResponse_DELETE_THIS {
   public actionName:    string;
-  public actionStatus:  SfdxFalconActionStatus;
+  public actionStatus:  SfdxFalconActionStatus_DELETE_THIS;
   public actionType:    SfdxFalconActionType;
   public actionContext: any;
   public actionOptions: any;
@@ -109,7 +106,7 @@ export class SfdxFalconActionResponse {
 
   public constructor(actionName:string, actionType:SfdxFalconActionType=SfdxFalconActionType.UNSPECIFIED) {
     this.actionName     = actionName;
-    this.actionStatus   = SfdxFalconActionStatus.UNKNOWN;
+    this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.UNKNOWN;
     this.actionType     = actionType;
     this.actionContext  = {};
     this.actionOptions  = {};
@@ -120,7 +117,7 @@ export class SfdxFalconActionResponse {
   }
 
   public execComplete():void {
-    this.actionStatus   =  SfdxFalconActionStatus.SUCCESS;
+    this.actionStatus   =  SfdxFalconActionStatus_DELETE_THIS.SUCCESS;
     this.actionMessage  =  `Action ${this.actionName} has successfully run ${this.execResponses.length} Executor${this.execResponses.length === 1 ? '' : 's' }`;
     this.error          = {} as any;
     this.actionDetail   = {
@@ -132,7 +129,7 @@ export class SfdxFalconActionResponse {
 
   public execSuccess(execSuccessResponse:SfdxFalconExecutorResponse):void {
     this.execResponses.push(execSuccessResponse);
-    this.actionStatus    =  SfdxFalconActionStatus.EXECUTING;
+    this.actionStatus    =  SfdxFalconActionStatus_DELETE_THIS.EXECUTING;
     this.duration       +=  execSuccessResponse.duration; 
     this.actionMessage   =  `Action ${this.actionName} has run ${this.execResponses.length} Executor${this.execResponses.length === 1 ? '' : 's' }`;
   }
@@ -141,7 +138,7 @@ export class SfdxFalconActionResponse {
 
     // Special handling if an Error object is passed in.
     if (execFailureResponse instanceof Error) {
-      this.actionStatus   = SfdxFalconActionStatus.ERROR;
+      this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.ERROR;
       this.error          = execFailureResponse;
       this.actionMessage  = `Action '${this.actionName}' threw ${execFailureResponse.name}: ${execFailureResponse.message} `;
       return;
@@ -149,10 +146,10 @@ export class SfdxFalconActionResponse {
 
     // If execFailureResponse is NOT an SFDX-Falcon Executor Response, attach an Error.
     if ((execFailureResponse instanceof SfdxFalconExecutorResponse) !== true) {
-      this.actionStatus   = SfdxFalconActionStatus.ERROR;
-      this.error          = new TypeError (`INVALID_TYPE: SfdxFalconActionResponse.execFailure() expects instanceof `
+      this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.ERROR;
+      this.error          = new TypeError (`INVALID_TYPE: SfdxFalconActionResponse_DELETE_THIS.execFailure() expects instanceof `
                                           +`'SfdxFalconExecutorResponse' but got '${execFailureResponse.constructor.name}'`);
-      this.actionMessage  = `Action '${this.actionName}' passed an invalid type to  SfdxFalconActionResponse.execFailure()`;
+      this.actionMessage  = `Action '${this.actionName}' passed an invalid type to  SfdxFalconActionResponse_DELETE_THIS.execFailure()`;
       return;
     }
 
@@ -163,7 +160,7 @@ export class SfdxFalconActionResponse {
     // Customize settings based on the type of failure (thown error or determined failure)
     switch(execFailureResponse.status) {
       case SfdxFalconExecutorStatus.ERROR:
-        this.actionStatus   = SfdxFalconActionStatus.ERROR;
+        this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.ERROR;
         this.error          = execFailureResponse.error;
         this.actionMessage  = `Action ${this.actionName} encountered an unexpected error while executing ${execFailureResponse.name}`;
         this.actionDetail   = {
@@ -179,7 +176,7 @@ export class SfdxFalconActionResponse {
         };
         break;
       case SfdxFalconExecutorStatus.FAILURE:
-        this.actionStatus   = SfdxFalconActionStatus.FAILURE;
+        this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.FAILURE;
         this.error          = {} as any;
         this.actionMessage  = `Action ${this.actionName} failed while executing ${execFailureResponse.name}`;
         this.actionDetail   = {
@@ -194,7 +191,7 @@ export class SfdxFalconActionResponse {
           failureRespObj:   execFailureResponse.respObj
         };
       default:
-        this.actionStatus   = SfdxFalconActionStatus.UNKNOWN;
+        this.actionStatus   = SfdxFalconActionStatus_DELETE_THIS.UNKNOWN;
         this.error          = {} as any;
         this.actionMessage  = `Action ${this.actionName} experienced an unknown failure while executing ${execFailureResponse.name}`;
         this.actionDetail   = {
@@ -211,7 +208,7 @@ export class SfdxFalconActionResponse {
     }
   }
 }
-
+//*/
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconEngineResponse
@@ -221,6 +218,7 @@ export class SfdxFalconActionResponse {
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 export class SfdxFalconEngineResponse {
   public engineName:      string;
   public engineDuration:  number;
@@ -228,7 +226,7 @@ export class SfdxFalconEngineResponse {
   public engineMessage:   string;
   public engineDetail:    SfdxFalconEngineResponseDetail;
   public recipeName:      string;
-  public actionResponses: Array<SfdxFalconActionResponse>;
+  public actionResponses: Array<SfdxFalconActionResponse_DELETE_THIS>;
   public error:           Error;
 
   public constructor(engineName:string, recipeName:string) {
@@ -237,7 +235,7 @@ export class SfdxFalconEngineResponse {
     this.engineMessage    = `Engine ${this.engineName}: Status Unknown while running ${recipeName}`;
     this.engineDuration   = 0;
     this.recipeName       = recipeName;
-    this.actionResponses  = new Array<SfdxFalconActionResponse>();
+    this.actionResponses  = new Array<SfdxFalconActionResponse_DELETE_THIS>();
     this.error            = {} as any;
     this.engineDetail   = {
       engineStatus:       this.engineStatus,
@@ -259,14 +257,14 @@ export class SfdxFalconEngineResponse {
     };
   }
   
-  public actionSuccess(actionSuccessResponse:SfdxFalconActionResponse):void {
+  public actionSuccess(actionSuccessResponse:SfdxFalconActionResponse_DELETE_THIS):void {
     this.actionResponses.push(actionSuccessResponse);
     this.engineStatus    =  SfdxFalconEngineStatus.EXECUTING;
     this.engineDuration +=  actionSuccessResponse.duration;
     this.engineMessage   =  `Engine ${this.engineName} has executed ${this.actionResponses.length} Action${this.actionResponses.length === 1 ? '' : 's' }`;
   }
 
-  public actionFailure(actionFailureResponse:SfdxFalconActionResponse):void {
+  public actionFailure(actionFailureResponse:SfdxFalconActionResponse_DELETE_THIS):void {
 
     // Check for Error object being passed in.
     if (actionFailureResponse instanceof Error) {
@@ -276,11 +274,11 @@ export class SfdxFalconEngineResponse {
       return;
     }
 
-    // Check for the incoming argument NOT being an SfdxFalconActionResponse.
-    if ((actionFailureResponse instanceof SfdxFalconActionResponse) !== true) {
+    // Check for the incoming argument NOT being an SfdxFalconActionResponse_DELETE_THIS.
+    if ((actionFailureResponse instanceof SfdxFalconActionResponse_DELETE_THIS) !== true) {
       this.engineStatus   = SfdxFalconEngineStatus.ERROR;
       this.error          = new TypeError (`INVALID_TYPE: SfdxFalconEngineResponse.actionFailure() expects instanceof `
-                                          +`'SfdxFalconActionResponse' but got '${actionFailureResponse.constructor.name}'`);
+                                          +`'SfdxFalconActionResponse_DELETE_THIS' but got '${actionFailureResponse.constructor.name}'`);
       this.engineMessage  = `Engine '${this.engineName}' passed an invalid type to  SfdxFalconEngineResponse.actionFailure()`;
       return;
     }
@@ -293,7 +291,7 @@ export class SfdxFalconEngineResponse {
 
     // Populate properties and build a custom message based on the status of the failed Action.
     switch(actionFailureResponse.actionStatus) {
-      case SfdxFalconActionStatus.ERROR:
+      case SfdxFalconActionStatus_DELETE_THIS.ERROR:
         this.engineStatus   = SfdxFalconEngineStatus.ERROR;
         this.error          = actionFailureResponse.error;
         this.engineMessage  = `Engine ${this.engineName} encountered an unexpected error while running ${actionFailureResponse.actionName}`;
@@ -308,7 +306,7 @@ export class SfdxFalconEngineResponse {
           errorStack:         actionFailureResponse.error.stack
         };
         break;
-      case SfdxFalconActionStatus.FAILURE:
+      case SfdxFalconActionStatus_DELETE_THIS.FAILURE:
         this.engineStatus   = SfdxFalconEngineStatus.FAILURE;
         this.error          = {} as any;
         this.engineMessage  = `Engine ${this.engineName} failed while running ${actionFailureResponse.actionName}`;
@@ -343,7 +341,7 @@ export class SfdxFalconEngineResponse {
     return successfulActions;
   }
 }
-
+//*/
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconRecipeResponse
@@ -353,6 +351,7 @@ export class SfdxFalconEngineResponse {
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 export class SfdxFalconRecipeResponse {
   public recipeName:      string;
   public recipeDuration:  number;
@@ -472,3 +471,4 @@ export interface SfdxFalconRecipeResult {
   finalStatus:    number;
   finalMessage:   string;
 }
+//*/

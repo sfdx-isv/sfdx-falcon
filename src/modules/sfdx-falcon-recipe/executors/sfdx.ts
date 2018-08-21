@@ -3,12 +3,11 @@
  * @file          modules/sfdx-falcon-executors/sfdx-executors.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:???
  * @summary       SFDX Executor Module
  * @description   Exports functions that interact with SFDX core functionality either via shell
  *                commands or directly via internal JavaScript.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
@@ -18,17 +17,23 @@ import {Aliases}                      from  '@salesforce/core';                 
 import {waitASecond}                  from  '../../sfdx-falcon-async';              // Why?
 import {SfdxFalconDebug}              from  '../../sfdx-falcon-debug';              // Why?
 import {SfdxFalconError}              from  '../../sfdx-falcon-error';              // Why?
+
+import {SfdxFalconError2}             from  '../../sfdx-falcon-error/index.2';              // Why?
+import {SfdxCliError}                 from  '../../sfdx-falcon-error/index.2';      // Why?
+
 import {updateObserver}               from  '../../sfdx-falcon-notifications';      // Why?
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';      // Why?
 import {SfdxFalconExecutorResponse}   from  '../../sfdx-falcon-recipe/executors';   // Why?
 import {SfdxFalconExecutorStatus}     from  '../../sfdx-falcon-recipe/executors';   // Why?
+import {SfdxFalconResult, SfdxFalconResultType}             from  '../../sfdx-falcon-result';             // Why?
 import {SfdxFalconStatus}             from  '../../sfdx-falcon-status';             // Why?
+import {safeParse}                    from  '../../sfdx-falcon-util';               // Why?
 
 // Requies
 const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
-const dbgNs = 'Executor:sfdx:';
+const dbgNs = 'RECIPE_EXECUTOR:SFDX:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Interfaces specific to the sfdx-executor
@@ -61,7 +66,7 @@ export interface SfdxCommandDefinition {
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):Promise<SfdxFalconExecutorResponse> {
+export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):Promise<SfdxFalconResult> {
 
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
@@ -70,8 +75,9 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
 
-    // Create an SfdxFalconStatus object to help report on elapsed time.
-    let status = new SfdxFalconStatus(true);
+    // Initialize an SFDX-Falcon EXECUTOR Result.
+    let sfdxCommandResult = 
+      new SfdxFalconResult(`executeSfdxCommand:${sfdxCommandDef.command}`, SfdxFalconResultType.EXECUTOR);
 
     // Declare function-local string buffers for stdout and stderr streams.
     let stdOutBuffer:string = '';
@@ -85,7 +91,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 
     // Set up Progress Notifications.
     const progressNotifications 
-      = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, status, sfdxCommandDef.observer);
+      = FalconProgressNotifications.start2(sfdxCommandDef.progressMsg, 1000, sfdxCommandResult, sfdxCommandDef.observer);
 
     // Capture stdout data stream. NOTE: We only care about the last output sent to the buffer.
     childProcess.stdout.on('data', (stdOutDataStream) => {
@@ -104,26 +110,43 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 
       // Stop the progress notifications for this command.
       FalconProgressNotifications.finish(progressNotifications);
-
-      // Create and initialize an Executor Response.
-      let executorResponse = new SfdxFalconExecutorResponse(`executeSfdxCommand`);
-      executorResponse.cmdObj   = sfdxCommandDef;
-      executorResponse.cmdRaw   = sfdxCommandString;
-      executorResponse.duration = status.getRunTime() as number;
-
-      // Determine of the command succeded or failed.
+ 
+      // Determine if the command succeded or failed.
       if (stdErrBuffer) {
-        let cliError = SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg);
-        executorResponse.convertToCliError(cliError);
-        reject(executorResponse);
+
+        // Prepare the FAILURE detail for this function's Result.
+        let failureDetail = {
+          cmdObj:       sfdxCommandDef,
+          cmdRaw:       sfdxCommandString,
+          failureError: new SfdxCliError(stdErrBuffer, sfdxCommandDef.errorMsg)
+        } 
+
+        // Process this as a FAILURE result.
+        sfdxCommandResult.failure(failureDetail);
+
+        // DO NOT REJECT! Resolve so the caller can decide to suppress or bubble FAILURE.
+        resolve(sfdxCommandResult);
       }
       else {
-        executorResponse.parse(stdOutBuffer);
-        updateObserver(sfdxCommandDef.observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);
-        resolve(executorResponse);
+
+        // Prepare the SUCCESS detail for this function's Result.
+        let successDetail = {
+          cmdObj: sfdxCommandDef,
+          cmdRaw: sfdxCommandString,
+          ...safeParse(stdOutBuffer)
+        }
+
+        // Make a final update to the observer
+        updateObserver(sfdxCommandDef.observer, `[${sfdxCommandResult.durationString}] SUCCESS: ${sfdxCommandDef.successMsg}`);
+
+        // Regiser a SUCCESS result
+        sfdxCommandResult.success(successDetail);
+
+        // Resolve with the successful SFDX-Falcon Result.
+        resolve(sfdxCommandResult);
       }
     });
-  }) as Promise<SfdxFalconExecutorResponse>;
+  }) as Promise<SfdxFalconResult>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

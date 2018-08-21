@@ -9,5 +9,6 @@
   "falcondebugext_FlagDescription":     "(hidden) Runs this command in extended debug mode",
   "falcondebugxl_FlagDescription":      "(hidden) Runs this command in XL debug mode",
   "falcondebugerr_FlagDescription":     "Displays extended information for uncaught Errors",
-  "falcondebugsuccess_FlagDescription": "Displays extended information upon successful command completion"
+  "falcondebugsuccess_FlagDescription": "Displays extended information upon successful command completion",
+  "falcondebugns_FlagDescription":      "Specifies an array of debug namespaces which should be enabled"
 }

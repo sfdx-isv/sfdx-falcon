@@ -11,14 +11,12 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
 import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Class. Internal Debug module
-import {SfdxFalconStatus}         from '../../../sfdx-falcon-status';                       // Class. Helps track status of internal operations.
 import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';                        // Enum. Represents the LogLevel types from the Salesforce CLI.
 import {ListrContext}             from '../../../sfdx-falcon-types';                        // Type. Alias to "any". Used in project to make code easier to read.
 // Recipe Imports
 import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Class. Represents an instance of a valid SFDX-Falcon Recipe.
 import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Interface. Representation of the JSON schema for an SFDX-Falcon Recipe configuration file.
 // Recipe Engine Imports
-//import {SfdxFalconRecipeResponse} from '../../../sfdx-falcon-recipe/engines';               // Class. Contains the response a Recipe Engine builds when running an SFDX-Falcon Recipe.
 import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
 //import {AppxEngineStep}           from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
@@ -483,7 +481,6 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
     // Initialize basic context values
     this.engineContext.executing    = false;
-    this.engineContext.status       = new SfdxFalconStatus();
 
     // Final DEBUG before returning.
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
