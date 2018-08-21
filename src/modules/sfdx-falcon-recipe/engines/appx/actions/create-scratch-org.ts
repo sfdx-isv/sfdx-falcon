@@ -13,9 +13,11 @@
 import * as path                    from  'path';                           // Module. Node's path library.
 // Import Local Modules
 import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
+import {SfdxFalconError2}           from  '../../../../sfdx-falcon-error/index.2';  // Class. Provides customized Error Services that wrap SfdxError.
+import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
-import {SfdxFalconExecutorResponse} from  '../../../executors';             // Class. Primary way for Executors to communicate status with callers.
 // Engine/Action Imports
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
@@ -80,14 +82,16 @@ export class CreateScratchOrgAction extends AppxEngineAction {
    * @method      executeAction
    * @param       {any}   actionOptions Optional. Any options that the command
    *              execution logic will require in order to properly do its job.
-   * @returns     {Promise<SfdxFalconExecutorResponse>}
+   * @returns     {Promise<SfdxFalconResult>} Resolves with an SfdxFalconResult
+   *              of type ACTION that has one or more EXECUTOR Results as 
+   *              children.
    * @description Performs the custom logic that's wrapped by the execute method
    *              of the base class.
    * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconExecutorResponse> {
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Set the progress, error, and success messages for this action execution.
     this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
@@ -116,19 +120,30 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     }
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
 
+    // Get an SFDX-Falcon Result that's customized for this Action.
+    let falconActionResult = this.createActionResult(actionContext, actionOptions,       
+                                                    { startNow:       true,
+                                                      bubbleError:    true,
+                                                      bubbleFailure:  true});
+
     // Run the executor then return or throw the result. If you want to override error handling, do it here.
     return await executeSfdxCommand(this.sfdxCommandDef)
-      .then(execSuccessResponse => {
-        // Make sure any resolved promises are wrapped as an SFDX-Falcon Executor Response.
-        execSuccessResponse = SfdxFalconExecutorResponse.wrap(execSuccessResponse, 'executeSfdxCommand');
-        // If you want to add additional SUCCESS handling behavior, do it here.
-        return execSuccessResponse;
+      .then(falconExecutorResult => {
+
+        // OPTIONAL: If you want to implement custom SUCCESS/FAILURE/WARNING/UNKNOWN logic, do it here.
+
+        // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
+        return falconActionResult.addChild(falconExecutorResult);
       })
-      .catch(execErrorResponse  => {
-        // Make sure any rejected promises are wrapped as an SFDX-Falcon Executor Response.
-        execErrorResponse = SfdxFalconExecutorResponse.wrap(execErrorResponse, 'executeSfdxCommand');
-        // If you want to add additional FAILURE handling behavior, do it here.
-        throw execErrorResponse;
+      .catch(falconExecutorResult  => {
+
+        // OPTIONAL: If you want to add additional ERROR handling behavior, do it here.
+
+        // Make sure any rejected promises are wrapped as an ERROR wrapped as a Result.
+        falconExecutorResult = SfdxFalconResult.wrap(SfdxFalconError2.wrap(falconExecutorResult), 'ExecutorResult (REJECTED)', SfdxFalconResultType.EXECUTOR);
+        
+        // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
+        return falconActionResult.addChild(falconExecutorResult);
       });
   }
 }

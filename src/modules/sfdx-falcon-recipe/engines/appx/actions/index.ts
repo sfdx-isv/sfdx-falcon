@@ -12,6 +12,7 @@
 // Import local modules
 import {waitASecond}              from  '../../../../sfdx-falcon-async';          // Why?
 import {SfdxFalconDebug}          from  '../../../../sfdx-falcon-debug';          // Why?
+import {SfdxFalconResult, SfdxFalconResultStatus, SfdxFalconResultType}         from  '../../../../sfdx-falcon-result';         // Why?
 
 import {SfdxFalconExecutorResponse} from  '../../../executors';
 import {SfdxCommandDefinition}      from  '../../../executors/sfdx';                // Why?
@@ -39,7 +40,6 @@ export abstract class AppxEngineAction {
   // Base class members
   protected actionName:       string;                     // Why?
   protected actionType:       SfdxFalconActionType;       // Why?
-  protected actionResponse:   SfdxFalconActionResponse;   // Why?
   protected description:      string;                     // Why?
   protected command:          string;                     // Why?
   protected successDelay:     number;                     // Why?
@@ -54,7 +54,7 @@ export abstract class AppxEngineAction {
   protected anyCliCommandDef: any;                        // Placeholder (Why?)
 
   // Abstract methods
-  protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconExecutorResponse>;
+  protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconResult>;
   protected       abstract  initializeAction():void;
   protected       abstract  validateActionOptions(actionOptions:any):void;
 
@@ -89,6 +89,45 @@ export abstract class AppxEngineAction {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      createActionResult
+   * @param       {AppxEngineActionContext} actionContext Required. The context 
+   *              of the AppxEngine that is executing the action. 
+   * @param       {any} actionOptions Required. Any options that the command
+   *              execution logic will require in order to properly do its job.
+   * @param       {any} [sfdxFalconResultOptions] Optional. Options are
+   *              "startNow", "bubbleError", and "bubbleFailure".
+   * @returns     {SfdxFalconResult} A new SFDX-Falcon Result customized with
+   *              the information specific to this AppxEngineAction instance. 
+   * @description Takes an AppxEngineActionContext and Action Options along
+   *              with options for the SfdxFalconResult constructor and creates
+   *              an SFDX-Falcon Result object, then adds details about this
+   *              Action to it before returning it to the caller.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected createActionResult(actionContext:AppxEngineActionContext, actionOptions:any={}, sfdxFalconResultOptions:any={}):SfdxFalconResult {
+
+    // Initialize an SFDX-Falcon ACTION Result.
+    let falconActionResult = 
+      new SfdxFalconResult(`executeAction:${this.actionName}`, SfdxFalconResultType.ACTION, sfdxFalconResultOptions);
+
+    // Set the detail for the ACTION Result.
+    falconActionResult.setDetail({
+      actionType:     this.actionType,
+      actionName:     this.actionName,
+      command:        this.command,
+      description:    this.description,
+      actionContext:  actionContext,
+      actionOptions:  actionOptions
+    });
+
+    // Done. Send our new friend back to the caller.
+    return falconActionResult;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      execute
    * @param       {AppxEngineActionContext} actionContext Required. The context 
    *              of the AppxEngine that is executing this action. 
@@ -103,7 +142,7 @@ export abstract class AppxEngineAction {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconActionResponse> {
+  public async execute(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconResult> {
 
     // Validate the Action Context (implemented here by parent class)
     this.validateActionContext(actionContext);
@@ -115,17 +154,17 @@ export abstract class AppxEngineAction {
     this.resetActionState(actionContext, actionOptions);
 
     // Call the executeAction method and hendle success/errors
-    await this.executeAction(actionContext, actionOptions)
-      .then(execSuccessResponse =>  {this.onSuccess(execSuccessResponse)})
-      .catch(execErrorResponse  =>  {this.onError(execErrorResponse)});
+    let falconActionResult:SfdxFalconResult = await this.executeAction(actionContext, actionOptions)
+      .then(falconActionResult  =>  {return this.onSuccess(falconActionResult)})
+      .catch(falconActionResult =>  {return this.onError(falconActionResult)});
 
     // Wait some number of seconds to give the user a chance to see the final status message.
     await waitASecond(this.successDelay);
 
     // Return whatever was put together by the onSuccess() method.
-    return this.actionResponse;
-
+    return falconActionResult;
   }
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
@@ -137,47 +176,52 @@ export abstract class AppxEngineAction {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(execErrorResponse:SfdxFalconExecutorResponse):void {
+  private onError(falconActionResult:SfdxFalconResult):SfdxFalconResult {
 
-    // Debug the contents of the Executor Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execErrorResponse, `${clsDbgNs}onError:execErrorResponse: `);
+    // Debug the contents of falconActionResult BEFORE we do anything to it.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconActionResult, `${clsDbgNs}onError:falconActionResult: `);
 
-    // Make sure that whatever came back is actually an SFDX-Falcon Executor Response
-    execErrorResponse = SfdxFalconExecutorResponse.wrap(execErrorResponse);
+    // Make sure any rejected promises are wrapped as an SFDX-Falcon Result.
+    falconActionResult = SfdxFalconResult.wrap(falconActionResult, 'ActionResult (REJECTED)', SfdxFalconResultType.ACTION);
 
-    // Add the Executor Response to the Action Response we're building as a FAILURE.
-    this.actionResponse.execFailure(execErrorResponse);
+    // Close out the ACTION Result if its status is still WAITING.
+    if (falconActionResult.status === SfdxFalconResultStatus.WAITING) {
+      // NOTE: By passing its own errObj, the error() method will handle a missing Error Object.
+      falconActionResult.error(falconActionResult.errObj);
+    }
 
     // Since thie was a FAILUIRE, throw the Action Response to inform the caller who started the Engine.
-    throw this.actionResponse;
+    throw falconActionResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onSuccess
    * @param       {SfdxFalconExecutorResponse}  execSuccessResponse Required.
-   * @returns     {void}
+   * @returns     {SfdxFalconResult}
    * @description ???
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onSuccess(execSuccessResponse:SfdxFalconExecutorResponse):void {
+  private onSuccess(falconActionResult:SfdxFalconResult):SfdxFalconResult {
 
-    // Make sure that we were provided with an SFDX-Falcon Executor Response.
-    if ((execSuccessResponse instanceof SfdxFalconExecutorResponse) !== true) {
+    // Make sure that we were provided with an SFDX-Falcon Result
+    if ((falconActionResult instanceof SfdxFalconResult) !== true) {
       let typeError = new TypeError (`ERROR_INVALID_TYPE: AppxEngineAction.onSuccess() expects an argument that's an instance  `
-                                    +`of 'SfdxFalconExecutorResponse', not '${execSuccessResponse.constructor.name}'`);
+                                    +`of 'SfdxFalconResult', not '${falconActionResult.constructor.name}'`);
     }
 
-    // Debug the contents of the Executor Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, execSuccessResponse, `${clsDbgNs}onSuccess:execSuccessResponse: `);
+    // Debug the contents of the Action Result.
+    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconActionResult, `${clsDbgNs}onSuccess:falconActionResult: `);
 
-    // Add the Executor Response to the Action Response we're building.
-    this.actionResponse.execSuccess(execSuccessResponse);
+    // Close out the ACTION Result if its status is still WAITING.
+    if (falconActionResult.status === SfdxFalconResultStatus.WAITING) {
+      falconActionResult.success();
+    }
 
     // Done.
-    return;
+    return falconActionResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -194,13 +238,6 @@ export abstract class AppxEngineAction {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private resetActionState(actionContext:AppxEngineActionContext, actionOptions:any={}):void {
-
-    // Clear out and reset the previous Action Response.
-    this.actionResponse = new SfdxFalconActionResponse(this.actionName, this.actionType);
-    this.actionResponse.actionName    = this.actionName;
-    this.actionResponse.actionType    = this.actionType;
-    this.actionResponse.actionContext = actionContext;
-    this.actionResponse.actionOptions = actionOptions;
 
     // Clear out any previous Command Definitions
     this.anyCliCommandDef = {};
