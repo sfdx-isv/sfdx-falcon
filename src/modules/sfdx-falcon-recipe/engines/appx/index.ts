@@ -10,23 +10,22 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Observable}               from  'rxjs';                                           // Why?
+import {Observable}               from  'rxjs';                                     // Class. Used to communicate status with Listr.
 // Import Local Modules
-import {SfdxFalconDebug}          from  '../../../../modules/sfdx-falcon-debug';          // Why?
-import {SfdxFalconResult}         from  '../../../../modules/sfdx-falcon-result';         // Why?
-import {SfdxFalconResultStatus}   from  '../../../../modules/sfdx-falcon-result';         // Why?
-import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result';         // Why?
-//import {SfdxFalconStatus}         from  '../../../../modules/sfdx-falcon-status';         // Why?
+import {SfdxFalconDebug}          from  '../../../../modules/sfdx-falcon-debug';    // Class. Internal Debug module
+import {SfdxFalconError}          from  '../../../../modules/sfdx-falcon-error';    // Class. Provides custom Error structures for SFDX-Falcon.
+import {SfdxFalconResult}         from  '../../../../modules/sfdx-falcon-result';   // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultStatus}   from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents possible states of an SFDX-Falcon Result.
+import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents types of SfdxFalconResults.
 // Import Local Types
-import {ListrContext}             from '../../../../modules/sfdx-falcon-types';           // Type. Alias to "any". Used in project to make code easier to read.
-import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';           // Why?
-import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';           // Why?
+import {ListrContext}             from '../../../../modules/sfdx-falcon-types';     // Type. Alias to "any". Used in project to make code easier to read.
+import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';     // Why?
+import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';     // Why?
 // Project/Recipe/Engine Imports
-import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';          // Why?
-import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';          // Why?
-import {AppxEngineAction}         from '../appx/actions';                                 // Why?
-import {SfdxFalconProject}        from  '../../../../modules/sfdx-falcon-project';        // Why?
-import { SfdxFalconError2 } from '../../../sfdx-falcon-error/index.2';
+import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';    // Why?
+import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';    // Why?
+import {AppxEngineAction}         from '../appx/actions';                           // Why?
+import {SfdxFalconProject}        from  '../../../../modules/sfdx-falcon-project';  // Why?
 
 // Require Modules
 const Listr                 = require('listr');                                   // Official Task Runner of Project Falcon ;-)
@@ -496,7 +495,7 @@ export abstract class AppxRecipeEngine {
       SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrError, `${clsDbgNs}onError:listrError: `);
 
       // Create an Error to throw.
-      let falconError = new SfdxFalconError2(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
+      let falconError = new SfdxFalconError(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
                                             +`got an unexpected result from listr.run()`);
 
       // Throw the ENGINE with the error just created

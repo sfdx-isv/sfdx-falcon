@@ -16,7 +16,7 @@ import {SfdxCommand}                  from  '@salesforce/command';        // Req
 import {Messages}                     from  '@salesforce/core';           // Messages library that simplifies using external JSON for string reuse.
 // Import Internal Modules
 import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';             // Internal debugging framework for SFDX-Falcon.
-import {SfdxFalconError2}             from  '../sfdx-falcon-error';             // Why?
+import {SfdxFalconError}             from  '../sfdx-falcon-error';             // Why?
 import {SfdxFalconResult}             from  '../sfdx-falcon-result';            // Why?
 import {SfdxFalconResultType}         from  '../sfdx-falcon-result';            // Why?
 import {SfdxFalconResultStatus}       from  '../sfdx-falcon-result';            // Why?
@@ -282,7 +282,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     }
 
     // Terminate with Error.
-    SfdxFalconError2.terminateWithError(rejectedResult, this.falconCommandName, this.falconDebugErrFlag);
+    SfdxFalconError.terminateWithError(rejectedResult, this.falconCommandName, this.falconDebugErrFlag);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

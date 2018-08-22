@@ -59,14 +59,14 @@ export interface SfdxFalconErrorRenderOptions {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxFalconError2
+ * @class       SfdxFalconError
  * @extends     SfdxError
  * @description Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconError2 extends SfdxError {
+export class SfdxFalconError extends SfdxError {
 
   // Private Members
   private _falconStack: string;   // Keeps a record of each member in the SFDX-Falcon chain that touches this error.
@@ -77,7 +77,7 @@ export class SfdxFalconError2 extends SfdxError {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxFalconError2
+   * @constructs  SfdxFalconError
    * @param       {string}  message Required. Message for the error.
    * @param       {string}  [name]  Optional. Defaults to SfdxError in parent.
    * @param       {Array<string>} [actions] Optional. The action messages.
@@ -92,7 +92,7 @@ export class SfdxFalconError2 extends SfdxError {
   public constructor(message:string, name?:string, actions:Array<string>=[], exitCode:number=1, cause:Error={} as Error) {
 
     // Set a default for name
-    let thisName = name || 'SfdxFalconError2';
+    let thisName = name || 'SfdxFalconError';
 
     // Call the parent constructor
     super(message, thisName, actions, exitCode, cause);
@@ -194,12 +194,12 @@ export class SfdxFalconError2 extends SfdxError {
     }
 
     // Make sure that whatever we get is wrapped as a Falcon Error.
-    error = SfdxFalconError2.wrap(error);
+    error = SfdxFalconError.wrap(error);
 
     // Display a formatted version of the stdError before throwing the SfdxError.
     // TODO: Move all Error Rendering/Display logic into this class
     if (showErrorDebug) {
-      SfdxFalconError2.display(error, SfdxFalconDebug.debugDepth);
+      SfdxFalconError.display(error, SfdxFalconDebug.debugDepth);
     }
 
     // Build an SfdxErrorConfig object
@@ -242,20 +242,20 @@ export class SfdxFalconError2 extends SfdxError {
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public static wrap(error:Error):SfdxFalconError2 {
+  public static wrap(error:Error):SfdxFalconError {
 
-    // If this is already an SfdxFalconError2, just return it.
-    if (error instanceof SfdxFalconError2) {
+    // If this is already an SfdxFalconError, just return it.
+    if (error instanceof SfdxFalconError) {
       return error;
     }
 
     // Create a new instance of SFDX-Falcon Error.
-    let falconError:SfdxFalconError2;
+    let falconError:SfdxFalconError;
     if (error instanceof Error) {
-      falconError = new SfdxFalconError2(error.message, `SfdxFalconError2 (${error.name})`);
+      falconError = new SfdxFalconError(error.message, `SfdxFalconError (${error.name})`);
     }
     else {
-      falconError       = new SfdxFalconError2(`${error}`, `SfdxFalconError2 (Unknown)`);
+      falconError       = new SfdxFalconError(`${error}`, `SfdxFalconError (Unknown)`);
       falconError.data  = {unknownObj: error}
     }
 
@@ -283,7 +283,7 @@ export class SfdxFalconError2 extends SfdxError {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static debug(errorToDebug:any, inspectDepth:number=2):void {
-    SfdxFalconDebug.debugMessage(`ERROR_DEBUG`, SfdxFalconError2.renderError(errorToDebug, inspectDepth));
+    SfdxFalconDebug.debugMessage(`ERROR_DEBUG`, SfdxFalconError.renderError(errorToDebug, inspectDepth));
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -304,7 +304,7 @@ export class SfdxFalconError2 extends SfdxError {
   public static display(errorToDisplay:any, inspectDepth:number=2):void {
 
     // Use console.log() to display what the renderer gives us.
-    console.log(SfdxFalconError2.renderError(errorToDisplay, inspectDepth));
+    console.log(SfdxFalconError.renderError(errorToDisplay, inspectDepth));
     return;
   }
 
@@ -360,23 +360,23 @@ export class SfdxFalconError2 extends SfdxError {
 
     // If what we got is NOT any type of Error, render as UNKNOWN
     if ((errorToRender instanceof Error) !== true) {
-      return SfdxFalconError2.renderUnknownDetail(errorToRender, renderOptions);
+      return SfdxFalconError.renderUnknownDetail(errorToRender, renderOptions);
     }
 
     // Render the BASE info for this result.
-    let renderOutput = SfdxFalconError2.renderBaseDetail(errorToRender, renderOptions);
+    let renderOutput = SfdxFalconError.renderBaseDetail(errorToRender, renderOptions);
 
     // Check for SfdxError
     if (errorToRender instanceof SfdxError) {
-      renderOutput += SfdxFalconError2.renderSfdxErrorDetail(errorToRender, renderOptions);
+      renderOutput += SfdxFalconError.renderSfdxErrorDetail(errorToRender, renderOptions);
     }
     // Check for SfdxFalconError
-    if (errorToRender instanceof SfdxFalconError2) {
-      renderOutput += SfdxFalconError2.renderSfdxFalconErrorDetail(errorToRender, renderOptions);
+    if (errorToRender instanceof SfdxFalconError) {
+      renderOutput += SfdxFalconError.renderSfdxFalconErrorDetail(errorToRender, renderOptions);
     }
     // Check for SfdxCliError
     if (errorToRender instanceof SfdxCliError) {
-      renderOutput += SfdxFalconError2.renderSfdxCliErrorDetail(errorToRender, renderOptions);
+      renderOutput += SfdxFalconError.renderSfdxCliErrorDetail(errorToRender, renderOptions);
     }
     
     // Add a extra line break at the close and return to caller.
@@ -439,12 +439,12 @@ export class SfdxFalconError2 extends SfdxError {
    *              options that determine colors and inspection depth.
    * @returns     {string}
    * @description Generates an extended set of completely formatted output 
-   *              that is relevant only to SfdxFalconError2 objects.
+   *              that is relevant only to SfdxFalconError objects.
    * @version     1.0.0
    * @private @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private static renderSfdxFalconErrorDetail(errorToRender:SfdxFalconError2, options:SfdxFalconErrorRenderOptions):string {
+  private static renderSfdxFalconErrorDetail(errorToRender:SfdxFalconError, options:SfdxFalconErrorRenderOptions):string {
     let renderOutput  = 
       chalk`\n{${options.labelColor} Falcon Stack:}\n${errorToRender.falconStack}`
     + chalk`\n{${options.labelColor} Falcon Data (Depth ${options.childInspectDepth}):}\n{reset ${util.inspect(errorToRender.falconData, {depth:options.childInspectDepth, colors:true})}}`
@@ -481,14 +481,14 @@ export class SfdxFalconError2 extends SfdxError {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxCliError
- * @extends     SfdxFalconError2
- * @description Extends SfdxFalconError2 to provide specialized error handling of error results
+ * @extends     SfdxFalconError
+ * @description Extends SfdxFalconError to provide specialized error handling of error results
  *              returned from CLI commands run via shell exec.
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxCliError extends SfdxFalconError2 {
+export class SfdxCliError extends SfdxFalconError {
 
   // Member vars
   public cliError: CliErrorDetail;
@@ -499,7 +499,7 @@ export class SfdxCliError extends SfdxFalconError2 {
    * @param       {string}  stdErrBuffer  Required. Results from an stderr
    *              stream resulting from a call to a Salesforce CLI command.
    * @description Given a string (typically the contents of a stderr buffer),
-   *              returns an SfdxFalconError2 object with a specialized 
+   *              returns an SfdxFalconError object with a specialized 
    *              "cliError" object property.
    * @version     1.0.0
    * @public

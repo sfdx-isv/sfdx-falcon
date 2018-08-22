@@ -14,8 +14,8 @@
 import {Aliases}                      from  '@salesforce/core';                     // Why?
 // Import Local Modules
 import {SfdxFalconDebug}              from  '../../sfdx-falcon-debug';              // Why?
-import {SfdxFalconError2}             from  '../../sfdx-falcon-error/index.2';      // Why?
-import {SfdxCliError}                 from  '../../sfdx-falcon-error/index.2';      // Why?
+import {SfdxFalconError}              from  '../../sfdx-falcon-error';              // Why?
+import {SfdxCliError}                 from  '../../sfdx-falcon-error';              // Why?
 
 import {updateObserver}               from  '../../sfdx-falcon-notifications';      // Why?
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';      // Why?
@@ -24,7 +24,7 @@ import {SfdxFalconResultType}         from  '../../sfdx-falcon-result';         
 import {safeParse}                    from  '../../sfdx-falcon-util';               // Why?
 
 // Requies
-const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.
+const shell = require('shelljs');                                                   // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'RECIPE_EXECUTOR:SFDX:';
@@ -371,7 +371,7 @@ export class SfdxShellResult {
 
   public cmd:       string;           // A copy of the CLI command that was executed
   public error:     Error;            // Error object in case of exceptions.
-  public falconErr: SfdxFalconError2; // A Falcon Error Object (if provided)
+  public falconErr: SfdxFalconError; // A Falcon Error Object (if provided)
   public json:      any;              // Result of the call, converted to JSON.
   public raw:       any;              // Raw result from the CLI.
   public status:    number;           // Status code returned by the CLI command after execution.
@@ -387,7 +387,7 @@ export class SfdxShellResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public constructor(rawResult:string, cmdString:string='', falconError?:SfdxFalconError2) {
+  public constructor(rawResult:string, cmdString:string='', falconError?:SfdxFalconError) {
     this.cmd        = cmdString || 'NOT_PROVIDED';
     this.raw        = rawResult;
     this.falconErr  = falconError || {} as any;

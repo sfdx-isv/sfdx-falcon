@@ -18,7 +18,7 @@ import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
 
 import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';       // Why?
-import {SfdxFalconError2}              from  '../modules/sfdx-falcon-error';       // Why?
+import {SfdxFalconError}              from  '../modules/sfdx-falcon-error';       // Why?
 import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';      // Why?
 
 

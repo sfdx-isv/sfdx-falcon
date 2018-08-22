@@ -13,7 +13,6 @@
 import * as path                    from  'path';                           // Module. Node's path library.
 // Import Local Modules
 import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
-import {SfdxFalconError2}           from  '../../../../sfdx-falcon-error/index.2';  // Class. Provides customized Error Services that wrap SfdxError.
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
 import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
 // Executor Imports
@@ -21,7 +20,7 @@ import {executeSfdxCommand}         from  '../../../executors/sfdx';        // F
 // Engine/Action Imports
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
-import {SfdxFalconActionType}       from  '../../../types/';               // Enum. Represents types of SfdxFalconActions.
+import {SfdxFalconActionType}       from  '../../../types/';                // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'action:create-scratch-org:';

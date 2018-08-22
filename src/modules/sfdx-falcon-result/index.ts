@@ -10,8 +10,8 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import { SfdxFalconError2 } from '../sfdx-falcon-error/index.2';
-import { SfdxFalconDebug }  from '../sfdx-falcon-debug';
+import {SfdxFalconError}  from '../sfdx-falcon-error';
+import {SfdxFalconDebug}  from '../sfdx-falcon-debug';
 
 // Require Modules
 const chalk = require('chalk'); // Why?
@@ -92,7 +92,7 @@ export class SfdxFalconResult {
   public name:            string;
   public type:            SfdxFalconResultType;
   public detail:          object;
-  public errObj:          SfdxFalconError2;
+  public errObj:          SfdxFalconError;
   public children:        Array<SfdxFalconResult>;
 
   // Private member vars
@@ -139,7 +139,7 @@ export class SfdxFalconResult {
     this.name         = name;
     this.type         = type;
     this.detail       = <any>{};
-    this.errObj       = <SfdxFalconError2>{};
+    this.errObj       = <SfdxFalconError>{};
     this.children     = new Array<SfdxFalconResult>();
     this._status      = SfdxFalconResultStatus.INITIALIZED;
     this._startTime   = 0;
@@ -275,8 +275,8 @@ export class SfdxFalconResult {
       }
     }
 
-    // Wrap the error in an SfdxFalconError2
-    let falconError = SfdxFalconError2.wrap(errorObject);
+    // Wrap the error in an SfdxFalconError
+    let falconError = SfdxFalconError.wrap(errorObject);
 
     // Add a message to the Falcon Stack of this error.
     falconError.addToStack(`at Result '${this.name}' of type '${this.type}' at duration ${this.duration}`);
@@ -345,7 +345,7 @@ export class SfdxFalconResult {
 
     // Make sure the caller isn't trying to finish with INITIALIZED or WAITING.
     if (finalStatus === SfdxFalconResultStatus.INITIALIZED || finalStatus === SfdxFalconResultStatus.WAITING) {
-      throw new SfdxFalconError2(`ERROR_INVALID_ARGUMENT: SfdxFalconResult.finish() does `
+      throw new SfdxFalconError(`ERROR_INVALID_ARGUMENT: SfdxFalconResult.finish() does `
                                 +`not accept INITIALIZED or WAITING for Final Status`);
     }
 
@@ -402,7 +402,7 @@ export class SfdxFalconResult {
    *              checked to see if it's a valid SFDX-Falcon Result.
    * @returns     {void}  
    * @description Given any object, determines if that object is an SFDX-Falcon
-   *              Result and throws an SfdxFalconError2 if not.
+   *              Result and throws an SfdxFalconError if not.
    * @version     1.0.0
    * @public @static
    */
@@ -415,7 +415,7 @@ export class SfdxFalconResult {
     }
 
     // The object is NOT an SfdxFalconResult.  Prepare an error to throw.
-    let falconError = new SfdxFalconError2(`ERROR_INVALID_RESULT: Expected an SfdxFalconResult`, 'SfdxFalconError2');
+    let falconError = new SfdxFalconError(`ERROR_INVALID_RESULT: Expected an SfdxFalconResult`, 'SfdxFalconError');
     falconError.message  += (objectToCheck.constructor) ? ` but got '${objectToCheck.contructor.name}'` : '';
     falconError.data      = {unknownObject: objectToCheck};
 
@@ -802,8 +802,8 @@ export class SfdxFalconResult {
     // Wrap things decended from Error
     if (thingToWrap instanceof Error) {
 
-      // Make sure any Error is wrapped into an SfdxFalconError2
-      let falconError = SfdxFalconError2.wrap(thingToWrap);
+      // Make sure any Error is wrapped into an SfdxFalconError
+      let falconError = SfdxFalconError.wrap(thingToWrap);
 
       // Create the new SFDX-Falcon Result
       let newFalconErrorResult = new SfdxFalconResult(falconError.name, resultType, resultOptions);
@@ -850,7 +850,7 @@ export class SfdxFalconResult {
     }
 
     // Now we FORCE creation of an SFDX-Falcon Error, regardless of whatever the rejectedPromiseData is.
-    let rejectedPromiseError = SfdxFalconError2.wrap(rejectedPromiseData);
+    let rejectedPromiseError = SfdxFalconError.wrap(rejectedPromiseData);
 
     // Now we WRAP the error as an SFDX-Falcon Result.
     return SfdxFalconResult.wrap(rejectedPromiseError, resultName, resultType, resultOptions)
