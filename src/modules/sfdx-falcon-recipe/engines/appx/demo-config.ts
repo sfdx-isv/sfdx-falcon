@@ -356,9 +356,6 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Execute the Listr Tasks that were compiled into this Engine.
     let listrContext = await this.listrTasks.run();
 
-    // Do a little bit of debug...
-    SfdxFalconDebug.debugObject(`FALCON:${dbgNs}`, listrContext, `${clsDbgNs}executeEngine:listrContext: `);
-
     // Return the Listr Context
     return listrContext;
   }

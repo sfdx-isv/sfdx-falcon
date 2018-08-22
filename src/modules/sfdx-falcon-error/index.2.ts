@@ -305,26 +305,6 @@ export class SfdxFalconError2 extends SfdxError {
     // Use console.log() to display what the renderer gives us.
     console.log(SfdxFalconError2.renderError(errorToDisplay, inspectDepth));
     return;
-
-    // Output the core Error info
-    /*
-    console.log('');
-    console.log(chalk.red.bold(`CLI_EXCEPTION_DEBUG:`));
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Type:}    ${falconError.type}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Name:}    ${falconError.name}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Source:}  ${falconError.source}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Status:}  ${falconError.status}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Msg:}     ${falconError.message}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Message:}       ${falconError.falconMessage}`);
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Info:}          ${falconError.friendlyInfo}`);
-    if (falconError.error instanceof Error) {
-      console.log(chalk`{${SfdxFalconDebug.systemErrorColor} System Error Name:}    ${falconError.error.name}`);
-      console.log(chalk`{${SfdxFalconDebug.systemErrorColor} System Error Msg:}     ${falconError.error.message}`);
-      console.log(chalk`{${SfdxFalconDebug.systemErrorColor} System Error Stack:} \n${falconError.error.stack}`);  
-    }
-    console.log(chalk`{${SfdxFalconDebug.falconErrorColor} Falcon Error Detail: (Depth ${inspectDepth})}\n${util.inspect(falconError.details, {depth:inspectDepth, colors:true})}`);
-    console.log('');
-    //*/
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

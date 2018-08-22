@@ -201,7 +201,7 @@ export class SfdxFalconError {
 
     // Display a formatted version of the stdError before throwing the SfdxError.
     if (showErrorDebug) {
-      SfdxFalconDebug.displayFalconError(falconError, SfdxFalconDebug.debugDepth);
+      //SfdxFalconDebug.displayFalconError(falconError, SfdxFalconDebug.debugDepth);
     }
 
     // Build an SfdxErrorConfig object

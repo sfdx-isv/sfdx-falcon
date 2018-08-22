@@ -118,12 +118,8 @@ export class FalconProgressNotifications {
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function progressNotification(status:SfdxFalconStatus, message:string, observer:any):void {
-  updateObserver(observer, `[${status.getRunTime(true)}s] ${message}`);
-}
-// REFACTOR_IN_PROGRESS
-function progressNotification2(result:SfdxFalconResult, message:string, observer:any):void {
-  updateObserver(observer, `[${result.durationString}s] ${message}`);
+function progressNotification(result:SfdxFalconResult, message:string, observer:any):void {
+  updateObserver(observer, `[${result.durationString}] ${message}`);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

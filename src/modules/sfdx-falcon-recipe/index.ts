@@ -238,7 +238,7 @@ export class SfdxFalconRecipe {
       });
 
     // Use stardard Debug to show the entire Recipe Response results.
-    SfdxFalconDebug.debugObject(`FALCON:${dbgNs}`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
+    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
 
     // Render a "success message" to the user via the Console.
     this.renderSuccessMessage();
