@@ -60,7 +60,7 @@ export interface SfdxFalconErrorRenderOptions {
 /**
  * @class       SfdxFalconError2
  * @extends     SfdxError
- * @description ????
+ * @description Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
  * @version     1.0.0
  * @public
  */
@@ -481,7 +481,8 @@ export class SfdxFalconError2 extends SfdxError {
 /**
  * @class       SfdxCliError
  * @extends     SfdxFalconError2
- * @description ????
+ * @description Extends SfdxFalconError2 to provide specialized error handling of error results
+ *              returned from CLI commands run via shell exec.
  * @version     1.0.0
  * @public
  */
@@ -534,46 +535,3 @@ export class SfdxCliError extends SfdxFalconError2 {
     this.addToStack(`${this.cliError.name}: ${this.cliError.message}`);
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘

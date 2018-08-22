@@ -3,205 +3,203 @@
  * @file          modules/sfdx-falcon-error/index.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       ???
- * @description   ???
- * @requires      module:???
+ * @summary       Provides specialized error structures for SFDX-Falcon modules.
+ * @description   Provides specialized error structures for SFDX-Falcon modules.  Wraps SfdxError
+ *                by adding additional SFDX-Falcon specific stack information as well as customized
+ *                rendering capabilities to show formatted output via the console.
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
-import {SfdxError}                      from  '@salesforce/core';                     // Why?
-import {SfdxErrorConfig}                from  '@salesforce/core';                     // Why?
-import {ERROR_TYPE}                     from  '../../enums';                          // Why?
-import {FalconProgressNotifications}    from  '../../helpers/notification-helper'     // Why?
-import {SfdxFalconDebug}                from  '../sfdx-falcon-debug';                 // Why?
+// Import Local Modules
+import {SfdxError}                    from  '@salesforce/core';             // Why?
+import {SfdxErrorConfig}              from  '@salesforce/core';             // Why?
+import {FalconProgressNotifications}  from  '../sfdx-falcon-notifications'  // Why?
+import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';         // Why?
+import {SfdxFalconResult}             from  '../sfdx-falcon-result';        // Why?
 
-
-export {SfdxFalconError2} from './index.2';
-
+// Require Modules
+const chalk = require('chalk'); // Why?
+const util  = require('util');  // Why?
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       FalconError
- * @access      public
+ * @interface   CliErrorDetail
+ * @description Data structure returned by Salesforce CLI calls made with --json flag set.
  * @version     1.0.0
- * @summary     ????
- * @description ????
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconError_DELETE {
-  public  type:           ERROR_TYPE;
-  public  name:           string;
-  public  source:         string;
-  public  status:         number;
-  public  falconMessage:  string;
-  public  friendlyInfo:   string;
-  public  message:        string;
-  public  error:          Error;
-  public  details:        any;
+export interface CliErrorDetail {
+  status:     number;
+  result:     any;
+  name?:      string;
+  message?:   string;
+  stack?:     string;
+  warnings?:  any;
+}
 
-  private constructor() {
-    // Intentionally empty
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   SfdxFalconErrorRenderOptions
+ * @description Options object used by the various Render functions to customize display output.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export interface SfdxFalconErrorRenderOptions {
+  headerColor:        string;
+  labelColor:         string;
+  errorLabelColor:    string;
+  valueColor:         string;
+  childInspectDepth:  number;
+  detailInspectDepth: number;
+  errorInspectDepth:  number;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       SfdxFalconError2
+ * @extends     SfdxError
+ * @description Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class SfdxFalconError2 extends SfdxError {
+
+  // Private Members
+  private _falconStack: string;   // Keeps a record of each member in the SFDX-Falcon chain that touches this error.
+  private _falconData:  any;      // Additional information that's relevant to this error.
+
+  // Property Accessors
+  public get friendlyMessage() {return `Temporary Friendly Message`;}
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  SfdxFalconError2
+   * @param       {string}  message Required. Message for the error.
+   * @param       {string}  [name]  Optional. Defaults to SfdxError in parent.
+   * @param       {Array<string>} [actions] Optional. The action messages.
+   * @param       {number}  [exitCode]  Optional. Code passed to the CLI.
+   * @param       {Error}   [cause] Optional. Error message that started this.      
+   * @description Extension of the SfdxError object. Adds special SFDX-Falcon
+   *              specific stack and data properties.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public constructor(message:string, name?:string, actions:Array<string>=[], exitCode:number=1, cause:Error={} as Error) {
+
+    // Set a default for name
+    let thisName = name || 'SfdxFalconError2';
+
+    // Call the parent constructor
+    super(message, thisName, actions, exitCode, cause);
+
+    // Initialize member vars
+    this._falconStack  = `${this.name}: ${this.message}`;
+    this._falconData   = {};
+    this.setData({});
   }
 
-  public static wrap(objectToWrap:any):SfdxFalconError_DELETE {
-    if (objectToWrap instanceof SfdxFalconError_DELETE) {
-      return objectToWrap;
-    }
-    // Handle instance of Error
-    if (objectToWrap instanceof Error) {
-      objectToWrap as Error;
-      return {
-        type:           ERROR_TYPE.INTERNAL_ERROR,
-        name:           `UNEXPECTED_ERROR (${objectToWrap.name})`,
-        source:         objectToWrap.name,
-        status:         -999,
-        falconMessage:  `There has been an unexpected error`,
-        friendlyInfo:   `${objectToWrap.name}: ${objectToWrap.message}`,
-        message:        objectToWrap.message,
-        details:        objectToWrap.stack,
-        error:          objectToWrap
-      }
-    }
-    // Handle instance of SFDX-Falcon Executor Response
-    /*
-    if (objectToWrap instanceof SfdxFalconExecutorResponse) {
-      objectToWrap as SfdxFalconExecutorResponse;
-      return {
-        type:           ERROR_TYPE.EXECUTOR_ERROR,
-        name:           `UNEXPECTED_EXECUTOR_ERROR (${objectToWrap.name})`,
-        source:         `SfdxFalconExecutorResponse`,
-        status:         objectToWrap.code | -999,
-        falconMessage:  `Unexpected error while running Executor '${objectToWrap.name}'`,
-        friendlyInfo:   objectToWrap.message.split('\n')[0] || 'No additional details available',
-        message:        objectToWrap.message,
-        details:  {
-          cmdRaw: objectToWrap.cmdRaw,
-          cmdObj: objectToWrap.cmdObj,
-          respRaw:  objectToWrap.respRaw,
-          respObj:  objectToWrap.respObj
-        },
-        error:          objectToWrap.error
-      }
-    }    
-    if (objectToWrap instanceof SfdxFalconActionResponse) {
-      objectToWrap as SfdxFalconActionResponse;
-      return {
-        type:           ERROR_TYPE.ACTION_ERROR,
-        name:           `UNEXPECTED_ACTION_ERROR (${objectToWrap.actionName})`,
-        source:         `SfdxFalconActionResponse`,
-        status:         -998,
-        falconMessage:  `Unexpected error while executing Action '${objectToWrap.actionName}'`,
-        friendlyInfo:   objectToWrap.actionMessage.split('\n')[0] || 'No additional details available',
-        message:        `${objectToWrap.actionMessage}`,
-        details:        objectToWrap.actionDetail,
-        error:          objectToWrap.error
-      }
-    }
-    if (objectToWrap instanceof SfdxFalconEngineResponse) {
-      objectToWrap as SfdxFalconEngineResponse;
-      return {
-        type:           ERROR_TYPE.ENGINE_ERROR,
-        name:           `UNEXPECTED_RECIPE_ENGINE_ERROR (${objectToWrap.engineName})`,
-        source:         `SfdxFalconEngineResponse`,
-        status:         -997,
-        falconMessage:  `Unexpected error while '${objectToWrap.engineName}' ran Recipe '${objectToWrap.recipeName}'`,
-        friendlyInfo:   objectToWrap.engineMessage || 'No additional details available',
-        message:        `${objectToWrap.engineMessage}`,
-        details:        objectToWrap.engineDetail,
-        error:          objectToWrap.error
-      }
-    }
-    if (objectToWrap instanceof SfdxFalconRecipeResponse) {
-      objectToWrap as SfdxFalconRecipeResponse;
-      return {
-        type:           ERROR_TYPE.RECIPE_ERROR,
-        name:           `UNEXPECTED_RECIPE_ERROR (${objectToWrap.recipeName})`,
-        source:         `SfdxFalconRecipeResponse`,
-        status:         -996,
-        falconMessage:  `Unexpected error while executing the Recipe '${objectToWrap.recipeName}'`,
-        friendlyInfo:   objectToWrap.recipeMessage || 'No additional details available',
-        message:        `${objectToWrap.recipeMessage}`,
-        details:        objectToWrap.recipeDetail,
-        error:          objectToWrap.error
-      }
-    }
-    //*/
-    else {
-      return {
-        type:           ERROR_TYPE.UNPARSED_ERROR,
-        name:           `UNEXPECTED_ERROR (${objectToWrap.name})`,
-        source:         `${objectToWrap.constructor.name}`,
-        status:         -995,
-        falconMessage:  `There has been an unexpected error`,
-        friendlyInfo:   objectToWrap.message || 'No additional details available',
-        message:        `${objectToWrap.message}`,
-        details:  {
-          unknownError: objectToWrap
-        },
-        error:          new Error(`UNEXPECTED_ERROR: ${objectToWrap.name}`)
-      }
-    }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      addToStack
+   * @param       {string}  stackItem Required. ???
+   * @description ???
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public addToStack(stackItem:string='at UNSPECIFIED result from UNKNOWN'):void {
+    let indent = '    ';
+    this._falconStack += `\n${indent}${stackItem}`;
   }
 
-  public static wrapCliError(stdErrString:string, customMessage:string=''):SfdxFalconError_DELETE {
-    let falconError = new SfdxFalconError_DELETE();
-    let stdErrJson  = <any>{};
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      bubble
+   * @param       {string}  stackItem Required. ???
+   * @description Adds an item to the Falcon Stack then throws this instance.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public bubble(stackItem:string):void {
+    this.addToStack(stackItem);
+    throw this;
+  }
 
-    // Initialize errRaw since everybody gets that.
-    falconError.details = {errRaw: stdErrString};
-    
-    // See if we can resolve the raw stderr output to an object.
-    try {
-      stdErrJson = JSON.parse(stdErrString);
-    } catch (parseError) {
-      // Could not parse the stderr string.
-      falconError.type          = ERROR_TYPE.UNPARSED_ERROR;
-      falconError.name          = `UNPARSED_CLI_ERROR`;
-      falconError.source        = 'UNPARSED_CLI_ERROR'
-      falconError.status        = -1;
-      falconError.falconMessage = `The CLI threw an error that could not be parsed`;
-      falconError.friendlyInfo  = `No additional information available`
-      falconError.message       = `Unparsed CLI Error`;
-      falconError.error         = parseError;
-      return falconError;
-    }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @property    falconData
+   * @description Gets the current Falcon Data.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public get falconData():any {
+    return this._falconData;
+  }
 
-    // Use the custom message for the Falcon Message (if provided).
-    if (customMessage) {
-      falconError.falconMessage = customMessage;
-    }
-    else {
-      falconError.falconMessage = stdErrJson.message;
-    }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @property    falconStack
+   * @description Gets the current Falcon Stack.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public get falconStack():any {
+    return this._falconStack;
+  }
 
-    // Wrap the parsed error as best we can
-    falconError.type          = ERROR_TYPE.CLI_ERROR;
-    falconError.name          = stdErrJson.name;
-    falconError.source        = 'PARSED_CLI_ERROR';
-    falconError.status        = stdErrJson.status;
-    falconError.friendlyInfo  = stdErrJson.message || 'No additional details available';
-    falconError.message       = stdErrJson.message;
-    falconError.details       = {
-      ...falconError.details,
-      errObj: stdErrJson
-    }
-
-    return falconError;
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      setFalconData
+   * @param       {any} data  Required. ???
+   * @description Given any type of data
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public setFalconData(data:any={}):this {
+    this._falconData = data;
+    return this;
   }
   
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      terminateWithError
+   * @param       {Error} error  Required. Error that's causing the termination.
+   * @param       {string}  commandName Required. Command being terminated.
+   * @param       {boolean} [showErrorDebug]  Optional. Determines if extended
+   *              debugging output for the terminating Error will be shown.
+   * @description Kills all ongoing async code (ie. Progress Notifications) and
+   *              possibly renders an Error Debug before throwing an SfdxError
+   *              so that the CLI can present user-friendly error info.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public static terminateWithError(error:any, commandName:string, showErrorDebug:boolean=false):void {
   
     // Make sure any outstanding notifications are killed.
     FalconProgressNotifications.killAll();
-    
+
+    // Check if we got an SFDX-Falcon RESULT and pull out it's errObj (if present)
+    if (error instanceof SfdxFalconResult) {
+      error = error.errObj;
+    }
+
     // Make sure that whatever we get is wrapped as a Falcon Error.
-    let falconError = SfdxFalconError_DELETE.wrap(error);
+    error = SfdxFalconError2.wrap(error);
 
     // Display a formatted version of the stdError before throwing the SfdxError.
+    // TODO: Move all Error Rendering/Display logic into this class
     if (showErrorDebug) {
-      //SfdxFalconDebug.displayFalconError(falconError, SfdxFalconDebug.debugDepth);
+      SfdxFalconError2.display(error, SfdxFalconDebug.debugDepth);
     }
 
     // Build an SfdxErrorConfig object
@@ -212,25 +210,331 @@ export class SfdxFalconError_DELETE {
     );
 
     // Designate the core Message and extra "friendly info" as tokens for the final Error Message output
-    sfdxErrorConfig.setErrorTokens([falconError.falconMessage, falconError.friendlyInfo]);
+    sfdxErrorConfig.setErrorTokens([error.message, error.friendlyMessage]);
 
     // Search the SFDX error message to see if we can figure out a recommended action.
     switch (true) {
-      case /VMC_DEV_TEST1/.test(falconError.error.message):
+      case /VMC_DEV_TEST1/.test(error.message):
         sfdxErrorConfig.addAction('actionDevTest1', [`TEST_ONE`]);
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_TWO`]);
         break;
-      case /^ERROR_UNKNOWN_ACTION:/.test(falconError.error.message):
+      case /^ERROR_UNKNOWN_ACTION:/.test(error.message):
         sfdxErrorConfig.addAction('ACTIONFOR_ERROR_UNKNOWN_ACTION');
         break;
-      case /VMC_DEV_TEST3/.test(falconError.error.message):
+      case /VMC_DEV_TEST3/.test(error.message):
         sfdxErrorConfig.addAction('actionDevTest2', [`TEST_FOUR`]);
         break;
     }
 
     // Create an SFDX Error, set the command name, and throw it.
-    let sfdxError = SfdxError.create(sfdxErrorConfig);
-    sfdxError.commandName = commandName;
-    throw sfdxError;  
+//    let sfdxError = SfdxError.create(sfdxErrorConfig);
+//    sfdxError.commandName = commandName;
+    throw error;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      wrap
+   * @param       {Error} error  Required. The Error object to wrap.
+   * @description Given an instance of Error, wraps it as SFDX-Falcon Error and
+   *              returns the result.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static wrap(error:Error):SfdxFalconError2 {
+
+    // If this is already an SfdxFalconError2, just return it.
+    if (error instanceof SfdxFalconError2) {
+      return error;
+    }
+
+    // Create a new instance of SFDX-Falcon Error.
+    let falconError:SfdxFalconError2;
+    if (error instanceof Error) {
+      falconError = new SfdxFalconError2(error.message, `SfdxFalconError2 (${error.name})`);
+    }
+    else {
+      falconError       = new SfdxFalconError2(`${error}`, `SfdxFalconError2 (Unknown)`);
+      falconError.data  = {unknownObj: error}
+    }
+
+    // Return the new Falcon Error
+    return falconError;
+  }
+
+
+
+
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      debug
+   * @param       {Error}   errorToDebug  Required. Any object that is a child
+   *              of Error.
+   * @param       {number}  [inspectDepth]  Optional. Sets how deep the object
+   *              inpsection goes when rendering object properties.
+   * @returns     {void}
+   * @description Given an object derived from Error and optionally a number
+   *              indicating the inspection depth, renders to DEBUG a
+   *              customized display of the information contained in the Error.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static debug(errorToDebug:any, inspectDepth:number=2):void {
+    SfdxFalconDebug.debugMessage(`ERROR_DEBUG`, SfdxFalconError2.renderError(errorToDebug, inspectDepth));
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      display
+   * @param       {Error}   errorToDisplay  Required. Any object that is a child
+   *              of Error.
+   * @param       {number}  [inspectDepth]  Optional. Sets how deep the object
+   *              inpsection goes when rendering object properties.
+   * @returns     {void}
+   * @description Given an object derived from Error and optionally a number
+   *              indicating the inspection depth, renders to console.log a
+   *              customized display of the information contained in the Error.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static display(errorToDisplay:any, inspectDepth:number=2):void {
+
+    // Use console.log() to display what the renderer gives us.
+    console.log(SfdxFalconError2.renderError(errorToDisplay, inspectDepth));
+    return;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderBaseDetail
+   * @param       {Error}   errorToRender  Required. Any object that is a child
+   *              of Error.
+   * @param       {SfdxFalconErrorRenderOptions}  options  Required. Rendering
+   *              options that determine colors and inspection depth.
+   * @returns     {string}
+   * @description Generates the baseline set of completely formatted output 
+   *              that is relevant to ALL Errors.
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static renderBaseDetail(errorToRender:Error, options:SfdxFalconErrorRenderOptions):string {
+    let renderOutput  = 
+        chalk`\n{${options.headerColor} CLI_ERROR_DEBUG:}`
+      + chalk`\n{${options.labelColor} Error Name:}    {${options.valueColor} ${errorToRender.name}}`
+      + chalk`\n{${options.labelColor} Error Message:} {${options.valueColor} ${errorToRender.message}}`
+      + chalk`\n{${options.labelColor} Error Stack:}   {${options.valueColor} ${errorToRender.stack}}`
+    return renderOutput;    
+  }
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderError
+   * @param       {Error}   errorToRender  Required. Any object that is a child
+   *              of Error.
+   * @param       {number}  [inspectDepth]  Optional. Sets how deep the object
+   *              inpsection goes when rendering object properties.
+   * @returns     {string}
+   * @description Generates a string of completely formatted output that's ready 
+   *              for display to the user via console.log() or debug(). Relies
+   *              on the caller to decide how to actually display to the user.
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static renderError(errorToRender:Error, inspectDepth:number=2):string {
+
+    // Setup the options that will be used
+    let renderOptions:SfdxFalconErrorRenderOptions = {
+      headerColor:        `yellow`,
+      labelColor:         `blue`,
+      errorLabelColor:    `red`,
+      valueColor:         `reset`,
+      childInspectDepth:  inspectDepth,
+      detailInspectDepth: 4,
+      errorInspectDepth:  4
+    }
+
+    // If what we got is NOT any type of Error, render as UNKNOWN
+    if ((errorToRender instanceof Error) !== true) {
+      return SfdxFalconError2.renderUnknownDetail(errorToRender, renderOptions);
+    }
+
+    // Render the BASE info for this result.
+    let renderOutput = SfdxFalconError2.renderBaseDetail(errorToRender, renderOptions);
+
+    // Check for SfdxError
+    if (errorToRender instanceof SfdxError) {
+      renderOutput += SfdxFalconError2.renderSfdxErrorDetail(errorToRender, renderOptions);
+    }
+    // Check for SfdxFalconError
+    if (errorToRender instanceof SfdxFalconError2) {
+      renderOutput += SfdxFalconError2.renderSfdxFalconErrorDetail(errorToRender, renderOptions);
+    }
+    // Check for SfdxCliError
+    if (errorToRender instanceof SfdxCliError) {
+      renderOutput += SfdxFalconError2.renderSfdxCliErrorDetail(errorToRender, renderOptions);
+    }
+    
+    // Add a extra line break at the close and return to caller.
+    renderOutput += `\n`;
+    return renderOutput;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderSfdxCliErrorDetail
+   * @param       {SfdxCliError}  errorToRender  Required. Any object that is
+   *              a child of Error.
+   * @param       {SfdxFalconErrorRenderOptions}  options  Required. Rendering
+   *              options that determine colors and inspection depth.
+   * @returns     {string}
+   * @description Generates an extended set of completely formatted output 
+   *              that is relevant only to SfdxCliError objects.
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static renderSfdxCliErrorDetail(errorToRender:SfdxCliError, options:SfdxFalconErrorRenderOptions):string {
+    let renderOutput  = 
+      chalk`\n{${options.labelColor} CLI Error Name:}    ${errorToRender.cliError.name}`
+    + chalk`\n{${options.labelColor} CLI Error Message:} ${errorToRender.cliError.message}`
+    + chalk`\n{${options.labelColor} CLI Error Status:}  ${errorToRender.cliError.status}`
+    + chalk`\n{${options.labelColor} CLI Error Stack:} \n${errorToRender.cliError.stack}`
+    + chalk`\n{${options.labelColor} CLI Error Result: (Depth ${options.childInspectDepth})}\n${util.inspect(errorToRender.cliError.result, {depth:options.childInspectDepth, colors:true})}`
+    + chalk`\n{${options.labelColor} CLI Error Warnings:}\n${errorToRender.cliError.result}`
+    return renderOutput;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderSfdxErrorDetail
+   * @param       {SfdxCliError}  errorToRender  Required. Any object that is
+   *              a child of Error.
+   * @param       {SfdxFalconErrorRenderOptions}  options  Required. Rendering
+   *              options that determine colors and inspection depth.
+   * @returns     {string}
+   * @description Generates an extended set of completely formatted output 
+   *              that is relevant only to SfdxError objects.
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static renderSfdxErrorDetail(errorToRender:SfdxError, options:SfdxFalconErrorRenderOptions):string {
+    let renderOutput  = 
+      chalk`\n{${options.labelColor} SfdxError Data (Depth ${options.childInspectDepth}):}\n{reset ${util.inspect(errorToRender.data, {depth:options.childInspectDepth, colors:true})}}`
+    + chalk`\n{${options.labelColor} SfdxError Cause (Depth ${options.childInspectDepth}):}\n{reset ${util.inspect(errorToRender.cause, {depth:options.childInspectDepth, colors:true})}}`
+    return renderOutput;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderSfdxFalconErrorDetail
+   * @param       {SfdxCliError}  errorToRender  Required. Any object that is
+   *              a child of Error.
+   * @param       {SfdxFalconErrorRenderOptions}  options  Required. Rendering
+   *              options that determine colors and inspection depth.
+   * @returns     {string}
+   * @description Generates an extended set of completely formatted output 
+   *              that is relevant only to SfdxFalconError2 objects.
+   * @version     1.0.0
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static renderSfdxFalconErrorDetail(errorToRender:SfdxFalconError2, options:SfdxFalconErrorRenderOptions):string {
+    let renderOutput  = 
+      chalk`\n{${options.labelColor} Falcon Stack:}\n${errorToRender.falconStack}`
+    + chalk`\n{${options.labelColor} Falcon Data (Depth ${options.childInspectDepth}):}\n{reset ${util.inspect(errorToRender.falconData, {depth:options.childInspectDepth, colors:true})}}`
+    return renderOutput;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      renderUnknown
+   * @param       {Error}   errorToDisplay  Required. Any object that is a child
+   *              of Error.
+   * @param       {number}  [inspectDepth]  Optional. Sets how deep the object
+   *              inpsection goes when rendering object properties.
+   * @returns     {void}
+   * @description Given an object derived from Error and optionally a number
+   *              indicating the inspection depth, renders to console.log a
+   *              customized display of the information contained in the Error.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static renderUnknownDetail(unknownObject:any, options:SfdxFalconErrorRenderOptions):string {
+    let renderOutput  = 
+        chalk`\n{${options.headerColor} CLI_ERROR_DEBUG:}`
+      + chalk`\n{${options.labelColor} Error Name:}    {${options.valueColor} UNKNOWN}`
+      + chalk`\n{${options.labelColor} Error Message:} {${options.valueColor} The object provided is not of type 'Error'}`
+      + chalk`\n{${options.labelColor} Error Stack:}   {${options.valueColor} Not Available}`
+      + chalk`\n{${options.labelColor} Raw Object: (Depth ${options.childInspectDepth})}\n${util.inspect(unknownObject, {depth:options.childInspectDepth, colors:true})}`
+      + `\n`;
+    return renderOutput;    
+  }
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       SfdxCliError
+ * @extends     SfdxFalconError2
+ * @description Extends SfdxFalconError2 to provide specialized error handling of error results
+ *              returned from CLI commands run via shell exec.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class SfdxCliError extends SfdxFalconError2 {
+
+  // Member vars
+  public cliError: CliErrorDetail;
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  SfdxCliError
+   * @param       {string}  stdErrBuffer  Required. Results from an stderr
+   *              stream resulting from a call to a Salesforce CLI command.
+   * @description Given a string (typically the contents of a stderr buffer),
+   *              returns an SfdxFalconError2 object with a specialized 
+   *              "cliError" object property.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public constructor(stdErrBuffer:string, message:string='Unknown CLI Error') {
+
+    // Call the parent constructor to get our baseline Error.
+    super(`ERROR_SALESFORCE_CLI: ${message}`, 'SfdxCliError');
+
+    // Initialize the cliError member var.
+    this.cliError = <CliErrorDetail>{};
+
+    // Try to parse stdErrBuffer into an object, then try to copy over the standard SFDX CLI error details
+    let parsedError;
+    try {
+      parsedError = JSON.parse(stdErrBuffer);
+      this.cliError.name      = parsedError.name      || `Unknown CLI Error`;
+      this.cliError.message   = parsedError.message   || `Unknown CLI Error`;
+      this.cliError.status    = (typeof parsedError.status !== 'undefined') ? parsedError.status : 1;
+      this.cliError.stack     = parsedError.stack     || this.name;
+      this.cliError.result    = parsedError.result    || {};
+      this.cliError.warnings  = parsedError.warnings  || [];
+    }
+    catch (parsingError) {
+      this.cliError.name      = `ERROR_NOT_PARSEABLE`;
+      this.cliError.message   = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
+      this.cliError.status    = 999;
+      this.cliError.stack     = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
+      this.cliError.result    = {rawResult: stdErrBuffer};
+      this.cliError.warnings  = [];
+    }
+
+    // Add a detail line to the Falcon Stack.
+    this.addToStack(`${this.cliError.name}: ${this.cliError.message}`);
+    return;
   }
 }
