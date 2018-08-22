@@ -11,21 +11,11 @@
  * @description   Exports functions that use JSForce
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-import {Aliases}            from '@salesforce/core'         // Why?
-import {AuthInfo}           from '@salesforce/core'         // Why?
-import {Connection}         from '@salesforce/core'         // Why?
-import * as jsf             from 'jsforce';                 // Why?
-import {updateObserver}     from './notification-helper';   // Why?
-import { waitASecond }      from './async-helper';
-
-import {SfdxFalconDebug}    from '../modules/sfdx-falcon-debug';         // Why?
-
-
-// Requires
-const debug         = require('debug')('jsforce-helper');            // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync    = require('debug')('jsforce-helper(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
-const debugExtended = require('debug')('jsforce-helper(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
-const rpRequest     = require('request-promise-native');
+import * as jsf             from 'jsforce';                       // Why?
+import {Aliases}            from '@salesforce/core'               // Why?
+import {AuthInfo}           from '@salesforce/core'               // Why?
+import {Connection}         from '@salesforce/core'               // Why?
+import {SfdxFalconDebug}    from '../modules/sfdx-falcon-debug';  // Why?
 
 // Interfaces
 export interface JSForceCommandDefinition {

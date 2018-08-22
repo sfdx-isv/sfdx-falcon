@@ -16,10 +16,9 @@
 import {Aliases}                      from  '@salesforce/core';       // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
-import {waitASecond}                  from './async-helper';          // Why?
 
 import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';       // Why?
-import {SfdxFalconError}              from  '../modules/sfdx-falcon-error';       // Why?
+import {SfdxFalconError2}              from  '../modules/sfdx-falcon-error';       // Why?
 import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';      // Why?
 
 
@@ -123,7 +122,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition, o
 
       // Determine of the command succeded or failed.
       if (stdErrBuffer) {
-        reject(SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
+//        reject(SfdxFalconError.wrapCliError(stdErrBuffer, sfdxCommandDef.errorMsg));
       }
       else {
         updateObserver(observer, `[${status.getRunTime(true)}s] SUCCESS: ${sfdxCommandDef.successMsg}`);

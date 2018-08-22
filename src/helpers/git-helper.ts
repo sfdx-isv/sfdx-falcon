@@ -13,8 +13,8 @@
 // Imports
 //import * as _ from 'lodash';
 //import { resolve } from 'path';
-import * as path       from 'path';                         // Node's path library.
-import { waitASecond } from './async-helper';
+import * as path      from 'path';                         // Node's path library.
+import {waitASecond}  from '../modules/sfdx-falcon-async';
 
 // Requires
 const debug         = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
@@ -112,7 +112,6 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
     debug(gitCloneError);
     throw new Error(`Destination path '${targetDirectory}' already exists and is not an empty directory.`);
   }
-
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -127,6 +126,7 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitInit(targetDirectory:string):void {
+
   // Debug and input validation
   debug(`gitInit:arguments\n%O\n`, arguments);
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -158,6 +158,7 @@ export function gitInit(targetDirectory:string):void {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitAddAndCommit(targetDirectory:string, commitMessage:string):void {
+
   // Debug and input validation
   debug(`gitAddAndCommit:arguments\n%O\n`, arguments);
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -199,6 +200,7 @@ export function gitAddAndCommit(targetDirectory:string, commitMessage:string):vo
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):void {
+
   // Debug and input validation
   debug(`gitRemoteAddOrigin:arguments\n%O\n`, arguments);
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -320,6 +322,7 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
+
   // Execute `git ls-remote` with the --exit-code flag set. This will return
   // a non-zero (error) result even if the repo exists but has no commits.
   try {
@@ -328,6 +331,7 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
     debug(err);
     return false;
   }
+
   // If we get this far, then the `git ls-remote` call was successful AND that
   // there was a repository with at least one commit in it.
   return true;
@@ -350,14 +354,17 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:number=0):Promise<any> {
+
   // Validate incoming arguments
   if (typeof gitRemoteUri !== 'string' || isNaN(waitSeconds)) {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
+
   // If waitSeconds is > 0 then use waitASecond() to introduce a delay
   if (waitSeconds > 0) {
     await waitASecond(waitSeconds);
   }
+
   // Make an async shell.exec call wrapped inside a promise.
   return new Promise((resolve, reject) => {
     shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true}, (code, stdout, stderr) => {
@@ -426,6 +433,7 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
     debug(err);
     return false;
   }
+
   // If we get this far, then the `git ls-remote` call was successful.
   // That means that there was a git remote that the current user
   // has at least read access to.
@@ -456,22 +464,3 @@ export function isGitUriValid(gitRemoteUri:string):boolean {
   // Test against the gitUriRegEx.
   return (gitUriRegEx.test(gitRemoteUri));
 }
-
-
-
-
-
-// Comment Templates
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-//─────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    gitRemoteUri
- * @param       {string}      gitRemoteUri 
- * @returns     {boolean}     True if gitRemoteUri is a valid Git Remote URI.
- * @version     1.0.0
- * @description Core validation function for ensuring well-formed Git Remote URIs.
- *              See https://git-scm.com/docs/git-clone for detailed rules.
- */
-//─────────────────────────────────────────────────────────────────────────────┘
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘

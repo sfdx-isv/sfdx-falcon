@@ -17,7 +17,7 @@ import * as path                      from  'path';                   // Node's 
 import {Observable}                   from  'rxjs';                   // Why?
 import {updateObserver}               from  './notification-helper';  // Why?
 import {FalconProgressNotifications}  from  './notification-helper';  // Why?
-import {waitASecond}                  from  './async-helper';         // Why?
+import {waitASecond}                  from  '../modules/sfdx-falcon-async';         // Why?
 import {readConfigFile}               from  './config-helper';        // Why?
 import {executeJsForceCommand}        from  './jsforce-helper';       // Why?
 import {getConnection}                from  './jsforce-helper';       // Why?

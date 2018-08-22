@@ -30,7 +30,7 @@ export {SfdxFalconError2} from './index.2';
  * @description ????
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxFalconError {
+export class SfdxFalconError_DELETE {
   public  type:           ERROR_TYPE;
   public  name:           string;
   public  source:         string;
@@ -45,8 +45,8 @@ export class SfdxFalconError {
     // Intentionally empty
   }
 
-  public static wrap(objectToWrap:any):SfdxFalconError {
-    if (objectToWrap instanceof SfdxFalconError) {
+  public static wrap(objectToWrap:any):SfdxFalconError_DELETE {
+    if (objectToWrap instanceof SfdxFalconError_DELETE) {
       return objectToWrap;
     }
     // Handle instance of Error
@@ -145,8 +145,8 @@ export class SfdxFalconError {
     }
   }
 
-  public static wrapCliError(stdErrString:string, customMessage:string=''):SfdxFalconError {
-    let falconError = new SfdxFalconError();
+  public static wrapCliError(stdErrString:string, customMessage:string=''):SfdxFalconError_DELETE {
+    let falconError = new SfdxFalconError_DELETE();
     let stdErrJson  = <any>{};
 
     // Initialize errRaw since everybody gets that.
@@ -197,7 +197,7 @@ export class SfdxFalconError {
     FalconProgressNotifications.killAll();
     
     // Make sure that whatever we get is wrapped as a Falcon Error.
-    let falconError = SfdxFalconError.wrap(error);
+    let falconError = SfdxFalconError_DELETE.wrap(error);
 
     // Display a formatted version of the stdError before throwing the SfdxError.
     if (showErrorDebug) {

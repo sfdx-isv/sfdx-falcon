@@ -3,20 +3,11 @@
  * @file          generators/clone-appx-demo-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:chalk
- * @requires      module:debug
- * @requires      module:path
- * @requires      module:sfdx-falcon-template
- * @requires      module:shelljs
- * @requires      module:yeoman-generator
- * @requires      module:yosay
- * @requires      ../helpers/ux-helper
- * @requires      ../validators/yeoman
  * @summary       Yeoman Generator for cloning an SFDX-Falcon project from a remote Git repository.
  * @description   Salesforce CLI Plugin command (falcon:project:clone) that allows a Salesforce DX
  *                developer to clone a remote repo containing an SFDX-Falcon project.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // tslint:disable no-floating-promises
