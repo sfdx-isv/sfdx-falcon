@@ -147,16 +147,26 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 /**
  * @function    getUsernameFromAlias
  * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
- * @returns     {Promise<any>}   Resolves to the username if the alias was found, NULL if not.
- * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
- *              in the local environment the CLI is running in.
+ * @returns     {Promise<SfdxFalconResult>} Resolves to an SFDX-Falcon Result containing the 
+ *              username if the alias was found, NULL if not.
+ * @description Given an SFDX org alias, return an SFDX-Falcon Result containing the Salesforce 
+ *              Username associated with the alias in the local environment the CLI is running in.
  * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getUsernameFromAlias(sfdxAlias:string):Promise<any> {
+export async function getUsernameFromAlias(sfdxAlias:string):Promise<SfdxFalconResult> {
+
+  // Initialize an EXECUTOR Result for this function.
+  let falconExecResult = new SfdxFalconResult(`sfdx:getUsernameFromAlias`, SfdxFalconResultType.EXECUTOR);
+  falconExecResult.detail = {
+    username:  null
+  };
+
+  // Fetch the username, add to Result Detail, and return Success.
   const username = await Aliases.fetch(sfdxAlias);
-  return username;
+  falconExecResult.detail.username = username;
+  return falconExecResult.success();
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

@@ -276,9 +276,12 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     // Add the rejected Result to the COMMAND Result.
     this.falconCommandResult.addChild(rejectedResult);
 
+    // Manually mark the COMMAND Result as an Error (since bubbleError is FALSE)
+    this.falconCommandResult.error(rejectedResult.errObj);
+
     // If the FalconDebugError flag is set, render the COMMAND Result.
     if (this.falconDebugErrFlag) {
-      this.falconCommandResult.displayResult();
+      this.falconCommandResult.displayResult('',2,4,4);
     }
 
     // Terminate with Error.

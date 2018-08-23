@@ -28,6 +28,7 @@ import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';    
 import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';                // Why?
 import {InstallPackageAction}     from '../appx/actions/install-package';                   // Why?
 import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';                   // Why?
+import {ConfigureAdminUserAction} from '../appx/actions/configure-admin-user';              // Why?
 
 // Local Helpers
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
@@ -373,10 +374,12 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
     // Build a map of Action "aliases" to instances of the Action Classes that implement that alias.
     this.actionExecutorMap = new Map<string, any>();
-    this.actionExecutorMap.set('create-scratch-org',  new CreateScratchOrgAction());
-    this.actionExecutorMap.set('delete-scratch-org',  new DeleteScratchOrgAction());
-    this.actionExecutorMap.set('deploy-metadata',     new DeployMetadataAction());
-    this.actionExecutorMap.set('install-package',     new InstallPackageAction());
+    this.actionExecutorMap.set('create-scratch-org',    new CreateScratchOrgAction());
+    this.actionExecutorMap.set('delete-scratch-org',    new DeleteScratchOrgAction());
+    this.actionExecutorMap.set('deploy-metadata',       new DeployMetadataAction());
+    this.actionExecutorMap.set('install-package',       new InstallPackageAction());
+    this.actionExecutorMap.set('configure-admin-user',  new ConfigureAdminUserAction());
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

@@ -21,6 +21,7 @@ import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result'
 import {ListrContext}             from '../../../../modules/sfdx-falcon-types';     // Type. Alias to "any". Used in project to make code easier to read.
 import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';     // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';     // Why?
+import {TargetOrg}                from '../../types';                               // Interface. Represents an org that will be targeted by SFDX/JSForce code.
 // Project/Recipe/Engine Imports
 import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';    // Why?
 import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';    // Why?
@@ -85,14 +86,6 @@ export enum AppxEngineStepResultStatus {
   WARNING = 'WARNING',
   ERROR   = 'ERROR'  
 }
-export interface TargetOrg {
-  orgName:        string;
-  alias:          string;
-  description:    string;
-  isScratchOrg:   boolean;
-  scratchDefJson: string;
-  orgReqsJson:    string;
-}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -152,7 +145,7 @@ export abstract class AppxRecipeEngine {
     this.falconEngineResult   = 
       new SfdxFalconResult(`${engineName}:${recipeName}`, SfdxFalconResultType.ENGINE,
                           { startNow:       false,  // Don't count time spent by the user answering prompts.
-                            bubbleError:    false,
+                            bubbleError:    true,
                             bubbleFailure:  true});
 
     // Setup the shell of the DETAIL for the ENGINE Result.
@@ -338,6 +331,7 @@ export abstract class AppxRecipeEngine {
             }
             this.executeStep(recipeStep, listrExecOptions)
               .then(falconActionResult => {
+                falconActionResult.debugResult('LISTR TASK DEBUG - Promise Resolved', 'LISTR_TASK_DEBUG:');
                 this.falconEngineResult.addChild(falconActionResult);
                 observer.complete();
               })
@@ -349,12 +343,15 @@ export abstract class AppxRecipeEngine {
                     `ActionResult (REJECTED)`,
                     SfdxFalconResultType.ACTION
                   );
+                  falconActionResult.debugResult('LISTR TASK DEBUG - Rejected Promise Caught', 'LISTR_TASK_DEBUG:');
                 try {
                   // If ENGINE Result's "bubbleError" is FALSE, call observer.complete() to suppress the error.
                   this.falconEngineResult.addChild(falconActionResult);
+                  this.falconEngineResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Suppressed', 'LISTR_TASK_DEBUG:');
                   observer.complete();
                 } catch (falconEngineError) {
                   // If ENGINE Result's "bubbleError" is TRUE, call observer.error() to bubble the error.
+                  falconActionResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Bubbled', 'LISTR_TASK_DEBUG:');
                   observer.error(falconEngineError);
                 }
               });

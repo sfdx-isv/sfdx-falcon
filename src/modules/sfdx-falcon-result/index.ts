@@ -34,6 +34,7 @@ export interface SfdxFalconResultRenderOptions {
   labelColor:         string;
   errorLabelColor:    string;
   valueColor:         string;
+  contextLabel:       string;
   childInspectDepth:  number;
   detailInspectDepth: number;
   errorInspectDepth:  number;
@@ -91,7 +92,7 @@ export class SfdxFalconResult {
   // Public member vars
   public name:            string;
   public type:            SfdxFalconResultType;
-  public detail:          object;
+  public detail:          any;
   public errObj:          SfdxFalconError;
   public children:        Array<SfdxFalconResult>;
 
@@ -103,9 +104,6 @@ export class SfdxFalconResult {
   private _endTime:       number;
 
   // Property accessors
-  public get status():SfdxFalconResultStatus {
-    return this._status;
-  }
   public get duration():number {
     // If there is no start time, just return zero.
     if (this._startTime === 0) {return 0;}
@@ -121,6 +119,12 @@ export class SfdxFalconResult {
     let durationSeconds = Math.floor(this.durationSecs);
     if (durationSeconds < 60) return `${durationSeconds}s`;
     return `${Math.floor(durationSeconds/60)}m ${durationSeconds%60}s`;
+  }
+  public get lastChild():SfdxFalconResult {
+    return this.children[this.children.length-1];
+  }
+  public get status():SfdxFalconResultStatus {
+    return this._status;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -224,7 +228,45 @@ export class SfdxFalconResult {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      addRejectedChild
+   * @param       {any}  rejectedPromiseData  Required.  The data passed into
+   *              a catch() function that's hung off of a rejected Promise.
+   * @param       {string}  name  Required. The name of the new Result. Only 
+   *              used if the contents of rejectedPromiseData are not already
+   *              an SfdxFalconResult.
+   * @param       {SfdxFalconResultType}  type  Required. Type of the new Result.
+   *              Only used if the contents of rejectedPromiseData are not
+   *              already an SfdxFalconResult.
+   * @param       {any} [options] Optional. Options are "startNow", 
+   *              "bubbleError", and "bubbleFailure". Only used if the contents 
+   *              of rejectedPromiseData are not already an SfdxFalconResult.
+   * @returns     {this}  Returns the current instance of SfdxFalconResult.
+   * @description Given data from a Rejected Promise, ensures that we have an
+   *              SFDX-Falcon Result to add as a Child using the standard means.
+   * @version     1.0.0
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public addRejectedChild(rejectedPromiseData:any, resultName:string, resultType:SfdxFalconResultType=SfdxFalconResultType.UNKNOWN, resultOptions:any={}):this {
+
+    // Wrap whatever we got back as an SFDX-Falcon Result (only applies to things that are not already SfdxFalconResult).
+    let rejectedChild = SfdxFalconResult.wrapRejectedPromise(rejectedPromiseData, resultName, resultType, resultOptions);
+
+    // Now call the normal addChild() method and return the result.
+    return this.addChild(rejectedChild);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      debugResult
+   * @param       {string}  [contextLabel]  Optional. Adds a string inside
+   *              parenthesis to the immediate right of the Result Label.
+   * @param       {number}  [childInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of Child Results.
+   * @param       {number}  [detailInspectDepth]  Optional. Overrides the
+   *              default setting for inspection depth of Detail Results.
+   * @param       {number}  [errorInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of stored Errors.
    * @returns     {void}  
    * @description Calls this.renderResult() to generate a complete, formatted
    *              set of information about this Result and displays that result
@@ -233,12 +275,26 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public debugResult():void {
-    SfdxFalconDebug.debugMessage(`${this.type}_RESULT:`, this.renderResult());
-  }  
+  public debugResult(contextLabel:string='', debugNamespace:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):void {
+    if(debugNamespace) {
+      SfdxFalconDebug.msg(`${debugNamespace}`, this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
+    }
+    else {
+      SfdxFalconDebug.debugMessage(`${this.type}_RESULT:`, this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
+    }
+  }
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      displayResult
+   * @param       {string}  [contextLabel]  Optional. Adds a string inside
+   *              parenthesis to the immediate right of the Result Label.
+   * @param       {number}  [childInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of Child Results.
+   * @param       {number}  [detailInspectDepth]  Optional. Overrides the
+   *              default setting for inspection depth of Detail Results.
+   * @param       {number}  [errorInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of stored Errors.
    * @returns     {void}  
    * @description Calls this.renderResult() to generate a complete, formatted
    *              set of information about this Result and displays that result
@@ -247,8 +303,8 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public displayResult():void {
-    console.log(this.renderResult());
+  public displayResult(contextLabel:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):void {
+    console.log(this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -486,7 +542,7 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderBaseDetail(result:SfdxFalconResult, options:SfdxFalconResultRenderOptions):string {
     let renderOutput  = 
-        chalk`\n{${options.headerColor} ${result.type}_RESULT_DEBUG:}`
+        chalk`\n{${options.headerColor} ${result.type}_RESULT_DEBUG${options.contextLabel ? ' (' + options.contextLabel + ')' : ''}:}`
       + chalk`\n{${options.labelColor} Result Type:}       {${options.valueColor} ${result.type}}`
       + chalk`\n{${options.labelColor} Result Name:}       {${options.valueColor} ${result.name}}`
       + chalk`\n{${options.labelColor} Result Status:}     {${options.valueColor} ${result.status}}`
@@ -538,6 +594,14 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      renderResult
+   * @param       {string}  [contextLabel]  Optional. Adds a string inside
+   *              parenthesis to the immediate right of the Result Label.
+   * @param       {number}  [childInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of Child Results.
+   * @param       {number}  [detailInspectDepth]  Optional. Overrides the
+   *              default setting for inspection depth of Detail Results.
+   * @param       {number}  [errorInspectDepth]   Optional. Overrides the
+   *              default setting for inspection depth of stored Errors.
    * @returns     {string}  Returns string to be rendered by console.log() or 
    *              debug().
    * @description Generates a string of completely formatted output that's ready 
@@ -547,7 +611,7 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public renderResult():string {
+  public renderResult(contextLabel:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):string {
 
     // Setup the options that will be used
     let renderOptions:SfdxFalconResultRenderOptions = {
@@ -555,9 +619,10 @@ export class SfdxFalconResult {
       labelColor:         `blue`,
       errorLabelColor:    `red`,
       valueColor:         `reset`,
-      childInspectDepth:  1,
-      detailInspectDepth: 4,
-      errorInspectDepth:  4
+      contextLabel:       contextLabel,
+      childInspectDepth:  childInspectDepth,
+      detailInspectDepth: detailInspectDepth,
+      errorInspectDepth:  errorInspectDepth
     }
 
     // Render the BASE info for this result.
