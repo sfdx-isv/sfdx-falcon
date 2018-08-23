@@ -1,3 +1,5 @@
+import { helpers } from "rx";
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-debug/index.ts
@@ -9,11 +11,6 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-//import {SfdxFalconError}  from  '../sfdx-falcon-error';   // Why?
-//import {ERROR_TYPE}       from  '../../enums';            // Why?
-//import { SfdxCliError, SfdxFalconError } from '../sfdx-falcon-error/index.2';
-//import {SfdxError}        from '@salesforce/core';
-
 // Requires
 const debug = require('debug');           // Why?
 const chalk = require('chalk');           // Why?
@@ -45,11 +42,22 @@ export class SfdxFalconDebug {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static checkEnabled(namespace:string):boolean {
-    // Get the "top namespace", ie. the substring up to the first ":".
-    let topNamespace = namespace.substring(0, namespace.indexOf(':'));
 
-    // Find out if the topNamespace is set to TRUE in the enabledDebuggers map.
-    return SfdxFalconDebug.enabledDebuggers.get(topNamespace);
+    // Split the provided namespace into sections on ":"
+    let namespaceGroups = namespace.split(':');
+    let namespaceToTest = '';
+
+    // Check the namespace from top level to last level. 
+    for (let namespaceGroup of namespaceGroups) {
+      namespaceToTest += namespaceGroup;
+      if (SfdxFalconDebug.enabledDebuggers.get(namespaceToTest)) {
+        return true;
+      }
+      namespaceToTest += ':';
+    }
+
+    // No single or combined groupings in the provided namespace match an enabled namespace.
+    return false;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -65,6 +73,9 @@ export class SfdxFalconDebug {
       SfdxFalconDebug.enabledDebuggers.set(namespace, true);
     }
     SfdxFalconDebug.debugDepth = debugDepth;
+    if (SfdxFalconDebug.enabledDebuggers.size > 0) {
+      console.log(`The Following Debuggers are Enabled:%O\n`, SfdxFalconDebug.enabledDebuggers);
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

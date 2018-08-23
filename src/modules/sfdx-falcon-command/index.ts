@@ -201,13 +201,13 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.gitRemoteUri               = this.args.GIT_REMOTE_URI      ||  '';
 
     // Read the incoming values for all DEBUG flags.
-    this.falconDebugDepthFlag       = this.flags.falcondebugdepth   ||  2;
-    this.falconDebugFlag            = this.flags.falcondebug        ||  false;
-    this.falconDebugExtFlag         = this.flags.falcondebugext     ||  false;
-    this.falconDebugXlFlag          = this.flags.falcondebugxl      ||  false;
-    this.falconDebugErrFlag         = this.flags.falcondebugerr     ||  false;
-    this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess ||  false;
-    this.falconDebugNsFlag          = this.flags.falcondebugns      ||  [];
+    this.falconDebugDepthFlag       = this.flags.falcondebugdepth         ||  2;
+    this.falconDebugFlag            = this.flags.falcondebug              ||  false;
+    this.falconDebugExtFlag         = this.flags.falcondebugext           ||  false;
+    this.falconDebugXlFlag          = this.flags.falcondebugxl            ||  false;
+    this.falconDebugErrFlag         = this.flags.falcondebugerr           ||  false;
+    this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess       ||  false;
+    this.falconDebugNsFlag          = this.flags.falcondebugns.split(',') ||  [];
 
     // Specify the top-level SFDX-Falcon debugger namespaces to enable.
     let enabledDebuggers = new Array<string>();
@@ -219,7 +219,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     if (this.falconDebugErrFlag)      enabledDebuggers.push('FALCON_ERR');
     if (this.falconDebugSuccessFlag)  enabledDebuggers.push('FALCON_SUCCESS');
     for (let debugNamespace of this.falconDebugNsFlag) {
-      enabledDebuggers.push(`${debugNamespace}`);
+      enabledDebuggers.push(`${debugNamespace.trim()}`);
     }
 
     // Initialize the DETAIL object for the COMMAND Result.
