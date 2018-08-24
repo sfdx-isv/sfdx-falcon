@@ -11,18 +11,16 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as jsf             from 'jsforce';                                 // Why?
-//import {Aliases}            from '@salesforce/core'                       // Why?
-//import {AuthInfo}           from '@salesforce/core'                       // Why?
 import {Connection}         from '@salesforce/core'                         // Why?
+
 // Import Internal Modules
 import {SfdxFalconDebug}      from  '../../../modules/sfdx-falcon-debug';   // Why?
 import {SfdxFalconResult}     from  '../../../modules/sfdx-falcon-result';  // Why?
 import {SfdxFalconResultType} from  '../../../modules/sfdx-falcon-result';  // Why?
+
 // Import Local Types
-import {TargetOrg}            from '../types';                            // Interface. Represents an org that will be targeted by SFDX/JSForce code.
 
 // Import Utility Functions
-import {getConnection}        from  '../../sfdx-falcon-util/sfdx';       // Why?
 import {resolveConnection}    from  '../../sfdx-falcon-util/sfdx';       // Why?
 
 // Set the File Local Debug Namespace
@@ -138,91 +136,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
   return;
 }
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    changePassword
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
- *              Alias of the org being queried or an authenticated JSForce Connection object.
- * @param       {string}  userId Required. Id of the user whose password is being changed.
- * @param       {string}  newPassword Required. The new password.
- * @returns     {Promise<any>}  ???
- * @description Given a User Id, changes a password in the target/connected org.
- * @version     1.0.0
- * @public @async
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function changePassword(aliasOrConnection:any, userId:string, newPassword:string):Promise<void> {
 
-  // Validate arguments
-  if (typeof userId !== 'string' || typeof newPassword !== 'string') {
-      throw new TypeError(`ERROR_INVALID_PARAMETERS: Missing or invalid parameters`);
-  }
-
-  // Resolve our connection based on the incoming "alias or connection" param.
-  const rc = await resolveConnection(aliasOrConnection);
-
-  // Attempt the password reset. No result on success, but Error thown if failure.
-  await rc.connection.request(
-    {
-      method: 'post',
-      url: `/sobjects/User/${userId}/password`,
-      body: `{"NewPassword": "${newPassword}"}`
-    },
-    {options: {noContentResponse: 'SUCCESS_PASSWORD_CHANGED'}}
-  )
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    createSfdxOrgConfig
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing an Alias
- *              to or an authenticated JSForce Connection object of the org the user is a part of.
- * @param       {string}    username    Required. Username we are creating an SFDX connection for.
- * @param       {string}    password    Required. Password of the user.
- * @param       {string}    orgAlias    Required. Alias to be set for this user.
- * @returns     {Promise<any>}  ???
- * @description ???
- *              Borrowed from https://github.com/wadewegner/sfdx-waw-plugin/blob/master/commands/auth_username_login.js
- * @version     1.0.0
- * @public @async
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, username:string, password:string, orgAlias:string):Promise<any> {
-  
-  // Resolve our connection situation based on the incoming "alias or connection" param.
-  const rc = await resolveConnection(aliasOrConnection);
-
-  // Create a NEW JSForce connection that will use the incoming login credentials
-  const newConnection = new jsf.Connection({
-    loginUrl: rc.connection.instanceUrl
-  });
-
-  // Try to create the new connection using the username and password.
-  const userInfo = await newConnection.login(username, password)
-    .catch(error => {
-      SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', error, `createSfdxOrgConfig:ERROR: `);
-
-      throw error;
-    });
-  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', userInfo, `createSfdxOrgConfig:userInfo: `);
-
-  // Create the Org Config data structure.
-  const orgSaveData = {} as any;
-
-  orgSaveData.orgId       = userInfo.organizationId;
-  orgSaveData.accessToken = newConnection.accessToken;
-  orgSaveData.instanceUrl = newConnection.instanceUrl;
-  orgSaveData.username    = username;
-  orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
-  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', orgSaveData, `createSfdxOrgConfig:orgSaveData: `);
-
-  // Save the Org Config
-  // TODO: Not sure how to proceed here.  Looks like we can't persist 
-  // AuthInfos to disk that are created with Access Tokens.  Need to 
-  // figure out something else for making demo logins easy.
-
-  return;
-}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

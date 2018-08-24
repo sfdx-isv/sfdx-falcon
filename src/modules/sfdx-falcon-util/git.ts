@@ -1,39 +1,32 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          helpers/git-helper.ts
+ * @file          modules/sfdx-falcon-util/git.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
+ * @summary       Git helper utility library
+ * @description   Exports functions that interact with Git via the shell.
  * @version       1.0.0
  * @license       MIT
- * @requires      module:validators/core
- * @summary       Git helper library
- * @description   Exports functions that interact with Git via shell commands run through 
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
-//import * as _ from 'lodash';
-//import { resolve } from 'path';
-import * as path      from 'path';                         // Node's path library.
-import {waitASecond}  from '../modules/sfdx-falcon-async';
+// Import External Modules
+import * as path      from 'path';                                  // Node's path library.
+
+// Import Internal Modules
+import {waitASecond}      from  '../../modules/sfdx-falcon-async';  // Why?
+import {SfdxFalconDebug}  from  '../../modules/sfdx-falcon-debug';  // Why?
 
 // Requires
-const debug         = require('debug')('git-helper');         // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync    = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugAsync.enabled = true to turn on.
-const debugExtended = require('debug')('git-helper(ASYNC)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
-const shell         = require('shelljs');                     // Cross-platform shell access - use for setting up Git repo.
+const shell = require('shelljs');                             // Cross-platform shell access - use for setting up Git repo.
 
 // File Globals
 // These RegEx Patterns can be inspected/tested at https://regex101.com/r/VuVsfJ/3
 const repoNameRegEx = /\/(\w|-)+\.git\/*$/;
 const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?$/;
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled         = false;
-debugAsync.enabled    = false;
-debugExtended.enabled = false;
+// Set the File Local Debug Namespace
+const dbgNs     = 'UTILITY:git:';
+const clsDbgNs  = '';
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Set shelljs config to throw exceptions on fatal errors.  We have to do
@@ -45,58 +38,69 @@ shell.config.fatal = true;
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    gitClone
- * @access      public
- * @param       {string}      gitRemoteUri 
- * @param       {string}      targetDirectory 
- * @returns     {void}        No return value. Will throw Error if any problems.
+ * @param       {string}  gitRemoteUri  Required.
+ * @param       {string}  targetDirectory Required.
+ * @returns     {void}  No return value. Will throw Error if any problems.
+ * @description Clones a Git repository located at gitRemoteUri to the local machine inside of the
+ *              directory specified by targetDirectory.
  * @version     1.0.0
- * @description Clones a Git repository located at gitRemoteUri to the local machine inside of
- *              the directory specified by targetDirectory.
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
-  // Begin with Input Debug & Validation
-  debug(`gitClone:arguments\n%O\n`, arguments);
-  if (typeof gitRemoteUri !== 'string' || typeof targetDirectory !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}gitClone:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
+  if (typeof gitRemoteUri !== 'string') {
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: Expected 'string' but got '${typeof gitRemoteUri}'`);
+  }
+  if (typeof targetDirectory !== 'string') {
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: Expected 'string' but got '${typeof targetDirectory}'`);
   }
   if (targetDirectory.trim() === '') {
-    throw new Error('ERROR_INVALID_VALUE');
+    throw new Error('ERROR_INVALID_VALUE: Must provide a non-empty string for Target Directory');
   }
-  // Make sure we start with a resolved path.
-  debug(`gitClone:targetDirectory(unresolved target directory) - ${targetDirectory}`);
-  debug(`gitClone:targetDirectory(normalized target directory) - ${path.normalize(targetDirectory)}`);
-  
-  targetDirectory = path.resolve(path.normalize(targetDirectory));
-  debug(`gitClone:targetDirectory(resolved target directory) - ${targetDirectory}`);
-  debug(path.parse(targetDirectory));
 
-  // Change the shell's working directory to the target directory. If an
-  // Error is thrown, it most likely means that the target directory does
-  // not exist.  If that happens, we will need to create the target.
+  // Make sure we start with a resolved path.
+  SfdxFalconDebug.str(`${dbgNs}gitClone:`, targetDirectory,                 `${clsDbgNs}targetDirectory (unresolved target directory): `);
+  SfdxFalconDebug.str(`${dbgNs}gitClone:`, path.normalize(targetDirectory), `${clsDbgNs}targetDirectory (normalized target directory): `);
+
+  // Normalize and Resolve the Target Directory.
+  targetDirectory = path.resolve(path.normalize(targetDirectory));
+
+  SfdxFalconDebug.str(`${dbgNs}gitClone:`, targetDirectory, `${clsDbgNs}targetDirectory (resolved target directory): `);
+  SfdxFalconDebug.obj(`${dbgNs}gitClone:`, path.parse(targetDirectory), `${clsDbgNs}PARSED targetDirectory: `);
+
+
+  // Change the shell's working directory to the target directory.
   try {
-    debug(shell.cd(targetDirectory));
-    debug(shell.pwd());
+    shell.cd(targetDirectory);
+    shell.pwd();
   }
   catch (cdError) {
-    debug(cdError);    
+    SfdxFalconDebug.obj(`${dbgNs}gitClone:`, cdError, `${clsDbgNs}cdError: `);
+
     // Target directory not found. Create it now.
     try {
-      debug(shell.mkdir('-p', targetDirectory));
+      shell.mkdir('-p', targetDirectory);
     }
     catch (mkdirError) {
-      debug(mkdirError);
+      SfdxFalconDebug.obj(`${dbgNs}gitClone:`, mkdirError, `${clsDbgNs}mkdirError: `);
+
       // The target directory could not be created
-      throw new Error ('ERROR_INVALID_TARGET_DIR');
+      throw new Error (`ERROR_INVALID_TARGET_DIR: Could not create directory '${targetDirectory}'`);
     }
     // Try again to shell.cd() into the targetDirectory
     try {
-      debug(shell.cd(targetDirectory));
+      shell.cd(targetDirectory);
     }
     catch (cdError2) {
-      debug(cdError2);
+      SfdxFalconDebug.obj(`${dbgNs}gitClone:`, cdError2, `${clsDbgNs}cdError2: `);
+
       // Target directory was created, but can't be navigated to.
-      throw new Error('ERROR_NO_TARGET_DIR');
+      throw new Error(`ERROR_NO_TARGET_DIR: Target directory '${targetDirectory}' not found or is not accessible`);
     }
   }
 
@@ -104,13 +108,13 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
   // the target directory.  Now all we need to do is execute
   // `git clone` against the Git Remote URI to pull down the repo.
   try {
-    debug(`shell.exec('git clone ${gitRemoteUri}', {silent: true})`);
-    debug(shell.exec(`git clone ${gitRemoteUri}`, {silent: true}));
+    SfdxFalconDebug.str(`${dbgNs}gitClone:`, `shell.exec('git clone ${gitRemoteUri}', {silent: true})`, `${clsDbgNs}Shell Command: `);
+    shell.exec(`git clone ${gitRemoteUri}`, {silent: true});
   } catch (gitCloneError) {
     // If we get here, it's probably because the clone command is targeting
     // a directory that already exists and is not empty.
-    debug(gitCloneError);
-    throw new Error(`Destination path '${targetDirectory}' already exists and is not an empty directory.`);
+    SfdxFalconDebug.obj(`${dbgNs}gitClone:`, gitCloneError, `${clsDbgNs}gitCloneError: `);
+    throw new Error(`ERROR_INVALID_DESTINATION: Destination path '${targetDirectory}' already exists and is not an empty directory.`);
   }
 }
 
@@ -127,19 +131,19 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitInit(targetDirectory:string):void {
 
-  // Debug and input validation
-  debug(`gitInit:arguments\n%O\n`, arguments);
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}gitInit:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string but got '${typeof targetDirectory}'`);
   }
 
   // Change the shell's directory to the target directory.
-  debug(`shell.cd(${targetDirectory})`);
-  debug(shell.cd(targetDirectory));
+  shell.cd(targetDirectory);
 
   // Execute the git init command
-  debug(`shell.exec('git init', {silent: true})`);
-  debug(shell.exec(`git init`, {silent: true}));
+  shell.exec(`git init`, {silent: true});
 
   // Done
   return;
@@ -159,29 +163,28 @@ export function gitInit(targetDirectory:string):void {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitAddAndCommit(targetDirectory:string, commitMessage:string):void {
 
-  // Debug and input validation
-  debug(`gitAddAndCommit:arguments\n%O\n`, arguments);
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}gitAddAndCommit:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string but got ${typeof targetDirectory}`);
   }
   if (typeof commitMessage !== 'string' || commitMessage === '') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for commitMessage but got ${typeof commitMessage}`);
+    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string but got ${typeof commitMessage}`);
   }
 
   // Set shelljs config to throw exceptions on fatal errors.
   shell.config.fatal = true;
 
   // Change the shell's directory to the target directory.
-  debug(`shell.cd(${targetDirectory})`);
-  debug(shell.cd(targetDirectory));
+  shell.cd(targetDirectory);
 
   // Stage all new and modified files
-  debug(`shell.exec('git add -A, {silent: true}`);
-  debug(shell.exec(`git add -A`, {silent: true}));
+  shell.exec(`git add -A`, {silent: true});
 
   // Commit
-  debug(`shell.exec(git commit -m "${commitMessage}", {silent: true})`);
-  debug(shell.exec(`git commit -m "${commitMessage}"`, {silent: true}));
+  shell.exec(`git commit -m "${commitMessage}"`, {silent: true});
 
   // Done
   return;
@@ -201,48 +204,28 @@ export function gitAddAndCommit(targetDirectory:string, commitMessage:string):vo
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):void {
 
-  // Debug and input validation
-  debug(`gitRemoteAddOrigin:arguments\n%O\n`, arguments);
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for targetDirectory but got ${typeof targetDirectory}`);
+    throw new TypeError(`ERROR_INVALID_TYPE: (targetDirectory) Expected non-empty string but got ${typeof targetDirectory}`);
   }
   if (typeof gitRemoteUri !== 'string' || gitRemoteUri === '') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected non-empty string for gitRemoteUri but got ${typeof gitRemoteUri}`);
+    throw new TypeError(`ERROR_INVALID_TYPE: (gitRemoteUri) Expected non-empty string but got ${typeof gitRemoteUri}`);
   }
 
   // Set shelljs config to throw exceptions on fatal errors.
   shell.config.fatal = true;
 
   // Change the shell's directory to the target directory.
-  debug(`shell.cd(${targetDirectory})`);
-  debug(shell.cd(targetDirectory));
+  shell.cd(targetDirectory);
 
   // Add the Git Remote
-  debug(`shell.exec('git remote add origin ${gitRemoteUri}', {silent: true})`);
-  debug(shell.exec(`git remote add origin ${gitRemoteUri}`, {silent: true}));
+  shell.exec(`git remote add origin ${gitRemoteUri}`, {silent: true});
 
   // Done
   return;
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    setGitHelperDebug
- * @param       {boolean} debugStatus Set TRUE to enable debug inside of synchronous functions.
- * @param       {boolean} debugAsyncStatus Set TRUE to enable debug inside asynchronous functions.
- * @param       {boolean} debugExtendedStatus Set TRUE to enable extended debugging (if present).
- * @returns     {void}
- * @description Used to enable/disable debug, debugAsync, and debugExtended debugging inside the
- *              scope of the git-helper JavaScript file.  Set TRUE to turn debug output on, FALSE
- *              to ensure that debug output is suppressed.
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function setGitHelperDebug(debugStatus:boolean, debugAsyncStatus:boolean, debugExtendedStatus:boolean) {
-  debug.enabled         = debugStatus;
-  debugAsync.enabled    = debugAsyncStatus;
-  debugExtended.enabled = debugExtendedStatus;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -263,7 +246,7 @@ export function isGitInstalled():boolean {
       return false;
     }
   } catch(err) {
-    debug(`isGitInstalled:EXCECPTION:\n%O`, err);
+    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, err, `${clsDbgNs}err: `);
     return false;
   }
 }
@@ -280,10 +263,12 @@ export function isGitInstalled():boolean {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function getRepoNameFromUri(gitRemoteUri:string):string {
 
-  // Debug and input validation
-  debug(`getRepoNameFromUri:arguments\n%O\n`, arguments);
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}getRepoNameFromUri:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE: String expected for gitRemoteUri');
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
   }
 
   // Grab the last part of the URI, eg. "/my-git-repo.git/"
@@ -297,11 +282,11 @@ export function getRepoNameFromUri(gitRemoteUri:string):string {
 
   // Make sure that we have at least something to return.  Throw Error if not.
   if (repoName === '') {
-    throw new Error('ERROR_UNREADABLE_REPO_NAME')
+    throw new Error(`ERROR_UNREADABLE_REPO_NAME: Repository name could not be parsed from the URI`);
   }
 
   // Debug and return
-  debug(`getRepoNameFromUri:repoName ${repoName}`);
+  SfdxFalconDebug.str(`${dbgNs}getRepoNameFromUri:`, repoName, `${clsDbgNs}repoName: `);
   return repoName;
 }
 
@@ -318,17 +303,21 @@ export function getRepoNameFromUri(gitRemoteUri:string):string {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
-  debug(`isGitRemoteEmpty:arguments\n%O\n`, arguments);
+
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteEmpty:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
   }
 
   // Execute `git ls-remote` with the --exit-code flag set. This will return
   // a non-zero (error) result even if the repo exists but has no commits.
   try {
-    debug(shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true}));
+    shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true});
   } catch (err) {
-    debug(err);
+    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, err, `${clsDbgNs}err: `);
     return false;
   }
 
@@ -355,9 +344,15 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:number=0):Promise<any> {
 
-  // Validate incoming arguments
-  if (typeof gitRemoteUri !== 'string' || isNaN(waitSeconds)) {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteEmptyAsync:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
+  if (typeof gitRemoteUri !== 'string') {
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
+  }
+  if (isNaN(waitSeconds)) {
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (waitSeconds) Expected number but got '${typeof waitSeconds}'`);
   }
 
   // If waitSeconds is > 0 then use waitASecond() to introduce a delay
@@ -398,9 +393,7 @@ export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:num
       // Debug.  Note that the final debug call with the - and \n chars is
       // required to solve some stdout oddities where listr was overwriting 
       // the last few lines of the returnObject printout.
-      debug(returnObject);
-      debug('Async Shell Operation Complete');
-      debug('-\n-\n-\n-\n-\n');
+      SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, returnObject, `${clsDbgNs}returnObject: `);
 
       // Execute resolve or reject now.
       if (returnObject.resolve) {
@@ -424,13 +417,18 @@ export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:num
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitRemoteReadable(gitRemoteUri:string):boolean {
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
   }
+
   try {
-    debug(shell.exec(`git ls-remote -h ${gitRemoteUri}`, {silent: true}));
+    shell.exec(`git ls-remote -h ${gitRemoteUri}`, {silent: true});
   } catch (err) {
-    debug(err);
+    SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, err, `${clsDbgNs}err: `);
     return false;
   }
 
@@ -451,15 +449,13 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitUriValid(gitRemoteUri:string):boolean {
-  // Debug and input validation
-  debug(`isGitUriValid:arguments\n%O\n`, arguments);
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
   }
-  // DEVTEST
-  debug(gitUriRegEx.test(gitRemoteUri));
-  debug(gitUriRegEx.test(gitRemoteUri));
-  debug('-\n-\n-\n-');
 
   // Test against the gitUriRegEx.
   return (gitUriRegEx.test(gitRemoteUri));

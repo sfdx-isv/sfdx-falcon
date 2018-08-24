@@ -1,23 +1,30 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          helpers/ux-helper.ts
+ * @file          modules/sfdx-falcon-util/ux.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
+ * @summary       Console UX utility helper library
+ * @description   Exports classes that provide various console.log() based UX / display functions.
  * @version       1.0.0
  * @license       MIT
- * @requires      module:validators/core
- * @summary       Console UX helper library
- * @description   Exports classes that provide various console.log() based UX / display functions.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
+// Import External Modules
 import * as _ from 'lodash';
 
+// Import Internal Modules
+import {SfdxFalconDebug}  from  '../../modules/sfdx-falcon-debug';  // Why?
+
 // Requires
-const debug           = require('debug')('ux-helper');              // Utility for debugging. set debug.enabled = true to turn on.
+//const debug           = require('debug')('ux-helper');              // Utility for debugging. set debug.enabled = true to turn on.
 const stripAnsi       = require('strip-ansi');                      // Strips ANSI escape codes from strings.
 const chalk           = require('chalk');                           // Utility for creating colorful console output.
 const pad             = require('pad');                             // Provides consistent spacing when trying to align console output.
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'UTILITY:ux:';
+const clsDbgNs  = '';
+
 
 // Interfaces
 export interface SfdxFalconKeyValueTableDataRow {
@@ -202,7 +209,7 @@ function renderTable(data: any[], tableOptionsOverride: Partial<TableOptions> = 
     // ENDOF columns definition
   }
 
-  debug(tableOptions);
+  SfdxFalconDebug.obj(`${dbgNs}renderTable:`, tableOptions, `${clsDbgNs}tableOptions: `);
 
   function calcWidth(cell: any) {
     let lines = stripAnsi(cell).split(/[\r\n]+/);
@@ -293,8 +300,6 @@ export class SfdxFalconKeyValueTable {
    */
   //───────────────────────────────────────────────────────────────────────────────────────────────┘
   constructor(tableColumnKeys?: Array<TableColumnKey>, tableOptions?: Partial<TableOptions>, debugMode?:boolean) {
-    // Activate debug mode if set by the user.
-    debug.enabled = (debugMode === true);
 
     // Define the table columns. Use defaults if not properly specified by caller.
     if (typeof tableColumnKeys === 'undefined' || tableColumnKeys.length !== 2) {

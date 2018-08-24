@@ -49,9 +49,9 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
   protected initializeAction():void {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
-    this.actionType       = SfdxFalconActionType.SFDX_CLI;
+    this.actionType       = SfdxFalconActionType.SFDC_API;
     this.actionName       = 'configure-admin-user';
-    this.command          = 'falcon:internal:command';
+    this.command          = 'FALCON_INTERNAL:configure-admin-user';
     this.description      = 'Configure Admin User';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -100,7 +100,8 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     // Add additional DETAIL for this Result (beyond what is added by createActionResult().
     actionResult.detail = {...{
       userDefinition:     null,
-      adminUsername:      null
+      adminUsername:      null,
+      executorMessages:   null
     }};
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
 
@@ -108,14 +109,12 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
       .catch(error => {actionResult.throw(error)});
     actionResult.detail.userDefinition = userDefinition;
-
     actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction`);
 
     // Get the username associated with the Target Org Alias (this should be the Admin User)
     let adminUsername = await getUsernameFromAlias(actionContext.targetOrg.alias)
       .catch(error => {actionResult.throw(error)}) as string;
     actionResult.detail.adminUsername = adminUsername;
-
     actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction`);
 
     // Define the messages for this command.
@@ -124,6 +123,8 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       errorMsg:     `Failed to configure user '${adminUsername}' in ${actionContext.targetOrg.alias}`,
       successMsg:   `User '${adminUsername}' configured successfully`,
     }
+    actionResult.detail.executorMessages = executorMessages;
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Run the executor then return or throw the result. If you want to override error handling, do it here.
     return await configureUser( adminUsername, userDefinition, 
@@ -143,7 +144,8 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
         // Make sure any rejected promises are wrapped as an ERROR Result.
         executorResult = SfdxFalconResult.wrapRejectedPromise(executorResult, 'hybrid:configureUser', SfdxFalconResultType.EXECUTOR);
         
-        actionResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
+        // Debug the rejected and wrapped EXECUTOR Result
+        executorResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
 
         // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
         return actionResult.addChild(executorResult);
