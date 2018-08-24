@@ -1,5 +1,3 @@
-import { helpers } from "rx";
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-debug/index.ts
@@ -19,8 +17,8 @@ const util  = require('util');            // Why?
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconDebug
- * @summary     ????
- * @description ????
+ * @summary     Provides custom "debugging" services (ie. debug-style info to console.log()).
+ * @description Provides custom "debugging" services (ie. debug-style info to console.log()).
  * @version     1.0.0
  * @public
  */
@@ -28,15 +26,18 @@ const util  = require('util');            // Why?
 export class SfdxFalconDebug {
   private static debuggers:Map<string,any>              = new Map();
   private static enabledDebuggers:Map<string, boolean>  = new Map<string, boolean>();
-  private static falconErrorColor:string                = 'blue';
-  private static systemErrorColor:string                = 'yellow';
+//  private static falconErrorColor:string                = 'blue';
+//  private static systemErrorColor:string                = 'yellow';
   public  static lineBreaks:number                      = 5;
   public  static debugDepth:number                      = 2;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      
-   * @description ???
+   * @method      checkEnabled
+   * @param       {string}  namespace Required. The "namespace" of a debug object.
+   * @returns     {boolean} Returns TRUE if the namespace has been enabled.
+   * @description Given a "namespace", check the internal map of "enabled" 
+   *              namespaces and return true if a match is found.
    * @version     1.0.0
    * @public @static
    */
@@ -63,9 +64,17 @@ export class SfdxFalconDebug {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      enableDebuggers
-   * @description ???
+   * @param       {Array<string>} namespaces  Required. An array of strings,
+   *              each representing a namespace that should be enabled.
+   * @param       {number}  [debugDepth]  Optional. The number of levels "deep"
+   *              that the nested contents of an Object will be rendered during
+   *              certain display operations.
+   * @returns     {void}
+   * @description Given an Array of strings, add an entry in the Enabled Debuggers
+   *              map.  This means that when debug code is reached during execution
+   *              any enabled debug messages will be displayed to the user.
    * @version     1.0.0
-   * @private @static
+   * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static enableDebuggers(namespaces:Array<string>, debugDepth:number=2):void {
@@ -74,7 +83,7 @@ export class SfdxFalconDebug {
     }
     SfdxFalconDebug.debugDepth = debugDepth;
     if (SfdxFalconDebug.enabledDebuggers.size > 0) {
-      console.log(`The Following Debuggers are Enabled:%O\n`, SfdxFalconDebug.enabledDebuggers);
+      console.log(chalk`\n{blue The Following Debug Namesapces are Enabled (Debug Depth = ${debugDepth}):}\n%O\n`, namespaces);
     }
   }
 

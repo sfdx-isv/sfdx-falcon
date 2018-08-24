@@ -1,10 +1,10 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/actions/configure-admin-user.ts
+ * @file          modules/sfdx-falcon-recipe/actions/create-user.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Uses JSForce to update properties of the Admin user connected to the Target Org.
- * @description   Uses JSForce to update properties of the Admin user connected to the Target Org.
+ * @summary       Uses JSForce to create a user in the Target Org.
+ * @description   Uses JSForce to create a user in the Target Org.
  * @version       1.0.0
  * @license       MIT
  */
@@ -102,21 +102,25 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       userDefinition:     null,
       adminUsername:      null
     }};
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+  
+    // DEVELOPMENT_DEBUG
+    //actionResult.displayResult();
 
     // Find and read the user definition file.
     let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
       .catch(error => {actionResult.throw(error)});
     actionResult.detail.userDefinition = userDefinition;
 
-    actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction`);
+    // DEVELOPMENT_DEBUG
+    actionResult.debugResult('Getting Started', dbgNs);
 
     // Get the username associated with the Target Org Alias (this should be the Admin User)
     let adminUsername = await getUsernameFromAlias(actionContext.targetOrg.alias)
       .catch(error => {actionResult.throw(error)}) as string;
     actionResult.detail.adminUsername = adminUsername;
 
-    actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction`);
+    // DEVELOPMENT_DEBUG
+    //actionResult.displayResult();
 
     // Define the messages for this command.
     let executorMessages = {
@@ -131,19 +135,21 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
                                 actionContext.listrExecOptions.observer)
       .then(executorResult => {
 
-        actionResult.debugResult(`Executor Promise Resolved`, `${dbgNs}executeAction`);
+        // DEVELOPMENT_DEBUG
+        //actionResult.displayResult('INSIDE THEN');
 
         // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
         return actionResult.addChild(executorResult);
       })
       .catch(executorResult  => {
 
-        actionResult.debugResult(`Executor Promise Rejected`, `${dbgNs}executeAction`);
+        // DEVELOPMENT_DEBUG
+        //actionResult.displayResult('INSIDE CATCH');
 
         // Make sure any rejected promises are wrapped as an ERROR Result.
         executorResult = SfdxFalconResult.wrapRejectedPromise(executorResult, 'hybrid:configureUser', SfdxFalconResultType.EXECUTOR);
         
-        actionResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
+        executorResult.displayResult('INSIDE CATCH');
 
         // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
         return actionResult.addChild(executorResult);

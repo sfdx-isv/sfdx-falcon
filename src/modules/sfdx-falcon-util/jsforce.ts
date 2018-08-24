@@ -83,7 +83,7 @@ export interface RestApiRequestDefinition {
 export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
  
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
@@ -120,7 +120,7 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
 export async function getProfileId(aliasOrConnection:any, profileName:string):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getProfileId:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getProfileId`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
@@ -155,7 +155,7 @@ export async function getProfileId(aliasOrConnection:any, profileName:string):Pr
 export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getUserId:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getUserId`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);

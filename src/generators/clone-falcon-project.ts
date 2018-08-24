@@ -27,8 +27,8 @@ import * as path        from 'path';                                            
 import * as Generator   from 'yeoman-generator';                                    // Generator class must extend this.
 import * as uxHelper    from '../helpers/ux-helper';                                // Library of UX Helper functions specific to SFDX-Falcon.
 import * as gitHelper   from '../helpers/git-helper';                               // Library of Git Helper functions specific to SFDX-Falcon.
-import * as sfdxHelper  from '../helpers/sfdx-helper';                              // Library of SFDX Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from '../modules/sfdx-falcon-yeoman-command/yeoman-helper';                            // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as sfdxHelper  from '../modules/sfdx-falcon-util/sfdx';                    // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from '../modules/sfdx-falcon-yeoman-command/yeoman-helper'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as yoValidate  from '../modules/sfdx-falcon-validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 
 // Requires

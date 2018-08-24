@@ -331,7 +331,7 @@ export abstract class AppxRecipeEngine {
             }
             this.executeStep(recipeStep, listrExecOptions)
               .then(falconActionResult => {
-                falconActionResult.debugResult('LISTR TASK DEBUG - Promise Resolved', 'LISTR_TASK_DEBUG:');
+                falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Resolved)', 'LISTR_TASK_DEBUG:');
                 this.falconEngineResult.addChild(falconActionResult);
                 observer.complete();
               })
@@ -343,7 +343,7 @@ export abstract class AppxRecipeEngine {
                     `ActionResult (REJECTED)`,
                     SfdxFalconResultType.ACTION
                   );
-                  falconActionResult.debugResult('LISTR TASK DEBUG - Rejected Promise Caught', 'LISTR_TASK_DEBUG:');
+                  falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
                 try {
                   // If ENGINE Result's "bubbleError" is FALSE, call observer.complete() to suppress the error.
                   this.falconEngineResult.addChild(falconActionResult);

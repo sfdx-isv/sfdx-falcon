@@ -23,31 +23,30 @@ import {SfdxFalconResultStatus}       from  '../sfdx-falcon-result';            
 import {SfdxFalconJsonResponse}       from  '../sfdx-falcon-types';             // Why?
 import {validateLocalPath}            from  '../sfdx-falcon-validators';        // Core validation function to check that local path values don't have invalid chars.
 
-//─────────────────────────────────────────────────────────────────────────────┐
-// Enums and Interfaces used to support SFDX-Falcon Commands
-//─────────────────────────────────────────────────────────────────────────────┘
-/*
-export enum SfdxFalconCommandStatus {
-  EXECUTING = 'EXECUTING',
-  SUCCESS   = 'SUCCESS',
-  FAILURE   = 'FAILURE',
-  ERROR     = 'ERROR',
-  WARNING   = 'WARNING',
-  UNKNOWN   = 'UNKNOWN'
-}
-//*/
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @enum        SfdxFalconCommandType
+ * @description Defines the possible types of SFDX-Falcon Commands.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export enum SfdxFalconCommandType {
   APPX_PACKAGE    = 'APPX_PACKAGE',
   APPX_DEMO       = 'APPX_DEMO',
   APPX_EXTENSION  = 'APPX_EXTENSION',
   UNKNOWN         = 'UNKNOWN'
 }
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   SfdxFalconCommandResultDetail
+ * @description Model of the Detail object that should be attached to an SFDX-Falcon COMMAND Result.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface SfdxFalconCommandResultDetail {
   commandName:      string;
   commandType:      SfdxFalconCommandType;
   commandFlags:     any;
   commandArgs:      any;
-//  commandMessage:   string;
   commandExitCode:  number;
   enabledDebuggers: string[];
 }
@@ -112,8 +111,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected falconDebugXlFlag:          boolean       = false;                // Why?
   protected falconDebugErrFlag:         boolean       = false;                // Why?
   protected falconDebugSuccessFlag:     boolean       = false;                // Why?
-  protected falconDebugNsFlag:  Array<string> = new Array<string>();  // Why?
-
+  protected falconDebugNsFlag:          Array<string> = new Array<string>();  // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the baseline set of custom FLAGS used by all SFDX-Falcon commands.
@@ -123,7 +121,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //    --FALCONDEBUGERR        Command should run in ERROR DEBUG mode.
   //    --FALCONDEBUGSUCCESS    Command should run in SUCCESS DEBUG mode.
   //    --FALCONDEBUGDEPTH      Object inspection depth when debug is rendered.
-  //    --FALCONDEBUGNAMESPACES Array of specific Debug namespaces to enable.
+  //    --FALCONDEBUGNS         Array of specific Debug namespaces to enable.
   //───────────────────────────────────────────────────────────────────────────┘
   public static falconBaseflagsConfig = {
     falcondebug: flags.boolean({
@@ -143,7 +141,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       required: false,
       hidden: true,
       type: 'array',
-      default: []
+      default: ''
     },
     falcondebugext: flags.boolean({
       description: baseMessages.getMessage('falcondebugext_FlagDescription'),  
@@ -201,13 +199,21 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.gitRemoteUri               = this.args.GIT_REMOTE_URI      ||  '';
 
     // Read the incoming values for all DEBUG flags.
-    this.falconDebugDepthFlag       = this.flags.falcondebugdepth         ||  2;
-    this.falconDebugFlag            = this.flags.falcondebug              ||  false;
-    this.falconDebugExtFlag         = this.flags.falcondebugext           ||  false;
-    this.falconDebugXlFlag          = this.flags.falcondebugxl            ||  false;
-    this.falconDebugErrFlag         = this.flags.falcondebugerr           ||  false;
-    this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess       ||  false;
-    this.falconDebugNsFlag          = this.flags.falcondebugns.split(',') ||  [];
+    this.falconDebugDepthFlag       = this.flags.falcondebugdepth     ||  2;
+    this.falconDebugFlag            = this.flags.falcondebug          ||  false;
+    this.falconDebugExtFlag         = this.flags.falcondebugext       ||  false;
+    this.falconDebugXlFlag          = this.flags.falcondebugxl        ||  false;
+    this.falconDebugErrFlag         = this.flags.falcondebugerr       ||  false;
+    this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess   ||  false;
+    this.falconDebugNsFlag          = this.flags.falcondebugns        ||  '';
+
+    // Parse the list of Debug Namespaces to build an array.
+    if (this.flags.falcondebugns) {
+      this.falconDebugNsFlag = this.flags.falcondebugns.split(',');
+    }
+    else {
+      this.falconDebugNsFlag = [];
+    }
 
     // Specify the top-level SFDX-Falcon debugger namespaces to enable.
     let enabledDebuggers = new Array<string>();

@@ -15,10 +15,10 @@
 // Imports
 import * as path                      from  'path';                   // Node's path library.
 import {Observable}                   from  'rxjs';                   // Why?
-import {updateObserver}               from  './notification-helper';  // Why?
-import {FalconProgressNotifications}  from  './notification-helper';  // Why?
+import {updateObserver}               from  '../modules/sfdx-falcon-notifications';  // Why?
+import {FalconProgressNotifications}  from  '../modules/sfdx-falcon-notifications';  // Why?
 import {waitASecond}                  from  '../modules/sfdx-falcon-async';         // Why?
-import {readConfigFile}               from  './config-helper';        // Why?
+import {readConfigFile}               from  '../modules/sfdx-falcon-util';        // Why?
 import {executeJsForceCommand}        from  './jsforce-helper';       // Why?
 import {getConnection}                from  './jsforce-helper';       // Why?
 import {changePassword}               from  './jsforce-helper';       // Why?
@@ -27,8 +27,13 @@ import {createSfdxOrgConfig}          from  './jsforce-helper';       // Why?
 import {getProfileId}                 from  './jsforce-helper';       // Why?
 import {getUserId}                    from  './jsforce-helper';       // Why?
 import {JSForceCommandDefinition}     from  './jsforce-helper';       // Why?
-import {getUsernameFromAlias}         from  './sfdx-helper';          // Why?
-import * as sfdxHelper                from  './sfdx-helper'           // Library of SFDX commands.
+import {getUsernameFromAlias}         from  '../modules/sfdx-falcon-util/sfdx';          // Why?
+
+import {createUniqueUsername}         from  '../modules/sfdx-falcon-util';          // Why?
+
+import * as sfdxHelper                from  '../modules/sfdx-falcon-util/sfdx'      // Library of SFDX commands.
+
+import {SfdxCommandDefinition}              from  '../modules/sfdx-falcon-recipe/executors/sfdx';       // Why?
 
 import {SfdxFalconDebug}              from  '../modules/sfdx-falcon-debug';       // Why?
 import {SfdxFalconStatus}             from  '../modules/sfdx-falcon-status';      // Why?
@@ -61,6 +66,7 @@ const uuid                  = require('uuid/v1');                             //
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 async function commandConfigureAdminUser(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
   // Validate Command Options
   if (typeof commandOptions.definitionFile === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'definitionFile'`);
@@ -146,7 +152,7 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
   return `${commandHeader.successMsg}`;
 
 }
-
+//*/
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandCreateScratchOrg
@@ -160,6 +166,7 @@ async function commandConfigureAdminUser(commandContext:FalconCommandContext, co
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 async function commandCreateScratchOrg(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
 
   // Validate Command Options
@@ -167,7 +174,7 @@ async function commandCreateScratchOrg(commandContext:FalconCommandContext, comm
   if (typeof commandOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
 
   // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
     command:      'force:org:create',
     progressMsg:  `Creating scratch org '${commandOptions.scratchOrgAlias}' using ${commandOptions.scratchDefJson} (this can take 3-10 minutes)`,
     errorMsg:     `Failed to create scratch org using ${commandOptions.scratchDefJson}`,
@@ -200,7 +207,7 @@ async function commandCreateScratchOrg(commandContext:FalconCommandContext, comm
   return `${sfdxCommandDef.successMsg}`;
 
 }
-
+*/
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandCreateUser
@@ -320,6 +327,7 @@ async function commandCreateUser(commandContext:FalconCommandContext, commandOpt
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 async function commandDeleteScratchOrg(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
 
   // Validate Command Options
@@ -327,7 +335,7 @@ async function commandDeleteScratchOrg(commandContext:FalconCommandContext, comm
   if (typeof commandOptions.scratchDefJson  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'scratchDefJson'`);
 
   // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
     command:      'force:org:delete',
     progressMsg:  `Marking scratch org '${commandOptions.scratchOrgAlias}' for deletion`,
     errorMsg:     `Request to mark scratch org '${commandOptions.scratchOrgAlias}' for deletion failed`,
@@ -361,7 +369,7 @@ async function commandDeleteScratchOrg(commandContext:FalconCommandContext, comm
   return `${sfdxCommandDef.successMsg}`;
 
 }
-
+*/
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandDeployMetadata
@@ -375,13 +383,14 @@ async function commandDeleteScratchOrg(commandContext:FalconCommandContext, comm
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 async function commandDeployMetadata(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
 
   // Validate Command Options
   if (typeof commandOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
 
   // Create an SfdxCommandDefinition object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
     command:      'force:mdapi:deploy',
     progressMsg:  `Deploying MDAPI source from ${commandOptions.mdapiSource}`,
     errorMsg:     `Deployment failed for MDAPI source '${commandOptions.mdapiSource}'`,
@@ -411,7 +420,7 @@ async function commandDeployMetadata(commandContext:FalconCommandContext, comman
   return `${sfdxCommandDef.successMsg}`;
   
 }
-
+*/
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    commandImportDataTree
@@ -436,7 +445,8 @@ async function commandImportDataTree(commandContext:FalconCommandContext, comman
   //*/
 
   // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
+    observer: null,
     command:      'force:data:tree:import',
     progressMsg:  `Importing data based on ${commandOptions.plan}`,
     errorMsg:     `Data tree import failed for plan ${commandOptions.plan}`,
@@ -479,6 +489,7 @@ async function commandImportDataTree(commandContext:FalconCommandContext, comman
  * @private @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 async function commandInstallPackage(commandContext:FalconCommandContext, commandOptions:any):Promise<any> {
 
   // Validate Command Options
@@ -486,7 +497,8 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
   if (typeof commandOptions.packageVersionId  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'packageVersionId'`);
 
   // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
+    observer:null,
     command:      'force:package:install',
     progressMsg:  `Installing '${commandOptions.packageName}' (${commandOptions.packageVersionId}) in ${commandContext.targetOrgAlias}`,
     errorMsg:     `Installation of package '${commandOptions.packageName}' (${commandOptions.packageVersionId}) failed`,
@@ -518,25 +530,7 @@ async function commandInstallPackage(commandContext:FalconCommandContext, comman
   return `${sfdxCommandDef.successMsg}`;
   
 }
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    createUniqueUsername
- * @param       {string}  baseUsername  The starting point for the username.  It should already be
- *                                      in the form of an email, eg 'name@domain.org'.
- * @returns     {string}  Returns the baseUsername with a pseudo-uuid appended to the end.
- * @description Given a base username to start with (eg. 'name@domain.org'), returns what should be
- *              a globally unique username with a pseudo-uuid appended the end of the username base.
- * @version     1.0.0
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function createUniqueUsername(baseUsername:string):string {
-  let usernameMaxLength = 35;
-  if (typeof baseUsername === 'undefined') throw new Error(`ERROR_INVALID_ARGUMENT: Expected a value for baseUsername but got undefined`);
-  if (baseUsername.length > usernameMaxLength) throw new Error(`ERROR_USERNAME_LENGTH: Username can not be longer than ${usernameMaxLength} chars to keep room for appending a UUID`);
-  return baseUsername + uuid();
-}
+//*/
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -596,7 +590,7 @@ async function commandXXXXXX(commandContext:FalconCommandContext, commandOptions
   if (typeof commandOptions.xxxx === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'xxxx'`);
 
   // Create an SfdxCommand object to define which command will run.
-  let sfdxCommandDef:sfdxHelper.SfdxCommandDefinition = {
+  let sfdxCommandDef:SfdxCommandDefinition = {
     command:      'force:xxxx:xxxx',
     progressMsg:  `Doing something with ${commandOptions.xxxx}`,
     errorMsg:     `Something went wrong with ${commandOptions.xxxx}`,

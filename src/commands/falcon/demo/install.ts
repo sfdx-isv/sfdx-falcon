@@ -19,8 +19,6 @@ import * as path                      from  'path';                 // Helps res
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
-import {SfdxFalconResult}             from  '../../../modules/sfdx-falcon-result';
-import {SfdxFalconResultType}         from  '../../../modules/sfdx-falcon-result';
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
