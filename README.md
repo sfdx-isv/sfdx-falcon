@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.3 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.4 darwin-x64 node-v8.9.4
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -56,7 +56,7 @@ EXAMPLES
   $ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix
 ```
 
-_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/config/interview.ts)_
+_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/config/interview.ts)_
 
 ## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`
 
@@ -93,7 +93,7 @@ EXAMPLES
                            --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/clone.ts)_
+_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/demo/clone.ts)_
 
 ## `sfdx-falcon falcon:demo:create`
 
@@ -123,7 +123,7 @@ EXAMPLES
   $ sfdx falcon:demo:create --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/create.ts)_
+_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/demo/create.ts)_
 
 ## `sfdx-falcon falcon:demo:install`
 
@@ -163,7 +163,7 @@ EXAMPLES
                              --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/demo/install.ts)_
+_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/demo/install.ts)_
 
 ## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
 
@@ -198,7 +198,7 @@ EXAMPLES
                               --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/project/clone.ts)_
+_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/project/clone.ts)_
 
 ## `sfdx-falcon falcon:project:create`
 
@@ -228,7 +228,7 @@ EXAMPLES
   $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.3/src/commands/falcon/project/create.ts)_
+_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/project/create.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->
 # Debugging your plugin

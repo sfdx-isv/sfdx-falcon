@@ -29,6 +29,10 @@ import {InstallPackageAction}     from '../appx/actions/install-package';       
 import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';                   // Why?
 import {ConfigureAdminUserAction} from '../appx/actions/configure-admin-user';              // Why?
 
+import {CreateUserAction}         from '../appx/actions/create-user';                       // Why?
+import {ImportDataTreeAction}     from '../appx/actions/import-data-tree';                  // Why?
+
+
 // Local Helpers
 import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
 import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
@@ -379,6 +383,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     this.actionExecutorMap.set('install-package',       new InstallPackageAction());
     this.actionExecutorMap.set('configure-admin-user',  new ConfigureAdminUserAction());
 
+    this.actionExecutorMap.set('create-user',           new CreateUserAction());
+    this.actionExecutorMap.set('import-data-tree',      new ImportDataTreeAction());
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
