@@ -18,7 +18,7 @@ const chalk = require('chalk'); // Why?
 const util  = require('util');  // Why?
 
 // Set the File Local Debug Namespace and Class Name
-const dbgNs     = 'FALCON_RESULT:';
+const dbgNs     = 'MODULE:sfdx-falcon-result:';
 const clsDbgNs  = 'SfdxFalconResult:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

@@ -21,7 +21,7 @@ import {AppxEngineActionContext}    from  '../../appx';                     // I
 import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'action:delete-scratch-org:';
+const dbgNs     = 'ACTION:delete-scratch-org:';
 const clsDbgNs  = 'DeleteScratchOrgAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

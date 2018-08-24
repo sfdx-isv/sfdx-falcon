@@ -21,7 +21,7 @@ import {SfdxFalconResultStatus}     from  '../sfdx-falcon-result';            //
 
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'sfdx-falcon-project:';
+const dbgNs     = 'PROJECT:sfdx-falcon-project:';
 const clsDbgNs  = 'SfdxFalconProject:';
 
 //─────────────────────────────────────────────────────────────────────────────┐

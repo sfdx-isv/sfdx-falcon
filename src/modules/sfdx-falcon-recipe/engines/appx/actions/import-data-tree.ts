@@ -27,7 +27,7 @@ import {AppxEngineActionContext}    from  '../../appx';                     // I
 import {SfdxFalconActionType}       from  '../../../types/';                // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'action:import-data-tree:';
+const dbgNs     = 'ACTION:import-data-tree:';
 const clsDbgNs  = 'ImportDataTreeAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

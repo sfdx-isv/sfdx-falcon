@@ -22,7 +22,7 @@ import {SfdxFalconActionType}       from  '../../../types';                   //
 import {AppxEngineActionContext}    from  '../../../engines/appx';            // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'appx-engine-action:';
+const dbgNs     = 'ACTION:appx-engine-action:';
 const clsDbgNs  = 'AppxEngineAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

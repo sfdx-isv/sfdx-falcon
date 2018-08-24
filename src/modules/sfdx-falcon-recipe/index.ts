@@ -24,7 +24,7 @@ import {AppxRecipeEngine}               from  './engines/appx';                 
 import {RecipeType}                     from  './types';                            // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'sfdx-falcon-recipe:';
+const dbgNs     = 'RECIPE:sfdx-falcon-recipe:';
 const clsDbgNs  = 'SfdxFalconRecipe:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

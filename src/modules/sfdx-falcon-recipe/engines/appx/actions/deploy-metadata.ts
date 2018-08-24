@@ -24,7 +24,7 @@ import {AppxEngineActionContext}    from  '../../appx';                     // I
 import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'action:deploy-metadata:';
+const dbgNs     = 'ACTION:deploy-metadata:';
 const clsDbgNs  = 'DeployMetadataAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

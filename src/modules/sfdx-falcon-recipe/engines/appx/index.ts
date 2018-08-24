@@ -33,7 +33,7 @@ const Listr                 = require('listr');                                 
 const FalconUpdateRenderer  = require('falcon-listr-update-renderer');            // Custom renderer for Listr
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'RecipeEngine:appx:';
+const dbgNs     = 'ENGINE:appx:';
 const clsDbgNs  = 'AppxRecipeEngine:';
 
 //─────────────────────────────────────────────────────────────────────────────┐
