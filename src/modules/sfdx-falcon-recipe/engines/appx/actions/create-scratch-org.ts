@@ -11,12 +11,13 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as path                    from  'path';                           // Module. Node's path library.
+
 // Import Local Modules
-import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
+
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
+
 // Engine/Action Imports
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
@@ -51,7 +52,7 @@ export class CreateScratchOrgAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
     this.actionName       = 'create-scratch-org';
-    this.command          = 'force:org:create';
+    this.executorName     = 'sfdx:executeSfdxCommand';
     this.description      = 'Create Scratch Org';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -92,17 +93,35 @@ export class CreateScratchOrgAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconResult> {
 
-    // Set the progress, error, and success messages for this action execution.
-    this.progressMessage  = `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`;
-    this.errorMessage     = `Failed to create scratch org using ${actionOptions.scratchDefJson}`;
-    this.successMessage   = `Scratch org '${actionOptions.scratchOrgAlias}' created successfully using ${actionOptions.scratchDefJson}`;
+    // Get an SFDX-Falcon Result that's customized for this Action.
+    let actionResult = this.createActionResult(
+      actionContext, actionOptions,
+      { startNow:       true,
+        bubbleError:    true,
+        bubbleFailure:  true});
+    // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
+    actionResult.detail = {...{
+      executorName:       this.executorName,
+      executorMessages:   null,
+      sfdxCommandDef:     null
+    }};
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+
+    // Define the messages that are relevant to this Action
+    let executorMessages = {
+      progressMsg:  `Creating scratch org '${actionOptions.scratchOrgAlias}' using ${actionOptions.scratchDefJson} (this can take 3-10 minutes)`,
+      errorMsg:     `Failed to create scratch org using ${actionOptions.scratchDefJson}`,
+      successMsg:   `Scratch org '${actionOptions.scratchOrgAlias}' created successfully using ${actionOptions.scratchDefJson}`
+    }
+    actionResult.detail.executorMessages = executorMessages;
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
-    this.sfdxCommandDef = {
-      command:      this.command,
-      progressMsg:  this.progressMessage,
-      errorMsg:     this.errorMessage,
-      successMsg:   this.successMessage,
+    let sfdxCommandDef = {
+      command:      'force:org:create',
+      progressMsg:  executorMessages.progressMsg,
+      errorMsg:     executorMessages.errorMsg,
+      successMsg:   executorMessages.successMsg,
       observer:     actionContext.listrExecOptions.observer,
       commandArgs:  new Array<string>(),
       commandFlags: {
@@ -117,32 +136,17 @@ export class CreateScratchOrgAction extends AppxEngineAction {
         FLAG_LOGLEVEL:              actionContext.logLevel
       }
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.sfdxCommandDef, `${clsDbgNs}executeAction:sfdxCommandDef: `);
+    actionResult.detail.sfdxCommandDef = sfdxCommandDef;
+    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction`);
 
-    // Get an SFDX-Falcon Result that's customized for this Action.
-    let falconActionResult = this.createActionResult(actionContext, actionOptions,       
-                                                    { startNow:       true,
-                                                      bubbleError:    true,
-                                                      bubbleFailure:  true});
-
-    // Run the executor then return or throw the result. If you want to override error handling, do it here.
-    return await executeSfdxCommand(this.sfdxCommandDef)
-      .then(falconExecutorResult => {
-
-        // OPTIONAL: If you want to implement custom SUCCESS/FAILURE/WARNING/UNKNOWN logic, do it here.
-
-        // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
-        return falconActionResult.addChild(falconExecutorResult);
+    // Run the executor then return or throw the result. 
+    // OPTIONAL: If you want to override success/error handling, do it here.
+    return await executeSfdxCommand(sfdxCommandDef)
+      .then(executorResult => {
+        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       })
-      .catch(falconExecutorResult  => {
-
-        // OPTIONAL: If you want to add additional ERROR handling behavior, do it here.
-
-        // Make sure any rejected promises are wrapped as an ERROR Result.
-        falconExecutorResult = SfdxFalconResult.wrapRejectedPromise(falconExecutorResult, 'ExecutorResult (REJECTED)', SfdxFalconResultType.EXECUTOR);
-        
-        // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
-        return falconActionResult.addChild(falconExecutorResult);
+      .catch(executorResult => {
+        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       });
   }
 }

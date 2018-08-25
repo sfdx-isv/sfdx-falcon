@@ -10,17 +10,19 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {readConfigFile}               from  '../../../../sfdx-falcon-util';   // Function. Reads a JSON config file from disk and returns as JS Object.
 import {SfdxFalconResult}             from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultType}         from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
+
 // Executor Imports
 import {createUser}                   from  '../../../executors/hybrid';  // Function. Hybrid executor
+
 // Engine/Action Imports
 import {AppxEngineAction}             from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}      from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
 import {SfdxFalconActionType}         from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
+
 // Import Utility Functions
 import {createUniqueUsername}         from  '../../../../sfdx-falcon-util'; // Function. Adds a UUID to a username to create something unique.
+import {readConfigFile}               from  '../../../../sfdx-falcon-util';   // Function. Reads a JSON config file from disk and returns as JS Object.
 
 
 // Set the File Local Debug Namespace
@@ -52,7 +54,7 @@ export class CreateUserAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDC_API;
     this.actionName       = 'create-user';
-    this.command          = 'FALCON_INTERNAL:create-user';
+    this.executorName     = 'hybrid:createUser';
     this.description      = 'Create User';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -101,10 +103,11 @@ export class CreateUserAction extends AppxEngineAction {
         bubbleFailure:  true});
     // Add additional DETAIL for this Result (beyond what is added by createActionResult().
     actionResult.detail = {...{
+      executorName:       this.executorName,
+      executorMessages:   null,
       userDefinition:     null,
       uniqueUsername:     null,
-      defaultPassword:    null,
-      executorMessages:   null
+      defaultPassword:    null
     }};
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
 
@@ -133,29 +136,16 @@ export class CreateUserAction extends AppxEngineAction {
     actionResult.detail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
   
-    // Run the executor then return or throw the result. If you want to override error handling, do it here.
+    // Run the executor then return or throw the result. 
+    // OPTIONAL: If you want to override success/error handling, do it here.
     return await createUser( uniqueUsername, defaultPassword, userDefinition, 
                                 actionContext.targetOrg, executorMessages, 
                                 actionContext.listrExecOptions.observer)
       .then(executorResult => {
-
-        actionResult.debugResult(`Executor Promise Resolved`, `${dbgNs}executeAction`);
-
-        // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
-        return actionResult.addChild(executorResult);
+        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       })
-      .catch(executorResult  => {
-
-        actionResult.debugResult(`Executor Promise Rejected`, `${dbgNs}executeAction`);
-
-        // Make sure any rejected promises are wrapped as an ERROR Result.
-        executorResult = SfdxFalconResult.wrapRejectedPromise(executorResult, 'hybrid:createUser', SfdxFalconResultType.EXECUTOR);
-        
-        // Debug the rejected and wrapped EXECUTOR Result
-        executorResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
-
-        // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
-        return actionResult.addChild(executorResult);
+      .catch(executorResult => {
+        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       });
   }
 }

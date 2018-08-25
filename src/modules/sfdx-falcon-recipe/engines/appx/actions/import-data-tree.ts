@@ -14,9 +14,7 @@
 import * as path                    from  'path';                           // Module. Node's path library.
 
 // Import Local Modules
-import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Class. Internal Debug module
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
 
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
@@ -55,7 +53,7 @@ export class ImportDataTreeAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
     this.actionName       = 'import-data-tree';
-    this.command          = 'force:data:tree:import';
+    this.executorName     = 'sfdx:executeSfdxCommand';
     this.description      = 'Import Data Tree';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -107,21 +105,27 @@ export class ImportDataTreeAction extends AppxEngineAction {
         bubbleFailure:  true});
     // Add additional DETAIL for this Result (beyond what is added by createActionResult().
     actionResult.detail = {...{
+      executorName:       this.executorName,
+      executorMessages:   null,
       sfdxCommandDef:     null
     }};
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);    
 
-    // Set the progress, error, and success messages for this action execution.
-    this.progressMessage  = `Importing data based on ${actionOptions.plan}`;
-    this.errorMessage     = `Data tree import failed for plan ${actionOptions.plan}`;
-    this.successMessage   = `Data tree import succeeded for plan '${actionOptions.plan}'`;
+    // Define the messages that are relevant to this Action
+    let executorMessages = {
+      progressMsg:  `Importing data based on ${actionOptions.plan}`,
+      errorMsg:     `Data tree import failed for plan ${actionOptions.plan}`,
+      successMsg:   `Data tree import succeeded for plan '${actionOptions.plan}'`  
+    }
+    actionResult.detail.executorMessages = executorMessages;
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
-    this.sfdxCommandDef = {
-      command:      this.command,
-      progressMsg:  this.progressMessage,
-      errorMsg:     this.errorMessage,
-      successMsg:   this.successMessage,
+    let sfdxCommandDef = {
+      command:      'force:data:tree:import',
+      progressMsg:  executorMessages.progressMsg,
+      errorMsg:     executorMessages.errorMsg,
+      successMsg:   executorMessages.successMsg,
       observer:     actionContext.listrExecOptions.observer,
       commandArgs:  new Array<string>(),
       commandFlags: {
@@ -132,30 +136,17 @@ export class ImportDataTreeAction extends AppxEngineAction {
         FLAG_LOGLEVEL:        actionContext.logLevel
       }
     }
-    actionResult.detail.sfdxCommandDef = this.sfdxCommandDef;
+    actionResult.detail.sfdxCommandDef = sfdxCommandDef;
     actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction`);    
 
-    // Run the executor then return or throw the result. If you want to override error handling, do it here.
-    return await executeSfdxCommand(this.sfdxCommandDef)
+    // Run the executor then return or throw the result. 
+    // OPTIONAL: If you want to override success/error handling, do it here.
+    return await executeSfdxCommand(sfdxCommandDef)
       .then(executorResult => {
-
-        actionResult.debugResult(`Executor Promise Resolved`, `${dbgNs}executeAction`);
-
-        // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
-        return actionResult.addChild(executorResult);
+        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       })
-      .catch(executorResult  => {
-
-        actionResult.debugResult(`Executor Promise Rejected`, `${dbgNs}executeAction`);
-
-        // Make sure any rejected promises are wrapped as an ERROR Result.
-        executorResult = SfdxFalconResult.wrapRejectedPromise(executorResult, 'sfdx:executeSfdxCommand', SfdxFalconResultType.EXECUTOR);
-        
-        // Debug the rejected and wrapped EXECUTOR Result
-        executorResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
-
-        // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
-        return actionResult.addChild(executorResult);
+      .catch(executorResult => {
+        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       });
   }
 }

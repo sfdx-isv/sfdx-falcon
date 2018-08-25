@@ -15,8 +15,9 @@ import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';    //
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result';   // Why?
 import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result';   // Why?
 import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result';   // Why?
+
 // Executor Imports
-import {SfdxCommandDefinition}      from  '../../../executors/sfdx';          // Why?
+
 // Engine/Action Imports
 import {SfdxFalconActionType}       from  '../../../types';                   // Enum. Represents types of SfdxFalconActions.
 import {AppxEngineActionContext}    from  '../../../engines/appx';            // Why?
@@ -39,17 +40,10 @@ export abstract class AppxEngineAction {
   protected actionName:       string;                     // Why?
   protected actionType:       SfdxFalconActionType;       // Why?
   protected description:      string;                     // Why?
-  protected command:          string;                     // Why?
+  protected executorName:     string;                     // Why?
   protected successDelay:     number;                     // Why?
   protected errorDelay:       number;                     // Why?
   protected progressDelay:    number;                     // Why?
-  protected progressMessage:  string;                     // Basic progress message (defined inside execute)
-  protected successMessage:   string;                     // Basic success message (defined inside execute)
-  protected errorMessage:     string;                     // Basic error message (defined inside execute)
-  protected sfdxCommandDef:   SfdxCommandDefinition;      // Holds the command definition when executing Salesforce CLI commands.
-  protected jsfCommandDef:    any;                        // Holds the command definition for a JSForce command.
-  protected shellCommandDef:  any;                        // Placeholder (Why?)
-  protected anyCliCommandDef: any;                        // Placeholder (Why?)
 
   // Abstract methods
   protected async abstract  executeAction(actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconResult>;
@@ -70,16 +64,10 @@ export abstract class AppxEngineAction {
     this.actionName       = 'unspecified-action';
     this.actionType       = SfdxFalconActionType.UNSPECIFIED;
     this.description      = 'Unspecified Action';
+    this.executorName     = 'Unspecified Executor';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
-    this.progressMessage  = `Executing ${this.actionName}`;
-    this.errorMessage     = `Error while executing ${this.actionName}`;
-    this.successMessage   = `Successfully executed ${this.actionName}`;
-    this.sfdxCommandDef   = null;
-    this.jsfCommandDef    = null;
-    this.shellCommandDef  = null;
-    this.anyCliCommandDef = null;
   
     // Give the child class the chance to initialize over the defaults
     this.initializeAction();
@@ -114,7 +102,6 @@ export abstract class AppxEngineAction {
     falconActionResult.setDetail({
       actionType:     this.actionType,
       actionName:     this.actionName,
-      command:        this.command,
       description:    this.description,
       actionContext:  actionContext,
       actionOptions:  actionOptions
@@ -161,6 +148,82 @@ export abstract class AppxEngineAction {
 
     // Return whatever was put together by the onSuccess() method.
     return falconActionResult;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      handleRejectedExecutor
+   * @param       {any} rejectedExecutorResult Required. The result that was 
+   *              passed back as part of an EXECUTOR's Rejected Promise.
+   * @param       {SfdxFalconResult} actionResult Required. The ACTION Result
+   *              that owns the call to the EXECUTOR.
+   * @param       {string}  executorName  Required. Used to create a new 
+   *              SfdxFalconResult if the Rejected Promise did not return an
+   *              existing SfdxFalconResult.
+   * @param       {string}  debugNamespace  Required. Debug namespace of the 
+   *              child class.
+   * @returns     {SfdxFalconResult}  Returns the ACTION result that was passed
+   *              in.  This way the return value of this function can be passed
+   *              immediately up the call stack.
+   * @description Given the data from a REJECTED PROMISE returned from a call to
+   *              an EXECUTOR, ensures that the response is wrapped as an SFDX-
+   *              Falcon Result and then added to the child array of the specified
+   *              ACTION Result.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected handleRejectedExecutor(rejectedExecutorResult:any, actionResult:SfdxFalconResult, executorName:string, debugNamespace:string):SfdxFalconResult {
+
+    // Debug
+    actionResult.debugResult(`Executor Promise Rejected`, `${debugNamespace}handleRejectedExecutor`);
+
+    // Make sure all rejected promises are wrapped as SFDX-Falcon Results.
+    rejectedExecutorResult = SfdxFalconResult.wrapRejectedPromise(rejectedExecutorResult, executorName, SfdxFalconResultType.EXECUTOR);
+    
+    // Debug the rejected and wrapped EXECUTOR Result
+    rejectedExecutorResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${debugNamespace}handleRejectedExecutor`);
+
+    // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
+    return actionResult.addChild(rejectedExecutorResult);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      handleResolvedExecutor
+   * @param       {any} resolvedExecutorResult Required. The result that was 
+   *              passed back as part of an EXECUTOR's Resolved Promise.
+   * @param       {SfdxFalconResult} actionResult Required. The ACTION Result
+   *              that owns the call to the EXECUTOR.
+   * @param       {string}  executorName  Required. Used to create a new 
+   *              SfdxFalconResult if the Resolved Promise did not return an
+   *              existing SfdxFalconResult.
+   * @param       {string}  debugNamespace  Required. Debug namespace of the 
+   *              child class.
+   * @returns     {SfdxFalconResult}  Returns the ACTION result that was passed
+   *              in.  This way the return value of this function can be passed
+   *              immediately up the call stack.
+   * @description Given the data from a RESOLVED PROMISE returned from a call to
+   *              an EXECUTOR, ensures that the response is wrapped as an SFDX-
+   *              Falcon Result and then added to the child array of the specified
+   *              ACTION Result.
+   * @version     1.0.0
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected handleResolvedExecutor(resolvedExecutorResult:any, actionResult:SfdxFalconResult, executorName:string, debugNamespace:string):SfdxFalconResult {
+
+    // Debug
+    actionResult.debugResult(`Executor Promise Resolved`, `${debugNamespace}handleResolvedExecutor`);
+
+    // Make sure all resolved promises are wrapped as SFDX-Falcon Results.
+    resolvedExecutorResult = SfdxFalconResult.wrap(resolvedExecutorResult, executorName, SfdxFalconResultType.EXECUTOR);
+    
+    // Debug the Resolved and Wrapped EXECUTOR Result
+    resolvedExecutorResult.debugResult(`Resolved Executor Result`, `${debugNamespace}handleResolvedExecutor`);
+
+    // Add the EXECUTOR result as a child of the ACTION Result, then return the ACTION Result.
+    return actionResult.addChild(resolvedExecutorResult);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -239,15 +302,15 @@ export abstract class AppxEngineAction {
   private resetActionState(actionContext:AppxEngineActionContext, actionOptions:any={}):void {
 
     // Clear out any previous Command Definitions
-    this.anyCliCommandDef = {};
-    this.jsfCommandDef    = {};
-    this.sfdxCommandDef   = <SfdxCommandDefinition>{};
-    this.shellCommandDef  = {};
+    //this.anyCliCommandDef = {};
+    //this.jsfCommandDef    = {};
+    //this.sfdxCommandDef   = <SfdxCommandDefinition>{};
+    //this.shellCommandDef  = {};
 
     // Clear out any previous messages
-    this.progressMessage  = '';
-    this.errorMessage     = '';
-    this.successMessage   = '';
+    //this.progressMessage  = '';
+    //this.errorMessage     = '';
+    //this.successMessage   = '';
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

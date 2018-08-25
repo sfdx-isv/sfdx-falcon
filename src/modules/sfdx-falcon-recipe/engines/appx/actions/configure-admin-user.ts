@@ -10,17 +10,19 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {readConfigFile}               from  '../../../../sfdx-falcon-util';   // Function. Reads a JSON config file from disk and returns as JS Object.
 import {SfdxFalconResult}             from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultType}         from  '../../../../sfdx-falcon-result'; // Enum. Represents types of SfdxFalconResults.
+
 // Executor Imports
 import {configureUser}                from  '../../../executors/hybrid';  // Function. Hybrid executor
+
 // Engine/Action Imports
 import {AppxEngineAction}             from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}      from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
 import {SfdxFalconActionType}         from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
+
 // Import Utility Functions
 import {getUsernameFromAlias}         from  '../../../../sfdx-falcon-util/sfdx';  // Function. SFDX Executor for getting the username associated with an Org Alias.
+import {readConfigFile}               from  '../../../../sfdx-falcon-util';       // Function. Reads a JSON config file from disk and returns as JS Object.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:configure-admin-user:';
@@ -51,7 +53,7 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDC_API;
     this.actionName       = 'configure-admin-user';
-    this.command          = 'FALCON_INTERNAL:configure-admin-user';
+    this.executorName     = 'hybrid:configureUser';
     this.description      = 'Configure Admin User';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -97,11 +99,12 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       { startNow:       true,
         bubbleError:    true,
         bubbleFailure:  true});
-    // Add additional DETAIL for this Result (beyond what is added by createActionResult().
+    // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
     actionResult.detail = {...{
+      executorName:       this.executorName,
+      executorMessages:   null,
       userDefinition:     null,
-      adminUsername:      null,
-      executorMessages:   null
+      adminUsername:      null
     }};
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
 
@@ -117,7 +120,7 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     actionResult.detail.adminUsername = adminUsername;
     actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction`);
 
-    // Define the messages for this command.
+    // Define the messages that are relevant to this Action
     let executorMessages = {
       progressMsg:  `Configuring user '${adminUsername}' in ${actionContext.targetOrg.alias}`,
       errorMsg:     `Failed to configure user '${adminUsername}' in ${actionContext.targetOrg.alias}`,
@@ -126,29 +129,16 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     actionResult.detail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
-    // Run the executor then return or throw the result. If you want to override error handling, do it here.
+    // Run the executor then return or throw the result. 
+    // OPTIONAL: If you want to override success/error handling, do it here.
     return await configureUser( adminUsername, userDefinition, 
                                 actionContext.targetOrg, executorMessages, 
                                 actionContext.listrExecOptions.observer)
       .then(executorResult => {
-
-        actionResult.debugResult(`Executor Promise Resolved`, `${dbgNs}executeAction`);
-
-        // Add the EXECUTOR result as a child of this function's ACTION Result, then return the ACTION Result.
-        return actionResult.addChild(executorResult);
+        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       })
-      .catch(executorResult  => {
-
-        actionResult.debugResult(`Executor Promise Rejected`, `${dbgNs}executeAction`);
-
-        // Make sure any rejected promises are wrapped as an ERROR Result.
-        executorResult = SfdxFalconResult.wrapRejectedPromise(executorResult, 'hybrid:configureUser', SfdxFalconResultType.EXECUTOR);
-        
-        // Debug the rejected and wrapped EXECUTOR Result
-        executorResult.debugResult(`Rejected Promise Wrapped as SFDX-Falcon Error`, `${dbgNs}executeAction`);
-
-        // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
-        return actionResult.addChild(executorResult);
+      .catch(executorResult => {
+        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
       });
   }
 }
