@@ -18,7 +18,7 @@ import * as Generator   from  'yeoman-generator';                               
 import * as uxHelper      from  '../modules/sfdx-falcon-util/ux';                     // Library of UX Helper functions specific to SFDX-Falcon.
 import * as gitHelper     from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as sfdxHelper    from  '../modules/sfdx-falcon-util/sfdx';                   // Library of SFDX Helper functions specific to SFDX-Falcon.
-import * as yoHelper      from  '../modules/sfdx-falcon-yeoman-command/yeoman-helper';                           // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoHelper      from  '../modules/sfdx-falcon-util/yeoman';                 // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as yoValidate    from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import {SfdxFalconStatus} from  '../modules/sfdx-falcon-status';                      // Class. Provides ability to track what the Yeoman process is doing.
 

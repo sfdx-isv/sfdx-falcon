@@ -11,25 +11,53 @@
  * @description   Exports functions that make working with Yeoman a little bit easier.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
+// Import External Modules
 import  * as path             from 'path';                                // Node's path library.
+
+// Import Local Modules
+import  {SfdxFalconDebug}     from '../../modules/sfdx-falcon-debug';     // Class. Provides a system for sending debug info to the console.
+
+// Import Utility Functions/Types
 import  {SfdxOrgInfo}         from '../../modules/sfdx-falcon-util/sfdx'; // Used to build the YeomanChoice array for org lists.
 import  {StatusMessage}       from '../../modules/sfdx-falcon-util/ux';   // Standard SFDX-Falcon Status Message type.
 import  {printStatusMessages} from '../../modules/sfdx-falcon-util/ux';   // Utility function to print an array of Status Messages.
 
 // Requires
-const debug   = require('debug')('yeoman-helper');      // Utility for debugging. set debug.enabled = true to turn on.
-const pad     = require('pad');                         // Provides consistent spacing when trying to align console output.
+const pad = require('pad');   // Provides consistent spacing when trying to align console output.
 
-// Interfaces
+// Set the File Local Debug Namespace
+const dbgNs     = 'UTILITY:yeoman:';
+const clsDbgNs  = '';
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   YeomanAnswerHash
+ * @description Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface YeomanAnswerHash {
   [key: string]: any;  
 }
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ConfirmationAnswers
+ * @description Represents what an answers hash should look like during Yeoman/Inquirer interactions
+ *              where the user is being asked to proceed/retry/abort something.
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface ConfirmationAnswers {
   proceed:  boolean;
   restart:  boolean;
   abort:    boolean;
 }
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   YeomanChoice
+ * @description Represents a Yeoman/Inquirer choice object.
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface YeomanChoice {
   name:       string;
   value:      string;
@@ -37,40 +65,48 @@ export interface YeomanChoice {
   type?:      string;
   line?:      string;
 }
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   YeomanCheckboxChoice
+ * @description Represents a "checkbox choice" in Yeoman/Inquirer.
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface YeomanCheckboxChoice extends YeomanChoice {
   key?:       string;
   checked?:   boolean;
   disabled?:  boolean|string|YeomanChoiceDisabledFunction;
 }
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   YeomanChoiceDisabledFunction
+ * @description Represents the function signature for a "Disabled" function.
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface YeomanChoiceDisabledFunction {
   (answers:any):boolean|string
 }
-
-
-
-
-//─────────────────────────────────────────────────────────────────────────────┐
-// Initialize debug settings.  These should be set FALSE to give the caller
-// control over whether or not debug output is generated.
-//─────────────────────────────────────────────────────────────────────────────┘
-debug.enabled = false;
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       YeomanSeparator
  * @access      public
  * @version     1.0.0
- * @summary     ????
- * @description ????
+ * @summary     Separator object for use when creating Yeoman Lists. 
+ * @description Separator object for use when creating Yeoman Lists. This is essentially a wrapper
+ *              for an Inquirer Separator since Yeoman uses Inquirer to query the user.
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class YeomanSeparator {
+
   // Class Members
   name:   string;
   value:  string;
   short:  string;
   type:   string;
   line?:  string;
+
   // Constructor
   constructor(separatorLine?:string) {
     this.name   = '';
@@ -88,16 +124,18 @@ export class YeomanSeparator {
  * @class       GeneratorStatus
  * @access      public
  * @version     1.0.0
- * @summary     ????
- * @description ????
+ * @summary     Status tracking object for use with Yeoman Generators.
+ * @description Status tracking object for use with Yeoman Generators.
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class GeneratorStatus {
+
   // Class Members
   aborted:    boolean;
   completed:  boolean;
   running:    boolean;
   messages:   Array<StatusMessage>;
+
   // Constructor
   constructor() {
     this.aborted    = false;
@@ -105,6 +143,7 @@ export class GeneratorStatus {
     this.completed  = false;
     this.messages   = new Array<StatusMessage>();
   }
+
   // Set status to "started"
   public start(statusMessage?:StatusMessage):void {
     if (this.aborted || this.completed) {
@@ -117,6 +156,7 @@ export class GeneratorStatus {
       this.messages.push(statusMessage);
     }
   }
+
   // Set status to "aborted"
   public abort(statusMessage:StatusMessage):void {
     if (this.completed || this.running === false) {
@@ -129,6 +169,7 @@ export class GeneratorStatus {
       this.messages.push(statusMessage);
     }
   }
+
   // Set status to "completed"
   public complete(statusMessages?:[StatusMessage]):void {
     if (this.aborted || this.running === false) {
@@ -143,6 +184,7 @@ export class GeneratorStatus {
       }
     }
   }
+
   // Add a status message
   public addMessage(statusMessage:StatusMessage):void {
     if (typeof statusMessage.title !== 'string') {
@@ -156,24 +198,11 @@ export class GeneratorStatus {
     }
     this.messages.push(statusMessage);
   }
+
   // Print all status messages
   public printStatusMessages():void {
     printStatusMessages(this.messages)
   }
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    setYeomanHelperDebug
- * @param       {boolean} debugStatus Set to TRUE to enable debug inside of yeoman-helper functions
- * @returns     {void}
- * @version     1.0.0
- * @description Sets the value for debug.enabled inside yeoman-helper.  Set TRUE to turn debug
- *              output on. Set FALSE to suppress debug output.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function setYeomanHelperDebug(debugStatus:boolean) {
-  debug.enabled = debugStatus;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -190,9 +219,12 @@ export function setYeomanHelperDebug(debugStatus:boolean) {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function doNotProceed(yeomanAnswerHash) {
-  debug('abortInterview:arguments\n%O\n', arguments);
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}doNotProceed:`, arguments, `${clsDbgNs}arguments: `);
+
   if (typeof yeomanAnswerHash.proceed !== 'boolean') {
-    throw new Error('ERRROR_INVALID_TYPE');
+    throw new Error(`ERRROR_INVALID_TYPE:  Expected boolean but got type '${typeof yeomanAnswerHash.proceed}'`);
   }
   return ! yeomanAnswerHash.proceed;
 }
@@ -200,20 +232,21 @@ export function doNotProceed(yeomanAnswerHash) {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    abortInterview
- * @param       {YeomanAnswerHash}  yeomanAnswerHash Provided automatically when
- *                                  Yeoman calls the function specified by the
- *                                  "when" property in a Question object.
- * @returns     {boolean}           Returns TRUE if an answer named "abort" in
- *                                  the answer hash is set to TRUE.
+ * @param       {YeomanAnswerHash}  yeomanAnswerHash Provided automatically when Yeoman calls the
+ *              function specified by the "when" property in a Question object.
+ * @returns     {boolean} Returns TRUE if an answer named "abort" in the answer hash is set to TRUE.
  * @version     1.0.0
- * @description This checks if the "abort" flag has been set to TRUE either
- *              before or during the Interview.
+ * @description Checks if the "abort" flag is set to TRUE either before or during the Interview.
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function abortInterview(yeomanAnswerHash) {
-  debug('abortInterview:arguments\n%O\n', arguments);
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}abortInterview:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Tests if the interview should be aborted.
   if (typeof yeomanAnswerHash.abort !== 'boolean') {
-    throw new Error('ERRROR_INVALID_TYPE');
+    throw new Error(`ERRROR_INVALID_TYPE:  Expected boolean but got type '${typeof yeomanAnswerHash.abort}'`);
   }
   return yeomanAnswerHash.abort;
 }
@@ -230,7 +263,11 @@ export function abortInterview(yeomanAnswerHash) {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function createOrgAliasChoice(alias:string, username:string, padLength:number):YeomanChoice {
-  debug('createOrgAliasChoice:arguments\n%O\n', arguments);
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}createOrgAliasChoice:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Build an OrgAliasChoice as a YeomanChoice data structure.
   return {
     name:   `${pad(alias, padLength)} -- ${username}`,
     value:  (typeof alias !== 'undefined' && alias !== '') 
@@ -254,9 +291,13 @@ function createOrgAliasChoice(alias:string, username:string, padLength:number):Y
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function buildOrgAliasChoices(sfdxOrgInfos:Array<SfdxOrgInfo>):Array<YeomanChoice> {
-  debug('buildOrgAliasChoices:arguments\n%O\n', arguments);
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:`, arguments, `${clsDbgNs}arguments: `);
+
   // Create local var to build the YeomanChoice array.
   let orgAliasChoices = new Array<YeomanChoice>();
+
   // Calculate the length of the longest Alias
   let longestAlias = 0;
   for (let orgInfo of sfdxOrgInfos) {
@@ -264,12 +305,14 @@ export function buildOrgAliasChoices(sfdxOrgInfos:Array<SfdxOrgInfo>):Array<Yeom
       longestAlias = Math.max(orgInfo.alias.length, longestAlias);
     }
   }
+
   // Iterate over the array of sfdxOrgInfos and then call createOrgAliasChoice
   // and push each one onto the orgAliasChoices array.
   for (let orgInfo of sfdxOrgInfos) {
     orgAliasChoices.push(createOrgAliasChoice(orgInfo.alias, orgInfo.username, longestAlias));
   }
-  debug(`buildOrgAliasChoices:orgAliasChoices:\n%O\n`, orgAliasChoices);
+  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:`, orgAliasChoices, `${clsDbgNs}orgAliasChoices: `);
+
   // All done.
   return orgAliasChoices;
 }
@@ -286,32 +329,11 @@ export function buildOrgAliasChoices(sfdxOrgInfos:Array<SfdxOrgInfo>):Array<Yeom
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function filterLocalPath(localPath:string):string {
-  // Begin with Input Debug & Validation
-  debug(`filterLocalPath:arguments\n%O\n`, arguments);
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}filterLocalPath:`, arguments, `${clsDbgNs}arguments: `);
   if (typeof localPath !== 'string') {
-    throw new TypeError('ERROR_UNEXPECTED_TYPE');
+    throw new TypeError(`ERROR_UNEXPECTED_TYPE: Expected string but got type '${typeof localPath}'`);
   }
   // Return a resolved version of localPath.
   return path.resolve(localPath);
 }
-
-
-
-
-
-
-
-// Comment templates
-
-
-//─────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    scanConnectedOrgs
- * @returns     {Promise<any>}  ???? with both resolve()
- *                              and reject() paths.
- * @version     1.0.0
- * @description Calls force:org:list via an async shell command, then creates
- *              an array of SfdxOrgInfo objects by parsing the JSON response
- *              returned by the CLI command.
- */
-//─────────────────────────────────────────────────────────────────────────────┘

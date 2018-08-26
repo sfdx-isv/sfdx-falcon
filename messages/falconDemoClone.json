@@ -1,6 +1,4 @@
 {
   "commandDescription"          : "Clones an SFDX-Falcon project from a remote Git repository.",
-  "gitRemoteUri_ArgDescription" : "URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)",
-  "outputdir_FlagDescription"   : "Directory to clone the AppExchange Demo Kit (ADK) project into",
-  "gitCloneDir_ArgDescription"  : "Directory name of the cloned repository (defaults to repo name if not specified)"
+  "outputdir_FlagDescription"   : "Directory to clone the AppExchange Demo Kit (ADK) project into"
 }

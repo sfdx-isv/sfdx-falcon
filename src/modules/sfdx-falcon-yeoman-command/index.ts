@@ -11,10 +11,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Internal Modules
-import {SfdxFalconCommand}      from  '../sfdx-falcon-command'; // Abstract Class. Custom SFDX-Falcon base class for SFDX Commands.
-import {SfdxFalconCommandType}  from  '../sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
-import {GeneratorStatus}        from  './yeoman-helper';        // Helper object to get status back from Generators after they run.
-import { SfdxFalconResult, SfdxFalconResultType } from '../sfdx-falcon-result';
+import {SfdxFalconCommand}      from  '../sfdx-falcon-command';     // Abstract Class. Custom SFDX-Falcon base class for SFDX Commands.
+import {SfdxFalconCommandType}  from  '../sfdx-falcon-command';     // Enum. Represents the types of SFDX-Falcon Commands.
+import {GeneratorStatus}        from  '../sfdx-falcon-util/yeoman'; // Class. Helps to get status back from Generators after they run.
+import {SfdxFalconResult}       from  '../sfdx-falcon-result';      // Class. Provides a mechanism for sharing data among SFDX-Falcon code structures.
+import {SfdxFalconResultType}   from  '../sfdx-falcon-result';      // Interface. Represents various types of SFDX-Falcon Results.
 
 // Requires
 const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment

@@ -10,36 +10,34 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';                        // Class. Internal Debug module
-import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';                        // Enum. Represents the LogLevel types from the Salesforce CLI.
-import {ListrContext}             from '../../../sfdx-falcon-types';                        // Type. Alias to "any". Used in project to make code easier to read.
+import {SfdxFalconDebug}          from '../../../sfdx-falcon-debug';    // Class. Internal Debug module
+import {SfdxCliLogLevel}          from '../../../sfdx-falcon-types';    // Enum. Represents the LogLevel types from the Salesforce CLI.
+import {ListrContext}             from '../../../sfdx-falcon-types';    // Type. Alias to "any". Used in project to make code easier to read.
 
 // Recipe Imports
-import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';                       // Class. Represents an instance of a valid SFDX-Falcon Recipe.
-import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';                       // Interface. Representation of the JSON schema for an SFDX-Falcon Recipe configuration file.
+import {SfdxFalconRecipe}         from '../../../sfdx-falcon-recipe';   // Class. Represents an instance of a valid SFDX-Falcon Recipe.
+import {SfdxFalconRecipeJson}     from '../../../sfdx-falcon-recipe';   // Interface. Representation of the JSON schema for an SFDX-Falcon Recipe configuration file.
 
 // Recipe Engine Imports
-import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
-import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';          // Why?
+import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx';    // Why?
+import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';    // Why?
 
 // Action Imports (determines what is supported by appx:demo-config engine)
-import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';                // Why?
-import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';                // Why?
-import {InstallPackageAction}     from '../appx/actions/install-package';                   // Why?
-import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';                   // Why?
-import {ConfigureAdminUserAction} from '../appx/actions/configure-admin-user';              // Why?
+import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';          // Why?
+import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';          // Why?
+import {InstallPackageAction}     from '../appx/actions/install-package';             // Why?
+import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';             // Why?
+import {ConfigureAdminUserAction} from '../appx/actions/configure-admin-user';        // Why?
+import {CreateUserAction}         from '../appx/actions/create-user';                 // Why?
+import {ImportDataTreeAction}     from '../appx/actions/import-data-tree';            // Why?
 
-import {CreateUserAction}         from '../appx/actions/create-user';                       // Why?
-import {ImportDataTreeAction}     from '../appx/actions/import-data-tree';                  // Why?
-
-
-// Local Helpers
-import {YeomanChoice}             from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
-import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-yeoman-command/yeoman-helper'; // Why?
+// Import Utility Functions/Types
+import {YeomanChoice}             from '../../../sfdx-falcon-util/yeoman';            // Why?
+import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-util/yeoman';            // Why?
 
 // Requires
-const inquirer  = require('inquirer');                                              // Provides UX for getting feedback from the user.
-const chalk     = require('chalk');                                                 // Why?
+const inquirer  = require('inquirer');    // Provides UX for getting feedback from the user.
+const chalk     = require('chalk');       // Why?
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ENGINE:appx:demo-config:';

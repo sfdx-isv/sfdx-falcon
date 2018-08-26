@@ -3,7 +3,7 @@
  * @file          commands/falcon/demo/install.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Implements the falcon:demo:install CLI command
+ * @summary       Implements the CLI command "falcon:demo:install"
  * @description   Salesforce CLI Plugin command (falcon:demo:install) that is expected to run inside
  *                of a fully-configured AppExchange Demo Kit (ADK) project.  Takes project and local
  *                settings from various JSON config files and uses them to power an Org Build 
@@ -34,7 +34,7 @@ const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall'
 /**
  * @class       FalconDemoInstall
  * @extends     SfdxFalconCommand
- * @summary     Implements the CLI Command falcon:demo:install
+ * @summary     Implements the CLI Command "falcon:demo:install"
  * @description Reads an SFDX-Falcon Recipe (either the one specified as the project default inside
  *              sfdx-project.json or one specified at the command line) and uses the resulting
  *              compiled Recipe to perform a set of tasks that should result in a demo org being

@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          generators/create-falcon-project.ts
+ * @file          generators/create-appx-demo-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
@@ -13,6 +13,8 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// tslint:disable no-floating-promises
+// tslint:disable no-console
 
 // Imports
 import * as path        from  'path';                                                 // Helps resolve local paths at runtime.

@@ -13,7 +13,6 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path                      from  'path';                 // Helps resolve local paths at runtime.
 import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
 
 // Import Internal Types
@@ -28,7 +27,8 @@ const clsDbgNs  = 'FalconDemoClone:';
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
+const baseMessages    = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
+const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -47,7 +47,7 @@ const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoClone');
 export default class FalconDemoClone extends SfdxFalconYeomanCommand {
 
   // Define the basic properties of this CLI command.
-  public static description = messages.getMessage('commandDescription');
+  public static description = commandMessages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git`,
@@ -66,17 +66,18 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the ARGUMENTS used by this command. 
   // Position 1 (GIT_REMOTE_URI)  - URI of the git repository being cloned.
+  // Position 1 (GIT_CLONE_DIR)   - Name of the locally cloned repo directory.
   //───────────────────────────────────────────────────────────────────────────┘
   public static args = [
     {
       name: 'GIT_REMOTE_URI',
-      description: messages.getMessage('gitRemoteUri_ArgDescription'),
+      description: baseMessages.getMessage('gitRemoteUri_ArgDescription'),
       required: true,
       hidden: false
     },
     {
       name: 'GIT_CLONE_DIR',
-      description: messages.getMessage('gitCloneDir_ArgDescription'),
+      description: baseMessages.getMessage('gitCloneDir_ArgDescription'),
       required: false,
       hidden: false
     }
@@ -92,7 +93,7 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
       char: 'd', 
       required: false,
       type: 'directory',
-      description: messages.getMessage('outputdir_FlagDescription'),
+      description: commandMessages.getMessage('outputdir_FlagDescription'),
       default: '.',
       hidden: false
     },
@@ -124,8 +125,8 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
       gitCloneDir:    this.gitCloneDirectory,
       options: []
     })
-    .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return
-    .catch(error => {this.onError(error)});               // <-- Wraps any errors and displays to user
+    .then(statusReport  => {this.onSuccess(statusReport)})  // <-- Preps this.falconJsonResponse for return
+    .catch(error        => {this.onError(error)});          // <-- Wraps any errors and displays to user
 
     // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;
