@@ -276,11 +276,17 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public debugResult(contextLabel:string='', debugNamespace:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):void {
+    let debugOutput 
+      = '-\n'
+      + this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth)
+      + '\n-\n-\n-\n-\n-\n-';
+
+    // If namespace is provided, use the standard debug channel. Force debug message if no namespace.
     if(debugNamespace) {
-      SfdxFalconDebug.msg(`${debugNamespace}`, this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
+      SfdxFalconDebug.msg(`${debugNamespace}`, debugOutput);
     }
     else {
-      SfdxFalconDebug.debugMessage(`${this.type}_RESULT:`, this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
+      SfdxFalconDebug.debugMessage(`${this.type}_RESULT:`,debugOutput);
     }
   }
 

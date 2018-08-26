@@ -13,12 +13,17 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
 import * as path                      from  'path';                 // Helps resolve local paths at runtime.
+import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
+
 // Import Local Modules
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'COMMAND:falcon-demo-install:';
+const clsDbgNs  = 'FalconDemoInstall:';
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);

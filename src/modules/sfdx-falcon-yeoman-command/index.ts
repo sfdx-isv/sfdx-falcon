@@ -10,10 +10,11 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Imports
+// Import Internal Modules
 import {SfdxFalconCommand}      from  '../sfdx-falcon-command'; // Abstract Class. Custom SFDX-Falcon base class for SFDX Commands.
 import {SfdxFalconCommandType}  from  '../sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
 import {GeneratorStatus}        from  './yeoman-helper';        // Helper object to get status back from Generators after they run.
+import { SfdxFalconResult, SfdxFalconResultType } from '../sfdx-falcon-result';
 
 // Requires
 const yeoman  = require('yeoman-environment');      // Required to create a Yeoman Environment
@@ -112,6 +113,8 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected onError(error:any) {
+
+    console.log(`I GET HERE!`)
     super.onError(error);
 
     // TODO: Implement special onError logic for an SfdxFalconYeomanCommand.
@@ -130,6 +133,14 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   protected onSuccess(statusReport:any):void {
     this.generatorStatus.printStatusMessages();
+
+    let actionResult = new SfdxFalconResult(`YeomanAction`, SfdxFalconResultType.ACTION);
+    actionResult.detail = {
+      statusReport: statusReport
+    }
+    actionResult.success();
+
+    super.onSuccess(actionResult);
   }
 }
 

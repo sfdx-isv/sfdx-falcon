@@ -10,19 +10,18 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// tslint:disable no-floating-promises
-// tslint:disable no-console
-
-// Imports
+// Import External Modules
 import * as path        from  'path';                                               // Helps resolve local paths at runtime.
 import * as Generator   from  'yeoman-generator';                                   // Generator class must extend this.
-import * as uxHelper    from  '../modules/sfdx-falcon-util/ux';                     // Library of UX Helper functions specific to SFDX-Falcon.
-import * as gitHelper   from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
-import * as sfdxHelper  from  '../modules/sfdx-falcon-util/sfdx';                   // Library of SFDX Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from  '../modules/sfdx-falcon-yeoman-command/yeoman-helper';                           // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-//import {FalconDebug}    from  '../helpers/falcon-helper';         // Why?
-import {SfdxFalconStatus}         from  '../modules/sfdx-falcon-status';     // Why?
+
+// Import Internal Modules
+import * as uxHelper      from  '../modules/sfdx-falcon-util/ux';                     // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper     from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
+import * as sfdxHelper    from  '../modules/sfdx-falcon-util/sfdx';                   // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as yoHelper      from  '../modules/sfdx-falcon-yeoman-command/yeoman-helper';                           // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoValidate    from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import {SfdxFalconStatus} from  '../modules/sfdx-falcon-status';                      // Class. Provides ability to track what the Yeoman process is doing.
+
 
 // Requires
 const chalk           = require('chalk');                                       // Utility for creating colorful console output.
@@ -35,10 +34,11 @@ const yosay           = require('yosay');                                       
 
 // Interfaces
 interface InterviewAnswers {
-  gitRemoteUri:     string;
-  targetDirectory:  string;
-  devHubAlias:      string;
-  envHubAlias:      string;
+  gitRemoteUri:       string;
+  targetDirectory:    string;
+  gitCloneDirectory:  string;
+  devHubAlias:        string;
+  envHubAlias:        string;
 };
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -61,24 +61,20 @@ export default class CloneAppxDemoProject extends Generator {
   private userAnswers:            InterviewAnswers;                 // Why?
   private defaultAnswers:         InterviewAnswers;                 // Why?
   private confirmationAnswers:    yoHelper.ConfirmationAnswers;     // Why?
-//  private falconProjectSettings:  FalconProjectSettings;            // Why?
   private rawSfdxOrgList:         Array<any>;                       // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
   private devHubOrgInfos:         Array<sfdxHelper.SfdxOrgInfo>;    // Array of sfdxOrgInfo objects that only include DevHub orgs.
   private devHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of DevOrg aliases/usernames in the form of Yeoman choices.
   private envHubOrgInfos:         Array<sfdxHelper.SfdxOrgInfo>;    // Array of sfdxOrgInfo objects that include any type of org (ideally would only show EnvHubs)
   private envHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of EnvHub aliases/usernames in the form of Yeoman choices.
 
-  private gitRemoteUri:           string;                           // Why?
-//  private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
-//  private gitHubUser:             string | undefined;               // Why?
-//  private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
+  private gitRemoteUri:           string;                           // URI of the Git repo to clone.
+  private gitCloneDirectory:      string;                           // Name of the Git repo directory once cloned to local storage.
   private writingComplete:        boolean;                          // Indicates that the writing() function completed successfully.
   private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
-//  private abortYeomanProcess:     boolean;                          // Indicates that Yeoman's interview/installation process must be aborted.
   private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
-  private status:                 SfdxFalconStatus;               // Why?
+  private status:                 SfdxFalconStatus;                 // Tracks the actions taken by Yeoman and can display them upon completion.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -109,9 +105,9 @@ export default class CloneAppxDemoProject extends Generator {
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
     this.gitRemoteUri         = opts.gitRemoteUri;
+    this.gitCloneDirectory    = opts.gitCloneDir;
     this.writingComplete      = false;
     this.installComplete      = false;
-//    this.isGitAvailable       = false;
 
     // Initialize (but don't START) a Falcon Status Report object.
     this.status = new SfdxFalconStatus();
@@ -120,9 +116,15 @@ export default class CloneAppxDemoProject extends Generator {
     // cosntructor, the Salesforce CLI will pick it up and send the message
     // to the user
     if (gitHelper.isGitUriValid(this.gitRemoteUri) === false) {
-      throw new Error('The value provided for GIT_REMOTE_URI is not a valid URI for a Git Remote');
+      throw new Error(`INVALID_GIT_URI: The value '${this.gitRemoteUri}' is not a valid Git Remote URI`);
     }
     
+    // Make sure the gitRemoteUri uses the https protocol. 
+    // Makes it less likey the user will hang on SSH messages.
+    if (this.gitRemoteUri.substr(0, 8) !== 'https://') {
+      throw new Error(`INVALID_GIT_URI_PROTOCOL: Git Remote URI must use the https protocol (ex. 'https://github.com/GitHubUser/my-repository.git')`);
+    }
+
     // Initialize the Generator Status tracking object.
     this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
     this.generatorStatus.start();                 // Tells the Generator Status object that this Generator has started.
@@ -137,8 +139,9 @@ export default class CloneAppxDemoProject extends Generator {
     this.envHubOrgInfos           = new Array<sfdxHelper.SfdxOrgInfo>();
 
     // Initialize DEFAULT Interview Answers.
-    this.defaultAnswers.targetDirectory = path.resolve(opts.outputDir);
-    this.defaultAnswers.gitRemoteUri    = opts.gitRemoteUri;
+    this.defaultAnswers.targetDirectory   = path.resolve(opts.outputDir);
+    this.defaultAnswers.gitRemoteUri      = opts.gitRemoteUri;
+    this.defaultAnswers.gitCloneDirectory = opts.gitCloneDir;
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed      = false;
@@ -510,9 +513,9 @@ export default class CloneAppxDemoProject extends Generator {
     }
 
     // Determine a number of Path/Git related strings required by this step.
-    const targetDirectory   = this.userAnswers.targetDirectory;
     const gitRemoteUri      = this.gitRemoteUri;
-    const gitRepoName       = gitHelper.getRepoNameFromUri(gitRemoteUri);
+    const targetDirectory   = this.userAnswers.targetDirectory;
+    const gitRepoName       = this.gitCloneDirectory || gitHelper.getRepoNameFromUri(gitRemoteUri);
     const localProjectPath  = path.join(targetDirectory, gitRepoName);
 
     // Quick message saying we're going to start cloning.
@@ -520,7 +523,7 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Clone the Git Repository specified by gitRemoteUri into the target directory.
     try {
-      gitHelper.gitClone(this.gitRemoteUri, this.userAnswers.targetDirectory);
+      gitHelper.gitClone(this.gitRemoteUri, this.userAnswers.targetDirectory, this.gitCloneDirectory);
     }
     catch (gitCloneError) {
       this.generatorStatus.abort({

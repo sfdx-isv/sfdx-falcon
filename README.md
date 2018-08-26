@@ -30,7 +30,7 @@ USAGE
 <!-- usagestop -->
 <!-- commands -->
 * [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
-* [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`](#sfdx-falcon-falcondemoclone-git-remote-uri)
+* [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
 * [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
 * [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
@@ -58,38 +58,39 @@ EXAMPLES
 
 _See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/config/interview.ts)_
 
-## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`
+## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:clone GIT_REMOTE_URI
+  $ sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
 
 ARGUMENTS
-  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory to clone the AppExchange Demo Kit (ADK) project
                                                   into
 
-  --falcondebug                                   Runs this command in debug mode
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
 
-  --falcondebugerr                                Displays extended information for uncaught Errors
+  --falcondebugerror                              Display extended information for uncaught Errors
 
-  --falcondebugsuccess                            Displays extended information upon successful command completion
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:clone git@github.com:GitHubUser/my-repository.git
   $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git \
+  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName
+  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \
                            --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
@@ -105,14 +106,14 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
-  --falcondebug                                   Runs this command in debug mode
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
 
-  --falcondebugerr                                Displays extended information for uncaught Errors
+  --falcondebugerror                              Display extended information for uncaught Errors
 
-  --falcondebugsuccess                            Displays extended information upon successful command completion
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 
@@ -143,14 +144,14 @@ OPTIONS
   -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
                                                   JSON string
 
-  --falcondebug                                   Runs this command in debug mode
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
 
-  --falcondebugerr                                Displays extended information for uncaught Errors
+  --falcondebugerror                              Display extended information for uncaught Errors
 
-  --falcondebugsuccess                            Displays extended information upon successful command completion
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 
@@ -178,14 +179,14 @@ ARGUMENTS
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to clone the project into
-  --falcondebug                                   Runs this command in debug mode
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
 
-  --falcondebugerr                                Displays extended information for uncaught Errors
+  --falcondebugerror                              Display extended information for uncaught Errors
 
-  --falcondebugsuccess                            Displays extended information upon successful command completion
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 
@@ -210,14 +211,14 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
-  --falcondebug                                   Runs this command in debug mode
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
 
-  --falcondebugerr                                Displays extended information for uncaught Errors
+  --falcondebugerror                              Display extended information for uncaught Errors
 
-  --falcondebugsuccess                            Displays extended information upon successful command completion
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 

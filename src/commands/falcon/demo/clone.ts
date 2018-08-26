@@ -12,14 +12,19 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// External Imports
-//import {SfdxCommand}                  from  '@salesforce/command';                          // The CLI command we build must extend this class.
-import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
-//import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
+// Import External Modules
+import * as path                      from  'path';                 // Helps resolve local paths at runtime.
+import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
+
+// Import Internal Types
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
 
 // Local Imports
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'COMMAND:falcon-demo-clone:';
+const clsDbgNs  = 'FalconDemoClone:';
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
@@ -45,9 +50,9 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
   public static description = messages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
-    `$ sfdx falcon:demo:clone git@github.com:GitHubUser/my-repository.git`,
     `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git`,
-    `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git \\\n` +
+    `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName`,
+    `$ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \\\n` +
     `                        --outputdir ~/demos/appexchange-demo-kit-projects`
   ];
     
@@ -68,6 +73,12 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
       description: messages.getMessage('gitRemoteUri_ArgDescription'),
       required: true,
       hidden: false
+    },
+    {
+      name: 'GIT_CLONE_DIR',
+      description: messages.getMessage('gitCloneDir_ArgDescription'),
+      required: false,
+      hidden: false
     }
   ];
 
@@ -85,6 +96,7 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
       default: '.',
       hidden: false
     },
+
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconYeomanCommand.falconBaseflagsConfig
   };
@@ -101,7 +113,7 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   public async run(): Promise<any> {
 
-    // Initialize the SfdxFalconCommand (required by ALL classes that extend SfdxFalconCommand).
+    // Initialize the SfdxFalconCommand base (DO NOT REMOVE THIS LINE OF CODE!)
     this.sfdxFalconCommandInit('falcon:demo:clone', SfdxFalconCommandType.APPX_DEMO);
 
     // Run a Yeoman Generator to interact with and run tasks for the user.
@@ -109,6 +121,7 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
       generatorType:  'clone-appx-demo-project',
       gitRemoteUri:   this.gitRemoteUri,
       outputDir:      this.outputDirectory,
+      gitCloneDir:    this.gitCloneDirectory,
       options: []
     })
     .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return

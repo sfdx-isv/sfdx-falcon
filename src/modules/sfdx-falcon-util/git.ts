@@ -38,8 +38,10 @@ shell.config.fatal = true;
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    gitClone
- * @param       {string}  gitRemoteUri  Required.
- * @param       {string}  targetDirectory Required.
+ * @param       {string}  gitRemoteUri  Required. URI of the Git Remote to clone.
+ * @param       {string}  targetDirectory Required. Local path into which the repo will be cloned.
+ * @param       {string}  repoDirectory Required. Name of the local directory the repo is cloned 
+ *              into. If not provided, this defaults to the name of the Repo (part of the URI).
  * @returns     {void}  No return value. Will throw Error if any problems.
  * @description Clones a Git repository located at gitRemoteUri to the local machine inside of the
  *              directory specified by targetDirectory.
@@ -47,7 +49,7 @@ shell.config.fatal = true;
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
+export function gitClone(gitRemoteUri:string, targetDirectory:string='.', repoDirectory:string=''):void {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}gitClone:`, arguments, `${clsDbgNs}arguments: `);
@@ -108,13 +110,13 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.'):void {
   // the target directory.  Now all we need to do is execute
   // `git clone` against the Git Remote URI to pull down the repo.
   try {
-    SfdxFalconDebug.str(`${dbgNs}gitClone:`, `shell.exec('git clone ${gitRemoteUri}', {silent: true})`, `${clsDbgNs}Shell Command: `);
-    shell.exec(`git clone ${gitRemoteUri}`, {silent: true});
+    SfdxFalconDebug.str(`${dbgNs}gitClone:`, `shell.exec('git clone ${gitRemoteUri} ${repoDirectory}', {silent: true})`, `${clsDbgNs}Shell Command: `);
+    shell.exec(`git clone ${gitRemoteUri} ${repoDirectory}`, {silent: true});
   } catch (gitCloneError) {
     // If we get here, it's probably because the clone command is targeting
     // a directory that already exists and is not empty.
     SfdxFalconDebug.obj(`${dbgNs}gitClone:`, gitCloneError, `${clsDbgNs}gitCloneError: `);
-    throw new Error(`ERROR_INVALID_DESTINATION: Destination path '${targetDirectory}' already exists and is not an empty directory.`);
+    throw new Error(`ERROR_INVALID_DESTINATION: Destination path '${path.join(targetDirectory, repoDirectory)}' already exists and is not an empty directory.`);
   }
 }
 

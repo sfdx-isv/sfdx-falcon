@@ -108,7 +108,6 @@ export abstract class AppxRecipeEngine {
   protected preBuildStepGroups:       Array<AppxEngineStepGroup>;
   protected postBuildStepGroups:      Array<AppxEngineStepGroup>;
   protected engineContext:            AppxEngineContext;
-//  protected engineStatus:         SfdxFalconStatus;
 
   // Declare abstract methods.
   protected abstract async  executeEngine(executionOptions:any):  Promise<ListrContext>;

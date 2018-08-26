@@ -14,12 +14,12 @@ import * as path                      from  'path';                       // Hel
 import {flags}                        from  '@oclif/command';             // Requried to create CLI command flags.
 import {SfdxCommand}                  from  '@salesforce/command';        // Required by child classe to create a CLI command
 import {Messages}                     from  '@salesforce/core';           // Messages library that simplifies using external JSON for string reuse.
+
 // Import Internal Modules
 import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';             // Internal debugging framework for SFDX-Falcon.
-import {SfdxFalconError}             from  '../sfdx-falcon-error';             // Why?
+import {SfdxFalconError}              from  '../sfdx-falcon-error';             // Why?
 import {SfdxFalconResult}             from  '../sfdx-falcon-result';            // Why?
 import {SfdxFalconResultType}         from  '../sfdx-falcon-result';            // Why?
-import {SfdxFalconResultStatus}       from  '../sfdx-falcon-result';            // Why?
 import {SfdxFalconJsonResponse}       from  '../sfdx-falcon-types';             // Why?
 import {validateLocalPath}            from  '../sfdx-falcon-validators';        // Core validation function to check that local path values don't have invalid chars.
 
@@ -75,14 +75,14 @@ const errorMessages = Messages.loadMessages('sfdx-falcon', 'sfdxFalconError');
  * @abstract
  * @class       SfdxFalconCommand
  * @extends     SfdxCommand
- * @access      public
- * @version     1.0.0
  * @summary     Abstract base class class for building Salesforce CLI commands that use Yeoman.
  * @description Classes that extend SfdxYeomanCommand will be able to run any Generator defined
  *              in the src/generators directory.  The file name in src/generators should match the 
  *              generatorType string passed into runYeomanGenerator().  For example, if 
  *              generatorType==="my-generator", then there MUST be a TS script file located at 
  *              src/generators/my-generator.ts.
+ * @version     1.0.0
+ * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export abstract class SfdxFalconCommand extends SfdxCommand {
@@ -102,30 +102,37 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   protected extendedOptions:            {any}                           // Why?
 
   // Member vars for commonly implemented arguments.
-  protected gitRemoteUri:string;                        // Why?
+  protected gitRemoteUri:               string;                         // Why?
+  protected gitCloneDirectory:          string;                         // Why?
 
   // Member vars for ALL debug flags
-  protected falconDebugDepthFlag:       number        = 2;                    // Why?
-  protected falconDebugFlag:            boolean       = false;                // Why?
-  protected falconDebugExtFlag:         boolean       = false;                // Why?
-  protected falconDebugXlFlag:          boolean       = false;                // Why?
-  protected falconDebugErrFlag:         boolean       = false;                // Why?
+  protected falconDebugFlag:            Array<string> = new Array<string>();  // Why?
+  protected falconDebugErrorFlag:       boolean       = false;                // Why?
   protected falconDebugSuccessFlag:     boolean       = false;                // Why?
-  protected falconDebugNsFlag:          Array<string> = new Array<string>();  // Why?
+  protected falconDebugDepthFlag:       number        = 2;                    // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the baseline set of custom FLAGS used by all SFDX-Falcon commands.
   //    --FALCONDEBUG           Command should run in DEBUG mode.
-  //    --FALCONDEBUGEXT        Command should run in EXTENDED DEBUG mode.
-  //    --FALCONDEBUGXL         Command should run in EXTRA LARGE (XL) DEBUG mode.
-  //    --FALCONDEBUGERR        Command should run in ERROR DEBUG mode.
+  //    --FALCONDEBUGERROR      Command should run in ERROR DEBUG mode.
   //    --FALCONDEBUGSUCCESS    Command should run in SUCCESS DEBUG mode.
   //    --FALCONDEBUGDEPTH      Object inspection depth when debug is rendered.
-  //    --FALCONDEBUGNS         Array of specific Debug namespaces to enable.
   //───────────────────────────────────────────────────────────────────────────┘
   public static falconBaseflagsConfig = {
-    falcondebug: flags.boolean({
-      description: baseMessages.getMessage('falcondebug_FlagDescription'),  
+    falcondebug: {
+      description: baseMessages.getMessage('falcondebug_FlagDescription'),
+      required: false,
+      hidden: false,
+      type: 'array',
+      default: ''
+    },
+    falcondebugerror: flags.boolean({
+      description: baseMessages.getMessage('falcondebugerror_FlagDescription'),
+      required: false,
+      hidden: false
+    }),
+    falcondebugsuccess: flags.boolean({
+      description: baseMessages.getMessage('falcondebugsuccess_FlagDescription'),  
       required: false,
       hidden: false
     }),
@@ -135,34 +142,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       hidden: false,
       type: 'number',
       default: 2
-    },
-    falcondebugns: {
-      description: baseMessages.getMessage('falcondebugns_FlagDescription'),
-      required: false,
-      hidden: true,
-      type: 'array',
-      default: ''
-    },
-    falcondebugext: flags.boolean({
-      description: baseMessages.getMessage('falcondebugext_FlagDescription'),  
-      required: false,
-      hidden: true
-    }),
-    falcondebugxl: flags.boolean({
-      description: baseMessages.getMessage('falcondebugxl_FlagDescription'),  
-      required: false,
-      hidden: true
-    }),
-    falcondebugerr: flags.boolean({
-      description: baseMessages.getMessage('falcondebugerr_FlagDescription'),  
-      required: false,
-      hidden: false
-    }),
-    falcondebugsuccess: flags.boolean({
-      description: baseMessages.getMessage('falcondebugsuccess_FlagDescription'),  
-      required: false,
-      hidden: false
-    })
+    }
   };
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -196,37 +176,32 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.extendedOptions            = JSON.parse((this.flags.extendedOptions  ||  '{}'));
   
     // Read the incoming values for all COMMON ARGS. (not all of these will have values)
-    this.gitRemoteUri               = this.args.GIT_REMOTE_URI      ||  '';
+    this.gitRemoteUri               = this.args.GIT_REMOTE_URI        ||  '';
+    this.gitCloneDirectory          = this.args.GIT_CLONE_DIR         ||  '';
 
     // Read the incoming values for all DEBUG flags.
-    this.falconDebugDepthFlag       = this.flags.falcondebugdepth     ||  2;
-    this.falconDebugFlag            = this.flags.falcondebug          ||  false;
-    this.falconDebugExtFlag         = this.flags.falcondebugext       ||  false;
-    this.falconDebugXlFlag          = this.flags.falcondebugxl        ||  false;
-    this.falconDebugErrFlag         = this.flags.falcondebugerr       ||  false;
+    this.falconDebugFlag            = this.flags.falcondebug          ||  '';
+    this.falconDebugErrorFlag       = this.flags.falcondebugerror     ||  false;
     this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess   ||  false;
-    this.falconDebugNsFlag          = this.flags.falcondebugns        ||  '';
+    this.falconDebugDepthFlag       = this.flags.falcondebugdepth     ||  2;
 
-    // Parse the list of Debug Namespaces to build an array.
-    if (this.flags.falcondebugns) {
-      this.falconDebugNsFlag = this.flags.falcondebugns.split(',');
+    // Parse the list of Debug Namespaces to build an array of namespaces to enable.
+    if (this.flags.falcondebug) {
+      this.falconDebugFlag = this.flags.falcondebug.split(',');
     }
     else {
-      this.falconDebugNsFlag = [];
+      this.falconDebugFlag = [];
     }
 
     // Specify the top-level SFDX-Falcon debugger namespaces to enable.
     let enabledDebuggers = new Array<string>();
 
     // Build an array of the debugger namespaces to enable.
-    if (this.falconDebugFlag)         enabledDebuggers.push('FALCON');
-    if (this.falconDebugExtFlag)      enabledDebuggers.push('FALCON_EXT');
-    if (this.falconDebugXlFlag)       enabledDebuggers.push('FALCON_XL');
-    if (this.falconDebugErrFlag)      enabledDebuggers.push('FALCON_ERR');
-    if (this.falconDebugSuccessFlag)  enabledDebuggers.push('FALCON_SUCCESS');
-    for (let debugNamespace of this.falconDebugNsFlag) {
+    for (let debugNamespace of this.falconDebugFlag) {
       enabledDebuggers.push(`${debugNamespace.trim()}`);
     }
+    if (this.falconDebugErrorFlag)    enabledDebuggers.push('FALCON_ERROR');
+    if (this.falconDebugSuccessFlag)  enabledDebuggers.push('FALCON_SUCCESS');
 
     // Initialize the DETAIL object for the COMMAND Result.
     this.falconCommandResult = 
@@ -286,12 +261,12 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.falconCommandResult.error(rejectedResult.errObj);
 
     // If the FalconDebugError flag is set, render the COMMAND Result.
-    if (this.falconDebugErrFlag) {
+    if (this.falconDebugErrorFlag) {
       this.falconCommandResult.displayResult('',2,4,4);
     }
 
     // Terminate with Error.
-    SfdxFalconError.terminateWithError(rejectedResult, this.falconCommandName, this.falconDebugErrFlag);
+    SfdxFalconError.terminateWithError(rejectedResult, this.falconCommandName, this.falconDebugErrorFlag);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
