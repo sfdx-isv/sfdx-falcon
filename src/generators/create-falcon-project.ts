@@ -13,8 +13,7 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-// Imports
+// Import External Modules
 import * as path        from  'path';                                                 // Helps resolve local paths at runtime.
 import * as Generator   from  'yeoman-generator';                                     // Generator class must extend this.
 import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
@@ -25,6 +24,7 @@ import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';             
 // Requires
 const chalk           = require('chalk');                                           // Utility for creating colorful console output.
 const debug           = require('debug')('create-falcon-project');                  // Utility for debugging. set debug.enabled = true to turn on.
+const Listr           = require('listr');                                           // Provides asynchronous list with status of task completion.
 const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
 
