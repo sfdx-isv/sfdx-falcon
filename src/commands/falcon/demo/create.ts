@@ -3,7 +3,7 @@
  * @file          commands/falcon/demo/create.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Yeoman Generator for scaffolding an AppExchange Demo Kit (ADK) project.
+ * @summary       Implements the CLI command "falcon:demo:create"
  * @description   Salesforce CLI Plugin command (falcon:demo:create) that allows a Salesforce DX
  *                developer to create an empty project based on the AppExchange Demo Kit (ADK)
  *                template.  Once the ADK project is created, the user is guided through an 
@@ -13,18 +13,23 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// External Imports
-//import {SfdxCommand}                  from  '@salesforce/command';                          // The CLI command we build must extend this class.
-import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
-import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
+// Import External Modules
+import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
+
+// Import Internal Types
+import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
 
 // Local Imports
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
-import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'COMMAND:falcon-demo-create:';
+const clsDbgNs  = 'FalconDemoCreate:';
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoCreate');
+const baseMessages    = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
+const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoCreate');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -42,11 +47,11 @@ const messages = Messages.loadMessages('sfdx-falcon', 'falconDemoCreate');
 export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
 
   // Define the basic properties of this CLI command.
-  public static description = messages.getMessage('commandDescription');
+  public static description = commandMessages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:demo:create`,
-    `$ sfdx falcon:demo:create --outputdir ~/demos/appexchange-demo-kit-projects`
+    `$ sfdx falcon:demo:create --outputdir ~/ADK-Projects`
   ];
 
   // Identify the core SFDX arguments/features required by this command.
@@ -62,13 +67,15 @@ export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
   //                  Defaults to . (current directory) if not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    outputdir: flags.string({
+    outputdir: {
       char: 'd', 
-      description: messages.getMessage('outputdirFlagDescription'),
-      default: '.',
       required: false,
+      type: 'directory',
+      description: commandMessages.getMessage('outputdir_FlagDescription'),
+      default: '.',
       hidden: false
-    }),
+    },
+
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconYeomanCommand.falconBaseflagsConfig
   };
@@ -86,16 +93,16 @@ export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
   public async run(): Promise<any> {
 
     // Initialize the SfdxFalconCommand (required by ALL classes that extend SfdxFalconCommand).
-    this.sfdxFalconCommandInit('falcon:demo:clone', SfdxFalconCommandType.APPX_DEMO);
+    this.sfdxFalconCommandInit('falcon:demo:create', SfdxFalconCommandType.APPX_DEMO);
 
     // Run a Yeoman Generator to interact with and run tasks for the user.
     await super.runYeomanGenerator({
-      generatorType:  'create-falcon-demo',
+      generatorType:  'create-appx-demo-project',
       outputDir:      this.outputDirectory,
       options: []
     })
-    .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return
-    .catch(error => {this.onError(error)});               // <-- Wraps any errors and displays to user
+    .then(statusReport  => {this.onSuccess(statusReport)})  // <-- Preps this.falconJsonResponse for return
+    .catch(error        => {this.onError(error)});          // <-- Wraps any errors and displays to user
 
     // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;
