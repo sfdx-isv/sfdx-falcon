@@ -83,8 +83,6 @@ export default class CreateAppxDemoProject extends Generator {
   private envHubOrgInfos:       Array<sfdxHelper.SfdxOrgInfo>;        // Array of sfdxOrgInfo objects that include any type of org (ideally would only show EnvHubs)
   private envHubAliasChoices:   Array<yoHelper.YeomanChoice>;         // Array of EnvHub aliases/usernames in the form of Yeoman choices.
 
-//  private isGitRemoteReachable: boolean;                              // Tracks whether or not the specified Git Remote is reachable.
-
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
   private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
   private writingComplete:      boolean;                              // Indicates that the writing() function completed successfully.
@@ -92,8 +90,7 @@ export default class CreateAppxDemoProject extends Generator {
   private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
   private generatorStatus:      yoHelper.GeneratorStatus;             // Used to keep track of status and to return messages to the caller.
 
-  // TODO: Can this be moved to the constructor?
-  private sourceDirectory:      string;// = require.resolve('sfdx-falcon-appx-demo-kit'); // Source dir of template files
+  private sourceDirectory:      string;                               // Location (relative to project files) of the project scaffolding template used by this command.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -429,7 +426,6 @@ export default class CreateAppxDemoProject extends Generator {
         type:     'list',
         name:     'envHubAlias',
         message:  'Which Environment Hub Alias do you want to use for this project?',
-// TODO: make this a list of EnvHubs        choices:  this.envHubAliasChoices,
         choices:  this.envHubAliasChoices,
         when:     true
       }
@@ -671,13 +667,16 @@ export default class CreateAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async initializing() {
+
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`AppExchange Demo Kit (ADK) Project Generator v${version}`))
 
     // Execute the async Listr task runner for initialization.
     try {
+
       // Run the setup/init tasks for the falcon:project:clone command via Listr.
       await this._executeListrSetupTasks();
+
       // Show an "Initialization Complete" message
       this.log(chalk`\n{bold Initialization Complete}`);
     } 
@@ -701,6 +700,7 @@ export default class CreateAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside prompting()`);
@@ -711,6 +711,7 @@ export default class CreateAppxDemoProject extends Generator {
     // verify they want to take action based on the info they provided, or 
     // they deciede to cancel the whole process.
     do {
+
       // Initialize interview questions.
       let interviewQuestionGroups = [];
 
@@ -873,6 +874,7 @@ export default class CreateAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside configuring()`);
@@ -902,6 +904,7 @@ export default class CreateAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside writing()`);
@@ -1158,6 +1161,7 @@ export default class CreateAppxDemoProject extends Generator {
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside end()`);
+
       // Add a final error message
       this.generatorStatus.addMessage({
         type:     'error',
