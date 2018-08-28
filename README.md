@@ -121,7 +121,7 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:demo:create
-  $ sfdx falcon:demo:create --outputdir ~/demos/appexchange-demo-kit-projects
+  $ sfdx falcon:demo:create --outputdir ~/ADK-Projects
 ```
 
 _See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.4/src/commands/falcon/demo/create.ts)_
