@@ -104,6 +104,71 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    identifyEnvHubOrgs
+ * @param       {Array<any>}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
+ *              in the result of a call to force:org:list.
+ * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
+ *              Environment Hub orgs.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              finds all the org connections that point to Environment Hub orgs and returns them as
+ *              an array of SfdxOrgInfo objects.
+ * @version     1.0.0
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:`, arguments, `${clsDbgNs}arguments: `);
+
+  // Make sure that the caller passed us an Array.
+  if ((rawSfdxOrgList instanceof Array) === false) {
+    throw new Error(`ERROR_INVALID_TYPE: Expected an Array but got type '${typeof rawSfdxOrgList}'`);
+  }
+
+  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
+  let envHubOrgInfos = new Array<SfdxOrgInfo>();
+
+
+
+  // DEVTEST - for now, just return the empty org infos list
+  // TODO: Implement the check for EnvHub orgs
+  return envHubOrgInfos;
+
+
+
+  // Iterate over rawSfdxOrgList to find orgs where connectedStatus is TRUE.
+  // Then, for each one, make a connection and try to touch objects that
+  // would ONLY be present in an Environment Hub org (eg. SignupRequest Object).
+  for (let rawOrgInfo of rawSfdxOrgList) {
+    if (rawOrgInfo.connectedStatus === 'Connected') {
+
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE ORG: Alias(Username)`);
+
+      // TODO: Implement some kind of "Environment Hub Check" logic
+
+      envHubOrgInfos.push({
+        alias:            rawOrgInfo.alias,
+        username:         rawOrgInfo.username,
+        orgId:            rawOrgInfo.orgId,
+        isDevHub:         rawOrgInfo.isDevHub,
+        connectedStatus:  rawOrgInfo.connectedStatus
+      });
+    }
+    else {
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE ORG: Alias(Username)`);
+    }
+  }
+
+  // DEBUG
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs`, envHubOrgInfos, `${clsDbgNs}envHubOrgInfos: `);
+
+  // Return the list of Dev Hubs to the caller
+  return envHubOrgInfos;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    getConnection
  * @param       {string} orgAlias   Required. The alias of the org to create a connection to.
  * @param       {string} apiVersion Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
