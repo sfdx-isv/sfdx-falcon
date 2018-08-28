@@ -33,8 +33,12 @@ const debug = require('debug')('validator:yeoman');
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitRemoteUri(userInput:string):boolean|string {
-  return  (core.validateGitRemoteUri(userInput)
-          || 'Please provide a valid URI for your Git remote');
+
+  // Make sure we only accept http and https Git Remote URIs.
+  const acceptedProtocols = /^(http(s)?)/;
+
+  return  (core.validateGitRemoteUri(userInput, acceptedProtocols)
+          || 'Please provide a valid URI (http/https only) for your Git remote');
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -51,7 +55,7 @@ export function gitRemoteUri(userInput:string):boolean|string {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function targetPath(userInput:string):boolean|string {
   return  (core.validateLocalPath(userInput)
-          || 'Target Directory can not begin with a ~, have unescaped spaces, or contain these invalid characters (\' \" * |)');
+          || 'Target Directory can not begin with ~, have unescaped spaces, or contain invalid characters (\' \" * |)');
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -125,6 +129,49 @@ export function packageVersionId(userInput:string):boolean|string {
   return  (true
           || 'Package Version ID can not...[list rules & illegal values]');
 }
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    standardAlias
+ * @param       {string}  userInput Required.  User input from a Yeoman/Inquirer interview.
+ * @returns     {boolean|string}  TRUE if input is valid. Error message STRING if invalid.
+ * @description Validate that the user-provided string is 1-15 characters long and includes only
+ *              letters (a-Z), numbers (0-9), hyphens (-), and underscores (_).
+ * @version     1.0.0
+ * @access      public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function standardAlias(userInput:string):boolean|string {
+  // TODO: Implement validation
+  // - 1 to 15 characters long
+  // - Alphanumeric (a-Z, 0-9) with hyphens and underscore OK
+  return  (core.validateStandardAlias(userInput, 15)
+          ||  `Alias must be 1-15 chars long and include only `
+            + `letters (a-Z), numbers (0-9), dash (-), and underscore (_)`);
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    standardName
+ * @param       {string}  userInput Required.  User input from a Yeoman/Inquirer interview.
+ * @returns     {boolean|string}  TRUE if input is valid. Error message STRING if invalid.
+ * @description Validate that the user-provided string is less than ?? chars long
+ * @version     1.0.0
+ * @access      public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function standardName(userInput:string):boolean|string {
+  // TODO: Implement validation
+  // - 1 to ?? characters long
+  // - Anything else???
+  return  (true
+          ||  `Names must be alphanumeric strings between 1 and ?? characters long`);
+}
+
+
+
+
+
 
 
 // ** TEMPLATES FOR FUNCTIONS ** // 
