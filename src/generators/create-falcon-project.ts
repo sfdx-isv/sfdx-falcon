@@ -549,50 +549,63 @@ export default class CreateFalconProject extends Generator {
                     this.fs.copyTpl(this.templatePath('sfdx-source/untracked'),
                     this.destinationPath('sfdx-source/untracked'),
                     this);
-    
+
     //─────────────────────────────────────────────────────────────────────────┐
-    // Copy all .npmignore files over as .gitignore
+    // Determine if the template path has .npmignore or .gitignore files
     //─────────────────────────────────────────────────────────────────────────┘
-    this.fs.copyTpl(this.templatePath('.npmignore'),                
+    let ignoreFile = '.gitignore';
+    try {
+      // Check if the embedded template still has .gitignore files.
+      let fileTest = this.fs.read(this.templatePath('.gitignore'));
+    }
+    catch {
+      // .gitignore files were replaced with .npmignore files.
+      ignoreFile = '.npmignore';
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Copy all .npmignore/.gitignore files over as .gitignore
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.fs.copyTpl(this.templatePath(`${ignoreFile}`),                
                     this.destinationPath('.gitignore'), 
                     this);
-    this.fs.copyTpl(this.templatePath('config/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`config/${ignoreFile}`),
                     this.destinationPath('config/.gitignore'),  
                     this);
-    this.fs.copyTpl(this.templatePath('dev-tools/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`dev-tools/${ignoreFile}`),
                     this.destinationPath('dev-tools/.gitignore'),  
                     this);
-    this.fs.copyTpl(this.templatePath('mdapi-source/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`mdapi-source/${ignoreFile}`),
                     this.destinationPath('mdapi-source/.gitignore'),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/aura/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/aura/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/aura/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/classes/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/classes/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/classes/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/layouts/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/layouts/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/layouts/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/objects/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/objects/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/objects/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/permissionsets/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/permissionsets/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/permissionsets/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/profiles/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/profiles/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/profiles/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/remoteSiteSettings/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/remoteSiteSettings/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/remoteSiteSettings/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/tabs/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/tabs/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/tabs/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/triggers/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/triggers/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/triggers/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('temp/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`temp/${ignoreFile}`),
                     this.destinationPath('temp/.gitignore'),
                     this);
 
