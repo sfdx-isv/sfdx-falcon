@@ -61,7 +61,7 @@
   ],
   "homepage": "https://github.com/sfdx-isv/sfdx-falcon-plugin",
   "keywords": [
-    "sfdx-plugin"
+    "salesforce", "sfdx", "sfdx-falcon", "sfdx-plugin", "appexchange", "appexchange-demo-kit", "adk"
   ],
   "license": "MIT",
   "oclif": {
