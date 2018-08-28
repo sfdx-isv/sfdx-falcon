@@ -74,6 +74,7 @@ export default class CreateAppxDemoProject extends Generator {
   private userAnswers:          interviewAnswers;                     // Why?
   private defaultAnswers:       interviewAnswers;                     // Why?
   private finalAnswers:         interviewAnswers;                     // Why?
+  private metaAnswers:          interviewAnswers;                     // Provides a means to send meta values (usually template tags) to EJS templates.
   private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
   
   private rawSfdxOrgList:       Array<any>;                           // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
@@ -127,6 +128,7 @@ export default class CreateAppxDemoProject extends Generator {
     this.userAnswers          = <interviewAnswers>{};
     this.defaultAnswers       = <interviewAnswers>{};
     this.finalAnswers         = <interviewAnswers>{};
+    this.metaAnswers          = <interviewAnswers>{};
     this.confirmationAnswers  = <yoHelper.ConfirmationAnswers>{};
     this.devHubAliasChoices   = new Array<yoHelper.YeomanChoice>();
     this.devHubOrgInfos       = new Array<sfdxHelper.SfdxOrgInfo>();
@@ -151,6 +153,10 @@ export default class CreateAppxDemoProject extends Generator {
     this.defaultAnswers.schemaVersion               = '0.0.1';
     this.defaultAnswers.sfdcApiVersion              = '43.0';
     this.defaultAnswers.pluginVersion               = this.pluginVersion;
+
+    // Initialize the Meta Answers
+    this.metaAnswers.devHubAlias                    = `<%-finalAnswers.devHubAlias%>`;
+    this.metaAnswers.envHubAlias                    = `<%-finalAnswers.envHubAlias%>`;
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed                = false;
@@ -993,6 +999,16 @@ export default class CreateAppxDemoProject extends Generator {
     this.fs.copyTpl(this.templatePath(`tools/${ignoreFile}`),
                     this.destinationPath('tools/.gitignore'),
                     this);
+    
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Update the "meta answers" before copying .sfdx-falcon-config.json for 
+    // the developer's local project
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.metaAnswers.devHubAlias = this.userAnswers.devHubAlias;
+    this.metaAnswers.envHubAlias = this.userAnswers.envHubAlias;
+    this.fs.copyTpl(this.templatePath('.templates/sfdx-falcon-config.json.ejs'),
+                    this.destinationPath('.sfdx-falcon/sfdx-falcon-config.json'),
+                    this);
 
     // Done with writing()
     return;
@@ -1138,6 +1154,7 @@ export default class CreateAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
+
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside end()`);
