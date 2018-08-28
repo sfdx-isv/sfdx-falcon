@@ -46,6 +46,7 @@ interface interviewAnswers {
   projectVersion:           string;
   schemaVersion:            string;
   pluginVersion:            string;
+  sfdcApiVersion:           string;
   hasGitRemoteRepository:   boolean;
   ackGitRemoteUnreachable:  boolean;
   isGitRemoteReachable:     boolean;
@@ -72,6 +73,7 @@ export default class CreateAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private userAnswers:          interviewAnswers;                     // Why?
   private defaultAnswers:       interviewAnswers;                     // Why?
+  private finalAnswers:         interviewAnswers;                     // Why?
   private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
   
   private rawSfdxOrgList:       Array<any>;                           // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
@@ -80,7 +82,7 @@ export default class CreateAppxDemoProject extends Generator {
   private envHubOrgInfos:       Array<sfdxHelper.SfdxOrgInfo>;        // Array of sfdxOrgInfo objects that include any type of org (ideally would only show EnvHubs)
   private envHubAliasChoices:   Array<yoHelper.YeomanChoice>;         // Array of EnvHub aliases/usernames in the form of Yeoman choices.
 
-  private isGitRemoteReachable: boolean;                              // Tracks whether or not the specified Git Remote is reachable.
+//  private isGitRemoteReachable: boolean;                              // Tracks whether or not the specified Git Remote is reachable.
 
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
   private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
@@ -90,7 +92,7 @@ export default class CreateAppxDemoProject extends Generator {
   private generatorStatus:      yoHelper.GeneratorStatus;             // Used to keep track of status and to return messages to the caller.
 
   // TODO: Can this be moved to the constructor?
-  private sourceDirectory:string = require.resolve('sfdx-falcon-appx-demo-kit'); // Source dir of template files
+  private sourceDirectory:      string;// = require.resolve('sfdx-falcon-appx-demo-kit'); // Source dir of template files
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -115,7 +117,7 @@ export default class CreateAppxDemoProject extends Generator {
     this.writingComplete      = false;
     this.installComplete      = false;
     this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
-    //this.sourceDirectory      = require.resolve('sfdx-falcon-appx-demo-kit');
+    this.sourceDirectory      = require.resolve('sfdx-falcon-appx-demo-kit');
 
     // Initialize the Generator Status tracking object.
     this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
@@ -124,14 +126,12 @@ export default class CreateAppxDemoProject extends Generator {
     // Initialize the interview and confirmation answers objects.
     this.userAnswers          = <interviewAnswers>{};
     this.defaultAnswers       = <interviewAnswers>{};
+    this.finalAnswers         = <interviewAnswers>{};
     this.confirmationAnswers  = <yoHelper.ConfirmationAnswers>{};
     this.devHubAliasChoices   = new Array<yoHelper.YeomanChoice>();
     this.devHubOrgInfos       = new Array<sfdxHelper.SfdxOrgInfo>();
     this.envHubAliasChoices   = new Array<yoHelper.YeomanChoice>();
     this.envHubOrgInfos       = new Array<sfdxHelper.SfdxOrgInfo>();
-
-    // Initialize Git related member vars.
-    this.isGitRemoteReachable = false;
 
     // Initialize DEFAULT Interview Answers.
     this.defaultAnswers.producerName                = 'Universal Containers';
@@ -149,6 +149,7 @@ export default class CreateAppxDemoProject extends Generator {
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
     this.defaultAnswers.projectVersion              = '0.0.1';
     this.defaultAnswers.schemaVersion               = '0.0.1';
+    this.defaultAnswers.sfdcApiVersion              = '43.0';
     this.defaultAnswers.pluginVersion               = this.pluginVersion;
 
     // Initialize properties for Confirmation Answers.
@@ -721,6 +722,7 @@ export default class CreateAppxDemoProject extends Generator {
         // Initialize interview questions on each loop (ensures that user answers from previous loop are saved)
         interviewQuestionGroups = this._initializeInterviewQuestions();
 
+        // Prompt the user for GROUP ZERO Answers. 
         debug(`userAnswers - PRE-PROMPT (GROUP ZERO):\n%O`, this.userAnswers);
         let groupZeroAnswers = await this.prompt(interviewQuestionGroups[0]) as any;
         this.userAnswers = {
@@ -761,9 +763,7 @@ export default class CreateAppxDemoProject extends Generator {
         // Initialize interview questions on each loop (same reason as above).
         interviewQuestionGroups = this._initializeInterviewQuestions();
 
-        // Initialize the "is Git Remote Reachable" var.
-        this.isGitRemoteReachable = false;
-
+        // Prompt the user for GROUP ONE Answers. 
         debug(`userAnswers - PRE-PROMPT (GROUP ONE):\n%O`, this.userAnswers);
         let groupOneAnswers = await this.prompt(interviewQuestionGroups[1]) as any;
         this.userAnswers = {
@@ -905,6 +905,12 @@ export default class CreateAppxDemoProject extends Generator {
     // Tell the user that we are preparing to create their project.
     this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`)
 
+    // Merge "User Answers" from the interview with "Default Answers" to get "Final Answers".
+    this.finalAnswers = {
+      ...this.defaultAnswers,
+      ...this.userAnswers
+    }
+
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
     // ALL of the fs.copyTpl() functions below are ASYNC.  Once we start calling
@@ -963,15 +969,28 @@ export default class CreateAppxDemoProject extends Generator {
                     this);
         
     //─────────────────────────────────────────────────────────────────────────┐
-    // Copy all .npmignore files over as .gitignore
+    // Determine if the template path has .npmignore or .gitignore files
     //─────────────────────────────────────────────────────────────────────────┘
-    this.fs.copyTpl(this.templatePath('.npmignore'),
+    let ignoreFile = '.gitignore';
+    try {
+      // Check if the embedded template still has .gitignore files.
+      let fileTest = this.fs.read(this.templatePath('.gitignore'));
+    }
+    catch {
+      // .gitignore files were replaced with .npmignore files.
+      ignoreFile = '.npmignore';
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Copy all .npmignore/.gitignore files over as .gitignore
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.fs.copyTpl(this.templatePath(`${ignoreFile}`),
                     this.destinationPath('.gitignore'),
                     this);
-    this.fs.copyTpl(this.templatePath('temp/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`temp/${ignoreFile}`),
                     this.destinationPath('temp/.gitignore'),
                     this);
-    this.fs.copyTpl(this.templatePath('tools/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`tools/${ignoreFile}`),
                     this.destinationPath('tools/.gitignore'),
                     this);
 
