@@ -410,7 +410,13 @@ export default class CloneAppxDemoProject extends Generator {
 
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP ONE: Initialization (uses Yeoman's "initializing" run-loop priority).
+  /**
+   * @method      initializing
+   * @description STEP ONE in the Yeoman run-loop.  Uses Yeoman's "initializing"
+   *              run-loop priority.
+   * @version     1.0.0
+   * @private @async
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
@@ -419,25 +425,28 @@ export default class CloneAppxDemoProject extends Generator {
     // Execute the async Listr task runner for initialization.
     try {
       // Run the setup/init tasks for the falcon:project:clone command via Listr.
-      let listrResults = await this._executeListrSetupTasks();
-      debug(`listrResults: ${listrResults}`);
+      await this._executeListrSetupTasks();
       // Show an "Initialization Complete" message
       this.log(chalk`\n{bold Initialization Complete}\n`);
-      // DEBUG
-      debug(`Listr Setup Tasks Completed Successfully`);
     } 
     catch (err) {
       debug(`ERROR (likely thrown by _executeListrSetupTasks())\n%O\n:`, err);
       this.generatorStatus.abort({
         type:     'error',
         title:    'Initialization Error',
-        message:  'falcon:project:clone command aborted because one or more initialization tasks failed'
+        message:  `${this.cliCommandName} command aborted because one or more initialization tasks failed`
       });
     }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
+  /**
+   * @method      prompting
+   * @description STEP TWO in the Yeoman run-loop. Interviews the User.  Uses 
+   *              Yeoman's "prompting" run-loop priority.
+   * @version     1.0.0
+   * @private @async
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -485,7 +494,14 @@ export default class CloneAppxDemoProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
+  /**
+   * @method      configuring
+   * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
+   *              configuration steps based on the answers provided by the User.  
+   *              Uses Yeoman's "configuring" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
     // Start the status timer.
@@ -503,7 +519,14 @@ export default class CloneAppxDemoProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
+  /**
+   * @method      writing
+   * @description STEP FOUR in the Yeoman run-loop. Typically, this is where 
+   *              you perform filesystem writes, git clone operations, etc.
+   *              Uses Yeoman's "writing" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -591,7 +614,16 @@ export default class CloneAppxDemoProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
+  /**
+   * @method      install
+   * @description STEP FIVE in the Yeoman run-loop. Typically, this is where 
+   *              you perform operations that must happen AFTER files are 
+   *              written to disk. For example, if the "writing" step downloaded
+   *              an app to install, the "install" step would run the 
+   *              installation. Uses Yeoman's "writing" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -629,7 +661,15 @@ export default class CloneAppxDemoProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
+  /**
+   * @method      end
+   * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
+   *              Yeoman runs and it gives us a chance to do any post-Yeoman
+   *              updates and/or cleanup. Uses Yeoman's "end" run-loop 
+   *              priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
     // Check if the Yeoman interview/installation process was aborted.
