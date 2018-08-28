@@ -443,14 +443,15 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    isGitUriValid
- * @param       {string}      gitRemoteUri 
+ * @param       {string}  gitRemoteUri  Required. Git Remote URI to validate
+ * @param       {RegExp}  [acceptedProtocols] Optional. RegExp that matches only certain protocols.
  * @returns     {boolean}     TRUE if gitRemoteUri is a syntactically valid Git Remote URI.
  * @version     1.0.0
  * @description Determines if the URI provided is a syntactically valid Git Remote URI. The accepted
  *              protocols are ssh:, git:, http:, and https:.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function isGitUriValid(gitRemoteUri:string):boolean {
+export function isGitUriValid(gitRemoteUri:string, acceptedProtocols?:RegExp):boolean {
   // Debug incoming arguments.
   SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, arguments, `${clsDbgNs}arguments: `);
 
@@ -459,6 +460,16 @@ export function isGitUriValid(gitRemoteUri:string):boolean {
     throw new TypeError(`ERROR_UNEXPECTED_TYPE: (gitRemoteUri) Expected string but got '${typeof gitRemoteUri}'`);
   }
 
-  // Test against the gitUriRegEx.
-  return (gitUriRegEx.test(gitRemoteUri));
+  if (gitUriRegEx.test(gitRemoteUri)) {
+    // Git URI was valid.  Check against accepted protocols, if provided.
+    if (acceptedProtocols) {
+      return (acceptedProtocols.test(gitRemoteUri));
+    }
+    else {
+      return true;
+    }
+  }
+
+  // If we get here, the Git Remote URI was not valid.
+  return false;
 }

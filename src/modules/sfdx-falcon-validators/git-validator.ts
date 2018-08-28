@@ -30,15 +30,31 @@ const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\
  *              accepted protocols are ssh:, git:, http:, and https:.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function isGitUriValid(gitRemoteUri:string):boolean {
+export function isGitUriValid(gitRemoteUri:string,  acceptedProtocols?:RegExp):boolean {
   // Debug and input validation
   SfdxFalconDebug.obj('FALCON_EXT:git-validator', arguments, `isGitUriValid:arguments: `);
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
-  // Test against the gitUriRegEx.
-  return (gitUriRegEx.test(gitRemoteUri));
+
+  // Perform the core RegExp test for valid Git Remote URI.
+  if (gitUriRegEx.test(gitRemoteUri)) {
+    
+    // Git URI was valid.  Check against accepted protocols, if provided.
+    if (acceptedProtocols) {
+      return (acceptedProtocols.test(gitRemoteUri));
+    }
+    else {
+      return true;
+    }
+  }
+
+  // If we get here, the Git Remote URI was not valid.
+  return false;
 }
+
+
+
 
 
 
