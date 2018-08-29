@@ -365,9 +365,12 @@ export async function createUser(uniqueUsername:string, password:string, userDef
   executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}createUser`);
 
   // Register the user with the local CLI
-  await createSfdxOrgConfig(connection, uniqueUsername, password, targetOrg.alias)
-    .catch(error => {executorResult.throw(error)});
-  executorResult.debugResult(`Created SFDX Org Config`, `${dbgNs}createUser`);
+  // TODO: createSfdxOrgConfig is causing installations to fail when performed from 
+  //       untrusted networks.  Since we can't save the user info to disk anyway, we
+  //       need to comment out this code and search for alternatives.
+  //await createSfdxOrgConfig(connection, uniqueUsername, password, targetOrg.alias)
+  //  .catch(error => {executorResult.throw(error)});
+  //executorResult.debugResult(`Created SFDX Org Config`, `${dbgNs}createUser`);
 
   // Stop the progress notifications for this command.
   FalconProgressNotifications.finish(progressNotifications)
