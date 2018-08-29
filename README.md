@@ -10,7 +10,7 @@
 
 A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon family of projects, including the [AppExchange Demo Kit (ADK)](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) and [AppExchange Package Kit (APK)](#).
 
-###AppExchange Demo Kit (ADK) - Powered by the SFDX-Falcon Plugin
+### AppExchange Demo Kit (ADK) - Powered by SFDX-Falcon
 ![AppExchange Demo Kit (ADK) falcon:demo:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
 
 
