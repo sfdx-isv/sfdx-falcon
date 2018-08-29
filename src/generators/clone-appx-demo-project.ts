@@ -25,8 +25,8 @@ import {SfdxFalconStatus} from  '../modules/sfdx-falcon-status';                
 // Requires
 const chalk           = require('chalk');                                       // Utility for creating colorful console output.
 const debug           = require('debug')('clone-appx-demo-project');            // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync      = require('debug')('clone-appx-demo-project(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
-const debugExtended   = require('debug')('clone-appx-demo-project(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
+//const debugAsync      = require('debug')('clone-appx-demo-project(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
+//const debugExtended   = require('debug')('clone-appx-demo-project(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr           = require('listr');                                       // Provides asynchronous list with status of task completion.
 const {version}       = require('../../package.json');                          // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                       // ASCII art creator brings Yeoman to life.
@@ -59,6 +59,7 @@ export default class CloneAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private userAnswers:            InterviewAnswers;                 // Why?
   private defaultAnswers:         InterviewAnswers;                 // Why?
+  private finalAnswers:           InterviewAnswers;                 // Why?
   private confirmationAnswers:    yoHelper.ConfirmationAnswers;     // Why?
 
   private rawSfdxOrgList:         Array<any>;                       // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
@@ -67,14 +68,17 @@ export default class CloneAppxDemoProject extends Generator {
   private envHubOrgInfos:         Array<sfdxHelper.SfdxOrgInfo>;    // Array of sfdxOrgInfo objects that include any type of org (ideally would only show EnvHubs)
   private envHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of EnvHub aliases/usernames in the form of Yeoman choices.
 
-  private gitRemoteUri:           string;                           // URI of the Git repo to clone.
-  private gitCloneDirectory:      string;                           // Name of the Git repo directory once cloned to local storage.
+  private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
+  private pluginVersion:          string;                           // Version pulled from the plugin project's package.json.
   private writingComplete:        boolean;                          // Indicates that the writing() function completed successfully.
   private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
-  private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
-  private status:                 SfdxFalconStatus;                 // Tracks the actions taken by Yeoman and can display them upon completion.
+//  private status:                 SfdxFalconStatus;                 // Tracks the actions taken by Yeoman and can display them upon completion.
+
+  private gitRemoteUri:           string;                           // URI of the Git repo to clone.
+  private gitCloneDirectory:      string;                           // Name of the Git repo directory once cloned to local storage.
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -91,30 +95,21 @@ export default class CloneAppxDemoProject extends Generator {
     super(args, opts);
 
     // Set whether STANDARD debug is enabled or not.
-    debug.enabled = opts.debugMode;
+    debug.enabled = false;
     debug(`constructor:opts.debugMode: ${opts.debugMode}`);
-
-    // Set whether ASYNC debug is enabled or not.
-    debugAsync.enabled  = false;
-    debugAsync(`constructor:opts.debugModeAsync: ${opts.debugModeAsync}`);
-
-    // Set whether EXTENDED debug is enabled or not.
-    debugExtended.enabled = false;
-    debugExtended(`constructor:opts.debugModeExtended: ${opts.debugModeExtended}`);
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
-    this.gitRemoteUri         = opts.gitRemoteUri;
-    this.gitCloneDirectory    = opts.gitCloneDir;
     this.writingComplete      = false;
     this.installComplete      = false;
+    this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
+    this.gitRemoteUri         = opts.gitRemoteUri;
+    this.gitCloneDirectory    = opts.gitCloneDir;
 
     // Initialize (but don't START) a Falcon Status Report object.
-    this.status = new SfdxFalconStatus();
+    //this.status = new SfdxFalconStatus();
 
-    // Validate the gitRemoteUri.  If we throw an Error from here in the
-    // cosntructor, the Salesforce CLI will pick it up and send the message
-    // to the user
+    // Validate the gitRemoteUri passed in by the CLI Command
     if (gitHelper.isGitUriValid(this.gitRemoteUri) === false) {
       throw new Error(`INVALID_GIT_URI: The value '${this.gitRemoteUri}' is not a valid Git Remote URI`);
     }
@@ -243,8 +238,8 @@ export default class CloneAppxDemoProject extends Generator {
                 return sfdxHelper.scanConnectedOrgs()
                   .then(sfdxShellResult => { 
                     // DEBUG
-                    debugAsync(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
-                    debugAsync('-\n-\n-\n-\n-\n');
+                    debug(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
+                    debug('-\n-\n-\n-\n-\n');
                     // Change the title of the task
                     thisTask.title += 'Done!'
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
@@ -275,6 +270,22 @@ export default class CloneAppxDemoProject extends Generator {
               }
             },
             {
+              // SUBTASK: Identify all the active Environment Hub orgs
+              title:  'Identifying EnvHub Orgs...',
+              task:   (listrContext, thisTask) => {
+                this.envHubOrgInfos = sfdxHelper.identifyEnvHubOrgs(listrContext.rawSfdxOrgList);
+                // Give the Listr Context variable access to this.envHubOrgInfos
+                listrContext.envHubOrgInfos = this.envHubOrgInfos;
+                // Update the task title based on the number of EnvHub Org Infos
+                if (this.envHubOrgInfos.length < 1) {
+                  thisTask.title += 'No Environment Hubs Found';
+                }
+                else {
+                  thisTask.title += 'Done!'
+                }
+              }
+            },
+            {
               // SUBTASK: Build a list of Listr Options based on Dev Hubs
               title:  'Building DevHub Alias List...',
               task:   (listrContext, thisTask) => {
@@ -282,6 +293,18 @@ export default class CloneAppxDemoProject extends Generator {
                 // Add a separator and a "not specified" option
                 this.devHubAliasChoices.push(new yoHelper.YeomanSeparator());
                 this.devHubAliasChoices.push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
+                thisTask.title += 'Done!'
+                return;
+              }
+            },
+            {
+              // SUBTASK: Build a list of Listr Options based on Environment Hubs
+              title:  'Building EnvHub Alias List...',
+              task:   (listrContext, thisTask) => {
+                this.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
+                // Add a separator and a "not specified" option
+                this.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
+                this.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
                 thisTask.title += 'Done!'
                 return;
               }
@@ -320,9 +343,9 @@ export default class CloneAppxDemoProject extends Generator {
   private _initializeInterviewQuestions() {
     //─────────────────────────────────────────────────────────────────────────┐
     // Define the Interview Prompts.
-    // 1. What is the URI of the Git repository to clone? (string)
-    // 2. Where do you want to clone this project to? (string)
-    // 3. Please select the Dev Hub to use with this project? (options)
+    // 1. What is the target directory for this project?                        (string)
+    // 2. Which DevHub Alias do you want to use for this project?               (options)
+    // 3. Which Environment Hub Alias do you want to use for this project?      (options)
     //─────────────────────────────────────────────────────────────────────────┘
     return [
       {
@@ -347,21 +370,27 @@ export default class CloneAppxDemoProject extends Generator {
         type:     'list',
         name:     'envHubAlias',
         message:  'Which Environment Hub Alias do you want to use for this project?',
-// TODO: make this a list of EnvHubs        choices:  this.envHubAliasChoices,
-        choices:  this.devHubAliasChoices,
+        choices:  this.envHubAliasChoices,
         when:     true
       }
     ];
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Initialize confirmation questions.  Shown at the end of each interview.
+  /**
+   * @method      _initializeFinalConfirmationQuestions
+   * @description Creates Yeoman/Inquirer questions that ask the user to confirm
+   *              that they are ready to install based on the specified info.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private _initializeConfirmationQuestions() {
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Define the Interview Prompts.
-    // 1. Create a new SFDX-Falcon project based on the above settings? (y/n)
-    // 2. Would you like to start again and enter new values? (y/n)
+    // 1. Clone an AppExchange Demo Kit (ADK) project based on the above settings?  (y/n)
+    // 2. Would you like to start again and enter new values?                       (y/n)
     //─────────────────────────────────────────────────────────────────────────┘
     return [
       {
@@ -395,18 +424,20 @@ export default class CloneAppxDemoProject extends Generator {
     tableData.push({option:'Dev Hub Alias:',    value:`${this.userAnswers.devHubAlias}`});
     tableData.push({option:'Env Hub Alias:',    value:`${this.userAnswers.envHubAlias}`});
 
-    // Add a line break before rendering the table.
+    // Render the Falcon Table with line breaks before and after.
     this.log('');
-
-    // Render the Falcon Table
     this.falconTable.render(tableData);
-
-    // Extra line break to give the next prompt breathing room.
     this.log('');
   }
 
 
+
+
+
   // *************************** START THE INTERVIEW ***************************
+
+
+
 
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -419,13 +450,16 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async initializing() {
+
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon / ADK Project Cloning Tool v${version}`))
 
     // Execute the async Listr task runner for initialization.
     try {
+
       // Run the setup/init tasks for the falcon:project:clone command via Listr.
       await this._executeListrSetupTasks();
+
       // Show an "Initialization Complete" message
       this.log(chalk`\n{bold Initialization Complete}\n`);
     } 
@@ -449,15 +483,18 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside prompting()`);
       return;
     }
+
     // Start the interview loop.  This will ask the user questions until they
     // verify they want to take action based on the info they provided, or 
     // they deciede to cancel the whole process.
     do {
+
       // Initialize interview questions.
       let interviewQuestions = this._initializeInterviewQuestions();
 
@@ -504,8 +541,9 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
+
     // Start the status timer.
-    this.status.startTimer();
+    //this.status.startTimer();
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -529,6 +567,7 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside writing()`);
@@ -601,6 +640,12 @@ export default class CloneAppxDemoProject extends Generator {
     // Quick message saying we're going to update project files
     this.log(chalk`\n{yellow Customizing project files...}\n`);
 
+    // Merge "User Answers" from the interview with "Default Answers" to get "Final Answers".
+    this.finalAnswers = {
+      ...this.defaultAnswers,
+      ...this.userAnswers
+    }
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Add custom config info to the local .sfdx-falcon project config file.
     // This is found in a hidden directory at the root of the project.
@@ -652,8 +697,6 @@ export default class CloneAppxDemoProject extends Generator {
       message:  `Project files customized at ${this.destinationRoot()}\n`
     });
 
-
-
     //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the install() step completed successfully.
     //─────────────────────────────────────────────────────────────────────────┘
@@ -672,9 +715,11 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
+
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside end()`);
+
       // Add a final error message
       this.generatorStatus.addMessage({
         type:     'error',
@@ -686,6 +731,7 @@ export default class CloneAppxDemoProject extends Generator {
 
     // If we get here, then it's POSSIBLE that the command completed successfully.
     if (this.installComplete === true) {
+
       // Installation succeeded
       this.generatorStatus.complete([
         {
@@ -696,6 +742,7 @@ export default class CloneAppxDemoProject extends Generator {
       ]);
     }
     else {
+
       // Installation failed
       this.generatorStatus.abort({
         type:     'error',
