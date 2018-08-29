@@ -15,6 +15,7 @@ import * as path                    from  'path';                           // M
 
 // Import Local Modules
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result'; // Enum. Represents the status of SfdxFalconResults.
 
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
@@ -23,6 +24,7 @@ import {executeSfdxCommand}         from  '../../../executors/sfdx';        // F
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
 import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
+import { SfdxFalconError } from '../../../../sfdx-falcon-error';
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:deploy-metadata:';
@@ -140,7 +142,27 @@ export class DeployMetadataAction extends AppxEngineAction {
     // OPTIONAL: If you want to override success/error handling, do it here.
     return await executeSfdxCommand(sfdxCommandDef)
       .then(executorResult => {
-        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+
+        // Override standard behavior here so we can convert a FAILED Executor to an ERROR
+        //return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+
+        // Use the normal process to handle/wrap/add the resolved Exeuctor
+        this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+
+        // Check for FAILURE. If there is, create an SFDX-Falcon error and add as a new child.
+        if (actionResult.lastChild.status === SfdxFalconResultStatus.FAILURE) {
+          let execFailureError 
+            = new SfdxFalconError (`ERROR_FAILED_EXECUTOR: Executor '${actionResult.lastChild.name}' `
+                                  +`has failed during MDAPI deployment of ${actionOptions.mdapiSource}`, 
+                                   `FailedExecutor`);
+          execFailureError.setFalconData(actionResult.lastChild.detail.sfdxCliError);
+          actionResult.throw(execFailureError);
+        }
+        else {
+
+          // No FAILURE or ERROR, so just return the Action Result.
+          return actionResult;        
+        }
       })
       .catch(executorResult => {
         return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
