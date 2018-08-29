@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.5 darwin-x64 node-v8.9.4
+sfdx-falcon/0.0.5 darwin-x64 node-v10.1.0
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -29,34 +29,11 @@ USAGE
 ```
 <!-- usagestop -->
 <!-- commands -->
-* [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
 * [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
 * [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
 * [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
-
-## `sfdx-falcon falcon:config:interview`
-
-Creates an empty Salesforce DX project using the SFDX-Falcon template.
-
-```
-USAGE
-  $ sfdx-falcon falcon:config:interview
-
-OPTIONS
-  -n, --projectname=projectname                   name of your project
-  -s, --namespace=namespace                       namespace associated with your packaging org
-  --json                                          format output as json
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:project:create
-  $ sfdx falcon:project:create --projectname "My SFDX-Falcon Project" --namespace my_ns_prefix
-  $ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix
-```
-
-_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/config/interview.ts)_
 
 ## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
