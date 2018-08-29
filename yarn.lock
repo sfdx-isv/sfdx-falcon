@@ -2832,6 +2832,10 @@ set-value@^2.0.0:
     is-plain-object "^2.0.3"
     split-string "^3.0.1"
 
+sfdx-falcon-appx-demo-kit@0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/sfdx-falcon-appx-demo-kit/-/sfdx-falcon-appx-demo-kit-0.0.8.tgz#57bd3c87b873e87f475a3ad66ec98251242dfe4c"
+
 sfdx-falcon-template@0.3.1:
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/sfdx-falcon-template/-/sfdx-falcon-template-0.3.1.tgz#70e66716a3dc53b2bc15279e2616333f28c34222"
