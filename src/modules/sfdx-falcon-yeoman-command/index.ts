@@ -115,7 +115,6 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┘
   protected onError(error:any) {
 
-    console.log(`I GET HERE!`)
     super.onError(error);
 
     // TODO: Implement special onError logic for an SfdxFalconYeomanCommand.
