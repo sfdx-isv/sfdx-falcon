@@ -1,7 +1,7 @@
 {
   "name": "sfdx-falcon",
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
-  "version": "0.0.2",
+  "version": "0.0.5",
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
   "dependencies": {
@@ -13,12 +13,13 @@
     "chalk": "^2.4.1",
     "debug": "^3.1.0",
     "falcon-listr-update-renderer": "^0.4.2",
-    "inquirer": "^6.0.0",
+    "inquirer": "^6.1.0",
     "listr": "^0.14.1",
     "lodash": "^4.17.10",
     "pad": "^2.1.0",
     "request-promise-native": "^1.0.5",
     "rxjs": "^6.2.2",
+    "sfdx-falcon-appx-demo-kit": "0.0.9",
     "sfdx-falcon-template": "0.3.1",
     "shelljs": "^0.8.2",
     "uuid": "^3.3.2",
@@ -60,7 +61,13 @@
   ],
   "homepage": "https://github.com/sfdx-isv/sfdx-falcon-plugin",
   "keywords": [
-    "sfdx-plugin"
+    "salesforce",
+    "sfdx",
+    "sfdx-falcon",
+    "sfdx-plugin",
+    "appexchange",
+    "appexchange-demo-kit",
+    "adk"
   ],
   "license": "MIT",
   "oclif": {

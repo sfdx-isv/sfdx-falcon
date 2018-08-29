@@ -3,43 +3,38 @@
  * @file          generators/create-falcon-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @version       1.0.0
- * @license       MIT
- * @requires      module:chalk
- * @requires      module:debug
- * @requires      module:path
- * @requires      module:sfdx-falcon-template
- * @requires      module:shelljs
- * @requires      module:yeoman-generator
- * @requires      module:yosay
- * @requires      ../helpers/ux-helper
- * @requires      ../validators/yeoman
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
  * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
  *                the project is created, the user is guided through an interview where they define
  *                key project settings which are then used to customize the project scaffolding
  *                that gets created on their local machine.
+ * @version       1.0.0
+ * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// tslint:disable no-floating-promises
-// tslint:disable no-console
-
-// Imports
-import * as path        from 'path';                            // Helps resolve local paths at runtime.
-import * as Generator   from 'yeoman-generator';                // Generator class must extend this.
-import * as yoValidate  from '../validators/yeoman-validator';  // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-import * as uxHelper    from '../helpers/ux-helper';            // Library of UX Helper functions specific to SFDX-Falcon.
-import * as gitHelper   from '../helpers/git-helper';           // Library of Git Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from '../helpers/yeoman-helper';        // Library of Yeoman Helper functions specific to SFDX-Falcon.
+// Import External Modules
+import * as path        from  'path';                                                 // Helps resolve local paths at runtime.
+import * as Generator   from  'yeoman-generator';                                     // Generator class must extend this.
+import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as uxHelper    from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
+import * as gitHelper   from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
 
 // Requires
-const chalk           = require('chalk');                           // Utility for creating colorful console output.
-const debug           = require('debug')('create-falcon-project');  // Utility for debugging. set debug.enabled = true to turn on.
-const {version}       = require('../../package.json');              // The version of the SFDX-Falcon plugin
-const yosay           = require('yosay');                           // ASCII art creator brings Yeoman to life.
+const chalk           = require('chalk');                                           // Utility for creating colorful console output.
+const debug           = require('debug')('create-falcon-project');                  // Utility for debugging. set debug.enabled = true to turn on.
+const Listr           = require('listr');                                           // Provides asynchronous list with status of task completion.
+const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
+const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
 
-// Interfaces
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   InterviewAnswers
+ * @description Represents answers to the questions asked in the Yeoman interview.
+ * @private
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface interviewAnswers {
   projectName: string;
   projectType: 'managed1gp' | 'managed2gp' | 'unmanaged' | 'demo' ;
@@ -350,11 +345,23 @@ export default class CreateFalconProject extends Generator {
   }
 
 
+
+
+
   // *************************** START THE INTERVIEW ***************************
 
 
+
+
+
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP ONE: Initialization (uses Yeoman's "initializing" run-loop priority).
+  /**
+   * @method      initializing
+   * @description STEP ONE in the Yeoman run-loop.  Uses Yeoman's "initializing"
+   *              run-loop priority.
+   * @version     1.0.0
+   * @private @async
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
@@ -366,7 +373,13 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
+  /**
+   * @method      prompting
+   * @description STEP TWO in the Yeoman run-loop. Interviews the User.  Uses 
+   *              Yeoman's "prompting" run-loop priority.
+   * @version     1.0.0
+   * @private @async
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private async prompting() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -415,7 +428,14 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
+  /**
+   * @method      configuring
+   * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
+   *              configuration steps based on the answers provided by the User.  
+   *              Uses Yeoman's "configuring" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -449,7 +469,14 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
+  /**
+   * @method      writing
+   * @description STEP FOUR in the Yeoman run-loop. Typically, this is where 
+   *              you perform filesystem writes, git clone operations, etc.
+   *              Uses Yeoman's "writing" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private writing() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -528,50 +555,63 @@ export default class CreateFalconProject extends Generator {
                     this.fs.copyTpl(this.templatePath('sfdx-source/untracked'),
                     this.destinationPath('sfdx-source/untracked'),
                     this);
-    
+
     //─────────────────────────────────────────────────────────────────────────┐
-    // Copy all .npmignore files over as .gitignore
+    // Determine if the template path has .npmignore or .gitignore files
     //─────────────────────────────────────────────────────────────────────────┘
-    this.fs.copyTpl(this.templatePath('.npmignore'),                
+    let ignoreFile = '.gitignore';
+    try {
+      // Check if the embedded template still has .gitignore files.
+      let fileTest = this.fs.read(this.templatePath('.gitignore'));
+    }
+    catch {
+      // .gitignore files were replaced with .npmignore files.
+      ignoreFile = '.npmignore';
+    }
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Copy all .npmignore/.gitignore files over as .gitignore
+    //─────────────────────────────────────────────────────────────────────────┘
+    this.fs.copyTpl(this.templatePath(`${ignoreFile}`),                
                     this.destinationPath('.gitignore'), 
                     this);
-    this.fs.copyTpl(this.templatePath('config/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`config/${ignoreFile}`),
                     this.destinationPath('config/.gitignore'),  
                     this);
-    this.fs.copyTpl(this.templatePath('dev-tools/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`dev-tools/${ignoreFile}`),
                     this.destinationPath('dev-tools/.gitignore'),  
                     this);
-    this.fs.copyTpl(this.templatePath('mdapi-source/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`mdapi-source/${ignoreFile}`),
                     this.destinationPath('mdapi-source/.gitignore'),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/aura/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/aura/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/aura/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/classes/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/classes/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/classes/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/layouts/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/layouts/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/layouts/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/objects/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/objects/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/objects/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/permissionsets/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/permissionsets/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/permissionsets/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/profiles/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/profiles/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/profiles/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/remoteSiteSettings/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/remoteSiteSettings/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/remoteSiteSettings/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/tabs/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/tabs/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/tabs/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('sfdx-source/my_ns_prefix/main/default/triggers/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`sfdx-source/my_ns_prefix/main/default/triggers/${ignoreFile}`),
                     this.destinationPath(`sfdx-source/${this.userAnswers.packageDirectory}/main/default/triggers/.gitignore`),
                     this);
-    this.fs.copyTpl(this.templatePath('temp/.npmignore'),
+    this.fs.copyTpl(this.templatePath(`temp/${ignoreFile}`),
                     this.destinationPath('temp/.gitignore'),
                     this);
 
@@ -580,7 +620,16 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
+  /**
+   * @method      install
+   * @description STEP FIVE in the Yeoman run-loop. Typically, this is where 
+   *              you perform operations that must happen AFTER files are 
+   *              written to disk. For example, if the "writing" step downloaded
+   *              an app to install, the "install" step would run the 
+   *              installation. Uses Yeoman's "writing" run-loop priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
@@ -713,7 +762,15 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
+  /**
+   * @method      end
+   * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
+   *              Yeoman runs and it gives us a chance to do any post-Yeoman
+   *              updates and/or cleanup. Uses Yeoman's "end" run-loop 
+   *              priority.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private end() {
     // Check if the Yeoman interview/installation process was aborted.

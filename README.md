@@ -21,7 +21,7 @@ $ npm install -g sfdx-falcon
 $ sfdx-falcon COMMAND
 running command...
 $ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.2 darwin-x64 node-v10.1.0
+sfdx-falcon/0.0.5 darwin-x64 node-v8.9.4
 $ sfdx-falcon --help [COMMAND]
 USAGE
   $ sfdx-falcon COMMAND
@@ -30,13 +30,11 @@ USAGE
 <!-- usagestop -->
 <!-- commands -->
 * [`sfdx-falcon falcon:config:interview`](#sfdx-falcon-falconconfiginterview)
-* [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`](#sfdx-falcon-falcondemoclone-git-remote-uri)
+* [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
-* [`sfdx-falcon falcon:demo:deploy`](#sfdx-falcon-falcondemodeploy)
-* [`sfdx-falcon falcon:demo:validate`](#sfdx-falcon-falcondemovalidate)
+* [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
 * [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
 * [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
-* [`sfdx-falcon hello:org [FILE]`](#sfdx-falcon-helloorg-file)
 
 ## `sfdx-falcon falcon:config:interview`
 
@@ -58,32 +56,45 @@ EXAMPLES
   $ sfdx falcon:project:create -n "My SFDX-Falcon Project" -s my_ns_prefix
 ```
 
-_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/config/interview.ts)_
+_See code: [src/commands/falcon/config/interview.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/config/interview.ts)_
 
-## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI`
+## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:clone GIT_REMOTE_URI
+  $ sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
 
 ARGUMENTS
-  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to clone the project into
+  -d, --outputdir=outputdir                       [default: .] Directory to clone the AppExchange Demo Kit (ADK) project
+                                                  into
+
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:clone git@github.com:GitHubUser/my-repository.git
   $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git \
-                              --outputdir ~/demos/appexchange-demo-kit-projects
+  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName
+  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \
+                           --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/demo/clone.ts)_
+_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/clone.ts)_
 
 ## `sfdx-falcon falcon:demo:create`
 
@@ -95,67 +106,65 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:demo:create
-  $ sfdx falcon:demo:create --outputdir ~/demos/appexchange-demo-kit-projects
+  $ sfdx falcon:demo:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/demo/create.ts)_
+_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/create.ts)_
 
-## `sfdx-falcon falcon:demo:deploy`
+## `sfdx-falcon falcon:demo:install`
 
-Deploys an ADK-based demo to a non-scratch (ie. trial, DE, or sandbox) org
+Runs a Demo Installation Recipe to build an ADK-based demo org
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:deploy
+  $ sfdx-falcon falcon:demo:install
 
 OPTIONS
-  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
+  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
-  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
-                                                  project
+  -f, --configfile=configfile                     Overrides 'demoRecipes' setting from sfdx-project.json to run a
+                                                  specific Recipe
+
+  -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
+                                                  JSON string
+
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
 
   --json                                          format output as json
 
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:deploy
-  $ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:install
+  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project \
+                             --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/demo/deploy.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/demo/deploy.ts)_
-
-## `sfdx-falcon falcon:demo:validate`
-
-Validates an ADK-based demo by deploying it to a scratch org
-
-```
-USAGE
-  $ sfdx-falcon falcon:demo:validate
-
-OPTIONS
-  -d, --deploydir=deploydir                       [default: .] Path to a directory that contains a fully-configured ADK
-                                                  project
-
-  -f, --configfile=configfile                     Overrides the 'demoConfig' setting from sfdx-project.json in the ADK
-                                                  project
-
-  --json                                          format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:demo:deploy
-  $ sfdx falcon:demo:deploy --deploydir ~/demos/adk-projects/my-adk-project
-```
-
-_See code: [src/commands/falcon/demo/validate.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/demo/validate.ts)_
+_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/install.ts)_
 
 ## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
 
@@ -170,7 +179,17 @@ ARGUMENTS
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to clone the project into
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
@@ -180,7 +199,7 @@ EXAMPLES
                               --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/project/clone.ts)_
+_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/clone.ts)_
 
 ## `sfdx-falcon falcon:project:create`
 
@@ -192,7 +211,17 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] directory to store your project
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
   --json                                          format output as json
+
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
@@ -200,35 +229,7 @@ EXAMPLES
   $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/falcon/project/create.ts)_
-
-## `sfdx-falcon hello:org [FILE]`
-
-Prints a greeting and your org id(s)!
-
-```
-USAGE
-  $ sfdx-falcon hello:org [FILE]
-
-OPTIONS
-  -f, --force                                      example boolean flag
-  -n, --name=name                                  name to print
-  -u, --targetusername=targetusername              username or alias for the target org; overrides default target org
-  -v, --targetdevhubusername=targetdevhubusername  username or alias for the dev hub org; overrides default dev hub org
-  --apiversion=apiversion                          override the api version used for api requests made by this command
-  --json                                           format output as json
-  --loglevel=(trace|debug|info|warn|error|fatal)   logging level for this command invocation
-
-EXAMPLES
-  $ sfdx hello:org --targetusername myOrg@example.com --targetdevhubusername devhub@org.com
-     Hello world! This is org: MyOrg and I will be around until Tue Mar 20 2018!
-     My hub org id is: 00Dxx000000001234
-  
-  $ sfdx hello:org --name myname --targetusername myOrg@example.com
-     Hello myname! This is org: MyOrg and I will be around until Tue Mar 20 2018!
-```
-
-_See code: [src/commands/hello/org.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.2/src/commands/hello/org.ts)_
+_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/create.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->
 # Debugging your plugin

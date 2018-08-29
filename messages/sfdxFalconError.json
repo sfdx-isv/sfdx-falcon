@@ -1,0 +1,11 @@
+{
+  "errUnknown": "An unexpected error has occured (details below)\n\n%s",
+  "errDefault": "%s (see details below)\n\n%s",
+
+  "errInvalidDirectory": "%sDirectory can not begin with a ~, have unescaped spaces, or contain these invalid characters (' \" * |)",
+
+  "actionDevTest1": "DEVTEST1: This should not be seen in production (%s)\n",
+  "actionDevTest2": "DEVTEST2: This should not be seen in production (%s)\n",
+
+  "ACTIONFOR_ERROR_UNKNOWN_ACTION": "Edit your config file and fix this\n"
+}

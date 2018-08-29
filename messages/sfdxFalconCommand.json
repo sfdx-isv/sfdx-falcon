@@ -1,0 +1,14 @@
+{
+  "configfile_FlagDescription":         "Overrides 'demoRecipes' setting from sfdx-project.json to run a specific Recipe",
+  "extendedoptions_FlagDescription":    "Options for overriding internal settings passed as a JSON string",
+  "projectdir_FlagDescription":         "Path to a directory that contains a fully-configured ADK project",
+
+  "gitRemoteUri_ArgDescription":        "URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)",
+  "gitCloneDir_ArgDescription":         "Directory name of the cloned repository (defaults to repo name if not specified)",
+
+  
+  "falcondebug_FlagDescription":        "List of debug namespaces which should render output",
+  "falcondebugerror_FlagDescription":   "Display extended information for uncaught Errors",
+  "falcondebugsuccess_FlagDescription": "Display extended information upon successful command completion",
+  "falcondebugdepth_FlagDescription":   "Sets the depth of object inspection when debug output is displayed"
+}
