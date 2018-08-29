@@ -10,7 +10,11 @@
 
 A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon family of projects, including the [AppExchange Demo Kit (ADK)](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) and [AppExchange Package Kit (APK)](#).
 
-## Installing the SFDX-Falcon CLI Plugin
+###AppExchange Demo Kit (ADK) - Powered by the SFDX-Falcon Plugin
+![AppExchange Demo Kit (ADK) falcon:demo:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
+
+
+## Installation
 
 Once you've installed the Salesforce CLI, installing the SFDX-Falcon plugin is very easy.Open a terminal window (command prompt) and enter the following:
 
@@ -26,7 +30,7 @@ $ sfdx plugins:install sfdx-falcon
 1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
 2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
 
-## Commands Implemented by the SFDX-Falcon Plugin
+## Available Commands
 <!-- install -->
 <!-- commands -->
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
