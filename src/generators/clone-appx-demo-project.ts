@@ -25,13 +25,17 @@ import {SfdxFalconStatus} from  '../modules/sfdx-falcon-status';                
 // Requires
 const chalk           = require('chalk');                                       // Utility for creating colorful console output.
 const debug           = require('debug')('clone-appx-demo-project');            // Utility for debugging. set debug.enabled = true to turn on.
-//const debugAsync      = require('debug')('clone-appx-demo-project(ASYNC)');     // Utility for debugging. set debugAsync.enabled = true to turn on.
-//const debugExtended   = require('debug')('clone-appx-demo-project(EXTENDED)');  // Utility for debugging. set debugExtended.enabled = true to turn on.
 const Listr           = require('listr');                                       // Provides asynchronous list with status of task completion.
 const {version}       = require('../../package.json');                          // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                       // ASCII art creator brings Yeoman to life.
 
-// Interfaces
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   InterviewAnswers
+ * @description Represents answers to the questions asked in the Yeoman interview.
+ * @private
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface InterviewAnswers {
   gitRemoteUri:       string;
   targetDirectory:    string;
@@ -54,6 +58,7 @@ interface InterviewAnswers {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export default class CloneAppxDemoProject extends Generator {
+
   //───────────────────────────────────────────────────────────────────────────┐
   // Define class variables/types.
   //───────────────────────────────────────────────────────────────────────────┘
@@ -74,7 +79,6 @@ export default class CloneAppxDemoProject extends Generator {
   private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
-//  private status:                 SfdxFalconStatus;                 // Tracks the actions taken by Yeoman and can display them upon completion.
 
   private gitRemoteUri:           string;                           // URI of the Git repo to clone.
   private gitCloneDirectory:      string;                           // Name of the Git repo directory once cloned to local storage.
@@ -105,9 +109,6 @@ export default class CloneAppxDemoProject extends Generator {
     this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
     this.gitRemoteUri         = opts.gitRemoteUri;
     this.gitCloneDirectory    = opts.gitCloneDir;
-
-    // Initialize (but don't START) a Falcon Status Report object.
-    //this.status = new SfdxFalconStatus();
 
     // Validate the gitRemoteUri passed in by the CLI Command
     if (gitHelper.isGitUriValid(this.gitRemoteUri) === false) {
@@ -541,9 +542,6 @@ export default class CloneAppxDemoProject extends Generator {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private configuring () {
-
-    // Start the status timer.
-    //this.status.startTimer();
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {

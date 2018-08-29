@@ -28,7 +28,13 @@ const Listr           = require('listr');                                       
 const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
 
-// Interfaces
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   InterviewAnswers
+ * @description Represents answers to the questions asked in the Yeoman interview.
+ * @private
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface interviewAnswers {
   projectName: string;
   projectType: 'managed1gp' | 'managed2gp' | 'unmanaged' | 'demo' ;
