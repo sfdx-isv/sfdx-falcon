@@ -1,4 +1,4 @@
-sfdx-falcon
+# SFDX-Falcon Plugin
 ===========
 
 A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.
@@ -10,6 +10,23 @@ A plugin for the Salesforce CLI that enables and enhances implementation of the 
 [![Known Vulnerabilities](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin/badge.svg)](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin)
 [![Downloads/week](https://img.shields.io/npm/dw/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
 [![License](https://img.shields.io/npm/l/sfdx-falcon.svg)](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/master/package.json)
+
+
+## Installing the SFDX-Falcon CLI Plugin
+
+Once you've installed the Salesforce CLI, installing the SFDX-Falcon plugin is very easy.Open a terminal window (command prompt) and enter the following:
+
+```
+$ sfdx plugins:install sfdx-falcon
+```
+
+You should see something similar to this:
+
+![Install the CLI Plugin](https://drive.google.com/uc?export=view&id=1h6iUbZXc3XRJrhE-8uAy_HkqH1d57XBj)
+
+1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
+2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
+
 
 <!-- toc -->
 * [Debugging your plugin](#debugging-your-plugin)
