@@ -1,7 +1,6 @@
 # SFDX-Falcon Plugin
-===========
 
-A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.
+A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon family of projects, including the AppExchange Demo Kit (ADK) and AppExchange Package Kit (APK).
 
 [![Version](https://img.shields.io/npm/v/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
 [![CircleCI](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master.svg?style=shield)](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master)
@@ -11,6 +10,7 @@ A plugin for the Salesforce CLI that enables and enhances implementation of the 
 [![Downloads/week](https://img.shields.io/npm/dw/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
 [![License](https://img.shields.io/npm/l/sfdx-falcon.svg)](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/master/package.json)
 
+==================
 
 ## Installing the SFDX-Falcon CLI Plugin
 
@@ -20,31 +20,16 @@ Once you've installed the Salesforce CLI, installing the SFDX-Falcon plugin is v
 $ sfdx plugins:install sfdx-falcon
 ```
 
-You should see something similar to this:
+**You should see something similar to this:**
 
 ![Install the CLI Plugin](https://drive.google.com/uc?export=view&id=1h6iUbZXc3XRJrhE-8uAy_HkqH1d57XBj)
 
+**Some notes on the above:**
 1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
 2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
 
-
-<!-- toc -->
-* [Debugging your plugin](#debugging-your-plugin)
-<!-- tocstop -->
+## Commands Implemented by the SFDX-Falcon Plugin
 <!-- install -->
-<!-- usage -->
-```sh-session
-$ npm install -g sfdx-falcon
-$ sfdx-falcon COMMAND
-running command...
-$ sfdx-falcon (-v|--version|version)
-sfdx-falcon/0.0.5 darwin-x64 node-v10.1.0
-$ sfdx-falcon --help [COMMAND]
-USAGE
-  $ sfdx-falcon COMMAND
-...
-```
-<!-- usagestop -->
 <!-- commands -->
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
