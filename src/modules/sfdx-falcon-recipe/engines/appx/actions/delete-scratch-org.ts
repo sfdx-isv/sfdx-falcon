@@ -22,7 +22,7 @@ import {SfdxFalconActionType}       from  '../../../types';                 // E
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:delete-scratch-org:';
-const clsDbgNs  = 'DeleteScratchOrgAction:';
+//const clsDbgNs  = 'DeleteScratchOrgAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

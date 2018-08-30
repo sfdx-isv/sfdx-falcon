@@ -28,7 +28,7 @@ import { SfdxFalconError } from '../../../../sfdx-falcon-error';
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:deploy-metadata:';
-const clsDbgNs  = 'DeployMetadataAction:';
+//const clsDbgNs  = 'DeployMetadataAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

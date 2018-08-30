@@ -24,9 +24,15 @@ import {SfdxFalconResultType} from  '../../../modules/sfdx-falcon-result';  // W
 import {resolveConnection}    from  '../../sfdx-falcon-util/sfdx';       // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'EXECUTOR:jsforce:';
-const clsDbgNs  = '';
+//const dbgNs     = 'EXECUTOR:jsforce:';
+//const clsDbgNs  = '';
 
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   JSForceCommandDefinition
+ * @description Represents the data required to execute a command through JSForce
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Interfaces
 export interface JSForceCommandDefinition {
   aliasOrConnection:  string|Connection;
@@ -36,16 +42,37 @@ export interface JSForceCommandDefinition {
   request:            jsf.RequestInfo,
   options?:           {any};
 }
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   QueryResult
+ * @description Represents the Query Result structure that is returned from REST API SOQL queries.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface QueryResult {
   totalSize: number;
   done: boolean;
   records: Record[];
 }
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   Record
+ * @description Represents a single record as returned from a REST API SOQL query.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface Record {
   attributes: object;
   Id: string;
   ContentDocumentId?: string;
 }
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   InsertResult
+ * @description Represents the results returned from a REST API SOQL INSERT.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface InsertResult {
   id:       string;
   success:  boolean;

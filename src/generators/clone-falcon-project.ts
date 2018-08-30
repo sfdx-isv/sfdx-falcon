@@ -67,18 +67,13 @@ export default class CloneFalconProject extends Generator {
   private userAnswers:            InterviewAnswers;                 // Why?
   private defaultAnswers:         InterviewAnswers;                 // Why?
   private confirmationAnswers:    yoHelper.ConfirmationAnswers;     // Why?
-//  private falconProjectSettings:  FalconProjectSettings;            // Why?
   private rawSfdxOrgList:         Array<any>;                       // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
   private devHubOrgInfos:         Array<sfdxHelper.SfdxOrgInfo>;    // Array of sfdxOrgInfo objects that only include DevHub orgs.
   private devHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of DevOrg aliases/usernames in the form of Yeoman choices.
 
   private gitRemoteUri:           string;                           // Why?
-//  private sourceDirectory:        string;                           // Source dir - Will be determined after cloning SFDX project.
-//  private gitHubUser:             string | undefined;               // Why?
-//  private isGitAvailable:         boolean;                          // Stores whether or not Git is available.
-  private writingComplete:        boolean;                          // Indicates that the writing() function completed successfully.
   private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
-//  private abortYeomanProcess:     boolean;                          // Indicates that Yeoman's interview/installation process must be aborted.
+  // @ts-ignore - cliCommandName will be needed once we refactor
   private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
@@ -105,9 +100,7 @@ export default class CloneFalconProject extends Generator {
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
     this.gitRemoteUri         = opts.gitRemoteUri;
-    this.writingComplete      = false;
     this.installComplete      = false;
-//    this.isGitAvailable       = false;
 
     // Validate the gitRemoteUri.  If we throw an Error from here in the
     // cosntructor, the Salesforce CLI will pick it up and send the message
@@ -138,18 +131,7 @@ export default class CloneFalconProject extends Generator {
 
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
-
-    // DEBUG
-    debug('constructor:this.cliCommandName: %s',       this.cliCommandName);
-    debug('constructor:this.writingComplete: %s',      this.writingComplete);
-    debug('constructor:this.installComplete: %s',      this.installComplete);
-    debug('constructor:this.userAnswers:\n%O',         this.userAnswers);
-    debug('constructor:this.defaultAnswers:\n%O',      this.defaultAnswers);
-    debug('constructor:this.confirmationAnswers:\n%O', this.confirmationAnswers);
-
   }
-
-
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Initialize interview questions.  May be called more than once to allow
@@ -332,20 +314,24 @@ export default class CloneFalconProject extends Generator {
               title:  'Scanning Connected Orgs...',
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
-                  .then(sfdxShellResult => { 
-                    // DEBUG
-                    debugAsync(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
-                    debugAsync('-\n-\n-\n-\n-\n');
-                    // Change the title of the task
-                    thisTask.title += 'Done!'
+                  .then(utilityResult => { 
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-                    this.rawSfdxOrgList = sfdxShellResult.json.result.nonScratchOrgs;
+                    this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
+                    // Make sure that there is at least ONE connnected org
+                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
+                      throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `
+                                      +`Please run force:auth:web:login to connect to an org.`)
+                    }
+                    else {
+                      // Change the title of the task
+                      thisTask.title += 'Done!'
+                    }
                     // Give the Listr Context variable access to the class member
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
-                  .catch(sfdxShellResult => { 
+                  .catch(utilityResult => { 
                     thisTask.title += 'No Connections Found'
-                    throw new Error(sfdxShellResult.error);
+                    throw utilityResult;
                   });
               }
             },
@@ -412,6 +398,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP ONE: Initialization (uses Yeoman's "initializing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - xxxxx() is called by Yeoman's run loop
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
@@ -439,6 +426,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP TWO: Interview the User (uses Yeoman's "prompting" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - prompting() is called by Yeoman's run loop
   private async prompting() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -487,6 +475,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP THREE: Configuration (uses Yeoman's "configuring" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - configuring() is called by Yeoman's run loop
   private configuring () {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -503,6 +492,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP FOUR: Write Files (uses Yeoman's "writing" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - writing() is called by Yeoman's run loop
   private writing() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -594,6 +584,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP FIVE: Post-write Tasks (uses Yeoman's "install" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - install() is called by Yeoman's run loop
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -604,7 +595,6 @@ export default class CloneFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the writing() step completed successfully.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.writingComplete = true;
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Local Config Created`,
@@ -626,6 +616,7 @@ export default class CloneFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   // STEP SIX: Generator End (uses Yeoman's "end" run-loop priority).
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - end() is called by Yeoman's run loop
   private end() {
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {

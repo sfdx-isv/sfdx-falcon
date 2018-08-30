@@ -74,6 +74,7 @@ export const enum SfdxFalconResultType {
   RECIPE    = 'RECIPE',
   INQUIRER  = 'INQUIRER',
   LISTR     = 'LISTR',
+  UTILITY   = 'UTILITY',
   UNKNOWN   = 'UNKNOWN'
 }
 

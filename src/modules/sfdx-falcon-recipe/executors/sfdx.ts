@@ -13,8 +13,6 @@
 // Import External Modules
 
 // Import Local Modules
-import {SfdxFalconDebug}              from  '../../sfdx-falcon-debug';            // Why?
-import {SfdxFalconError}              from  '../../sfdx-falcon-error';            // Why?
 import {SfdxCliError}                 from  '../../sfdx-falcon-error';            // Why?
 
 import {updateObserver}               from  '../../sfdx-falcon-notifications';    // Why?
@@ -28,7 +26,7 @@ const shell = require('shelljs');                                               
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'EXECUTOR:sfdx:';
-const clsDbgNs  = '';
+//const clsDbgNs  = '';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -65,9 +63,10 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
   executorResult.detail = {
     sfdxCommandDef:     sfdxCommandDef,
     sfdxCommandString:  null,
+    stdOutParsed:       null,
     sfdxCliError:       null,
-    stdErrBuffer:       null,
-    stdOutBuffer:       null
+    stdOutBuffer:       null,
+    stdErrBuffer:       null
   };
   executorResult.debugResult('Executor Result Initialized', `${dbgNs}executeSfdxCommand`);
 
@@ -128,6 +127,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       else {
 
         // Prepare the SUCCESS detail for this function's Result.
+        executorResult.detail.stdOutBuffer = stdOutBuffer;
         executorResult.detail.stdOutParsed = safeParse(stdOutBuffer);
 
         // Make a final update to the observer

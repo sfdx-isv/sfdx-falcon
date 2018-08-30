@@ -21,6 +21,7 @@ import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result';   //
 // Engine/Action Imports
 import {SfdxFalconActionType}       from  '../../../types';                   // Enum. Represents types of SfdxFalconActions.
 import {AppxEngineActionContext}    from  '../../../engines/appx';            // Why?
+import { SfdxFalconError } from '../../../../sfdx-falcon-error';
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:appx-engine-action:';
@@ -272,6 +273,7 @@ export abstract class AppxEngineAction {
     if ((falconActionResult instanceof SfdxFalconResult) !== true) {
       let typeError = new TypeError (`ERROR_INVALID_TYPE: AppxEngineAction.onSuccess() expects an argument that's an instance  `
                                     +`of 'SfdxFalconResult', not '${falconActionResult.constructor.name}'`);
+      throw SfdxFalconError.wrap(typeError);
     }
 
     // Debug the contents of the Action Result.

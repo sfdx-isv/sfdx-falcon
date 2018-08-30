@@ -27,7 +27,7 @@ import {readConfigFile}               from  '../../../../sfdx-falcon-util';   //
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:create-user:';
-const clsDbgNs  = 'CreateUserAction:';
+//const clsDbgNs  = 'CreateUserAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

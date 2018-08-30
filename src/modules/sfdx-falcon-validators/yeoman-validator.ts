@@ -17,9 +17,6 @@
 // Imports
 import * as core from './core-validator';
 
-// Requires
-const debug = require('debug')('validator:yeoman');
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    gitRemoteUri

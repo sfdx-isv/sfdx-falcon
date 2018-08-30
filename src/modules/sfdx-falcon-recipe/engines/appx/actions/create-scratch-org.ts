@@ -25,7 +25,7 @@ import {SfdxFalconActionType}       from  '../../../types/';                // E
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:create-scratch-org:';
-const clsDbgNs  = 'CreateScratchOrgAction:';
+//const clsDbgNs  = 'CreateScratchOrgAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

@@ -14,7 +14,6 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // External Imports
-import {SfdxCommand}                  from  '@salesforce/command';                          // The CLI command we build must extend this class.
 import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
 import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
 

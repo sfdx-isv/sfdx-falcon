@@ -10,7 +10,8 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-var noOp = 'Just need something so JSDoc sees the class def as separate from file def';
+// @ts-ignore - Needed so JSDoc interprets a break between file header and first class/function.
+var noOp = 'never used';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

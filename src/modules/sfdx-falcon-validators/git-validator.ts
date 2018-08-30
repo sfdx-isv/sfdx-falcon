@@ -16,7 +16,6 @@ import {SfdxFalconDebug} from '../sfdx-falcon-debug';         // Provides specia
 // Requires
 
 // Globals
-const repoNameRegEx = /\/(\w|-)+\.git\/*$/;
 const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?$/;
 
 

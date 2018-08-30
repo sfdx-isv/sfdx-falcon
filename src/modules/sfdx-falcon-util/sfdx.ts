@@ -10,13 +10,19 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Aliases}            from '@salesforce/core';      // Why?
-import {AuthInfo}           from '@salesforce/core';      // Why?
-import {Connection}         from '@salesforce/core';      // Why?
+import {Aliases}              from '@salesforce/core';      // Why?
+import {AuthInfo}             from '@salesforce/core';      // Why?
+import {Connection}           from '@salesforce/core';      // Why?
+
 // Import Internal Modules
-import {SfdxFalconDebug}    from '../sfdx-falcon-debug';  // Why?
-import {SfdxFalconError}    from '../sfdx-falcon-error';  // Why?
+import {SfdxFalconDebug}      from '../sfdx-falcon-debug';  // Why?
+import {SfdxFalconError}      from '../sfdx-falcon-error';  // Why?
+import {SfdxFalconResult}     from '../sfdx-falcon-result'; // Why?
+import {SfdxFalconResultType} from '../sfdx-falcon-result'; // Why?
+import {SfdxCliError}         from '../sfdx-falcon-error';  // Why?
+
 // Import Utility Functions
+import {safeParse}            from '../sfdx-falcon-util';  // Why?
 
 // Requies
 const shell = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
@@ -270,12 +276,24 @@ export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedC
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function scanConnectedOrgs():Promise<any> {
+export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
+  // Initialize an UTILITY Result for this function.
+  let utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
+  utilityResult.detail = {
+    sfdxCommandString:  `sfdx force:org:list --json`,
+    stdOutParsed:       null,
+    sfdxCliError:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null
+  };
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs`);
+
+  // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
 
     // Declare a function-local string buffer to hold the stdio stream.
-    let stdoutBuffer:string = '';
+    let stdOutBuffer:string = '';
     let stdErrBuffer:string = '';
 
     // Run force:org:list asynchronously inside a child process.
@@ -283,7 +301,7 @@ export async function scanConnectedOrgs():Promise<any> {
 
     // Capture stdout data stream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
     childProcess.stdout.on('data', (data) => {
-      stdoutBuffer += data;
+      stdOutBuffer += data;
     });
 
     // Handle stderr "data". Anything here means an error occured. Build the buffer
@@ -295,41 +313,33 @@ export async function scanConnectedOrgs():Promise<any> {
     // FYI: Ignore the "code" and "signal" vars. They don't work.
     childProcess.stdout.on('close', (code, signal) => {
 
-      // Declare a SfdxShellResult variable to send info back to the caller.
-      let sfdxShellResult:SfdxShellResult = <SfdxShellResult>{};
+      // Determine if the command succeded or failed.
+      if (stdErrBuffer) {
 
-      // Save the raw result of the CLI command
-      sfdxShellResult.raw = stdoutBuffer;
+        // Prepare the ERROR detail for this function's Result.
+        utilityResult.detail.stdErrBuffer = stdErrBuffer;
+        utilityResult.detail.sfdxCliError = new SfdxCliError(stdErrBuffer, `SFDX_CLI_ERROR: Error executing scanConnectedOrgs()`);
+        utilityResult.error(utilityResult.detail.sfdxCliError);
+        utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs`);
 
-      // Try to parse the data from stdoutBuffer. If any errors are thrown,
-      // it means that either there are no non-scratch-orgs connected to
-      // the CLI or that some other error has occurred.
-      try {
-        sfdxShellResult.json      = JSON.parse(stdoutBuffer);
-        sfdxShellResult.status    = sfdxShellResult.json.status;
-        if (typeof sfdxShellResult.json.result.nonScratchOrgs === 'undefined') {
-          throw new Error('ERR_NO_RESULTS');
-        }
-      } catch(err) {
-        // Something went wrong.  Set status to 1 and attach err to the
-        // response so the caller can inspect it if they want to.
-        sfdxShellResult.status  = 1;
-        sfdxShellResult.error   = err;
-      }
-
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}getConnection`, sfdxShellResult, `${clsDbgNs}childProcess.stdout.on(close):sfdxShellResult`, `\n-\n-\n-`);
-
-      // Based on the closing code, either RESOLVE or REJECT to end this
-      // promise.  Any closing code other than 0 indicates failure.
-      if (sfdxShellResult.status === 0) {
-        resolve(sfdxShellResult);
+        // Process this as an ERROR result.
+        reject(utilityResult);
       }
       else {
-        reject(sfdxShellResult);
-      }        
+
+        // Prepare the SUCCESS detail for this function's Result.
+        utilityResult.detail.stdOutBuffer = stdOutBuffer;
+        utilityResult.detail.stdOutParsed = safeParse(stdOutBuffer);
+
+        // Regiser a SUCCESS result
+        utilityResult.success();
+        utilityResult.debugResult('Scan Connected Orgs Succeeded', `${dbgNs}scanConnectedOrgs`);
+
+        // Resolve with the successful SFDX-Falcon Result.
+        resolve(utilityResult);
+      }
     });
-  });
+  }) as Promise<SfdxFalconResult>;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -340,7 +350,7 @@ export async function scanConnectedOrgs():Promise<any> {
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxShellResult {
+export class SfdxShellResult__DEPRECATE {
 
   public cmd:       string;           // A copy of the CLI command that was executed
   public error:     Error;            // Error object in case of exceptions.
