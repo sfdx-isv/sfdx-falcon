@@ -22,8 +22,8 @@ import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-projec
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'COMMAND:falcon-demo-install:';
-const clsDbgNs  = 'FalconDemoInstall:';
+//const dbgNs     = 'COMMAND:falcon-demo-install:';
+//const clsDbgNs  = 'FalconDemoInstall:';
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);

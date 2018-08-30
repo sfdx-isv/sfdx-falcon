@@ -29,9 +29,13 @@ const falconSubstitutionMap = new Map<string, any>([
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class StringSubstitution {
+  // @ts-ignore - Temporary exclusion while this module is under development
   private substitutionMap:Map<string, any>    = new Map<string, any>();
+  // @ts-ignore - Temporary exclusion while this module is under development
   private ignoreInvalidKeys:boolean           = false;
+  // @ts-ignore - Temporary exclusion while this module is under development
   private openingTag:string                   = '<@';
+  // @ts-ignore - Temporary exclusion while this module is under development
   private closingTag:string                   = '@>';
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -139,16 +143,4 @@ function fetchSchemaVersion():string {
   return 'NOT_IMPLEMENTED';
 }
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    ???
- * @returns     {string}  ???
- * @description ???
- * @version     1.0.0
- * @private @async
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-function xxxxxxxxx():string {
-  return 'NOT_IMPLEMENTED';
-}
 

@@ -24,6 +24,7 @@ import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';             
 // Requires
 const chalk           = require('chalk');                                           // Utility for creating colorful console output.
 const debug           = require('debug')('create-falcon-project');                  // Utility for debugging. set debug.enabled = true to turn on.
+// @ts-ignore - Listr will be used once we refactor
 const Listr           = require('listr');                                           // Provides asynchronous list with status of task completion.
 const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
 const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
@@ -71,7 +72,6 @@ export default class CreateFalconProject extends Generator {
   private defaultAnswers:       interviewAnswers;                     // Why?
   private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
   
-  private writingComplete:      boolean;                              // Indicates that the writing() function completed successfully.
   private installComplete:      boolean;                              // Indicates that the install() function completed successfully.
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
   private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
@@ -94,7 +94,6 @@ export default class CreateFalconProject extends Generator {
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
-    this.writingComplete      = false;
     this.installComplete      = false;
     this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
     this.sourceDirectory      = require.resolve('sfdx-falcon-template');
@@ -363,6 +362,7 @@ export default class CreateFalconProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - initializing() is called by Yeoman's run loop
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
@@ -381,6 +381,7 @@ export default class CreateFalconProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - prompting() is called by Yeoman's run loop
   private async prompting() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -437,6 +438,7 @@ export default class CreateFalconProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - configuring() is called by Yeoman's run loop
   private configuring () {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -478,6 +480,7 @@ export default class CreateFalconProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - writing() is called by Yeoman's run loop
   private writing() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -562,7 +565,7 @@ export default class CreateFalconProject extends Generator {
     let ignoreFile = '.gitignore';
     try {
       // Check if the embedded template still has .gitignore files.
-      let fileTest = this.fs.read(this.templatePath('.gitignore'));
+      this.fs.read(this.templatePath('.gitignore'));
     }
     catch {
       // .gitignore files were replaced with .npmignore files.
@@ -631,6 +634,7 @@ export default class CreateFalconProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - install() is called by Yeoman's run loop
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -643,7 +647,6 @@ export default class CreateFalconProject extends Generator {
     // from the writing() function completed successfully.  This means that we
     // can consider the write operation successful.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.writingComplete = true;
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Project Creation`,
@@ -772,10 +775,13 @@ export default class CreateFalconProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - end() is called by Yeoman's run loop
   private end() {
+
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside end()`);
+
       // Add a final error message
       this.generatorStatus.addMessage({
         type:     'error',

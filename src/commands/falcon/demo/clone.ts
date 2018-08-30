@@ -22,8 +22,8 @@ import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-comman
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'COMMAND:falcon-demo-clone:';
-const clsDbgNs  = 'FalconDemoClone:';
+//const dbgNs     = 'COMMAND:falcon-demo-clone:';
+//const clsDbgNs  = 'FalconDemoClone:';
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);

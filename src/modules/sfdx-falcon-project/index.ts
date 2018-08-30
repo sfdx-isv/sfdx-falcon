@@ -12,13 +12,11 @@
 // Import External Modules
 import * as core                    from  '@salesforce/core';                 // Library. Allows us to use SFDX core functionality.
 import * as path                    from  'path';                             // Library. Node's built-in path library.
+
 // Import Local Modules
 import {SfdxFalconDebug}            from  '../sfdx-falcon-debug';             // Class. Internal Debug module
 import {SfdxFalconRecipe}           from  '../sfdx-falcon-recipe';            // Class. Allows you to read, compile, and run an SFDX-Falcon Recipe.
 import {SfdxFalconResult}           from  '../sfdx-falcon-result';            // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultType}       from  '../sfdx-falcon-result';            // Enum. Represents types of SfdxFalconResults.
-import {SfdxFalconResultStatus}     from  '../sfdx-falcon-result';            // Enum. Represents the status of SfdxFalconResults.
-
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'PROJECT:sfdx-falcon-project:';

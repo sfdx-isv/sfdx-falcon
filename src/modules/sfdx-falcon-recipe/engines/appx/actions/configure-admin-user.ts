@@ -26,7 +26,7 @@ import {readConfigFile}               from  '../../../../sfdx-falcon-util';     
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:configure-admin-user:';
-const clsDbgNs  = 'ConfigureAdminUserAction:';
+//const clsDbgNs  = 'ConfigureAdminUserAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

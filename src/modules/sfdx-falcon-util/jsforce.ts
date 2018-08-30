@@ -11,11 +11,11 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as jsf             from 'jsforce';                             // Why?
-import {Aliases}            from '@salesforce/core'                     // Why?
-import {AuthInfo}           from '@salesforce/core'                     // Why?
 import {Connection}         from '@salesforce/core'                     // Why?
+
 // Import Internal Modules
 import {SfdxFalconDebug}    from '../sfdx-falcon-debug';                // Why?
+
 // Import Utility Functions
 import {resolveConnection}  from './sfdx';                              // Function. Takes either an alias or a connection and gives back a connection.
 

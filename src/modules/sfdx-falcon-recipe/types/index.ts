@@ -9,7 +9,8 @@
  * @description   Types and classes relevant throughout the SFDX-Falcon Recipe Module
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-var noOp = 'Workaround so JSDoc does sees the file header (above) as different from the first item';
+// @ts-ignore - Needed so JSDoc interprets a break between file header and first class/function.
+var noOp = 'never used';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

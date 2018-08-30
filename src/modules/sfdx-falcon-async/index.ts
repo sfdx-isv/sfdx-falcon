@@ -10,10 +10,10 @@
  * @description   Exports functions that make running async logic easier.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// @ts-ignore - Needed so JSDoc interprets a break between file header and first class/function.
+var noOp = 'never used';
 // Imports
-var noOp = 'Just need a line of code so JSDoc sees break between file header and first class/function';
 // Requires
-
 // Interfaces
 
 //─────────────────────────────────────────────────────────────────────────────┐
