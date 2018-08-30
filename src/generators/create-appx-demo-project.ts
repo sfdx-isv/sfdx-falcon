@@ -19,13 +19,14 @@ import * as Generator   from  'yeoman-generator';                               
 
 
 // Import Internal Modules
-import * as uxHelper    from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
-import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-import * as gitHelper   from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
-import * as sfdxHelper  from  '../modules/sfdx-falcon-util/sfdx';                     // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as uxHelper          from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
+import * as yoHelper          from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as yoValidate        from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as gitHelper         from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+import * as sfdxHelper        from  '../modules/sfdx-falcon-util/sfdx';                     // Library of SFDX Helper functions specific to SFDX-Falcon.
 
-// Requires
+
+// Require Modules
 const chalk       = require('chalk');                             // Utility for creating colorful console output.
 const debug       = require('debug')('create-falcon-project');    // Utility for debugging. set debug.enabled = true to turn on.
 const Listr       = require('listr');                             // Provides asynchronous list with status of task completion.
@@ -79,6 +80,7 @@ export default class CreateAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private userAnswers:          interviewAnswers;                     // Why?
   private defaultAnswers:       interviewAnswers;                     // Why?
+  // @ts-ignore - finalAnswers is used by external code
   private finalAnswers:         interviewAnswers;                     // Why?
   private metaAnswers:          interviewAnswers;                     // Provides a means to send meta values (usually template tags) to EJS templates.
   private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
@@ -91,7 +93,6 @@ export default class CreateAppxDemoProject extends Generator {
 
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
   private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
-  private writingComplete:      boolean;                              // Indicates that the writing() function completed successfully.
   private installComplete:      boolean;                              // Indicates that the install() function completed successfully.
   private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
   private generatorStatus:      yoHelper.GeneratorStatus;             // Used to keep track of status and to return messages to the caller.
@@ -118,7 +119,6 @@ export default class CreateAppxDemoProject extends Generator {
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
-    this.writingComplete      = false;
     this.installComplete      = false;
     this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
     this.sourceDirectory      = require.resolve('sfdx-falcon-appx-demo-kit');
@@ -242,17 +242,24 @@ export default class CreateAppxDemoProject extends Generator {
               title:  'Scanning Connected Orgs...',
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
-                  .then(sfdxShellResult => { 
-                    // Change the title of the task
-                    thisTask.title += 'Done!'
+                  .then(utilityResult => { 
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-                    this.rawSfdxOrgList = sfdxShellResult.json.result.nonScratchOrgs;
+                    this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
+                    // Make sure that there is at least ONE connnected org
+                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 100) {
+                      throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `
+                                      +`Please run force:auth:web:login to connect to an org.`)
+                    }
+                    else {
+                      // Change the title of the task
+                      thisTask.title += 'Done!'
+                    }
                     // Give the Listr Context variable access to the class member
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
-                  .catch(sfdxShellResult => { 
+                  .catch(utilityResult => { 
                     thisTask.title += 'No Connections Found'
-                    throw new Error(sfdxShellResult.error);
+                    throw utilityResult;
                   });
               }
             },
@@ -672,6 +679,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - initializing() is called by Yeoman's run loop
   private async initializing() {
 
     // Show the Yeoman to announce that the generator is running.
@@ -705,6 +713,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - prompting() is called by Yeoman's run loop
   private async prompting() {
 
     // Check if we need to abort the Yeoman interview/installation process.
@@ -879,6 +888,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - configuring() is called by Yeoman's run loop
   private configuring () {
 
     // Check if we need to abort the Yeoman interview/installation process.
@@ -909,6 +919,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - writing() is called by Yeoman's run loop
   private writing() {
 
     // Check if we need to abort the Yeoman interview/installation process.
@@ -989,7 +1000,7 @@ export default class CreateAppxDemoProject extends Generator {
     let ignoreFile = '.gitignore';
     try {
       // Check if the embedded template still has .gitignore files.
-      let fileTest = this.fs.read(this.templatePath('.gitignore'));
+      this.fs.read(this.templatePath('.gitignore'));
     }
     catch {
       // .gitignore files were replaced with .npmignore files.
@@ -1035,6 +1046,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - install() is called by Yeoman's run loop
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -1047,7 +1059,6 @@ export default class CreateAppxDemoProject extends Generator {
     // from the writing() function completed successfully.  This means that we
     // can consider the write operation successful.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.writingComplete = true;
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Project Creation`,
@@ -1162,6 +1173,7 @@ export default class CreateAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - end() is called by Yeoman's run loop
   private end() {
 
     // Check if the Yeoman interview/installation process was aborted.

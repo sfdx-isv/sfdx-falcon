@@ -20,7 +20,6 @@ import * as yoHelper      from  '../modules/sfdx-falcon-util/yeoman';           
 import * as yoValidate    from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as gitHelper     from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as sfdxHelper    from  '../modules/sfdx-falcon-util/sfdx';                   // Library of SFDX Helper functions specific to SFDX-Falcon.
-import {SfdxFalconStatus} from  '../modules/sfdx-falcon-status';                      // Class. Provides ability to track what the Yeoman process is doing.
 
 // Requires
 const chalk           = require('chalk');                                       // Utility for creating colorful console output.
@@ -64,6 +63,7 @@ export default class CloneAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private userAnswers:            InterviewAnswers;                 // Why?
   private defaultAnswers:         InterviewAnswers;                 // Why?
+  // @ts-ignore - finalAnswers is used by external code
   private finalAnswers:           InterviewAnswers;                 // Why?
   private confirmationAnswers:    yoHelper.ConfirmationAnswers;     // Why?
 
@@ -74,8 +74,6 @@ export default class CloneAppxDemoProject extends Generator {
   private envHubAliasChoices:     Array<yoHelper.YeomanChoice>;     // Array of EnvHub aliases/usernames in the form of Yeoman choices.
 
   private cliCommandName:         string;                           // Name of the CLI command that kicked off this generator.
-  private pluginVersion:          string;                           // Version pulled from the plugin project's package.json.
-  private writingComplete:        boolean;                          // Indicates that the writing() function completed successfully.
   private installComplete:        boolean;                          // Indicates that the install() function completed successfully.
   private falconTable:            uxHelper.SfdxFalconKeyValueTable; // Falcon Table from ux-helper.
   private generatorStatus:        yoHelper.GeneratorStatus;         // Used to keep track of status and to return messages to the caller.
@@ -104,9 +102,7 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
-    this.writingComplete      = false;
     this.installComplete      = false;
-    this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
     this.gitRemoteUri         = opts.gitRemoteUri;
     this.gitCloneDirectory    = opts.gitCloneDir;
 
@@ -146,14 +142,6 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
-
-    // DEBUG
-    debug('constructor:this.cliCommandName: %s',       this.cliCommandName);
-    debug('constructor:this.writingComplete: %s',      this.writingComplete);
-    debug('constructor:this.installComplete: %s',      this.installComplete);
-    debug('constructor:this.userAnswers:\n%O',         this.userAnswers);
-    debug('constructor:this.defaultAnswers:\n%O',      this.defaultAnswers);
-    debug('constructor:this.confirmationAnswers:\n%O', this.confirmationAnswers);
 
   }
 
@@ -237,20 +225,24 @@ export default class CloneAppxDemoProject extends Generator {
               title:  'Scanning Connected Orgs...',
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
-                  .then(sfdxShellResult => { 
-                    // DEBUG
-                    debug(`scanConnectedOrgs.childProcess.stdout.on(close):sfdxShellResult\n%O`, sfdxShellResult);
-                    debug('-\n-\n-\n-\n-\n');
-                    // Change the title of the task
-                    thisTask.title += 'Done!'
+                  .then(utilityResult => { 
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-                    this.rawSfdxOrgList = sfdxShellResult.json.result.nonScratchOrgs;
+                    this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
+                    // Make sure that there is at least ONE connnected org
+                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
+                      throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `
+                                      +`Please run force:auth:web:login to connect to an org.`)
+                    }
+                    else {
+                      // Change the title of the task
+                      thisTask.title += 'Done!'
+                    }
                     // Give the Listr Context variable access to the class member
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
-                  .catch(sfdxShellResult => { 
+                  .catch(utilityResult => { 
                     thisTask.title += 'No Connections Found'
-                    throw new Error(sfdxShellResult.error);
+                    throw utilityResult;
                   });
               }
             },
@@ -450,6 +442,7 @@ export default class CloneAppxDemoProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - initializing() is called by Yeoman's run loop
   private async initializing() {
 
     // Show the Yeoman to announce that the generator is running.
@@ -483,6 +476,7 @@ export default class CloneAppxDemoProject extends Generator {
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - prompting() is called by Yeoman's run loop
   private async prompting() {
 
     // Check if we need to abort the Yeoman interview/installation process.
@@ -541,7 +535,8 @@ export default class CloneAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private configuring () {
+  // @ts-ignore - configuring() is called by Yeoman's run loop
+  private configuring() {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -564,6 +559,7 @@ export default class CloneAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - writing() is called by Yeoman's run loop
   private writing() {
 
     // Check if we need to abort the Yeoman interview/installation process.
@@ -668,6 +664,7 @@ export default class CloneAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - install() is called by Yeoman's run loop
   private install() {
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -678,7 +675,6 @@ export default class CloneAppxDemoProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the writing() step completed successfully.
     //─────────────────────────────────────────────────────────────────────────┘
-    this.writingComplete = true;
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Local Config Created`,
@@ -712,6 +708,7 @@ export default class CloneAppxDemoProject extends Generator {
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  // @ts-ignore - end() is called by Yeoman's run loop
   private end() {
 
     // Check if the Yeoman interview/installation process was aborted.
