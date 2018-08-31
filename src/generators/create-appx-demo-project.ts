@@ -4,7 +4,7 @@
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an AppExchange Demo Kit (ADK) project.
- * @description   Salesforce CLI Plugin command (falcon:demo:create) that allows a Salesforce DX
+ * @description   Salesforce CLI Plugin command (falcon:adk:create) that allows a Salesforce DX
  *                developer to create an empty project based on the AppExchange Demo Kit template.
  *                Before the project is created, the user is guided through an interview where they 
  *                define key project settings which are then used to customize the project
@@ -196,7 +196,7 @@ export default class CreateAppxDemoProject extends Generator {
     const gitInitTasks = new Listr([
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  'Initializing falcon:demo:create',
+        title:  'Initializing falcon:adk:create',
         task:   (listrContext) => {
           return new Listr([
             {
@@ -246,7 +246,7 @@ export default class CreateAppxDemoProject extends Generator {
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
                     this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
                     // Make sure that there is at least ONE connnected org
-                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 100) {
+                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
                       throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `
                                       +`Please run force:auth:web:login to connect to an org.`)
                     }
@@ -873,7 +873,7 @@ export default class CreateAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:demo:create command canceled by user'
+        message:  'falcon:adk:create command canceled by user'
       });
     }
   }
@@ -1184,7 +1184,7 @@ export default class CreateAppxDemoProject extends Generator {
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:demo:create exited without creating an SFDX-Falcon project\n'
+        message:  'falcon:adk:create exited without creating an SFDX-Falcon project\n'
       });
       return;
     }
@@ -1199,8 +1199,8 @@ export default class CreateAppxDemoProject extends Generator {
         type:     'success',
         title:    'Command Succeded',
         message:  this.installComplete
-                  ? 'falcon:demo:create completed successfully\n'
-                  : 'falcon:demo:create completed successfully, but with some warnings (see above)\n'
+                  ? 'falcon:adk:create completed successfully\n'
+                  : 'falcon:adk:create completed successfully, but with some warnings (see above)\n'
       }
     ]);
   }

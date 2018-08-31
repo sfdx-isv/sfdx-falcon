@@ -1,10 +1,10 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          commands/falcon/demo/install.ts
+ * @file          commands/falcon/adk/install.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Implements the CLI command "falcon:demo:install"
- * @description   Salesforce CLI Plugin command (falcon:demo:install) that is expected to run inside
+ * @summary       Implements the CLI command "falcon:adk:install"
+ * @description   Salesforce CLI Plugin command (falcon:adk:install) that is expected to run inside
  *                of a fully-configured AppExchange Demo Kit (ADK) project.  Takes project and local
  *                settings from various JSON config files and uses them to power an Org Build 
  *                based on the SFDX Falcon Recipe selected by the user.
@@ -19,7 +19,10 @@ import {Messages}                     from  '@salesforce/core';     // Messages 
 // Import Local Modules
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
-import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
+
+// Import Internal Types
+import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
+
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-install:';
@@ -28,13 +31,13 @@ import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-comman
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
 const baseMessages    = Messages.loadMessages('sfdx-falcon', 'sfdxFalconCommand');
-const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconDemoInstall');
+const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconAdkInstall');
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       FalconDemoInstall
  * @extends     SfdxFalconCommand
- * @summary     Implements the CLI Command "falcon:demo:install"
+ * @summary     Implements the CLI Command "falcon:adk:install"
  * @description Reads an SFDX-Falcon Recipe (either the one specified as the project default inside
  *              sfdx-project.json or one specified at the command line) and uses the resulting
  *              compiled Recipe to perform a set of tasks that should result in a demo org being
@@ -49,10 +52,10 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
   public static description = commandMessages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
-    `$ sfdx falcon:demo:install`,
-    `$ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project`,
-    `$ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project \\\n` + 
-    `                          --configfile my-alternate-demo-config.json`
+    `$ sfdx falcon:adk:install`,
+    `$ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project`,
+    `$ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project \\\n` + 
+    `                         --configfile my-alternate-demo-config.json`
   ];
 
   // Identify the core SFDX arguments/features required by this command.
@@ -105,7 +108,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
    *              that the CLI will then forward to the user if the --json flag
    *              was set when this command was called.
    * @description Entrypoint function used by the CLI when the user wants to
-   *              run the command 'sfdx falcon:demo:install'.
+   *              run the command 'sfdx falcon:adk:install'.
    * @version     1.0.0
    * @public @async
    */
@@ -113,7 +116,7 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
   public async run(): Promise<any> { 
 
     // Initialize the SfdxFalconCommand base (DO NOT REMOVE THIS LINE OF CODE!)
-    this.sfdxFalconCommandInit('falcon:demo:install', SfdxFalconCommandType.APPX_DEMO);
+    this.sfdxFalconCommandInit('falcon:adk:install', SfdxFalconCommandType.APPX_DEMO);
 
     // Resolve the Project Directory (specified by the user) to a Project Path.
     let projectPath = path.resolve(this.projectDirectory)

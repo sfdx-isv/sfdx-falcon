@@ -1,4 +1,0 @@
-{
-  "commandDescription"          : "Clones an SFDX-Falcon project from a remote Git repository.",
-  "outputdir_FlagDescription"   : "Directory to clone the AppExchange Demo Kit (ADK) project into"
-}

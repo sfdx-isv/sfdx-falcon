@@ -163,7 +163,7 @@ export default class CloneAppxDemoProject extends Generator {
     const gitInitTasks = new Listr([
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  'Initializing falcon:demo:clone',
+        title:  'Initializing falcon:adk:clone',
         task:   (listrContext) => {
           return new Listr([
             {
@@ -520,7 +520,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:demo:clone command canceled by user'
+        message:  'falcon:adk:clone command canceled by user'
       });
     }
   }
@@ -719,7 +719,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:demo:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
+        message:  'falcon:adk:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
       });
       return;
     }
@@ -732,7 +732,7 @@ export default class CloneAppxDemoProject extends Generator {
         {
           type:     'success',
           title:    'Command Succeded',
-          message:  'falcon:demo:clone completed successfully\n'
+          message:  'falcon:adk:clone completed successfully\n'
         }
       ]);
     }
@@ -742,7 +742,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:demo:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
+        message:  'falcon:adk:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
       });
     }
   }
