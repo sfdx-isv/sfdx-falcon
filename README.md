@@ -10,18 +10,10 @@
 
 A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon family of projects, including the [AppExchange Demo Kit (ADK)](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) and [AppExchange Package Kit (APK)](#).
 
-## What's Included With This Plugin?
-
-### AppExchange Demo Kit (ADK)
-![AppExchange Demo Kit (ADK) falcon:adk:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
-
-### AppExchange Package Kit (APK)
-
-![AppExchange Package Kit (APK) falcon:apk:create](https://drive.google.com/uc?export=view&id=1w6rjKATHKy972B3OLlgIWoICmwnTekgK)
 
 ## Installation
 
-Once you've installed the Salesforce CLI, installing the SFDX-Falcon plugin is very easy.Open a terminal window (command prompt) and enter the following:
+If you have already [installed the Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli), installing the SFDX-Falcon plugin is very easy. Just open a terminal window (command prompt) and enter the following:
 
 ```
 $ sfdx plugins:install sfdx-falcon
@@ -30,6 +22,26 @@ $ sfdx plugins:install sfdx-falcon
 **You should see something similar to this:**
 
 ![Install the CLI Plugin](https://drive.google.com/uc?export=view&id=1h6iUbZXc3XRJrhE-8uAy_HkqH1d57XBj)
+
+**Important Notes:**
+1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
+2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
+
+
+## What's Included With This Plugin?
+
+### AppExchange Demo Kit (ADK)
+
+The AppExchange Demo Kit (ADK) allows Salesforce Developers to build and share rich, dynamic demo orgs in a source-centric manner without requiring batch files or shell scripts.
+
+![AppExchange Demo Kit (ADK) falcon:adk:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
+
+### AppExchange Package Kit (APK)
+
+The AppExchange Package Kit (APK) builds on the [SFDX-Falcon Template](https://github.com/sfdx-isv/sfdx-falcon-template) to provide tools and frameworks tailored specifically for developing Managed Packages in agile, continuously-building, team-based envrionments using Salesforce DX.
+
+![AppExchange Package Kit (APK) falcon:apk:create](https://drive.google.com/uc?export=view&id=1w6rjKATHKy972B3OLlgIWoICmwnTekgK)
+
 
 **Important Notes:**
 1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
