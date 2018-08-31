@@ -82,14 +82,14 @@ _See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-f
 
 ## `sfdx-falcon falcon:apk:create`
 
-Creates a Salesforce DX project using the SFDX-Falcon template.
+Creates an AppExchange Package Kit (APK) project
 
 ```
 USAGE
   $ sfdx-falcon falcon:apk:create
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  -d, --outputdir=outputdir                       [default: .] Directory where your APK project will be created
   --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
@@ -104,8 +104,8 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:project:create
-  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
+  $ sfdx falcon:apk:create
+  $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
 _See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/apk/create.ts)_
@@ -150,14 +150,14 @@ _See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-
 
 ## `sfdx-falcon falcon:demo:create`
 
-Creates a Salesforce DX project using the SFDX-Falcon template.
+Creates an AppExchange Demo Kit (ADK) project
 
 ```
 USAGE
   $ sfdx-falcon falcon:demo:create
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  -d, --outputdir=outputdir                       [default: .] Directory where your ADK project will be created
   --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is

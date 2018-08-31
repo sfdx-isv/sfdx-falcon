@@ -1,5 +1,0 @@
-{
-  "commandDescription": "Creates a Salesforce DX project using the SFDX-Falcon template.",
-  "outputdirFlagDescription": "directory to store your project",
-  "falcondebugFlagDescription": "(hidden) runs this command in debug mode"
-}

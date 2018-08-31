@@ -1,4 +1,4 @@
 {
-  "commandDescription": "Creates a Salesforce DX project using the SFDX-Falcon template.",
-  "outputdir_FlagDescription": "directory to store your project"
+  "commandDescription": "Creates an AppExchange Demo Kit (ADK) project",
+  "outputdir_FlagDescription": "Directory where your ADK project will be created"
 }

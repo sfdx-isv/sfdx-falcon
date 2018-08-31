@@ -4,7 +4,7 @@
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
- * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
+ * @description   Salesforce CLI Plugin command (falcon:apk:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
  *                the project is created, the user is guided through an interview where they define
  *                key project settings which are then used to customize the project scaffolding
@@ -365,7 +365,7 @@ export default class CreateFalconProject extends Generator {
   // @ts-ignore - initializing() is called by Yeoman's run loop
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
-    this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
+    this.log(yosay(`AppExchange Package Kit (APK) Project Generator v${version}`))
 
     // Other genrators typically do more here, but CreateFalconProject doesn't
     // have any initialization tasks. Simply return.
@@ -423,7 +423,7 @@ export default class CreateFalconProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:project:create command canceled by user'
+        message:  'falcon:apk:create command canceled by user'
       });
     }
   }
@@ -786,7 +786,7 @@ export default class CreateFalconProject extends Generator {
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:project:create exited without creating an SFDX-Falcon project\n'
+        message:  'falcon:apk:create exited without creating an SFDX-Falcon project\n'
       });
       return;
     }
@@ -801,8 +801,8 @@ export default class CreateFalconProject extends Generator {
         type:     'success',
         title:    'Command Succeded',
         message:  this.installComplete
-                  ? 'falcon:project:create completed successfully\n'
-                  : 'falcon:project:create completed successfully, but with some warnings (see above)\n'
+                  ? 'falcon:apk:create completed successfully\n'
+                  : 'falcon:apk:create completed successfully, but with some warnings (see above)\n'
       }
     ]);
   }
