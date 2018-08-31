@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          generators/clone-falcon-project.ts
+ * @file          generators/clone-appx-package-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @version       1.0.0
@@ -32,13 +32,13 @@ import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';             
 import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 
 // Requires
-const chalk           = require('chalk');                                   // Utility for creating colorful console output.
-const debug           = require('debug')('clone-falcon-project');           // Utility for debugging. set debug.enabled = true to turn on.
-const debugAsync      = require('debug')('clone-falcon-project(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
-const debugExtended   = require('debug')('clone-falcon-project(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
-const Listr           = require('listr');                                   // Provides asynchronous list with status of task completion.
-const {version}       = require('../../package.json');                      // The version of the SFDX-Falcon plugin
-const yosay           = require('yosay');                                   // ASCII art creator brings Yeoman to life.
+const chalk           = require('chalk');                                         // Utility for creating colorful console output.
+const debug           = require('debug')('clone-appx-package-project');           // Utility for debugging. set debug.enabled = true to turn on.
+const debugAsync      = require('debug')('clone-appx-package-project(ASYNC)');    // Utility for debugging. set debugAsync.enabled = true to turn on.
+const debugExtended   = require('debug')('clone-appx-package-project(EXTENDED)'); // Utility for debugging. set debugExtended.enabled = true to turn on.
+const Listr           = require('listr');                                         // Provides asynchronous list with status of task completion.
+const {version}       = require('../../package.json');                            // The version of the SFDX-Falcon plugin
+const yosay           = require('yosay');                                         // ASCII art creator brings Yeoman to life.
 
 // Interfaces
 interface InterviewAnswers {
@@ -145,20 +145,6 @@ export default class CloneFalconProject extends Generator {
     // 3. Please select the Dev Hub to use with this project? (options)
     //─────────────────────────────────────────────────────────────────────────┘
     return [
-      /*
-      // Removing this question from the interview because it should be locked
-      // to what the user provides as an argument to falcon:project:clone
-      {
-        type:     'input',
-        name:     'gitRemoteUri',
-        message:  'What is the URI of the Git repository to clone?',
-        default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
-                  ? this.userAnswers.gitRemoteUri                     // Current Value
-                  : this.defaultAnswers.gitRemoteUri,                 // Default Value
-        validate: yoValidate.gitRemoteUri,
-        when:     true
-      },
-      //*/
       {
         type:     'input',
         name:     'targetDirectory',
@@ -252,7 +238,7 @@ export default class CloneFalconProject extends Generator {
     const gitInitTasks = new Listr([
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  'Initializing falcon:project:clone',
+        title:  `Initializing ${this.cliCommandName}`,
         task:   (listrContext) => {
           return new Listr([
             {
@@ -401,7 +387,7 @@ export default class CloneFalconProject extends Generator {
   // @ts-ignore - xxxxx() is called by Yeoman's run loop
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
-    this.log(yosay(`SFDX-Falcon Project Cloning Tool v${version}`))
+    this.log(yosay(`AppExchange Package Kit (APK) Cloning Tool v${version}`))
 
     // Execute the async Listr task runner for initialization.
     try {

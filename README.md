@@ -38,11 +38,77 @@ $ sfdx plugins:install sfdx-falcon
 ## Available Commands
 <!-- install -->
 <!-- commands -->
+* [`sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconapkclone-git-remote-uri-git-clone-dir)
+* [`sfdx-falcon falcon:apk:create`](#sfdx-falcon-falconapkcreate)
 * [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
 * [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
 * [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
-* [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
-* [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
+
+## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+
+Clones an SFDX-Falcon project from a remote Git repository.
+
+```
+USAGE
+  $ sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+
+ARGUMENTS
+  GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
+
+OPTIONS
+  -d, --outputdir=outputdir                       [default: .] Directory to clone the project into
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
+  --json                                          format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git \
+                              --outputdir ~/projects/sfdx-falcon-projects
+```
+
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/apk/clone.ts)_
+
+## `sfdx-falcon falcon:apk:create`
+
+Creates a Salesforce DX project using the SFDX-Falcon template.
+
+```
+USAGE
+  $ sfdx-falcon falcon:apk:create
+
+OPTIONS
+  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  --falcondebug=falcondebug                       List of debug namespaces which should render output
+
+  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
+                                                  displayed
+
+  --falcondebugerror                              Display extended information for uncaught Errors
+
+  --falcondebugsuccess                            Display extended information upon successful command completion
+
+  --json                                          format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+
+EXAMPLES
+  $ sfdx falcon:project:create
+  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
+```
+
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/apk/create.ts)_
 
 ## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
@@ -80,7 +146,7 @@ EXAMPLES
                            --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/clone.ts)_
+_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/demo/clone.ts)_
 
 ## `sfdx-falcon falcon:demo:create`
 
@@ -110,7 +176,7 @@ EXAMPLES
   $ sfdx falcon:demo:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/create.ts)_
+_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/demo/create.ts)_
 
 ## `sfdx-falcon falcon:demo:install`
 
@@ -150,72 +216,7 @@ EXAMPLES
                              --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/install.ts)_
-
-## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
-
-Clones an SFDX-Falcon project from a remote Git repository.
-
-```
-USAGE
-  $ sfdx-falcon falcon:project:clone GIT_REMOTE_URI
-
-ARGUMENTS
-  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
-
-OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to clone the project into
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
-
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
-
-  --falcondebugerror                              Display extended information for uncaught Errors
-
-  --falcondebugsuccess                            Display extended information upon successful command completion
-
-  --json                                          format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git
-  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \
-                              --outputdir ~/projects/sfdx-falcon-projects
-```
-
-_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/clone.ts)_
-
-## `sfdx-falcon falcon:project:create`
-
-Creates a Salesforce DX project using the SFDX-Falcon template.
-
-```
-USAGE
-  $ sfdx-falcon falcon:project:create
-
-OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to store your project
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
-
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
-
-  --falcondebugerror                              Display extended information for uncaught Errors
-
-  --falcondebugsuccess                            Display extended information upon successful command completion
-
-  --json                                          format output as json
-
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
-
-EXAMPLES
-  $ sfdx falcon:project:create
-  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
-```
-
-_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/create.ts)_
+_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.6/src/commands/falcon/demo/install.ts)_
 <!-- commandsstop -->
 
 

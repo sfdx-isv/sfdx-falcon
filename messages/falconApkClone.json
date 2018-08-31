@@ -1,0 +1,4 @@
+{
+  "commandDescription"          : "Clones an SFDX-Falcon project from a remote Git repository.",
+  "outputdir_FlagDescription"    : "Directory to clone the project into"
+}

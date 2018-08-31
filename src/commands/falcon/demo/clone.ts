@@ -15,11 +15,12 @@
 // Import External Modules
 import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
 
+// Import Local Modules
+import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
+
 // Import Internal Types
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
 
-// Local Imports
-import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-clone:';
@@ -66,7 +67,7 @@ export default class FalconDemoClone extends SfdxFalconYeomanCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   // Define the ARGUMENTS used by this command. 
   // Position 1 (GIT_REMOTE_URI)  - URI of the git repository being cloned.
-  // Position 1 (GIT_CLONE_DIR)   - Name of the locally cloned repo directory.
+  // Position 2 (GIT_CLONE_DIR)   - Name of the locally cloned repo directory.
   //───────────────────────────────────────────────────────────────────────────┘
   public static args = [
     {
