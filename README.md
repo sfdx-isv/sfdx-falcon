@@ -26,8 +26,8 @@ $ sfdx plugins:install sfdx-falcon
 ![Install the CLI Plugin](https://drive.google.com/uc?export=view&id=1h6iUbZXc3XRJrhE-8uAy_HkqH1d57XBj)
 
 **Important Notes:**
-1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
-2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
+1. The command `sfdx plugins:install` pulls the plugin source code directly from the [sfdx-falcon package](https://www.npmjs.com/package/sfdx-falcon), hosted by [NPM](www.npmjs.com)
+2. The SFDX-Falcon Plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
 
 
 ## What's Included With the SFDX-Falcon Plugin?
