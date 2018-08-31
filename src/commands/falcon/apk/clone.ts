@@ -14,7 +14,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
-//import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
 
 // Import Internal Modules
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
@@ -125,8 +124,8 @@ export default class FalconApkClone extends SfdxFalconYeomanCommand {
       outputDir:        this.outputDirectory,
       options: []
     })
-    .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return
-    .catch(error => {this.onError(error)});               // <-- Wraps any errors and displays to user
+    .then(statusReport  => {this.onSuccess(statusReport)})  // <-- Preps this.falconJsonResponse for return
+    .catch(error        => {this.onError(error)});          // <-- Wraps any errors and displays to user
 
     // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;
