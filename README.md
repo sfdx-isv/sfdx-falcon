@@ -13,7 +13,9 @@ A plugin for the Salesforce CLI that enables and enhances implementation of the 
 
 ## Installation
 
-If you have already [installed the Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli), installing the SFDX-Falcon plugin is very easy. Just open a terminal window (command prompt) and enter the following:
+Installing the SFDX-Falcon Plugin is easy if you have already [installed the Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli).  
+
+**Open a terminal window (command prompt) and enter the following:**
 
 ```
 $ sfdx plugins:install sfdx-falcon
@@ -28,7 +30,7 @@ $ sfdx plugins:install sfdx-falcon
 2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
 
 
-## What's Included With This Plugin?
+## What's Included With the SFDX-Falcon Plugin?
 
 ### AppExchange Demo Kit (ADK)
 
