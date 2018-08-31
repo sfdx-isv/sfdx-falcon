@@ -1,6 +1,6 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          generators/create-falcon-project.ts
+ * @file          generators/create-appx-package-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
@@ -108,7 +108,7 @@ export default class CreateFalconProject extends Generator {
     this.confirmationAnswers  = <yoHelper.ConfirmationAnswers>{};
 
     // Initialize DEFAULT Interview Answers.
-    this.defaultAnswers.projectName                 = 'my-sfdx-falcon-project';
+    this.defaultAnswers.projectName                 = 'my-appexchange-package';
     this.defaultAnswers.projectType                 = 'managed1gp';
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
     this.defaultAnswers.isCreatingManagedPackage    = true;
@@ -489,7 +489,7 @@ export default class CreateFalconProject extends Generator {
     }
     
     // Tell the user that we are preparing to create their project.
-    this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`)
+    this.log(chalk`{yellow Preparing to write project files to ${this.destinationRoot()}...}\n`)
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -685,7 +685,7 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     if (gitHelper.isGitInstalled() === true) {
       // Tell the user that we are adding their project to Git
-      this.log(chalk`{blue Adding project to Git...}\n`)
+      this.log(chalk`{yellow Adding project to Git...}\n`)
     }
     else {
       this.generatorStatus.addMessage({
