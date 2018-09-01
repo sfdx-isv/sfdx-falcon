@@ -1,3 +1,3 @@
 # Hello world!
 
-This is my first GitHub Page
+This is my first GitHub Page.
