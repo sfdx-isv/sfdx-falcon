@@ -1,16 +1,16 @@
 #
 # Site settings
 #
-remote_theme: LeakyAbstractions/pretty-docs
-url: https://leakyabstractions.github.io
-baseurl: /pretty-docs
-title: &site_title Pretty Docs
-description: &site_description Free Bootstrap theme for your project documentation
+remote_theme: sfdx-isv/pretty-docs
+url: https://sfdx-isv.github.io
+#baseurl: /docs
+title: &site_title SFDX-Falcon
+description: &site_description A Salesforce CLI plugin built for AppExchange Partners
 branding:
   icon:
-    name: icon_documents_alt
-  highlight: Pretty
-  bold: Docs
+    name: icon_tools  #icon_documents_alt
+  highlight: SFDX-
+  bold: Falcon
 markdown: kramdown
 kramdown:
   auto_ids: true
@@ -27,11 +27,11 @@ kramdown:
 # Owner
 #
 owner:
-  name: Guillermo Calvo
-  twitter: &site_owner_twitter gcalvo
+  name: Vivek M. Chawla
+  twitter: &site_owner_twitter VivekMChawla
   copyright:
-    notice: Lorem Ipsum
-    author: "[Guillermo Calvo](https://guillermo.in/)"
+    notice: Copyright
+    author: "[Vivek M. Chawla](https://twitter.com/VivekMChawla)"
 
 
 #
@@ -61,13 +61,14 @@ share:
     text: &site_description
     title: Tweet
   github:
-    repo: LeakyAbstractions/pretty-docs
+    repo: sfdx-isv/sfdx-falcon-plugin
     position: right
     color: red
 
-
+#
 # Google Analytics
-google_analytics: UA-61670496-5
+#
+google_analytics: UA-125083817-1
 
 
 #
