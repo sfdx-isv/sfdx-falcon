@@ -101,4 +101,4 @@ defaults:
       path: "_doc/docs"
       type: doc
     values:
-      layout: devdoc
+      layout: devdoc-topic
