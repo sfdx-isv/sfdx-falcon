@@ -50,12 +50,12 @@ twitter_cards:
   card: summary_large_image
   image: /assets/images/thumb.png
 share:
-  facebook:
-    class: fb-like
-    action: like
-    layout: button_count
-    show-faces: false
-    share: false
+#  facebook:
+#    class: fb-like
+#    action: like
+#    layout: button_count
+#    show-faces: false
+#    share: false
   twitter:
     via: *site_owner_twitter
     text: &site_description
@@ -96,3 +96,9 @@ defaults:
       type: pages
     values:
       layout: doc
+  -
+    scope:
+      path: "_doc/docs"
+      type: doc
+    values:
+      layout: devdoc
