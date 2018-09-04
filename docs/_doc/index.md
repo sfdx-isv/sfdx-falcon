@@ -1,35 +1,27 @@
 ---
-layout: home
 title: Home
+layout: home
 tagline: |
-  Free Bootstrap theme for your project documentation
-  
-  Designed with *&nbsp;*{: .fa .fa-heart} for developers
-  
-  Ready to use in *&nbsp;*{: .fa .fa-github} Github Pages
-heading: Getting started is easy!
+  A Salesforce CLI plugin built for AppExchange Partners  
+
+  Designed with *&nbsp;*{: .fa .fa-heart} for Salesforce Developers
+#heading: Getting started is easy!
+heading: "Already using Salesforce DX? Test drive SFDX-Falcon in 10 minutes or less!"
+#
+# Navigation Tiles
+#
 navigation:
-  - /start
-  - /components
-  - /charts
+  - /getstarted
+  - /docs
   - /faqs
-  - /showcase
-  - /credits
-  - /news
-  - /community
-  - /legal
+#  - /start_old
+#  - /news
+#  - /community
+#  - /components
+#  - /charts
+#  - /showcase
+#  - /credits
+#  - /legal
 ---
 
-Welcome to prettyDocs.
-This landing page is an example of how you can use a card view to present segments of your documentation.
-You can customise the icon fonts based on your needs.
-
-<div class="cta-container">
-
-[*&nbsp;*{: .fa .fa-cloud-download} Download Now][PRETTYDOCS]{: .btn .btn-primary .btn-cta}
-[*&nbsp;*{: .fa .fa-github} Use in GitHub Pages][GHPAGES]{: .btn .btn-green .btn-primary .btn-cta}
-
-</div>
-
-[PRETTYDOCS]: https://themes.3rdwavemedia.com/website-templates/prettydocs-free-bootstrap-theme-developers-and-startups/
-[GHPAGES]: https://github.com/LeakyAbstractions/pretty-docs/tree/gh-pages
+Click the "Getting Started" tile for a detailed guide to help get you up-and-running fast.
