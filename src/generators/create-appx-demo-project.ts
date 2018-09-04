@@ -17,14 +17,12 @@
 import * as path        from  'path';                                                 // Helps resolve local paths at runtime.
 import * as Generator   from  'yeoman-generator';                                     // Generator class must extend this.
 
-
 // Import Internal Modules
 import * as uxHelper          from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
 import * as yoHelper          from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as yoValidate        from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as gitHelper         from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
 import * as sfdxHelper        from  '../modules/sfdx-falcon-util/sfdx';                     // Library of SFDX Helper functions specific to SFDX-Falcon.
-
 
 // Require Modules
 const chalk       = require('chalk');                             // Utility for creating colorful console output.
@@ -47,16 +45,20 @@ interface interviewAnswers {
   projectAlias:             string;
   projectType:              'appx:single-demo';
   defaultRecipe:            string;
+
   gitRemoteUri:             string;
   gitHubUrl:                string;
   targetDirectory:          string;
+
   projectVersion:           string;
   schemaVersion:            string;
   pluginVersion:            string;
   sfdcApiVersion:           string;
+
   hasGitRemoteRepository:   boolean;
   ackGitRemoteUnreachable:  boolean;
   isGitRemoteReachable:     boolean;
+
   devHubAlias:              string;
   envHubAlias:              string;
 };
@@ -148,14 +150,19 @@ export default class CreateAppxDemoProject extends Generator {
 
     this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
     this.defaultAnswers.gitHubUrl                   = 'https://github.com/my-org/my-repo';
-    this.defaultAnswers.hasGitRemoteRepository      = true;
-    this.defaultAnswers.ackGitRemoteUnreachable     = false;
-
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
+
     this.defaultAnswers.projectVersion              = '0.0.1';
     this.defaultAnswers.schemaVersion               = '0.0.1';
     this.defaultAnswers.sfdcApiVersion              = '43.0';
     this.defaultAnswers.pluginVersion               = this.pluginVersion;
+
+    this.defaultAnswers.hasGitRemoteRepository      = true;
+    this.defaultAnswers.ackGitRemoteUnreachable     = false;
+    this.defaultAnswers.isGitRemoteReachable        = false;
+
+    this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
 
     // Initialize the Meta Answers
     this.metaAnswers.devHubAlias                    = `<%-finalAnswers.devHubAlias%>`;
