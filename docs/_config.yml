@@ -1,1 +1,116 @@
-theme: jekyll-theme-cayman
+#
+# Site settings
+#
+remote_theme: sfdx-isv/pretty-docs
+url: https://sfdx-isv.github.io
+#baseurl: /docs
+title: &site_title SFDX-Falcon
+description: &site_description A Salesforce CLI plugin built for AppExchange Partners
+branding:
+  icon:
+    name: icon_tools  #icon_documents_alt
+  highlight: SFDX-
+  bold: Falcon
+markdown: kramdown
+kramdown:
+  auto_ids: true
+  entity_output: as_char
+  toc_levels: 1..6
+  smart_quotes: lsquo,rsquo,ldquo,rdquo
+  input: GFM
+  hard_wrap: false
+  footnote_nr: 1
+  parse_block_html: true
+
+
+#
+# Owner
+#
+owner:
+  name: Vivek M. Chawla
+  twitter: &site_owner_twitter VivekMChawla
+  copyright:
+    notice: Copyright
+    author: "[Vivek M. Chawla](https://twitter.com/VivekMChawla)"
+
+
+#
+# Social
+#
+open_graph:
+  title: *site_title
+  site_name: *site_title
+  description: *site_description
+  locale: en_US
+  image: /assets/images/thumb.png
+twitter_cards:
+  title: *site_title
+  description: *site_description
+  creator: *site_owner_twitter
+  card: summary_large_image
+  image: /assets/images/thumb.png
+share:
+#  facebook:
+#    class: fb-like
+#    action: like
+#    layout: button_count
+#    show-faces: false
+#    share: false
+  twitter:
+    via: *site_owner_twitter
+    text: &site_description
+    title: Tweet
+  github:
+    repo: sfdx-isv/sfdx-falcon-plugin
+    position: right
+    color: red
+
+#
+# Google Analytics
+#
+google_analytics: UA-125083817-1
+
+
+#
+# Collections
+#
+collections:
+  doc:
+    output: true
+    permalink: /:path.html
+
+
+#
+# Default values
+#
+defaults:
+  -
+    scope:
+      path: ""
+      type: doc
+    values:
+      layout: doc
+  -
+    scope:
+      path: ""
+      type: pages
+    values:
+      layout: doc
+  # Developer Documentation Defaults
+  -
+    scope:
+      path: "_doc/docs"
+      type: doc
+    values:
+      layout: devdoc-topic
+  # Recipes Documentation Defaults
+  -
+    scope:
+      path: "_doc/docs/recipes"
+      type: doc
+    values:
+      icon:
+        type: fa
+        name: fa-exclamation-triangle
+      color: blue
+
