@@ -250,6 +250,10 @@ export default class CreateAppxDemoProject extends Generator {
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
                   .then(utilityResult => { 
+
+                    //TODO: Replace this with more standard debug
+                    //console.log(`utilityResult:\n%O\n\n\n\n\n\n\n\n\n\n`, utilityResult);
+
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
                     this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
                     // Make sure that there is at least ONE connnected org
@@ -265,6 +269,10 @@ export default class CreateAppxDemoProject extends Generator {
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
                   .catch(utilityResult => { 
+
+                    //TODO: Replace this with more standard debug
+                    //console.log(`utilityResult:\n%O\n\n\n\n\n\n\n\n\n\n`, utilityResult);
+
                     thisTask.title += 'No Connections Found'
                     throw utilityResult;
                   });
