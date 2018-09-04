@@ -38,7 +38,7 @@ const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconApkCreate');
  * @extends     SfdxFalconYeomanCommand
  * @summary     Implements the CLI Command "falcon:apk:create"
  * @description The command "falcon:apk:create" creates a local SFDX project using the
- *              SFDX-Falcon Template found at https://github.com/sfdx-isv/sfdx-falcon-template.
+ *              scaffolding found at https://github.com/sfdx-isv/sfdx-falcon-appx-package-kit.
  *              Uses Yeoman to create customized project scaffolding on the user's machine.
  * @version     1.0.0
  * @public
