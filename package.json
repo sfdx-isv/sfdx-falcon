@@ -23,9 +23,9 @@
     "sfdx-falcon-appx-package-kit": "0.0.1",
     "shelljs": "^0.8.2",
     "uuid": "^3.3.2",
-    "yeoman-environment": "^2.3.1",
-    "yeoman-generator": "^2.0.5",
-    "yosay": "^2.0.1"
+    "yeoman-environment": "^2.3.3",
+    "yeoman-generator": "^3.1.1",
+    "yosay": "^2.0.2"
   },
   "devDependencies": {
     "@oclif/dev-cli": "^1.17.0",
