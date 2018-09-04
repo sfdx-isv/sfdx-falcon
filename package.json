@@ -3,13 +3,13 @@
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
   "version": "0.0.6",
   "author": "Vivek M. Chawla @VivekMChawla",
-  "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
+  "bugs": "https://github.com/sfdx-isv/sfdx-falcon/issues",
   "dependencies": {
     "@oclif/command": "^1.5.0",
     "@oclif/config": "^1.7.3",
     "@oclif/errors": "^1.2.0",
     "@salesforce/command": "^0.2.3",
-    "@salesforce/core": "^0.19.0",
+    "@salesforce/core": "^0.20.0",
     "chalk": "^2.4.1",
     "debug": "^3.1.0",
     "falcon-listr-update-renderer": "^0.4.2",
@@ -29,7 +29,7 @@
   },
   "devDependencies": {
     "@oclif/dev-cli": "^1.17.0",
-    "@oclif/plugin-help": "2.1.0",
+    "@oclif/plugin-help": "2.1.1",
     "@oclif/test": "^1.2.0",
     "@oclif/tslint": "^2.0.0",
     "@salesforce/dev-config": "1.1.4",
@@ -59,7 +59,7 @@
     "/lib",
     "/messages"
   ],
-  "homepage": "https://github.com/sfdx-isv/sfdx-falcon-plugin",
+  "homepage": "https://github.com/sfdx-isv/sfdx-falcon",
   "keywords": [
     "salesforce",
     "sfdx",
@@ -67,7 +67,9 @@
     "sfdx-plugin",
     "appexchange",
     "appexchange-demo-kit",
-    "adk"
+    "appexchange-package-kit",
+    "adk",
+    "apk"
   ],
   "license": "MIT",
   "oclif": {
@@ -76,7 +78,7 @@
       "@oclif/plugin-help"
     ]
   },
-  "repository": "sfdx-isv/sfdx-falcon-plugin",
+  "repository": "sfdx-isv/sfdx-falcon",
   "scripts": {
     "postpack": "rm -f .oclif.manifest.json",
     "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
