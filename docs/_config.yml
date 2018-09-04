@@ -96,9 +96,21 @@ defaults:
       type: pages
     values:
       layout: doc
+  # Developer Documentation Defaults
   -
     scope:
       path: "_doc/docs"
       type: doc
     values:
       layout: devdoc-topic
+  # Recipes Documentation Defaults
+  -
+    scope:
+      path: "_doc/docs/recipes"
+      type: doc
+    values:
+      icon:
+        type: fa
+        name: fa-exclamation-triangle
+      color: blue
+
