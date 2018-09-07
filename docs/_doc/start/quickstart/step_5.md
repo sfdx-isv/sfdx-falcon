@@ -8,10 +8,10 @@ Start the AppExchange Demo Kit project setup wizard by executing `falcon:adk:cre
 $ sfdx falcon:adk:create
 ```
 
-**You should see something similar to this:**
-![Run falcon:adk:create from the CLI](https://drive.google.com/uc?export=view&id=1hBeJZ3uCpK0mCFNuIbkW4j7dbeUoOdHz)
+###### You should see something similar to this:
+![Run falcon:adk:create from the CLI](https://drive.google.com/uc?export=view&id=1hBeJZ3uCpK0mCFNuIbkW4j7dbeUoOdHz){: .img-responsive}
 
-**Important Notes:**
+###### Important Notes:
 1. Run `sfdx falcon:adk:create` from the command line
 2. The SFDX-Falcon plugin will take 1-2 minutes to initialize the AppExchange Demo Kit project wizard
 3. Answer the questions presented to you by the wizard
