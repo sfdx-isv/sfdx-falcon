@@ -10,6 +10,5 @@ $ mkdir ADK-Projects
 $ cd ADK-Projects
 ```
 
-You should see something similar to this:
-
-![Create ADK-Projects Directory](https://drive.google.com/uc?export=view&id=1QMj2C7zVmnFrfo9Y0_Kju4CnMIayIaW3)
+###### You should see something similar to this:
+![Create ADK-Projects Directory](https://drive.google.com/uc?export=view&id=1QMj2C7zVmnFrfo9Y0_Kju4CnMIayIaW3){: .img-responsive}

@@ -26,9 +26,9 @@ navigation:
   - /start/nextsteps
 ---
 
-If your Salesforce, GitHub, and Local Environments [**meet the prerequisites**](/start/prereqs), 
-then the [**Quick Start Guide**](/start/quickstart) will show you how to install **SFDX-Falcon** 
-and create/test-drive an **AppExchange Demo Kit (ADK)** project in 10 minutes or less. 
+Install **SFDX-Falcon** and create/test-drive an **AppExchange Demo Kit (ADK)** project in 10 
+minutes or less! Just [**check the prerequisites**](/start/prereqs) and follow the
+[**Quick Start Guide**](/start/quickstart).
 
-Once you're finished, don't forget to check out the [**Next Steps Guide**](/start/nextsteps) for 
-ideas on what else you can do with SFDX-Falcon.
+Wondering what else **SFDX-Falcon** can do? Check out the [**Next Steps Guide**](/start/nextsteps) 
+for some ideas.

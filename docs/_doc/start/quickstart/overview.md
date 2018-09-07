@@ -6,9 +6,8 @@ The best way to get started with the **SFDX-Falcon** plugin is by creating a sam
 
 ADK projects allow Salesforce Developers to build and share rich, dynamic demo orgs in a source-centric manner without requiring batch files or shell scripts.  
 
-Here's what the ADK install engine looks like when it's running.
-
-![AppExchange Demo Kit (ADK) falcon:adk:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
+###### Here's a look at the ADK install engine at work:
+![AppExchange Demo Kit (ADK) falcon:adk:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am){: .img-responsive}
 
 Anyone who has installed the [Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli) and the [SFDX-Falcon Plugin](https://github.com/sfdx-isv/sfdx-falcon) can install any ADK Demo with three simple commands.
 

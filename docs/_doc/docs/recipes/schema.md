@@ -1,7 +1,7 @@
 ---
-title:    Recipe Schema & Syntax
+title:    Recipe Syntax & Schema
 layout:   devdoc-topic
-excerpt:  How recipes work and what is in them
+excerpt:  Learn how Recipes work, what is in them, and how to customize them
 date:     2018-08-03
 #
 # Breadcrumbs
@@ -24,7 +24,7 @@ color: blue
 # Page Sections
 #
 sections:
-  - /docs/recipes/schema/section1
-  - /docs/recipes/schema/section2
-  - /docs/recipes/schema/section3
+  - /docs/recipes/schema/syntax
+  - /docs/recipes/schema/structure
+  - /docs/recipes/schema/actions
 ---
