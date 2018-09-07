@@ -4,7 +4,7 @@
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an AppExchange Demo Kit (ADK) project.
- * @description   Salesforce CLI Plugin command (falcon:demo:create) that allows a Salesforce DX
+ * @description   Salesforce CLI Plugin command (falcon:adk:create) that allows a Salesforce DX
  *                developer to create an empty project based on the AppExchange Demo Kit template.
  *                Before the project is created, the user is guided through an interview where they 
  *                define key project settings which are then used to customize the project
@@ -17,14 +17,12 @@
 import * as path        from  'path';                                                 // Helps resolve local paths at runtime.
 import * as Generator   from  'yeoman-generator';                                     // Generator class must extend this.
 
-
 // Import Internal Modules
 import * as uxHelper          from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
 import * as yoHelper          from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as yoValidate        from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as gitHelper         from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
 import * as sfdxHelper        from  '../modules/sfdx-falcon-util/sfdx';                     // Library of SFDX Helper functions specific to SFDX-Falcon.
-
 
 // Require Modules
 const chalk       = require('chalk');                             // Utility for creating colorful console output.
@@ -47,16 +45,20 @@ interface interviewAnswers {
   projectAlias:             string;
   projectType:              'appx:single-demo';
   defaultRecipe:            string;
+
   gitRemoteUri:             string;
   gitHubUrl:                string;
   targetDirectory:          string;
+
   projectVersion:           string;
   schemaVersion:            string;
   pluginVersion:            string;
   sfdcApiVersion:           string;
+
   hasGitRemoteRepository:   boolean;
   ackGitRemoteUnreachable:  boolean;
   isGitRemoteReachable:     boolean;
+
   devHubAlias:              string;
   envHubAlias:              string;
 };
@@ -148,14 +150,19 @@ export default class CreateAppxDemoProject extends Generator {
 
     this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
     this.defaultAnswers.gitHubUrl                   = 'https://github.com/my-org/my-repo';
-    this.defaultAnswers.hasGitRemoteRepository      = true;
-    this.defaultAnswers.ackGitRemoteUnreachable     = false;
-
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
+
     this.defaultAnswers.projectVersion              = '0.0.1';
     this.defaultAnswers.schemaVersion               = '0.0.1';
     this.defaultAnswers.sfdcApiVersion              = '43.0';
     this.defaultAnswers.pluginVersion               = this.pluginVersion;
+
+    this.defaultAnswers.hasGitRemoteRepository      = true;
+    this.defaultAnswers.ackGitRemoteUnreachable     = false;
+    this.defaultAnswers.isGitRemoteReachable        = false;
+
+    this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
 
     // Initialize the Meta Answers
     this.metaAnswers.devHubAlias                    = `<%-finalAnswers.devHubAlias%>`;
@@ -196,7 +203,7 @@ export default class CreateAppxDemoProject extends Generator {
     const gitInitTasks = new Listr([
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  'Initializing falcon:demo:create',
+        title:  'Initializing falcon:adk:create',
         task:   (listrContext) => {
           return new Listr([
             {
@@ -243,10 +250,14 @@ export default class CreateAppxDemoProject extends Generator {
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
                   .then(utilityResult => { 
+
+                    //TODO: Replace this with more standard debug
+                    //console.log(`utilityResult:\n%O\n\n\n\n\n\n\n\n\n\n`, utilityResult);
+
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
                     this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
                     // Make sure that there is at least ONE connnected org
-                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 100) {
+                    if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
                       throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `
                                       +`Please run force:auth:web:login to connect to an org.`)
                     }
@@ -258,6 +269,10 @@ export default class CreateAppxDemoProject extends Generator {
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
                   .catch(utilityResult => { 
+
+                    //TODO: Replace this with more standard debug
+                    //console.log(`utilityResult:\n%O\n\n\n\n\n\n\n\n\n\n`, utilityResult);
+
                     thisTask.title += 'No Connections Found'
                     throw utilityResult;
                   });
@@ -873,7 +888,7 @@ export default class CreateAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:demo:create command canceled by user'
+        message:  'falcon:adk:create command canceled by user'
       });
     }
   }
@@ -1184,7 +1199,7 @@ export default class CreateAppxDemoProject extends Generator {
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:demo:create exited without creating an SFDX-Falcon project\n'
+        message:  'falcon:adk:create exited without creating an SFDX-Falcon project\n'
       });
       return;
     }
@@ -1199,8 +1214,8 @@ export default class CreateAppxDemoProject extends Generator {
         type:     'success',
         title:    'Command Succeded',
         message:  this.installComplete
-                  ? 'falcon:demo:create completed successfully\n'
-                  : 'falcon:demo:create completed successfully, but with some warnings (see above)\n'
+                  ? 'falcon:adk:create completed successfully\n'
+                  : 'falcon:adk:create completed successfully, but with some warnings (see above)\n'
       }
     ]);
   }

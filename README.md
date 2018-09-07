@@ -1,27 +1,21 @@
 # SFDX-Falcon Plugin
 
 [![Version](https://img.shields.io/npm/v/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
-[![CircleCI](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master.svg?style=shield)](https://circleci.com/gh/sfdx-isv/sfdx-falcon-plugin/tree/master)
-[![Codecov](https://codecov.io/gh/sfdx-isv/sfdx-falcon-plugin/branch/master/graph/badge.svg)](https://codecov.io/gh/sfdx-isv/sfdx-falcon-plugin)
-[![Greenkeeper](https://badges.greenkeeper.io/sfdx-isv/sfdx-falcon-plugin.svg)](https://greenkeeper.io/)
-[![Known Vulnerabilities](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin/badge.svg)](https://snyk.io/test/github/sfdx-isv/sfdx-falcon-plugin)
+[![CircleCI](https://circleci.com/gh/sfdx-isv/sfdx-falcon/tree/master.svg?style=shield)](https://circleci.com/gh/sfdx-isv/sfdx-falcon/tree/master)
+[![Codecov](https://codecov.io/gh/sfdx-isv/sfdx-falcon/branch/master/graph/badge.svg)](https://codecov.io/gh/sfdx-isv/sfdx-falcon)
+[![Greenkeeper](https://badges.greenkeeper.io/sfdx-isv/sfdx-falcon.svg)](https://greenkeeper.io/)
+[![Known Vulnerabilities](https://snyk.io/test/github/sfdx-isv/sfdx-falcon/badge.svg)](https://snyk.io/test/github/sfdx-isv/sfdx-falcon)
 [![Downloads/week](https://img.shields.io/npm/dw/sfdx-falcon.svg)](https://npmjs.org/package/sfdx-falcon)
-[![License](https://img.shields.io/npm/l/sfdx-falcon.svg)](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/master/package.json)
+[![License](https://img.shields.io/npm/l/sfdx-falcon.svg)](https://github.com/sfdx-isv/sfdx-falcon/blob/master/package.json)
 
 A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon family of projects, including the [AppExchange Demo Kit (ADK)](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) and [AppExchange Package Kit (APK)](#).
 
-## What's Included With This Plugin?
-
-### AppExchange Demo Kit (ADK)
-![AppExchange Demo Kit (ADK) falcon:demo:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
-
-### AppExchange Package Kit (APK)
-
-Coming Soon!
 
 ## Installation
 
-Once you've installed the Salesforce CLI, installing the SFDX-Falcon plugin is very easy.Open a terminal window (command prompt) and enter the following:
+Installing the SFDX-Falcon Plugin is easy if you have already [installed the Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli).  
+
+**Open a terminal window (command prompt) and enter the following:**
 
 ```
 $ sfdx plugins:install sfdx-falcon
@@ -32,25 +26,45 @@ $ sfdx plugins:install sfdx-falcon
 ![Install the CLI Plugin](https://drive.google.com/uc?export=view&id=1h6iUbZXc3XRJrhE-8uAy_HkqH1d57XBj)
 
 **Important Notes:**
+1. The command `sfdx plugins:install` pulls the plugin source code directly from the [sfdx-falcon package](https://www.npmjs.com/package/sfdx-falcon), hosted by [NPM](www.npmjs.com)
+2. The SFDX-Falcon Plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
+
+
+## What's Included With the SFDX-Falcon Plugin?
+
+### AppExchange Demo Kit (ADK)
+
+The AppExchange Demo Kit (ADK) allows Salesforce Developers to build and share rich, dynamic demo orgs in a source-centric manner without requiring batch files or shell scripts.
+
+![AppExchange Demo Kit (ADK) falcon:adk:install](https://drive.google.com/uc?export=view&id=1pHTCkPSmGHzS_FoqidyA400ys6yFV8Am)
+
+### AppExchange Package Kit (APK)
+
+The AppExchange Package Kit (APK) builds on the [SFDX-Falcon Template](https://github.com/sfdx-isv/sfdx-falcon-template) to provide tools and frameworks tailored specifically for developing Managed Packages in agile, continuously-building, team-based envrionments using Salesforce DX.
+
+![AppExchange Package Kit (APK) falcon:apk:create](https://drive.google.com/uc?export=view&id=1w6rjKATHKy972B3OLlgIWoICmwnTekgK)
+
+
+**Important Notes:**
 1. The command `sfdx plugins:install` lets the Salesforce CLI know that you want to install a plugin
 2. The SFDX-Falcon plugin has not been digitially signed (yet), so you will need to acknowledge the warning to continue the installation
 
 ## Available Commands
 <!-- install -->
 <!-- commands -->
-* [`sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falcondemoclone-git-remote-uri-git-clone-dir)
-* [`sfdx-falcon falcon:demo:create`](#sfdx-falcon-falcondemocreate)
-* [`sfdx-falcon falcon:demo:install`](#sfdx-falcon-falcondemoinstall)
-* [`sfdx-falcon falcon:project:clone GIT_REMOTE_URI`](#sfdx-falcon-falconprojectclone-git-remote-uri)
-* [`sfdx-falcon falcon:project:create`](#sfdx-falcon-falconprojectcreate)
+* [`sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconadkclone-git-remote-uri-git-clone-dir)
+* [`sfdx-falcon falcon:adk:create`](#sfdx-falcon-falconadkcreate)
+* [`sfdx-falcon falcon:adk:install`](#sfdx-falcon-falconadkinstall)
+* [`sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconapkclone-git-remote-uri-git-clone-dir)
+* [`sfdx-falcon falcon:apk:create`](#sfdx-falcon-falconapkcreate)
 
-## `sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+## `sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
-Clones an SFDX-Falcon project from a remote Git repository.
+Clones an AppExchange Demo Kit (ADK) project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+  $ sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
 
 ARGUMENTS
   GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
@@ -74,24 +88,24 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName
-  $ sfdx falcon:demo:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \
-                           --outputdir ~/demos/appexchange-demo-kit-projects
+  $ sfdx falcon:adk:clone https://github.com/GitHubUser/my-repository.git
+  $ sfdx falcon:adk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName
+  $ sfdx falcon:adk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \
+                          --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/demo/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/clone.ts)_
+_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.7/src/commands/falcon/adk/clone.ts)_
 
-## `sfdx-falcon falcon:demo:create`
+## `sfdx-falcon falcon:adk:create`
 
-Creates a Salesforce DX project using the SFDX-Falcon template.
+Creates an AppExchange Demo Kit (ADK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:create
+  $ sfdx-falcon falcon:adk:create
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  -d, --outputdir=outputdir                       [default: .] Directory where your ADK project will be created
   --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
@@ -106,19 +120,19 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:create
-  $ sfdx falcon:demo:create --outputdir ~/ADK-Projects
+  $ sfdx falcon:adk:create
+  $ sfdx falcon:adk:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/demo/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/create.ts)_
+_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.7/src/commands/falcon/adk/create.ts)_
 
-## `sfdx-falcon falcon:demo:install`
+## `sfdx-falcon falcon:adk:install`
 
-Runs a Demo Installation Recipe to build an ADK-based demo org
+Reads an AppExchange Demo Kit (ADK) Recipe and builds a customized org
 
 ```
 USAGE
-  $ sfdx-falcon falcon:demo:install
+  $ sfdx-falcon falcon:adk:install
 
 OPTIONS
   -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
@@ -144,27 +158,28 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:demo:install
-  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project
-  $ sfdx falcon:demo:install --projectdir ~/demos/adk-projects/my-adk-project \
-                             --configfile my-alternate-demo-config.json
+  $ sfdx falcon:adk:install
+  $ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project
+  $ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project \
+                            --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/demo/install.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/demo/install.ts)_
+_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.7/src/commands/falcon/adk/install.ts)_
 
-## `sfdx-falcon falcon:project:clone GIT_REMOTE_URI`
+## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:project:clone GIT_REMOTE_URI
+  $ sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
 
 ARGUMENTS
-  GIT_REMOTE_URI  URI of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
+  GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to clone the project into
+  -d, --outputdir=outputdir                       [default: .] Directory to clone the project into
   --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
@@ -179,24 +194,24 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:project:clone git@github.com:GitHubUser/my-repository.git
-  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:project:clone https://github.com/GitHubUser/my-repository.git \
+  $ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git \
                               --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/clone.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/clone.ts)_
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.7/src/commands/falcon/apk/clone.ts)_
 
-## `sfdx-falcon falcon:project:create`
+## `sfdx-falcon falcon:apk:create`
 
-Creates a Salesforce DX project using the SFDX-Falcon template.
+Creates an AppExchange Package Kit (APK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:project:create
+  $ sfdx-falcon falcon:apk:create
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] directory to store your project
+  -d, --outputdir=outputdir                       [default: .] Directory where your APK project will be created
   --falcondebug=falcondebug                       List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
@@ -211,11 +226,11 @@ OPTIONS
   --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
 
 EXAMPLES
-  $ sfdx falcon:project:create
-  $ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects
+  $ sfdx falcon:apk:create
+  $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/project/create.ts](https://github.com/sfdx-isv/sfdx-falcon-plugin/blob/v0.0.5/src/commands/falcon/project/create.ts)_
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.7/src/commands/falcon/apk/create.ts)_
 <!-- commandsstop -->
 
 
@@ -227,7 +242,7 @@ Additional help is available to Salesforce ISV Partners by visiting the [SFDX-Fa
 
 ## Acknowledgements
 
-[SFDX-Falcon](https://github.com/sfdx-isv/sfdx-falcon-template), the [SFDX-Falcon Plugin](https://github.com/sfdx-isv/sfdx-falcon-plugin), and the [AppExchange Demo Kit](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) were created by **Vivek M. Chawla** [LinkedIn](https://www.linkedin.com/in/vivekmchawla/) | [Twitter](https://twitter.com/VivekMChawla).
+[SFDX-Falcon](https://github.com/sfdx-isv/sfdx-falcon-template), the [SFDX-Falcon Plugin](https://github.com/sfdx-isv/sfdx-falcon), and the [AppExchange Demo Kit](https://github.com/sfdx-isv/sfdx-falcon-appx-demo-kit) were created by **Vivek M. Chawla** [LinkedIn](https://www.linkedin.com/in/vivekmchawla/) | [Twitter](https://twitter.com/VivekMChawla).
 
 ## License
 

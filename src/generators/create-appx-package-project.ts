@@ -1,10 +1,10 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          generators/create-falcon-project.ts
+ * @file          generators/create-appx-package-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
- * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
+ * @description   Salesforce CLI Plugin command (falcon:apk:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
  *                the project is created, the user is guided through an interview where they define
  *                key project settings which are then used to customize the project scaffolding
@@ -16,18 +16,20 @@
 // Import External Modules
 import * as path        from  'path';                                                 // Helps resolve local paths at runtime.
 import * as Generator   from  'yeoman-generator';                                     // Generator class must extend this.
+
+// Import Internal Modules
 import * as yoValidate  from  '../modules/sfdx-falcon-validators/yeoman-validator';   // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as uxHelper    from  '../modules/sfdx-falcon-util/ux';                       // Library of UX Helper functions specific to SFDX-Falcon.
 import * as gitHelper   from  '../modules/sfdx-falcon-util/git';                      // Library of Git Helper functions specific to SFDX-Falcon.
 import * as yoHelper    from  '../modules/sfdx-falcon-util/yeoman';                   // Library of Yeoman Helper functions specific to SFDX-Falcon.
 
 // Requires
-const chalk           = require('chalk');                                           // Utility for creating colorful console output.
-const debug           = require('debug')('create-falcon-project');                  // Utility for debugging. set debug.enabled = true to turn on.
+const chalk       = require('chalk');                             // Utility for creating colorful console output.
+const debug       = require('debug')('create-falcon-project');    // Utility for debugging. set debug.enabled = true to turn on.
 // @ts-ignore - Listr will be used once we refactor
-const Listr           = require('listr');                                           // Provides asynchronous list with status of task completion.
-const {version}       = require('../../package.json');                              // The version of the SFDX-Falcon plugin
-const yosay           = require('yosay');                                           // ASCII art creator brings Yeoman to life.
+const Listr       = require('listr');                             // Provides asynchronous list with status of task completion.
+const {version}   = require('../../package.json');                // The version of the SFDX-Falcon plugin
+const yosay       = require('yosay');                             // ASCII art creator brings Yeoman to life.
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -37,18 +39,37 @@ const yosay           = require('yosay');                                       
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface interviewAnswers {
-  projectName: string;
-  projectType: 'managed1gp' | 'managed2gp' | 'unmanaged' | 'demo' ;
-  targetDirectory: string;
+  producerName:             string;
+  producerAlias:            string;
+  projectName:              string;
+  projectAlias:             string;
+  projectType:              'appx:managed1gp' | 'appx:managed2gp' | 'appx:unmanaged';
+  defaultRecipe:            string;
+
+  gitRemoteUri:             string;
+  gitHubUrl:                string;
+  targetDirectory:          string;
+
+  projectVersion:           string;
+  schemaVersion:            string;
+  pluginVersion:            string;
+  sfdcApiVersion:           string;
+
+  hasGitRemoteRepository:   boolean;
+  ackGitRemoteUnreachable:  boolean;
+  isGitRemoteReachable:     boolean;
+
+  devHubAlias:              string;
+  envHubAlias:              string;
+
   isCreatingManagedPackage: boolean;
-  namespacePrefix: string;
-  packageName: string;
-  packageDirectory: string;
-  metadataPackageId: string;
-  packageVersionId: string;
-  isInitializingGit: boolean;
-  hasGitRemoteRepository: boolean;
-  gitRemoteUri: string;
+  isInitializingGit:        boolean;
+  namespacePrefix:          string;
+  packageName:              string;
+  packageDirectory:         string;
+  metadataPackageId:        string;
+  packageVersionIdBeta:     string;
+  packageVersionIdRelease:  string;
 };
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -70,33 +91,49 @@ export default class CreateFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   private userAnswers:          interviewAnswers;                     // Why?
   private defaultAnswers:       interviewAnswers;                     // Why?
+  // @ts-ignore - finalAnswers is used by external code
+  private finalAnswers:         interviewAnswers;                     // Why?
+  private metaAnswers:          interviewAnswers;                     // Provides a means to send meta values (usually template tags) to EJS templates.
   private confirmationAnswers:  yoHelper.ConfirmationAnswers;         // Why?
-  
-  private installComplete:      boolean;                              // Indicates that the install() function completed successfully.
+
+  // These will be required when we refactor to the advanced project creation wizard.
+  //private rawSfdxOrgList:       Array<any>;                           // Array of JSON objects containing the raw org information returned by the call to scanConnectedOrgs.
+  //private devHubOrgInfos:       Array<sfdxHelper.SfdxOrgInfo>;        // Array of sfdxOrgInfo objects that only include DevHub orgs.
+  //private devHubAliasChoices:   Array<yoHelper.YeomanChoice>;         // Array of DevOrg aliases/usernames in the form of Yeoman choices.
+  //private envHubOrgInfos:       Array<sfdxHelper.SfdxOrgInfo>;        // Array of sfdxOrgInfo objects that include any type of org (ideally would only show EnvHubs)
+  //private envHubAliasChoices:   Array<yoHelper.YeomanChoice>;         // Array of EnvHub aliases/usernames in the form of Yeoman choices.
+
   private cliCommandName:       string;                               // Name of the CLI command that kicked off this generator.
+  private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
+  private installComplete:      boolean;                              // Indicates that the install() function completed successfully.
   private falconTable:          uxHelper.SfdxFalconKeyValueTable;     // Falcon Table from ux-helper.
   private generatorStatus:      yoHelper.GeneratorStatus;             // Used to keep track of status and to return messages to the caller.
-  private pluginVersion:        string;                               // Version pulled from the plugin project's package.json.
 
-  // TODO: Can this be moved to the constructor?
-  private sourceDirectory = require.resolve('sfdx-falcon-template');  // Source dir of template files
+  private sourceDirectory:      string;                               // Location (relative to project files) of the project scaffolding template used by this command.
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Constructor
+  /**
+   * @constructs  CreateFalconProject
+   * @version     1.0.0
+   * @param       {any} args Required. ???
+   * @param       {any} opts Required. ???
+   * @description Constructs a CreateFalconProject object.
+   * @public
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(args: any, opts: any) {
     // Call the parent constructor to initialize the Yeoman Generator.
     super(args, opts);
 
     // Set whether debug is enabled or disabled.
-    debug.enabled = opts.debugMode;
+    debug.enabled = false;
     debug(`constructor:opts.debugMode: ${opts.debugMode}`);
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
     this.installComplete      = false;
     this.pluginVersion        = version;          // DO NOT REMOVE! Used by Yeoman to customize the values in sfdx-project.json
-    this.sourceDirectory      = require.resolve('sfdx-falcon-template');
+    this.sourceDirectory      = require.resolve('sfdx-falcon-appx-package-kit');
 
     // Initialize the Generator Status tracking object.
     this.generatorStatus = opts.generatorStatus;  // This will be used to track status and build messages to the user.
@@ -105,21 +142,53 @@ export default class CreateFalconProject extends Generator {
     // Initialize the interview and confirmation answers objects.
     this.userAnswers          = <interviewAnswers>{};
     this.defaultAnswers       = <interviewAnswers>{};
+    this.finalAnswers         = <interviewAnswers>{};
+    this.metaAnswers          = <interviewAnswers>{};
     this.confirmationAnswers  = <yoHelper.ConfirmationAnswers>{};
+    // These will be required when we refactor to the advanced project creation wizard.
+    //this.devHubAliasChoices   = new Array<yoHelper.YeomanChoice>();
+    //this.devHubOrgInfos       = new Array<sfdxHelper.SfdxOrgInfo>();
+    //this.envHubAliasChoices   = new Array<yoHelper.YeomanChoice>();
+    //this.envHubOrgInfos       = new Array<sfdxHelper.SfdxOrgInfo>();
+
 
     // Initialize DEFAULT Interview Answers.
-    this.defaultAnswers.projectName                 = 'my-sfdx-falcon-project';
-    this.defaultAnswers.projectType                 = 'managed1gp';
+    this.defaultAnswers.producerName                = 'Universal Containers';
+    this.defaultAnswers.producerAlias               = 'univ-ctrs';
+    this.defaultAnswers.projectName                 = 'my-managed-package';
+    //this.defaultAnswers.projectName                 = 'Universal Containers Packaged App'; // Use this after refactoring
+    this.defaultAnswers.projectAlias                = 'uc-pkgd-app';
+    this.defaultAnswers.projectType                 = 'appx:managed1gp';
+    this.defaultAnswers.defaultRecipe               = 'build-scratch-org.json';
+
+    this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
+    this.defaultAnswers.gitHubUrl                   = 'https://github.com/my-org/my-repo';
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir);
+
+    this.defaultAnswers.projectVersion              = '0.0.1';
+    this.defaultAnswers.schemaVersion               = '0.0.1';
+    this.defaultAnswers.sfdcApiVersion              = '43.0';
+    this.defaultAnswers.pluginVersion               = this.pluginVersion;
+
+    this.defaultAnswers.hasGitRemoteRepository      = true;
+    this.defaultAnswers.ackGitRemoteUnreachable     = false;
+    this.defaultAnswers.isGitRemoteReachable        = false;
+
+    this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
+
     this.defaultAnswers.isCreatingManagedPackage    = true;
+    this.defaultAnswers.isInitializingGit           = true;
     this.defaultAnswers.namespacePrefix             = 'my_ns_prefix';
     this.defaultAnswers.packageName                 = 'My Managed Package';
     this.defaultAnswers.packageDirectory            = 'force-app';
     this.defaultAnswers.metadataPackageId           = '033000000000000';
-    this.defaultAnswers.packageVersionId            = '04t000000000000';
-    this.defaultAnswers.isInitializingGit           = true;
-    this.defaultAnswers.hasGitRemoteRepository      = true;
-    this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
+    this.defaultAnswers.packageVersionIdBeta        = '04t000000000000';
+    this.defaultAnswers.packageVersionIdRelease     = '04t000000000000';
+
+    // Initialize the Meta Answers
+    this.metaAnswers.devHubAlias                    = `<%-finalAnswers.devHubAlias%>`;
+    this.metaAnswers.envHubAlias                    = `<%-finalAnswers.envHubAlias%>`;
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed                = false;
@@ -160,10 +229,20 @@ export default class CreateFalconProject extends Generator {
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Initialize interview questions.  May be called more than once to allow
-  // default values to be set based on the previously set answers.
+  /**
+   * @method      _initializeInterviewQuestions
+   * @returns     {Array<Array<any>>} Returns multiple groups of interview
+   *              questions.  At the conclusion of each group there is the
+   *              possibility that the interview will not continue.
+   * @description Initialize interview questions.  May be called more than once 
+   *              to allow default values to be set based on the previously 
+   *              specified answers.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
   private _initializeInterviewQuestions() {
+
     //─────────────────────────────────────────────────────────────────────────┐
     // Define the Interview Prompts.
     // 1. What is the name of your project? (string)
@@ -237,9 +316,9 @@ export default class CreateFalconProject extends Generator {
         type:     'input',
         name:     'packageVersionId',
         message:  'What is the Package Version ID (04t) of your most recent release?',
-        default:  ( typeof this.userAnswers.packageVersionId !== 'undefined' )
-                  ? this.userAnswers.packageVersionId               // Current Value
-                  : this.defaultAnswers.packageVersionId,           // Default Value
+        default:  ( typeof this.userAnswers.packageVersionIdRelease !== 'undefined' )
+                  ? this.userAnswers.packageVersionIdRelease        // Current Value
+                  : this.defaultAnswers.packageVersionIdRelease,    // Default Value
         validate: yoValidate.packageVersionId,
         when:     this._isCreatingManagedPackage
       },
@@ -319,7 +398,7 @@ export default class CreateFalconProject extends Generator {
       tableData.push({option:'Namespace Prefix:',       value:`${this.userAnswers.namespacePrefix}`});
       tableData.push({option:'Package Name:',           value:`${this.userAnswers.packageName}`});
       tableData.push({option:'Metadata Package ID:',    value:`${this.userAnswers.metadataPackageId}`});
-      tableData.push({option:'Package Version ID:',     value:`${this.userAnswers.packageVersionId}`});
+      tableData.push({option:'Package Version ID:',     value:`${this.userAnswers.packageVersionIdRelease}`});
     }
 
     // Git initialzation option (always visible).
@@ -365,7 +444,7 @@ export default class CreateFalconProject extends Generator {
   // @ts-ignore - initializing() is called by Yeoman's run loop
   private async initializing() {
     // Show the Yeoman to announce that the generator is running.
-    this.log(yosay(`SFDX-Falcon Project Generator v${version}`))
+    this.log(yosay(`AppExchange Package Kit (APK) Project Generator v${version}`))
 
     // Other genrators typically do more here, but CreateFalconProject doesn't
     // have any initialization tasks. Simply return.
@@ -423,7 +502,7 @@ export default class CreateFalconProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:project:create command canceled by user'
+        message:  'falcon:apk:create command canceled by user'
       });
     }
   }
@@ -450,12 +529,12 @@ export default class CreateFalconProject extends Generator {
     if (this.userAnswers.isCreatingManagedPackage === true) {
       // Managed package, so use the namespace prefix.
       this.userAnswers.packageDirectory  = this.userAnswers.namespacePrefix;
-      this.userAnswers.projectType       = 'managed1gp';
+      this.userAnswers.projectType       = 'appx:managed1gp';
     }
     else {
       // NOT a managed package, so use the default value.
       this.userAnswers.packageDirectory = this.defaultAnswers.packageDirectory;
-      this.userAnswers.projectType       = 'unmanaged';
+      this.userAnswers.projectType       = 'appx:unmanaged';
     }
 
     // Tell Yeoman the path to the SOURCE directory
@@ -482,6 +561,7 @@ export default class CreateFalconProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   // @ts-ignore - writing() is called by Yeoman's run loop
   private writing() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       debug(`generatorStatus.aborted found as TRUE inside writing()`);
@@ -489,7 +569,13 @@ export default class CreateFalconProject extends Generator {
     }
     
     // Tell the user that we are preparing to create their project.
-    this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`)
+    this.log(chalk`{yellow Preparing to write project files to ${this.destinationRoot()}...}\n`)
+
+    // Merge "User Answers" from the interview with "Default Answers" to get "Final Answers".
+    this.finalAnswers = {
+      ...this.defaultAnswers,
+      ...this.userAnswers
+    }
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -510,20 +596,26 @@ export default class CreateFalconProject extends Generator {
     this.fs.copyTpl(this.templatePath('.circleci'),
                     this.destinationPath('.circleci'),
                     this);
+    this.fs.copyTpl(this.templatePath('.templates'),
+                    this.destinationPath('.templates'),
+                    this);
     this.fs.copyTpl(this.templatePath('config'),
                     this.destinationPath('config'),
                     this);
     this.fs.copyTpl(this.templatePath('data'),
                     this.destinationPath('data'),
                     this);
-    this.fs.copyTpl(this.templatePath('dev-tools'),
-                    this.destinationPath('dev-tools'),
+    this.fs.copyTpl(this.templatePath('docs'),
+                    this.destinationPath('docs'),
                     this);
     this.fs.copyTpl(this.templatePath('mdapi-source'),
                     this.destinationPath('mdapi-source'),
                     this);
     this.fs.copyTpl(this.templatePath('temp'),
                     this.destinationPath('temp'),
+                    this);
+    this.fs.copyTpl(this.templatePath('tools'),
+                    this.destinationPath('tools'),
                     this);
 
     //─────────────────────────────────────────────────────────────────────────┐
@@ -532,17 +624,13 @@ export default class CreateFalconProject extends Generator {
     this.fs.copyTpl(this.templatePath('.forceignore'),
                     this.destinationPath('.forceignore'),
                     this);
-    this.fs.copyTpl(this.templatePath('LICENSE'),           
-                    this.destinationPath('LICENSE'),
-                    this);
     this.fs.copyTpl(this.templatePath('README.md'),         
                     this.destinationPath('README.md'),
                     this);
-
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Copy sfdx-project.json based on the .ejs version in dev-tools/templates
-    //─────────────────────────────────────────────────────────────────────────┘
-    this.fs.copyTpl(this.templatePath('dev-tools/templates/sfdx-project.json.ejs'), 
+    this.fs.copyTpl(this.templatePath('LICENSE'),           
+                    this.destinationPath('LICENSE'),
+                    this);
+    this.fs.copyTpl(this.templatePath('sfdx-project.json'), 
                     this.destinationPath('sfdx-project.json'),  
                     this);
     
@@ -581,8 +669,8 @@ export default class CreateFalconProject extends Generator {
     this.fs.copyTpl(this.templatePath(`config/${ignoreFile}`),
                     this.destinationPath('config/.gitignore'),  
                     this);
-    this.fs.copyTpl(this.templatePath(`dev-tools/${ignoreFile}`),
-                    this.destinationPath('dev-tools/.gitignore'),  
+    this.fs.copyTpl(this.templatePath(`tools/${ignoreFile}`),
+                    this.destinationPath('tools/.gitignore'),  
                     this);
     this.fs.copyTpl(this.templatePath(`mdapi-source/${ignoreFile}`),
                     this.destinationPath('mdapi-source/.gitignore'),
@@ -616,6 +704,23 @@ export default class CreateFalconProject extends Generator {
                     this);
     this.fs.copyTpl(this.templatePath(`temp/${ignoreFile}`),
                     this.destinationPath('temp/.gitignore'),
+                    this);
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Update the "meta answers" before copying .sfdx-falcon-config.json for 
+    // the developer's local project
+    //─────────────────────────────────────────────────────────────────────────┘
+    // After refactoring, use these commented-out lines instead of the ones below
+    //this.metaAnswers.devHubAlias = this.userAnswers.devHubAlias;
+    //this.metaAnswers.envHubAlias = this.userAnswers.envHubAlias;
+    this.metaAnswers.devHubAlias = this.defaultAnswers.devHubAlias;
+    this.metaAnswers.envHubAlias = this.defaultAnswers.envHubAlias;
+
+    this.fs.copyTpl(this.templatePath('.templates/sfdx-falcon-config.json.ejs'),
+                    this.destinationPath('.sfdx-falcon/sfdx-falcon-config.json'),
+                    this);
+    this.fs.copyTpl(this.templatePath('tools/templates/local-config-template.sh.ejs'),
+                    this.destinationPath('tools/lib/local-config.sh'),
                     this);
 
     // Done with writing()
@@ -685,7 +790,7 @@ export default class CreateFalconProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     if (gitHelper.isGitInstalled() === true) {
       // Tell the user that we are adding their project to Git
-      this.log(chalk`{blue Adding project to Git...}\n`)
+      this.log(chalk`{yellow Adding project to Git...}\n`)
     }
     else {
       this.generatorStatus.addMessage({
@@ -786,7 +891,7 @@ export default class CreateFalconProject extends Generator {
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:project:create exited without creating an SFDX-Falcon project\n'
+        message:  'falcon:apk:create exited without creating an SFDX-Falcon project\n'
       });
       return;
     }
@@ -801,8 +906,8 @@ export default class CreateFalconProject extends Generator {
         type:     'success',
         title:    'Command Succeded',
         message:  this.installComplete
-                  ? 'falcon:project:create completed successfully\n'
-                  : 'falcon:project:create completed successfully, but with some warnings (see above)\n'
+                  ? 'falcon:apk:create completed successfully\n'
+                  : 'falcon:apk:create completed successfully, but with some warnings (see above)\n'
       }
     ]);
   }

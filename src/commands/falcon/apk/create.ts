@@ -1,10 +1,10 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          commands/falcon/project/create.ts
+ * @file          commands/falcon/apk/create.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Yeoman Generator for scaffolding an SFDX-Falcon project.
- * @description   Salesforce CLI Plugin command (falcon:project:create) that allows a Salesforce DX
+ * @description   Salesforce CLI Plugin command (falcon:apk:create) that allows a Salesforce DX
  *                developer to create an empty project based on the  SFDX-Falcon template.  Before
  *                the project is created, the user is guided through an interview where they define
  *                key project settings which are then used to customize the project scaffolding
@@ -14,38 +14,44 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // External Imports
-import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
-import {flags}                        from  '@oclif/command';                               // Requried to create CLI command flags.
+import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
 
-// Local Imports
+// Import Internal Modules
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
-import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Why?
+
+// Import Internal Types
+import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
+
+
+// Set the File Local Debug Namespace
+//const dbgNs     = 'COMMAND:falcon-apk-create:';
+//const clsDbgNs  = 'FalconApkCreate:';
 
 // Use SfdxCore's Messages framework to get the message bundle for this command.
 Messages.importMessagesDirectory(__dirname);
-const messages = Messages.loadMessages('sfdx-falcon', 'falconProjectCreate');
+const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconApkCreate');
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       FalconProjectCreate
+ * @class       FalconApkCreate
  * @extends     SfdxFalconYeomanCommand
- * @summary     Implements the CLI Command "falcon:project:create"
- * @description The command "falcon:project:create" creates a local SFDX project using the
- *              SFDX-Falcon Template found at https://github.com/sfdx-isv/sfdx-falcon-template.
+ * @summary     Implements the CLI Command "falcon:apk:create"
+ * @description The command "falcon:apk:create" creates a local SFDX project using the
+ *              scaffolding found at https://github.com/sfdx-isv/sfdx-falcon-appx-package-kit.
  *              Uses Yeoman to create customized project scaffolding on the user's machine.
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export default class FalconProjectCreate extends SfdxFalconYeomanCommand {
+export default class FalconApkCreate extends SfdxFalconYeomanCommand {
 
   // Define the basic properties of this CLI command.
-  public static description = messages.getMessage('commandDescription');
+  public static description = commandMessages.getMessage('commandDescription');
   public static hidden      = false;
   public static examples    = [
-    `$ sfdx falcon:project:create`,
-    `$ sfdx falcon:project:create --outputdir ~/projects/sfdx-falcon-projects`
+    `$ sfdx falcon:apk:create`,
+    `$ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects`
   ];
 
   // Identify the core SFDX arguments/features required by this command.
@@ -61,13 +67,15 @@ export default class FalconProjectCreate extends SfdxFalconYeomanCommand {
   //                  Defaults to . (current directory) if not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    outputdir: flags.string({
+    outputdir: {
       char: 'd', 
-      description: messages.getMessage('outputdirFlagDescription'),
-      default: '.',
       required: false,
+      type: 'directory',
+      description: commandMessages.getMessage('outputdir_FlagDescription'),
+      default: '.',
       hidden: false
-    }),
+    },
+
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconYeomanCommand.falconBaseflagsConfig
   };
@@ -77,7 +85,7 @@ export default class FalconProjectCreate extends SfdxFalconYeomanCommand {
    * @function    run
    * @returns     {Promise<any>}  Resolves with a JSON object that the CLI will
    *              pass to the user as stdout if the --json flag was set.
-   * @description Entrypoint function for "sfdx falcon:project:create".
+   * @description Entrypoint function for "sfdx falcon:apk:create".
    * @version     1.0.0
    * @public @async
    */
@@ -85,17 +93,17 @@ export default class FalconProjectCreate extends SfdxFalconYeomanCommand {
   public async run(): Promise<any> {
 
     // Initialize the SfdxFalconCommand (required by ALL classes that extend SfdxFalconCommand).
-    this.sfdxFalconCommandInit('falcon:project:create', SfdxFalconCommandType.APPX_PACKAGE);
+    this.sfdxFalconCommandInit('falcon:apk:create', SfdxFalconCommandType.APPX_PACKAGE);
 
     // Run a Yeoman Generator to interact with and run tasks for the user.
     await super.runYeomanGenerator({
-      generatorType:    'create-falcon-project',
+      generatorType:    'create-appx-package-project',
       gitRemoteUri:     this.gitRemoteUri,
       outputDir:        this.outputDirectory,
       options: []
     })
-    .then(statusReport => {this.onSuccess(statusReport)}) // <-- Preps this.falconJsonResponse for return
-    .catch(error => {this.onError(error)});               // <-- Wraps any errors and displays to user
+    .then(statusReport  => {this.onSuccess(statusReport)})  // <-- Preps this.falconJsonResponse for return
+    .catch(error        => {this.onError(error)});          // <-- Wraps any errors and displays to user
 
     // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;

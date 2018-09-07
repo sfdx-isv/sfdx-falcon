@@ -1,4 +1,0 @@
-{
-  "commandDescription": "Creates a Salesforce DX project using the SFDX-Falcon template.",
-  "outputdir_FlagDescription": "directory to store your project"
-}

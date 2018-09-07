@@ -105,7 +105,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Prompt the user, then return the current SkipGroups (basically, user is accepting defaults).
     console.log('');
     let userSelectionsOne = await inquirer.prompt(iqPromptOne);
-    if (userSelectionsOne.reallyProceed === false) {
+    if (userSelectionsOne.reallyProceed !== true) {
       return this.recipe.options.skipGroups;
     }
 
@@ -187,14 +187,12 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
       userSelectionsTwo = await inquirer.prompt(iqPromptTwo);
     } while (userSelectionsTwo.proceed === false && userSelectionsTwo.tryAgain === true)
 
-    // One more line break.
-    console.log('');
-
     // Debug
     SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelectionsTwo, `${clsDbgNs}askUserForSkipGroups:userSelections: `);
 
     // If the user did not affirmatively ask to PROCEED, then we must exit.
     if (userSelectionsTwo.proceed === false) {
+      console.log('');
       throw new Error(`INSTALLATION_CANCELLED: Installation cancelled at user's request`);
     }
 
@@ -300,12 +298,14 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelections, `${clsDbgNs}askUserForTargetOrgAlias:userSelections: `);
 
     // If the user did not affirmatively ask to PROCEED, then we must exit.
-    if (userSelections.proceed === false) {
+    if (userSelections.proceed !== true) {
+      console.log('');
       throw new Error(`INSTALLATION_CANCELLED: Installation cancelled at user's request`);
     }
 
     // Make sure we actually got a target org alias choice from the user
     if (! userSelections.targetOrg.alias) {
+      console.log('');
       throw new Error(`ERROR_MISSING_DATA: Missing a value for targetOrg.alias`);
     }
 
@@ -340,6 +340,60 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      confirmDemoTarget
+   * @returns     {Promise<boolean>} Resolves TRUE if the user wants to start
+   *              executing the Recipe against the Target Org.  FALSE if not.
+   * @description Runs an Inquirer interview to ask the user if they want to
+   *              start executing the Recipe against the specified Target org.
+   * @version     1.0.0
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async confirmDemoTarget():Promise<boolean> {
+    if (typeof this.engineContext.targetOrg === 'undefined') {
+      throw new Error (`ERROR_NO_TARGET_ORG: confirmDemoTarget was called `
+                      +`before this.engineContext.targetOrg received a value`);
+    }
+
+    // Define the Inquirer Prompt (this powers the user interatcion in the CLI).
+    let iqPrompt = [
+      {
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
+        message:  (answerHash) => {
+          return  `The Recipe '${this.recipe.recipeName}' will install `
+                + `'${this.engineContext.targetOrg.orgName}' using the alias `
+                + `'${this.engineContext.targetOrg.alias}'.`
+                + `\n  If this points to an existing scratch org `
+                + `it will be deleted before installation. Proceed?`
+        },
+        when:   (this.engineContext.targetOrg.isScratchOrg === true)
+      },
+      {
+        type:     'confirm',
+        name:     'proceed',
+        default:  false,
+        message:  (answerHash) => {
+          return  `The Recipe '${this.recipe.recipeName}' will install  `
+                + `'${this.engineContext.targetOrg.orgName}' (${this.engineContext.targetOrg.description}) to the `
+                + `standard (ie. non-scratch org). The alias ${this.engineContext.targetOrg.alias} `
+                + `must be associated with a compatible Salesforce org. Proceed with org validation?`
+        },
+        when:   (this.engineContext.targetOrg.isScratchOrg === false)
+      }
+    ];
+    
+    // Prompt the user.
+    console.log('');
+    let userSelections = await inquirer.prompt(iqPrompt);
+
+    // Retrun the user's choice to the caller.
+    return userSelections.proceed;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      executeEngine
    * @param       {any} [executionOptions]  Optional. 
    * @returns     {Promise<ListrContext>} Resolves with a ListrContext object
@@ -354,6 +408,9 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async executeEngine(executionOptions:any={}):Promise<ListrContext> {
+
+    // Print a message informing the user that installation is beginning.
+    console.log(chalk`\n{yellow Recipe '${this.recipe.recipeName}' installing '${this.engineContext.targetOrg.orgName}' to ${this.engineContext.targetOrg.alias}:}`)
 
     // Execute the Listr Tasks that were compiled into this Engine.
     let listrContext = await this.listrTasks.run();
@@ -549,10 +606,22 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async initializeTargetOrg():Promise<void> {
 
-    // If Target Org Alias not provided in Compile Options, ask user to choose one of the defined targetOrgs.
-    let targetOrgAlias = this.engineContext.compileOptions.targetOrgAlias;
+    // Try setting the Target Org Alias from the Compile Options.
+    let targetOrgAlias  = this.engineContext.compileOptions.targetOrgAlias;
+
+    // Create a variable so we know to skip final confirmation (askUserForTargetOrgAlias() does its own confirm prompts)
+    let targetConfirmationRequired:boolean = null;
+
+    // If Target Org Alias not provided in Compile Options, use what's in the Recipe
     if (! targetOrgAlias) {
-      targetOrgAlias = await this.askUserForTargetOrgAlias()
+      if (this.recipe.options.targetOrgs.length === 1) {
+        targetOrgAlias  = this.recipe.options.targetOrgs[0].alias;
+        targetConfirmationRequired = true;
+      }
+      else {
+        targetOrgAlias = await this.askUserForTargetOrgAlias();
+        targetConfirmationRequired = false;
+      }
     }
 
     // Make sure the Target Org Option matches one of the target orgs in the recipe.
@@ -571,9 +640,16 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
 
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, selectedTargetOrg, `${clsDbgNs}initializeTargetOrg:selectedTargetOrg: `);
 
-
     // Set the Engine Context's Target Org.
     this.engineContext.targetOrg = selectedTargetOrg;
+
+    // If install confirmation is needed, confirm that the user wants to build a demo against the target org
+    if (targetConfirmationRequired) {
+      if (await this.confirmDemoTarget() === false) {
+        console.log('');
+        throw new Error(`INSTALLATION_CANCELLED: Installation cancelled at user's request`);
+      }   
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

@@ -1,15 +1,15 @@
 {
   "name": "sfdx-falcon",
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "author": "Vivek M. Chawla @VivekMChawla",
-  "bugs": "https://github.com/sfdx-isv/sfdx-falcon-plugin/issues",
+  "bugs": "https://github.com/sfdx-isv/sfdx-falcon/issues",
   "dependencies": {
     "@oclif/command": "^1.5.0",
     "@oclif/config": "^1.7.3",
     "@oclif/errors": "^1.2.0",
     "@salesforce/command": "^0.2.3",
-    "@salesforce/core": "^0.19.0",
+    "@salesforce/core": "^0.20.0",
     "chalk": "^2.4.1",
     "debug": "^3.1.0",
     "falcon-listr-update-renderer": "^0.4.2",
@@ -20,16 +20,16 @@
     "request-promise-native": "^1.0.5",
     "rxjs": "^6.2.2",
     "sfdx-falcon-appx-demo-kit": "0.0.9",
-    "sfdx-falcon-template": "0.3.1",
+    "sfdx-falcon-appx-package-kit": "0.0.1",
     "shelljs": "^0.8.2",
     "uuid": "^3.3.2",
-    "yeoman-environment": "^2.3.1",
-    "yeoman-generator": "^2.0.5",
-    "yosay": "^2.0.1"
+    "yeoman-environment": "^2.3.3",
+    "yeoman-generator": "^3.1.1",
+    "yosay": "^2.0.2"
   },
   "devDependencies": {
     "@oclif/dev-cli": "^1.17.0",
-    "@oclif/plugin-help": "2.1.0",
+    "@oclif/plugin-help": "2.1.1",
     "@oclif/test": "^1.2.0",
     "@oclif/tslint": "^2.0.0",
     "@salesforce/dev-config": "1.1.4",
@@ -39,17 +39,17 @@
     "@types/mocha": "^5.2.5",
     "@types/node": "^10.9.3",
     "@types/read-pkg": "^3.0.0",
-    "@types/shelljs": "^0.7.8",
+    "@types/shelljs": "^0.8.0",
     "@types/yeoman-generator": "^2.0.1",
     "@types/yosay": "^0.0.29",
     "chai": "4",
     "globby": "8",
     "mocha": "5",
-    "sinon": "^5.1.1",
+    "sinon": "^6.1.5",
     "ts-node": "7",
     "tslib": "^1.9.3",
     "tslint": "^5.11.0",
-    "typescript": "^2.9.2"
+    "typescript": "^3.0.3"
   },
   "engines": {
     "node": ">=8.0.0"
@@ -59,7 +59,7 @@
     "/lib",
     "/messages"
   ],
-  "homepage": "https://github.com/sfdx-isv/sfdx-falcon-plugin",
+  "homepage": "https://sfdx-isv.github.io/sfdx-falcon/",
   "keywords": [
     "salesforce",
     "sfdx",
@@ -67,7 +67,9 @@
     "sfdx-plugin",
     "appexchange",
     "appexchange-demo-kit",
-    "adk"
+    "appexchange-package-kit",
+    "adk",
+    "apk"
   ],
   "license": "MIT",
   "oclif": {
@@ -76,7 +78,7 @@
       "@oclif/plugin-help"
     ]
   },
-  "repository": "sfdx-isv/sfdx-falcon-plugin",
+  "repository": "sfdx-isv/sfdx-falcon",
   "scripts": {
     "postpack": "rm -f .oclif.manifest.json",
     "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
