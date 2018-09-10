@@ -4,7 +4,7 @@ layout: home
 tagline: |
   A Salesforce CLI plugin built for AppExchange Partners  
 
-  Designed with *&nbsp;*{: .fa .fa-heart} for Salesforce Developers
+  Designed with *&nbsp;*{: .fa .fa-heart} by Salesforce ISV Technical Evangelists
 #heading: Getting started is easy!
 heading: "Already using Salesforce DX? Test drive SFDX-Falcon in 10 minutes or less!"
 #

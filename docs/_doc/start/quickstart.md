@@ -1,8 +1,8 @@
 ---
 title:    Quick Start
 layout:   devdoc-topic
-excerpt:  Test drive SFDX-Falcon in 10 minutes or less if you're already using Salesforce DX
-date:     2018-09-04
+excerpt:  Test drive SFDX-Falcon in 10 minutes or less if you're already using Salesforce DX.
+date:     2018-09-08
 #
 # Breadcrumbs
 #

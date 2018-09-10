@@ -1,8 +1,8 @@
 ---
 title:    Documentation
 layout:   devdoc-subject
-excerpt:  Documentation for the AppExchange Demo Kit (ADK) and AppExchange Package Kit (APK)
-date:     2018-09-02
+excerpt:  Documentation for the AppX Demo Kit (ADK), AppX Package Kit (APK), and the SFDX-Falcon Recipe Engine.
+date:     2018-09-08
 #
 # Breadcrumbs
 #
@@ -25,3 +25,5 @@ navigation:
   - /docs/apk
   - /docs/recipes
 ---
+
+Documentation for the AppExchange Demo Kit (ADK), AppExchange Package Kit (APK), and the SFDX-Falcon Recipe Engine.

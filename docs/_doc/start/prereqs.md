@@ -1,8 +1,8 @@
 ---
 title:    Prerequisites
 layout:   devdoc-topic
-excerpt:  Make sure that your Salesforce, GitHub, & Local Environments are set up correctly
-date:     2018-09-03
+excerpt:  Make sure that your Salesforce, GitHub, & Local Environments are set up correctly.
+date:     2018-09-08
 #
 # Breadcrumbs
 #

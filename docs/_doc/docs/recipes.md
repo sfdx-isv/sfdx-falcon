@@ -1,8 +1,8 @@
 ---
 title:    SFDX-Falcon Recipe Engine
 layout:   devdoc-subject
-excerpt:  All about Recipies
-date:     2018-08-03
+excerpt:  Automate SFDX Development _without_ BASH or PowerShell scripts
+date:     2018-09-08
 #
 # Breadcrumbs
 #
@@ -23,10 +23,9 @@ color: blue
 # Navigation Tiles
 #
 navigation:
-  - /docs/recipes/overview
   - /docs/recipes/schema
   - /docs/recipes/samples
   - /docs/recipes/faqs
 ---
 
-This section is all about the Recipe
+Recipes let you automate your Salesforce Development workflow _without_ writing BASH or PowerShell scripts.  If you know JSON, creating & customizing Recipes is easy!

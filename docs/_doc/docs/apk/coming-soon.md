@@ -1,7 +1,7 @@
 ---
-title:    Next Steps
+title:    Coming Soon
 layout:   devdoc-topic
-excerpt:  Building a demo with the ADK? A managed package with the APK? See what's next here.
+excerpt:  This content is being developed and will appear soon.
 date:     2018-09-08
 #
 # Breadcrumbs
@@ -9,28 +9,30 @@ date:     2018-09-08
 breadcrumbs:
   - title:  "Home"
     path:   "/"
-  - title:  "Getting Started"
-    path:   "/start"
+  - title:  "Documentation"
+    path:   "/docs"
+  - title:  "AppExchange Package Kit (APK)"
+    path:   "/docs/apk"
 #
 # Icon and Color Settings
 #
 icon:
   type: fa
-  name: fa-map-signs
-color: green
+  name: fa-clock-o
+color: blue
 #
 # Page Sections
 #
 sections:
-#  - /start/nextsteps/section1
-#  - /start/nextsteps/section2
-#  - /start/nextsteps/section3
+#  - /docs/recipes/samples/section1
+#  - /docs/recipes/samples/section2
+#  - /docs/recipes/samples/section3
 ---
+
 
 This content is being developed and will appear soon.
 
 In the meantime,  check out the documentation for [SFDX-Falcon Recipes](/docs/recipes/schema), the secret to any AppExchange Demo Kit (ADK) or AppExchange Package Kit (APK) project!
-
 
 <br>
 <br>
