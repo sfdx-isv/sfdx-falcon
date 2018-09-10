@@ -1,8 +1,8 @@
 ---
 title:    AppExchange Demo Kit (ADK)
 layout:   devdoc-subject
-excerpt:  All about the AppExchange Demo Kit (ADK)
-date:     2018-08-03
+excerpt:  Build & share rich, dynamic demo orgs in a source-centric manner.
+date:     2018-09-08
 #
 # Breadcrumbs
 #
@@ -23,10 +23,12 @@ color: blue
 # Navigation Tiles
 #
 navigation:
-  - /docs/recipes/overview
-  - /docs/recipes/schema
-  - /docs/recipes/samples
-  - /docs/recipes/faqs
+  - /docs/adk/coming-soon
+  - /docs/adk/coming-soon
+  - /docs/adk/coming-soon
+#  - /docs/adk/???
+#  - /docs/adk/???
+#  - /docs/adk/faqs
 ---
 
-This section is all about the Recipe
+Build & share rich, dynamic demo orgs in a source-centric manner

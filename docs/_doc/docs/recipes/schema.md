@@ -2,7 +2,7 @@
 title:    Recipe Syntax & Schema
 layout:   devdoc-topic
 excerpt:  Learn how Recipes work, what is in them, and how to customize them
-date:     2018-08-03
+date:     2018-09-08
 #
 # Breadcrumbs
 #

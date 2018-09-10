@@ -1,8 +1,8 @@
 ---
 title:    AppExchange Package Kit (APK)
 layout:   devdoc-subject
-excerpt:  All about the AppExchange Package Kit (APK)
-date:     2018-08-03
+excerpt:  Tools & Frameworks for developing Managed Packages with SFDX
+date:     2018-09-08
 #
 # Breadcrumbs
 #
@@ -23,10 +23,12 @@ color: blue
 # Navigation Tiles
 #
 navigation:
-  - /docs/recipes/overview
-  - /docs/recipes/schema
-  - /docs/recipes/samples
-  - /docs/recipes/faqs
+  - /docs/apk/coming-soon
+  - /docs/apk/coming-soon
+  - /docs/apk/coming-soon
+#  - /docs/apk/???
+#  - /docs/apk/???
+#  - /docs/apk/faqs
 ---
 
-This section is all about the Recipe
+Tools & Frameworks for developing Managed Packages with SFDX.

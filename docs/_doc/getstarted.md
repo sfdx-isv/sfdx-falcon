@@ -2,7 +2,7 @@
 title:    Getting Started
 layout:   devdoc-subject
 excerpt:  Get up and running quickly with SFDX-Falcon by following these easy steps
-date:     2018-09-03
+date:     2018-09-08
 #
 # Breadcrumbs
 #

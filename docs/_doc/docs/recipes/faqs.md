@@ -1,8 +1,8 @@
 ---
 title:    Recipe FAQs
 layout:   devdoc-topic
-excerpt:  Frequently asked questions related specifically to Recipes
-date:     2018-08-03
+excerpt:  Frequently Asked Questions related specifically to SFDX-Falcon Recipes
+date:     2018-09-08
 #
 # Breadcrumbs
 #
@@ -25,6 +25,6 @@ color: blue
 #
 sections:
   - /docs/recipes/faqs/questions1
-  - /docs/recipes/faqs/questions2
-  - /docs/recipes/faqs/questions3
+#  - /docs/recipes/faqs/questions2
+#  - /docs/recipes/faqs/questions3
 ---
