@@ -11,7 +11,7 @@
     "@salesforce/command": "^0.2.3",
     "@salesforce/core": "^0.20.0",
     "chalk": "^2.4.1",
-    "debug": "^3.1.0",
+    "debug": "^4.0.0",
     "falcon-listr-update-renderer": "^0.4.2",
     "inquirer": "^6.1.0",
     "listr": "^0.14.1",
