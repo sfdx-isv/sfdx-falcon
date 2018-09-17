@@ -3,16 +3,20 @@
  * @file          generators/clone-appx-demo-project.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Yeoman Generator for cloning an SFDX-Falcon project from a remote Git repository.
- * @description   Salesforce CLI Plugin command (falcon:project:clone) that allows a Salesforce DX
- *                developer to clone a remote repo containing an SFDX-Falcon project.
+ * @summary       Yeoman Generator for cloning an AppExchange Demo Kit (ADK) project from a remote
+ *                Git repository.
+ * @description   Salesforce CLI Plugin command (falcon:adk:clone) that allows anyone (Developers,
+ *                Solution Engineers, Admins, etc.) to clone a remote repo containing an AppExchange
+ *                Demo Kit (ADK) project.  After the repo is cloned, the user is guided through an 
+ *                interview where they define key project settings which are then used to customize
+ *                the local config values used by SFDX-Falcon tooling.
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path        from  'path';                                               // Helps resolve local paths at runtime.
-import * as Generator   from  'yeoman-generator';                                   // Generator class must extend this.
+import * as path          from  'path';                                               // Helps resolve local paths at runtime.
+import * as Generator     from  'yeoman-generator';                                   // Generator class must extend this.
 
 // Import Internal Modules
 import * as uxHelper      from  '../modules/sfdx-falcon-util/ux';                     // Library of UX Helper functions specific to SFDX-Falcon.
@@ -20,13 +24,17 @@ import * as yoHelper      from  '../modules/sfdx-falcon-util/yeoman';           
 import * as yoValidate    from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as gitHelper     from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as sfdxHelper    from  '../modules/sfdx-falcon-util/sfdx';                   // Library of SFDX Helper functions specific to SFDX-Falcon.
+import {SfdxFalconDebug}  from  '../modules/sfdx-falcon-debug';                       // Specialized debug provider for SFDX-Falcon code.
 
 // Requires
-const chalk           = require('chalk');                                       // Utility for creating colorful console output.
-const debug           = require('debug')('clone-appx-demo-project');            // Utility for debugging. set debug.enabled = true to turn on.
-const Listr           = require('listr');                                       // Provides asynchronous list with status of task completion.
-const {version}       = require('../../package.json');                          // The version of the SFDX-Falcon plugin
-const yosay           = require('yosay');                                       // ASCII art creator brings Yeoman to life.
+const chalk       = require('chalk');               // Utility for creating colorful console output.
+const Listr       = require('listr');               // Provides asynchronous list with status of task completion.
+const {version}   = require('../../package.json');  // The version of the SFDX-Falcon plugin
+const yosay       = require('yosay');               // ASCII art creator brings Yeoman to life.
+
+// Set the File Local Debug Namespace
+const dbgNs     = 'GENERATOR:clone-appx-demo:';
+const clsDbgNs  = 'CloneAppxDemoProject:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -85,20 +93,16 @@ export default class CloneAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  CloneAppxDemoProject
-   * @version     1.0.0
    * @param       {any} args Required. ???
    * @param       {any} opts Required. ???
    * @description Constructs a CloneAppxDemoProject object.
+   * @version     1.0.0
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(args: any, opts: any) {
     // Call the parent constructor to initialize the Yeoman Generator.
     super(args, opts);
-
-    // Set whether STANDARD debug is enabled or not.
-    debug.enabled = false;
-    debug(`constructor:opts.debugMode: ${opts.debugMode}`);
 
     // Initialize simple class members.
     this.cliCommandName       = opts.commandName;
@@ -143,6 +147,39 @@ export default class CloneAppxDemoProject extends Generator {
     // Initialize the falconTable
     this.falconTable = new uxHelper.SfdxFalconKeyValueTable();
 
+    // DEBUG
+    SfdxFalconDebug.str(`${dbgNs}constructor:`, `${this.cliCommandName}`,   `${clsDbgNs}constructor:this.cliCommandName: `);
+    SfdxFalconDebug.str(`${dbgNs}constructor:`, `${this.installComplete}`,  `${clsDbgNs}constructor:this.installComplete: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.userAnswers,           `${clsDbgNs}constructor:this.userAnswers: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.defaultAnswers,        `${clsDbgNs}constructor:this.defaultAnswers: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.confirmationAnswers,   `${clsDbgNs}constructor:this.confirmationAnswers: `);
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _displayInterviewAnswers
+   * @returns     {void}
+   * @description Display the current set of Interview Answers (nicely 
+   *              formatted, of course).
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _displayInterviewAnswers() {
+
+    // Declare an array of Falcon Table Data Rows
+    let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
+
+    // Main options (always visible).
+    tableData.push({option:'Git Remote URI:',   value:`${this.gitRemoteUri}`});
+    tableData.push({option:'Target Directory:', value:`${this.userAnswers.targetDirectory}`});
+    tableData.push({option:'Dev Hub Alias:',    value:`${this.userAnswers.devHubAlias}`});
+    tableData.push({option:'Env Hub Alias:',    value:`${this.userAnswers.envHubAlias}`});
+
+    // Render the Falcon Table with line breaks before and after.
+    this.log('');
+    this.falconTable.render(tableData);
+    this.log('');
   }
 
   //─────────────────────────────────────────────────────────────────────────────┐
@@ -157,13 +194,13 @@ export default class CloneAppxDemoProject extends Generator {
    * @private @async
    */
   //─────────────────────────────────────────────────────────────────────────────┘
-  private async _executeListrSetupTasks() {
+  private async _executeListrSetupTasks():Promise<void> {
 
     // Define the first group of tasks (Git Initialization).
     const gitInitTasks = new Listr([
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  'Initializing falcon:adk:clone',
+        title:  `Initializing ${this.cliCommandName}`,
         task:   (listrContext) => {
           return new Listr([
             {
@@ -226,6 +263,8 @@ export default class CloneAppxDemoProject extends Generator {
               task:   (listrContext, thisTask) => {
                 return sfdxHelper.scanConnectedOrgs()
                   .then(utilityResult => { 
+                    // DEBUG
+                    SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, utilityResult, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:sfdxHelper.scanConnectedOrgs:then:utilityResult: `);
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
                     this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
                     // Make sure that there is at least ONE connnected org
@@ -241,6 +280,9 @@ export default class CloneAppxDemoProject extends Generator {
                     listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
                   })
                   .catch(utilityResult => { 
+                    // DEBUG
+                    SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, utilityResult, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:sfdxHelper.scanConnectedOrgs:catch:utilityResult: `);
+                    // Change the title of the task
                     thisTask.title += 'No Connections Found'
                     throw utilityResult;
                   });
@@ -250,7 +292,12 @@ export default class CloneAppxDemoProject extends Generator {
               // SUBTASK: Identify all the active DevHub orgs
               title:  'Identifying DevHub Orgs...',
               task:   (listrContext, thisTask) => {
+                // DEBUG
+                SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, listrContext.rawSfdxOrgList, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:identifyDevHubOrgs:listrContext.rawSfdxOrgList: `);
+                // Take raw org list and identify Dev Hub Orgs.
                 this.devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.rawSfdxOrgList);
+                // DEBUG
+                SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, this.devHubOrgInfos, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:identifyDevHubOrgs:this.devHubOrgInfos: `);
                 // Make sure there is at least one active Dev Hub.
                 if (this.devHubOrgInfos.length < 1) {
                   thisTask.title += 'No Dev Hubs Found';
@@ -266,7 +313,12 @@ export default class CloneAppxDemoProject extends Generator {
               // SUBTASK: Identify all the active Environment Hub orgs
               title:  'Identifying EnvHub Orgs...',
               task:   (listrContext, thisTask) => {
+                // DEBUG
+                SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, listrContext.rawSfdxOrgList, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:identifyEnvHubOrgs:listrContext.rawSfdxOrgList: `);
+                // Take raw org list and identify Environment Hub Orgs.
                 this.envHubOrgInfos = sfdxHelper.identifyEnvHubOrgs(listrContext.rawSfdxOrgList);
+                // DEBUG
+                SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, this.envHubOrgInfos, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:identifyEnvHubOrgs:this.envHubOrgInfos: `);
                 // Give the Listr Context variable access to this.envHubOrgInfos
                 listrContext.envHubOrgInfos = this.envHubOrgInfos;
                 // Update the task title based on the number of EnvHub Org Infos
@@ -323,17 +375,60 @@ export default class CloneAppxDemoProject extends Generator {
     //─────────────────────────────────────────────────────────────────────────┘
     // Start with the Git Init Tasks.
     let gitInitResults = await gitInitTasks.run();
-    debug(`_executeListrSetupTasks:gitInitResults\n%O\n`, gitInitResults);
+    SfdxFalconDebug.obj(`${dbgNs}_executeListrSetupTasks:`, gitInitResults, `${clsDbgNs}_executeListrSetupTasks:gitInitResults: `);
+
     // Followed by the SFDX Init Tasks.
     let sfdxInitResults = await sfdxInitTasks.run();
-    debug(`_executeListrSetupTasks:gitInitResults\n%O\n`, sfdxInitResults);
+    SfdxFalconDebug.obj(`${dbgNs}_executeListrSetupTasks:`, sfdxInitResults, `${clsDbgNs}_executeListrSetupTasks:sfdxInitResults: `);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
-  // Initialize interview questions.  May be called more than once to allow
-  // default values to be set based on the previously set answers.
+  /**
+   * @method      _initializeConfirmationQuestions
+   * @returns     {Array<any>} Returns an array of interview questions.
+   * @description Creates Yeoman/Inquirer questions that ask the user to confirm
+   *              that they are ready to install based on the specified info.
+   * @version     1.0.0
+   * @private
+   */
   //───────────────────────────────────────────────────────────────────────────┘
-  private _initializeInterviewQuestions() {
+  private _initializeConfirmationQuestions():Array<any> {
+
+    //─────────────────────────────────────────────────────────────────────────┐
+    // Define the Interview Prompts.
+    // 1. Clone an AppExchange Demo Kit (ADK) project based on the above settings?  (y/n)
+    // 2. Would you like to start again and enter new values?                       (y/n)
+    //─────────────────────────────────────────────────────────────────────────┘
+    return [
+      {
+        type:     'confirm',
+        name:     'proceed',
+        message:  'Clone an AppExchange Demo Kit (ADK) project based on the above settings?',
+        default:  this.confirmationAnswers.proceed,
+        when:     true
+      },
+      {
+        type:     'confirm',
+        name:     'restart',
+        message:  'Would you like to start again and enter new values?',
+        default:  this.confirmationAnswers.restart,
+        when:     yoHelper.doNotProceed
+      }
+    ];
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _initializeInterviewQuestions
+   * @returns     {Array<any>} Returns an array of interview questions.
+   * @description Initialize interview questions.  May be called more than once 
+   *              to allow default values to be set based on the previously 
+   *              specified answers.
+   * @version     1.0.0
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private _initializeInterviewQuestions():Array<any> {
     //─────────────────────────────────────────────────────────────────────────┐
     // Define the Interview Prompts.
     // 1. What is the target directory for this project?                        (string)
@@ -369,59 +464,9 @@ export default class CloneAppxDemoProject extends Generator {
     ];
   }
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      _initializeFinalConfirmationQuestions
-   * @description Creates Yeoman/Inquirer questions that ask the user to confirm
-   *              that they are ready to install based on the specified info.
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _initializeConfirmationQuestions() {
 
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Define the Interview Prompts.
-    // 1. Clone an AppExchange Demo Kit (ADK) project based on the above settings?  (y/n)
-    // 2. Would you like to start again and enter new values?                       (y/n)
-    //─────────────────────────────────────────────────────────────────────────┘
-    return [
-      {
-        type:     'confirm',
-        name:     'proceed',
-        message:  'Clone an AppExchange Demo Kit (ADK) project based on the above settings?',
-        default:  this.confirmationAnswers.proceed,
-        when:     true
-      },
-      {
-        type:     'confirm',
-        name:     'restart',
-        message:  'Would you like to start again and enter new values?',
-        default:  this.confirmationAnswers.restart,
-        when:     yoHelper.doNotProceed
-      }
-    ];
-  }
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Display the current set of Interview Answers (nicely formatted, of course).
-  //───────────────────────────────────────────────────────────────────────────┘
-  private _displayInterviewAnswers() {
 
-    // Declare an array of Falcon Table Data Rows
-    let tableData = new Array<uxHelper.SfdxFalconKeyValueTableDataRow>();
-
-    // Main options (always visible).
-    tableData.push({option:'Git Remote URI:',   value:`${this.gitRemoteUri}`});
-    tableData.push({option:'Target Directory:', value:`${this.userAnswers.targetDirectory}`});
-    tableData.push({option:'Dev Hub Alias:',    value:`${this.userAnswers.devHubAlias}`});
-    tableData.push({option:'Env Hub Alias:',    value:`${this.userAnswers.envHubAlias}`});
-
-    // Render the Falcon Table with line breaks before and after.
-    this.log('');
-    this.falconTable.render(tableData);
-    this.log('');
-  }
 
 
 
@@ -458,7 +503,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.log(chalk`\n{bold Initialization Complete}\n`);
     } 
     catch (err) {
-      debug(`ERROR (likely thrown by _executeListrSetupTasks())\n%O\n:`, err);
+      SfdxFalconDebug.obj(`${dbgNs}initializing:`, err, `${clsDbgNs}initializing:err: `);
       this.generatorStatus.abort({
         type:     'error',
         title:    'Initialization Error',
@@ -481,7 +526,7 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside prompting()`);
+      SfdxFalconDebug.msg(`${dbgNs}prompting:`, `generatorStatus.aborted found as TRUE inside prompting()`);
       return;
     }
 
@@ -494,9 +539,9 @@ export default class CloneAppxDemoProject extends Generator {
       let interviewQuestions = this._initializeInterviewQuestions();
 
       // Tell Yeoman to start prompting the user.
-      debug('userAnswers (PRE-PROMPT):\n%O', this.userAnswers);
+      SfdxFalconDebug.obj(`${dbgNs}prompting:`, this.userAnswers, `${clsDbgNs}prompting:this.userAnswers - PRE-PROMPT (GROUP ZERO): `);
       this.userAnswers = await this.prompt(interviewQuestions) as any;
-      debug('userAnswers (POST-PROMPT):\n%O', this.userAnswers);
+      SfdxFalconDebug.obj(`${dbgNs}prompting:`, this.userAnswers, `${clsDbgNs}prompting:this.userAnswers - POST-PROMPT (GROUP ZERO): `);
 
       // Display the answers provided during the interview
       this._displayInterviewAnswers();
@@ -511,7 +556,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.log('');
 
       // DEBUG
-      debug('confirmationAnswers (POST-PROMPT):\n%O', this.confirmationAnswers);
+      SfdxFalconDebug.obj(`${dbgNs}prompting:`, this.confirmationAnswers, `${clsDbgNs}prompting:this.confirmationAnswers (POST-PROMPT): `);
       
     } while (this.confirmationAnswers.restart === true);
 
@@ -520,7 +565,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Aborted',
-        message:  'falcon:adk:clone command canceled by user'
+        message:  `${this.cliCommandName} command canceled by user`
       });
     }
   }
@@ -540,7 +585,7 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside configuring()`);
+      SfdxFalconDebug.msg(`${dbgNs}configuring:`, `generatorStatus.aborted found as TRUE inside configuring()`);
       return;
     }
 
@@ -564,13 +609,13 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside writing()`);
+      SfdxFalconDebug.msg(`${dbgNs}writing:`, `generatorStatus.aborted found as TRUE inside writing()`);
       return;
     }
 
     // Determine a number of Path/Git related strings required by this step.
-    const gitRemoteUri      = this.gitRemoteUri;
     const targetDirectory   = this.userAnswers.targetDirectory;
+    const gitRemoteUri      = this.gitRemoteUri;
     const gitRepoName       = this.gitCloneDirectory || gitHelper.getRepoNameFromUri(gitRemoteUri);
     const localProjectPath  = path.join(targetDirectory, gitRepoName);
 
@@ -596,14 +641,14 @@ export default class CloneAppxDemoProject extends Generator {
     uxHelper.printStatusMessage({
       type:     'success',
       title:    `Success`,
-      message:  `Git repo cloned to ${this.userAnswers.targetDirectory}\n`
+      message:  `Git repo cloned to ${localProjectPath}\n`
     });
 
     // Add a message that the cloning was successful.
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Project Cloned Successfully`,
-      message:  `Project cloned to ${this.destinationRoot()}`
+      message:  `Project cloned to ${localProjectPath}`
     });
 
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
@@ -615,8 +660,8 @@ export default class CloneAppxDemoProject extends Generator {
     this.destinationRoot(localProjectPath);
 
     // DEBUG
-    debug(`SOURCE PATH: ${this.sourceRoot()}`);
-    debug(`DESTINATION PATH: ${this.destinationRoot()}`);
+    SfdxFalconDebug.str(`${dbgNs}configuring:`, this.sourceRoot(),      `SOURCE PATH: `);
+    SfdxFalconDebug.str(`${dbgNs}configuring:`, this.destinationRoot(), `DESTINATION PATH: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -666,9 +711,10 @@ export default class CloneAppxDemoProject extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   // @ts-ignore - install() is called by Yeoman's run loop
   private install() {
+
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside install()`);
+      SfdxFalconDebug.msg(`${dbgNs}install:`, `generatorStatus.aborted found as TRUE inside install()`);
       return;
     }
 
@@ -713,13 +759,13 @@ export default class CloneAppxDemoProject extends Generator {
 
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
-      debug(`generatorStatus.aborted found as TRUE inside end()`);
+      SfdxFalconDebug.msg(`${dbgNs}end:`, `generatorStatus.aborted found as TRUE inside end()`);
 
       // Add a final error message
       this.generatorStatus.addMessage({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:adk:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
+        message:  `${this.cliCommandName} exited without cloning an AppExchange Demo Kit (ADK) project\n`
       });
       return;
     }
@@ -732,7 +778,7 @@ export default class CloneAppxDemoProject extends Generator {
         {
           type:     'success',
           title:    'Command Succeded',
-          message:  'falcon:adk:clone completed successfully\n'
+          message:  `${this.cliCommandName} completed successfully\n`
         }
       ]);
     }
@@ -742,7 +788,7 @@ export default class CloneAppxDemoProject extends Generator {
       this.generatorStatus.abort({
         type:     'error',
         title:    'Command Failed',
-        message:  'falcon:adk:clone exited without cloning an AppExchange Demo Kit (ADK) project\n'
+        message:  `${this.cliCommandName} exited without cloning an AppExchange Demo Kit (ADK) project\n`
       });
     }
   }
