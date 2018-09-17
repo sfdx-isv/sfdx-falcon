@@ -13,7 +13,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Messages}                     from  '@salesforce/core';                             // Messages library that simplifies using external JSON for string reuse.
+import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
 
 // Import Internal Modules
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
@@ -51,9 +51,9 @@ export default class FalconApkClone extends SfdxFalconYeomanCommand {
   public static hidden      = false;
   public static examples    = [
     `$ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git`,
-    `$ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git`,
-    `$ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git \\
-                           --outputdir ~/projects/sfdx-falcon-projects`
+    `$ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName`,
+    `$ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \\\n` +
+    `                      --outputdir ~/projects/appexchange-package-kit-projects`
   ];
 
   // Identify the core SFDX arguments/features required by this command.
@@ -122,6 +122,7 @@ export default class FalconApkClone extends SfdxFalconYeomanCommand {
       generatorType:    'clone-appx-package-project',
       gitRemoteUri:     this.gitRemoteUri,
       outputDir:        this.outputDirectory,
+      gitCloneDir:      this.gitCloneDirectory,
       options: []
     })
     .then(statusReport  => {this.onSuccess(statusReport)})  // <-- Preps this.falconJsonResponse for return
