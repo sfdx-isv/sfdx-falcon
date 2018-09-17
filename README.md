@@ -195,9 +195,9 @@ OPTIONS
 
 EXAMPLES
   $ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git
-  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git
-  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git \
-                              --outputdir ~/projects/sfdx-falcon-projects
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName
+  $ sfdx falcon:apk:clone https://github.com/GitHubUser/my-repository.git MyRepoDirName \
+                         --outputdir ~/projects/appexchange-package-kit-projects
 ```
 
 _See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/master/src/commands/falcon/apk/clone.ts)_
