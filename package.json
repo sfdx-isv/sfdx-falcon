@@ -9,7 +9,7 @@
     "@oclif/config": "^1.7.3",
     "@oclif/errors": "^1.2.0",
     "@salesforce/command": "^0.2.3",
-    "@salesforce/core": "^0.20.0",
+    "@salesforce/core": "^0.21.0",
     "chalk": "^2.4.1",
     "debug": "^4.0.1",
     "falcon-listr-update-renderer": "^0.4.2",
