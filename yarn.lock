@@ -39,25 +39,34 @@
     debug "^3.1.0"
     semver "^5.5.0"
 
-"@oclif/config@^1.7.0", "@oclif/config@^1.7.3":
-  version "1.7.3"
-  resolved "https://registry.yarnpkg.com/@oclif/config/-/config-1.7.3.tgz#b666b581a9b080419d5f12a2cb618a2c4c6bced0"
+"@oclif/command@^1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@oclif/command/-/command-1.5.1.tgz#dd2e1c1f8e55dad73036d4cab036ac3550ff8c24"
   dependencies:
-    debug "^3.1.0"
+    "@oclif/errors" "^1.2.0"
+    "@oclif/parser" "^3.6.1"
+    debug "^4.0.1"
+    semver "^5.5.1"
+
+"@oclif/config@^1.7.6":
+  version "1.7.6"
+  resolved "https://registry.yarnpkg.com/@oclif/config/-/config-1.7.6.tgz#849e5f79591c8dd29d99dd3aba0914b50e2c2e74"
+  dependencies:
+    debug "^4.0.1"
     tslib "^1.9.3"
 
-"@oclif/dev-cli@^1.17.0":
-  version "1.17.0"
-  resolved "https://registry.yarnpkg.com/@oclif/dev-cli/-/dev-cli-1.17.0.tgz#b7af28a79f792f5981c43e104a667dfb5df28595"
+"@oclif/dev-cli@^1.18.0":
+  version "1.18.1"
+  resolved "https://registry.yarnpkg.com/@oclif/dev-cli/-/dev-cli-1.18.1.tgz#e53a6fa13749262e0fe2495e59e7e2fa38c356d5"
   dependencies:
-    "@oclif/command" "^1.5.0"
-    "@oclif/config" "^1.7.0"
-    "@oclif/errors" "^1.2.0"
-    "@oclif/plugin-help" "^2.1.0"
-    cli-ux "^4.8.0"
-    debug "^3.1.0"
+    "@oclif/command" "^1.5.1"
+    "@oclif/config" "^1.7.6"
+    "@oclif/errors" "^1.2.1"
+    "@oclif/plugin-help" "^2.1.2"
+    cli-ux "^4.8.2"
+    debug "^4.0.1"
     fs-extra "^7.0.0"
-    lodash "^4.17.10"
+    lodash "^4.17.11"
     normalize-package-data "^2.4.0"
     qqjs "^0.3.10"
     tslib "^1.9.3"
@@ -82,6 +91,16 @@
     strip-ansi "^4.0.0"
     wrap-ansi "^3.0.1"
 
+"@oclif/errors@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@oclif/errors/-/errors-1.2.1.tgz#3d655bec6ce7eb7df2f3cd39c23eb62f0470b77d"
+  dependencies:
+    clean-stack "^1.3.0"
+    fs-extra "^7.0.0"
+    indent-string "^3.2.0"
+    strip-ansi "^4.0.0"
+    wrap-ansi "^4.0.0"
+
 "@oclif/linewrap@^1.0.0":
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/@oclif/linewrap/-/linewrap-1.0.0.tgz#aedcb64b479d4db7be24196384897b5000901d91"
@@ -89,6 +108,14 @@
 "@oclif/parser@^3.6.0":
   version "3.6.0"
   resolved "https://registry.yarnpkg.com/@oclif/parser/-/parser-3.6.0.tgz#8d0b4c3e012aa1f0d59a6936b3dedec318b11a6d"
+  dependencies:
+    "@oclif/linewrap" "^1.0.0"
+    chalk "^2.4.1"
+    tslib "^1.9.3"
+
+"@oclif/parser@^3.6.1":
+  version "3.6.1"
+  resolved "https://registry.yarnpkg.com/@oclif/parser/-/parser-3.6.1.tgz#dd0ad29d9178d75a2de30314874a6167675925ed"
   dependencies:
     "@oclif/linewrap" "^1.0.0"
     chalk "^2.4.1"
@@ -129,6 +156,12 @@
   dependencies:
     fancy-test "^1.3.0"
 
+"@oclif/test@^1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@oclif/test/-/test-1.2.1.tgz#68f4e9a3849a8717d9c13f94b62b655d099a02d9"
+  dependencies:
+    fancy-test "^1.4.1"
+
 "@oclif/tslint@^3.1.0":
   version "3.1.0"
   resolved "https://registry.yarnpkg.com/@oclif/tslint/-/tslint-3.1.0.tgz#4beea4ddeeb9e8964f4c9d15d25349db799311a6"
@@ -136,47 +169,47 @@
     tslint-eslint-rules "^5.4.0"
     tslint-xo "^0.9.0"
 
-"@salesforce/command@^0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@salesforce/command/-/command-0.2.3.tgz#e92332f6757b65705df117032e152f14052c9b47"
+"@salesforce/command@^0.2.5":
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/@salesforce/command/-/command-0.2.5.tgz#95857d52b84fb8c2f766339a7c94398519d43ff5"
   dependencies:
     "@oclif/command" "^1.5.0"
     "@oclif/errors" "^1.2.0"
     "@oclif/parser" "^3.6.0"
     "@oclif/plugin-help" "^2.1.0"
     "@oclif/test" "^1.2.0"
-    "@salesforce/core" "0.19.0"
+    "@salesforce/core" "0.21.1"
+    "@salesforce/kit" "0.0.8"
+    "@salesforce/ts-types" "0.5.0"
     chalk "^2.4.0"
     cli-ux "^4.8.0"
-    lodash "^4.17.4"
 
-"@salesforce/core@0.19.0":
-  version "0.19.0"
-  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.19.0.tgz#a3d015137e213f7edba8e79aa4b5ac3ea013dd0c"
+"@salesforce/core@0.21.1":
+  version "0.21.1"
+  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.21.1.tgz#74639c0622ad7478d88c86f924ef830e15cb1ed0"
   dependencies:
-    "@salesforce/ts-json" "0.0.2"
+    "@salesforce/kit" "0.4.0"
+    "@salesforce/ts-types" "0.11.0"
     "@types/jsforce" "1.8.12"
     bunyan-sfdx-no-dtrace "1.8.2"
     debug "^3.1.0"
     jsen "0.6.6"
     jsforce "1.8.4"
     jsonwebtoken "7.0.0"
-    lodash "^4.17.4"
     mkdirp "0.5.1"
 
-"@salesforce/core@^0.20.0":
-  version "0.20.0"
-  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.20.0.tgz#fe07add0074557577764f547017dc1bf73429995"
+"@salesforce/core@^0.22.0":
+  version "0.22.0"
+  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.22.0.tgz#9d51f0eae8ef61cb9dd8817703fe69dbbb5aca0c"
   dependencies:
-    "@salesforce/kit" "0.0.7"
-    "@salesforce/ts-types" "0.4.0"
+    "@salesforce/kit" "0.4.0"
+    "@salesforce/ts-types" "0.11.0"
     "@types/jsforce" "1.8.12"
     bunyan-sfdx-no-dtrace "1.8.2"
     debug "^3.1.0"
     jsen "0.6.6"
     jsforce "1.8.4"
     jsonwebtoken "7.0.0"
-    lodash "^4.17.4"
     mkdirp "0.5.1"
 
 "@salesforce/dev-config@1.1.4":
@@ -186,19 +219,25 @@
     tslint "5.11.0"
     tslint-microsoft-contrib "5.2.0"
 
-"@salesforce/kit@0.0.7":
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/@salesforce/kit/-/kit-0.0.7.tgz#ba6141a9b769969267f196dade9518a15bb748c8"
+"@salesforce/kit@0.0.8":
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/@salesforce/kit/-/kit-0.0.8.tgz#a3f881fc7df19f659c700125323c47a9d1db6a93"
   dependencies:
-    "@salesforce/ts-types" "0.4.0"
+    "@salesforce/ts-types" "0.5.0"
 
-"@salesforce/ts-json@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@salesforce/ts-json/-/ts-json-0.0.2.tgz#b5d838adcbab20249c3f8d4ac2a36bf9749de6c8"
-
-"@salesforce/ts-types@0.4.0":
+"@salesforce/kit@0.4.0":
   version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@salesforce/ts-types/-/ts-types-0.4.0.tgz#35f23e44765fac459acd8b03a8158cba6fc8dae6"
+  resolved "https://registry.yarnpkg.com/@salesforce/kit/-/kit-0.4.0.tgz#066c17f19e32b5d1e69a2b9c8cd347dfb15d6613"
+  dependencies:
+    "@salesforce/ts-types" "0.11.0"
+
+"@salesforce/ts-types@0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@salesforce/ts-types/-/ts-types-0.11.0.tgz#09146c909863652652f99d2808b38ca60db24a01"
+
+"@salesforce/ts-types@0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@salesforce/ts-types/-/ts-types-0.5.0.tgz#6b36c6ec37230dab53540e2dcdfc862592d6ffc1"
 
 "@samverschueren/stream-to-observable@^0.3.0":
   version "0.3.0"
@@ -253,15 +292,11 @@
   dependencies:
     "@types/events" "*"
 
-"@types/jsforce@^1.8.13":
-  version "1.8.13"
-  resolved "https://registry.yarnpkg.com/@types/jsforce/-/jsforce-1.8.13.tgz#a3a958c45b56167d1287e323bfc04567484ecdfd"
+"@types/jsforce@^1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@types/jsforce/-/jsforce-1.9.0.tgz#3108b9e13e981c243171e025dbf9a6688cc8d925"
   dependencies:
     "@types/events" "*"
-
-"@types/lodash@^4.14.112":
-  version "4.14.115"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.115.tgz#54d171b2ce12c058742443b5f6754760f701b8f9"
 
 "@types/lodash@^4.14.116":
   version "4.14.116"
@@ -285,7 +320,11 @@
   version "10.1.2"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.1.2.tgz#1b928a0baa408fc8ae3ac012cc81375addc147c6"
 
-"@types/node@^10.9.3", "@types/node@^10.9.4":
+"@types/node@^10.11.0":
+  version "10.11.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.11.0.tgz#ddd0d67a3b6c3810dd1a59e36675fa82de5e19ae"
+
+"@types/node@^10.9.4":
   version "10.9.4"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.9.4.tgz#0f4cb2dc7c1de6096055357f70179043c33e9897"
 
@@ -404,7 +443,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/yeoman-generator@^2.0.1":
+"@types/yeoman-generator@^2.0.3":
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/@types/yeoman-generator/-/yeoman-generator-2.0.3.tgz#f4b161ee354078b526e0901a5a5f87d4f8e085f6"
   dependencies:
@@ -703,7 +742,7 @@ chai@4:
     pathval "^1.0.0"
     type-detect "^4.0.0"
 
-chalk@^1.0.0, chalk@^1.1.1, chalk@^1.1.3:
+chalk@^1.0.0, chalk@^1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-1.1.3.tgz#a8115c55e4a702fe4d150abd3872822a7e09fc98"
   dependencies:
@@ -766,10 +805,6 @@ cli-cursor@^2.1.0:
   dependencies:
     restore-cursor "^2.0.0"
 
-cli-spinners@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/cli-spinners/-/cli-spinners-0.1.2.tgz#bb764d88e185fb9e1e6a2a1f19772318f605e31c"
-
 cli-table@^0.3.1:
   version "0.3.1"
   resolved "https://registry.yarnpkg.com/cli-table/-/cli-table-0.3.1.tgz#f53b05266a8b1a0b934b3d0821e6e2dc5914ae23"
@@ -800,6 +835,30 @@ cli-ux@^4.8.0:
     indent-string "^3.2.0"
     is-wsl "^1.1.0"
     lodash "^4.17.10"
+    password-prompt "^1.0.7"
+    semver "^5.5.1"
+    strip-ansi "^4.0.0"
+    supports-color "^5.5.0"
+    supports-hyperlinks "^1.0.1"
+
+cli-ux@^4.8.2:
+  version "4.8.2"
+  resolved "https://registry.yarnpkg.com/cli-ux/-/cli-ux-4.8.2.tgz#6be3c966919727106fba875de1dc771b2567de1d"
+  dependencies:
+    "@oclif/errors" "^1.2.0"
+    "@oclif/linewrap" "^1.0.0"
+    "@oclif/screen" "^1.0.2"
+    ansi-escapes "^3.1.0"
+    ansi-styles "^3.2.1"
+    cardinal "^2.1.1"
+    chalk "^2.4.1"
+    clean-stack "^1.3.0"
+    extract-stack "^1.0.0"
+    fs-extra "^7.0.0"
+    hyperlinker "^1.0.0"
+    indent-string "^3.2.0"
+    is-wsl "^1.1.0"
+    lodash "^4.17.11"
     password-prompt "^1.0.7"
     semver "^5.5.1"
     strip-ansi "^4.0.0"
@@ -1236,6 +1295,20 @@ fancy-test@^1.3.0:
     mock-stdin "^0.3.1"
     stdout-stderr "^0.1.9"
 
+fancy-test@^1.4.1:
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/fancy-test/-/fancy-test-1.4.1.tgz#c87267e01c71185ef4cd5a9cf508eb7e3adbdc94"
+  dependencies:
+    "@types/chai" "^4.1.4"
+    "@types/lodash" "^4.14.116"
+    "@types/mocha" "^5.2.5"
+    "@types/nock" "^9.3.0"
+    "@types/node" "^10.9.4"
+    "@types/sinon" "^5.0.2"
+    lodash "^4.17.11"
+    mock-stdin "^0.3.1"
+    stdout-stderr "^0.1.9"
+
 fast-deep-equal@^1.0.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-1.1.0.tgz#c053477817c86b51daa853c81e059b733d023614"
@@ -1600,12 +1673,6 @@ imurmurhash@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/imurmurhash/-/imurmurhash-0.1.4.tgz#9218b9b2b928a238b13dc4fb6b6d576f231453ea"
 
-indent-string@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/indent-string/-/indent-string-2.1.0.tgz#8e2d48348742121b4a8218b7a137e9a52049dc80"
-  dependencies:
-    repeating "^2.0.0"
-
 indent-string@^3.0.0, indent-string@^3.2.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/indent-string/-/indent-string-3.2.0.tgz#4a5fd6d27cc332f37e5419a504dbb837105c9289"
@@ -1639,7 +1706,7 @@ inquirer@^5.2.0:
     strip-ansi "^4.0.0"
     through "^2.3.6"
 
-inquirer@^6.0.0:
+inquirer@^6.0.0, inquirer@^6.2.0:
   version "6.2.0"
   resolved "https://registry.yarnpkg.com/inquirer/-/inquirer-6.2.0.tgz#51adcd776f661369dc1e894859c2560a224abdd8"
   dependencies:
@@ -1650,24 +1717,6 @@ inquirer@^6.0.0:
     external-editor "^3.0.0"
     figures "^2.0.0"
     lodash "^4.17.10"
-    mute-stream "0.0.7"
-    run-async "^2.2.0"
-    rxjs "^6.1.0"
-    string-width "^2.1.0"
-    strip-ansi "^4.0.0"
-    through "^2.3.6"
-
-inquirer@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/inquirer/-/inquirer-6.1.0.tgz#8f65c7b31c498285f4ddf3b742ad8c487892040b"
-  dependencies:
-    ansi-escapes "^3.0.0"
-    chalk "^2.0.0"
-    cli-cursor "^2.1.0"
-    cli-width "^2.0.0"
-    external-editor "^3.0.0"
-    figures "^2.0.0"
-    lodash "^4.3.0"
     mute-stream "0.0.7"
     run-async "^2.2.0"
     rxjs "^6.1.0"
@@ -1750,12 +1799,6 @@ is-extendable@^1.0.1:
 is-extglob@^2.1.0, is-extglob@^2.1.1:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/is-extglob/-/is-extglob-2.1.1.tgz#a88c02535791f02ed37c76a1b9ea9773c833f8c2"
-
-is-finite@^1.0.0:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/is-finite/-/is-finite-1.0.2.tgz#cc6677695602be550ef11e8b4aa6305342b6d0aa"
-  dependencies:
-    number-is-nan "^1.0.0"
 
 is-fullwidth-code-point@^1.0.0:
   version "1.0.0"
@@ -2054,26 +2097,19 @@ listr-verbose-renderer@^0.4.0:
     date-fns "^1.27.2"
     figures "^1.7.0"
 
-listr@^0.14.1:
-  version "0.14.1"
-  resolved "https://registry.yarnpkg.com/listr/-/listr-0.14.1.tgz#8a7afa4a7135cee4c921d128e0b7dfc6e522d43d"
+listr@^0.14.2:
+  version "0.14.2"
+  resolved "https://registry.yarnpkg.com/listr/-/listr-0.14.2.tgz#cbe44b021100a15376addfc2d79349ee430bfe14"
   dependencies:
     "@samverschueren/stream-to-observable" "^0.3.0"
-    cli-truncate "^0.2.1"
-    figures "^1.7.0"
-    indent-string "^2.1.0"
     is-observable "^1.1.0"
     is-promise "^2.1.0"
     is-stream "^1.1.0"
     listr-silent-renderer "^1.1.1"
     listr-update-renderer "^0.4.0"
     listr-verbose-renderer "^0.4.0"
-    log-symbols "^1.0.2"
-    log-update "^1.0.2"
-    ora "^0.2.3"
     p-map "^1.1.1"
     rxjs "^6.1.0"
-    strip-ansi "^3.0.1"
 
 load-json-file@^4.0.0:
   version "4.0.0"
@@ -2128,9 +2164,13 @@ lodash.templatesettings@^4.0.0:
   dependencies:
     lodash._reinterpolate "~3.0.0"
 
-lodash@^4.11.1, lodash@^4.13.1, lodash@^4.17.10, lodash@^4.17.2, lodash@^4.17.4, lodash@^4.3.0:
+lodash@^4.11.1, lodash@^4.13.1, lodash@^4.17.10, lodash@^4.17.2, lodash@^4.3.0:
   version "4.17.10"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.10.tgz#1b7793cf7259ea38fb3661d4d38b3260af8ae4e7"
+
+lodash@^4.17.11:
+  version "4.17.11"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
 
 log-symbols@^1.0.2:
   version "1.0.2"
@@ -2400,7 +2440,7 @@ oauth-sign@~0.8.2:
   version "0.8.2"
   resolved "https://registry.yarnpkg.com/oauth-sign/-/oauth-sign-0.8.2.tgz#46a6ab7f0aead8deae9ec0565780b7d4efeb9d43"
 
-object-assign@^4.0.1, object-assign@^4.1.0:
+object-assign@^4.1.0:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
 
@@ -2443,15 +2483,6 @@ onetime@^2.0.0:
 open@0.0.5:
   version "0.0.5"
   resolved "https://registry.yarnpkg.com/open/-/open-0.0.5.tgz#42c3e18ec95466b6bf0dc42f3a2945c3f0cad8fc"
-
-ora@^0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/ora/-/ora-0.2.3.tgz#37527d220adcd53c39b73571d754156d5db657a4"
-  dependencies:
-    chalk "^1.1.1"
-    cli-cursor "^1.0.2"
-    cli-spinners "^0.1.2"
-    object-assign "^4.0.1"
 
 os-tmpdir@~1.0.2:
   version "1.0.2"
@@ -2511,9 +2542,9 @@ pad-component@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/pad-component/-/pad-component-0.0.1.tgz#ad1f22ce1bf0fdc0d6ddd908af17f351a404b8ac"
 
-pad@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/pad/-/pad-2.1.0.tgz#f8882815ab9046a5acd297ed1c9cdeea158e51e4"
+pad@^2.1.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/pad/-/pad-2.2.1.tgz#e53e5de1304bc4c6c38004cad803f7641cff3220"
   dependencies:
     wcwidth "^1.0.1"
 
@@ -2727,12 +2758,6 @@ repeat-string@^1.6.1:
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/repeat-string/-/repeat-string-1.6.1.tgz#8dcae470e1c88abc2d600fff4a776286da75e637"
 
-repeating@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/repeating/-/repeating-2.0.1.tgz#5214c53a926d3552707527fbab415dbc08d06dda"
-  dependencies:
-    is-finite "^1.0.0"
-
 replace-ext@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/replace-ext/-/replace-ext-0.0.1.tgz#29bbd92078a739f0bcce2b4ee41e837953522924"
@@ -2839,9 +2864,15 @@ rxjs@^5.5.2:
   dependencies:
     symbol-observable "1.0.1"
 
-rxjs@^6.1.0, rxjs@^6.2.2:
+rxjs@^6.1.0:
   version "6.2.2"
   resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-6.2.2.tgz#eb75fa3c186ff5289907d06483a77884586e1cf9"
+  dependencies:
+    tslib "^1.9.0"
+
+rxjs@^6.3.2:
+  version "6.3.3"
+  resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-6.3.3.tgz#3c6a7fa420e844a81390fb1158a9ec614f4bad55"
   dependencies:
     tslib "^1.9.0"
 
