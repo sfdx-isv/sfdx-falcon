@@ -3,8 +3,8 @@
  * @file          modules/sfdx-falcon-util/sfdx.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       ???
- * @description   ???
+ * @summary       Utility Module - SFDX
+ * @description   Utility functions related to Salesforce DX and the Salesforce CLI
  * @version       1.0.0
  * @license       MIT
  */
@@ -41,6 +41,7 @@ export interface ResolvedConnection {
   connection:       Connection;
   orgIdentifier:    string;
 }
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @interface   SfdxOrgInfo
@@ -53,6 +54,42 @@ export interface SfdxOrgInfo {
   orgId:            string;         // Why?
   isDevHub:         boolean;        // Why?
   connectedStatus:  string;         // Why?
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    detectCliError
+ * @param       {string} stdErrBuffer  Required. A string buffer containing an stderr CLI response.
+ * @returns     {boolean} Returns TRUE if the stdErrBuffer contains something that might be
+ *              considered an error.  FALSE if otherwise.
+ * @description Given a string buffer containing an stderr response, determines if that response
+ *              should be considered an error or if it's just a warning.
+ * @version     1.0.0
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function detectCliError(stdErrBuffer:string):boolean {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}detectCliError:`, arguments, `detectCliError:arguments: `);
+
+  // Safely parse the incoming stdErrBuffer
+  let parsedErrBuffer = safeParse(stdErrBuffer) as any;
+  SfdxFalconDebug.obj(`${dbgNs}detectCliError:`, parsedErrBuffer, `detectCliError:parsedErrBuffer: `);
+
+  // If the Parsed Error Buffer has an "unparsed" property, something went wrong. Consider this a CLI error.
+  if (parsedErrBuffer.unparsed) {
+    return true;
+  }
+
+  // If the Parsed Error Buffer has a non-zero "status" value, consider this a CLI error.
+  if (parsedErrBuffer.status && parsedErrBuffer !== 0) {
+    return true;
+  }
+  // If "status" is not present, or IS zero, then there was NOT a CLI Error.
+  else {
+    return false;
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -304,7 +341,7 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
       stdOutBuffer += data;
     });
 
-    // Handle stderr "data". Anything here means an error occured. Build the buffer
+    // Handle stderr "data". Values here usually mean an error occured BUT can also come if the CLI prints warning messages.
     childProcess.stderr.on('data', (stdErrDataStream) => {
       stdErrBuffer += stdErrDataStream;
     });
@@ -313,11 +350,14 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     // FYI: Ignore the "code" and "signal" vars. They don't work.
     childProcess.stdout.on('close', (code, signal) => {
 
+      // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
+      utilityResult.detail.stdOutBuffer = stdOutBuffer;
+      utilityResult.detail.stdErrBuffer = stdErrBuffer;
+
       // Determine if the command succeded or failed.
-      if (stdErrBuffer) {
+      if (detectCliError(stdErrBuffer)) {
 
         // Prepare the ERROR detail for this function's Result.
-        utilityResult.detail.stdErrBuffer = stdErrBuffer;
         utilityResult.detail.sfdxCliError = new SfdxCliError(stdErrBuffer, `SFDX_CLI_ERROR: Error executing scanConnectedOrgs()`);
         utilityResult.error(utilityResult.detail.sfdxCliError);
         utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs`);
@@ -328,7 +368,6 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
       else {
 
         // Prepare the SUCCESS detail for this function's Result.
-        utilityResult.detail.stdOutBuffer = stdOutBuffer;
         utilityResult.detail.stdOutParsed = safeParse(stdOutBuffer);
 
         // Regiser a SUCCESS result

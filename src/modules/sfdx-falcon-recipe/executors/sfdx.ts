@@ -19,7 +19,10 @@ import {updateObserver}               from  '../../sfdx-falcon-notifications';  
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';    // Why?
 import {SfdxFalconResult}             from  '../../sfdx-falcon-result';           // Why?
 import {SfdxFalconResultType}         from  '../../sfdx-falcon-result';           // Why?
+
+// Import Utility Functions
 import {safeParse}                    from  '../../sfdx-falcon-util';             // Why?
+import {detectCliError}               from  '../../sfdx-falcon-util/sfdx'         // Why?
 
 // Requies
 const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.
@@ -98,7 +101,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       stdOutBuffer = stdOutDataStream; 
     });
 
-    // Handle stderr "data". Anything here means an error occured. Build the buffer
+    // Handle stderr "data". Values here usually mean an error occured BUT can also come if the CLI prints warning messages.
     childProcess.stderr.on('data', (stdErrDataStream) => {
       stdErrBuffer += stdErrDataStream;
     });
@@ -109,12 +112,15 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 
       // Stop the progress notifications for this command.
       FalconProgressNotifications.finish(progressNotifications);
- 
+
+      // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
+      executorResult.detail.stdOutBuffer = stdOutBuffer;
+      executorResult.detail.stdErrBuffer = stdErrBuffer;
+
       // Determine if the command succeded or failed.
-      if (stdErrBuffer) {
+      if (detectCliError(stdErrBuffer)) {
 
         // Prepare the FAILURE detail for this function's Result.
-        executorResult.detail.stdErrBuffer = stdErrBuffer;
         executorResult.detail.sfdxCliError = new SfdxCliError(stdErrBuffer, sfdxCommandDef.errorMsg);
 
         // Process this as a FAILURE result.
@@ -127,7 +133,6 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       else {
 
         // Prepare the SUCCESS detail for this function's Result.
-        executorResult.detail.stdOutBuffer = stdOutBuffer;
         executorResult.detail.stdOutParsed = safeParse(stdOutBuffer);
 
         // Make a final update to the observer
