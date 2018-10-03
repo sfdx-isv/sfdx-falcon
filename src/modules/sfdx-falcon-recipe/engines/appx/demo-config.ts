@@ -23,13 +23,14 @@ import {AppxRecipeEngine}         from '../../../sfdx-falcon-recipe/engines/appx
 import {AppxEngineStepGroup}      from '../../../sfdx-falcon-recipe/engines/appx';    // Why?
 
 // Action Imports (determines what is supported by appx:demo-config engine)
-import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';          // Why?
-import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';          // Why?
-import {InstallPackageAction}     from '../appx/actions/install-package';             // Why?
-import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';             // Why?
 import {ConfigureAdminUserAction} from '../appx/actions/configure-admin-user';        // Why?
+import {CreateScratchOrgAction}   from '../appx/actions/create-scratch-org';          // Why?
 import {CreateUserAction}         from '../appx/actions/create-user';                 // Why?
+import {ExecuteApexAction}        from '../appx/actions/execute-apex';                // Why?
+import {DeleteScratchOrgAction}   from '../appx/actions/delete-scratch-org';          // Why?
+import {DeployMetadataAction}     from '../appx/actions/deploy-metadata';             // Why?
 import {ImportDataTreeAction}     from '../appx/actions/import-data-tree';            // Why?
+import {InstallPackageAction}     from '../appx/actions/install-package';             // Why?
 
 // Import Utility Functions/Types
 import {YeomanChoice}             from '../../../sfdx-falcon-util/yeoman';            // Why?
@@ -433,13 +434,13 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     // Build a map of Action "aliases" to instances of the Action Classes that implement that alias.
     this.actionExecutorMap = new Map<string, any>();
     this.actionExecutorMap.set('create-scratch-org',    new CreateScratchOrgAction());
+    this.actionExecutorMap.set('create-user',           new CreateUserAction());
+    this.actionExecutorMap.set('configure-admin-user',  new ConfigureAdminUserAction());
     this.actionExecutorMap.set('delete-scratch-org',    new DeleteScratchOrgAction());
     this.actionExecutorMap.set('deploy-metadata',       new DeployMetadataAction());
-    this.actionExecutorMap.set('install-package',       new InstallPackageAction());
-    this.actionExecutorMap.set('configure-admin-user',  new ConfigureAdminUserAction());
-
-    this.actionExecutorMap.set('create-user',           new CreateUserAction());
+    this.actionExecutorMap.set('execute-apex',          new ExecuteApexAction());
     this.actionExecutorMap.set('import-data-tree',      new ImportDataTreeAction());
+    this.actionExecutorMap.set('install-package',       new InstallPackageAction());
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
