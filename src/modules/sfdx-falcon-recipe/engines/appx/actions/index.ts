@@ -15,13 +15,13 @@ import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';    //
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result';   // Why?
 import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result';   // Why?
 import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result';   // Why?
+import {SfdxFalconError}            from  '../../../../sfdx-falcon-error';    // Why?
 
 // Executor Imports
 
 // Engine/Action Imports
 import {SfdxFalconActionType}       from  '../../../types';                   // Enum. Represents types of SfdxFalconActions.
 import {AppxEngineActionContext}    from  '../../../engines/appx';            // Why?
-import { SfdxFalconError } from '../../../../sfdx-falcon-error';
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:appx-engine-action:';

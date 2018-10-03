@@ -16,6 +16,7 @@ import * as path                    from  'path';                           // M
 // Import Local Modules
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
 import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result'; // Enum. Represents the status of SfdxFalconResults.
+import {SfdxFalconError}            from  '../../../../sfdx-falcon-error';  // Why?
 
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
@@ -24,7 +25,6 @@ import {executeSfdxCommand}         from  '../../../executors/sfdx';        // F
 import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
 import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
-import { SfdxFalconError } from '../../../../sfdx-falcon-error';
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:deploy-metadata:';
@@ -111,7 +111,7 @@ export class DeployMetadataAction extends AppxEngineAction {
 
     // Define the messages that are relevant to this Action
     let executorMessages = {
-      progressMsg:  `Deploying MDAPI source from ${actionOptions.mdapiSource}`,
+      progressMsg:  `Deploying MDAPI source from '${actionOptions.mdapiSource}'`,
       errorMsg:     `Deployment failed for MDAPI source '${actionOptions.mdapiSource}'`,
       successMsg:   `Deployment of '${actionOptions.mdapiSource}' succeeded`
     }
