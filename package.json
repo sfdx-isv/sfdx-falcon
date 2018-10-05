@@ -1,15 +1,15 @@
 {
   "name": "sfdx-falcon",
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
-  "version": "0.0.9",
+  "version": "0.0.91",
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon/issues",
   "dependencies": {
     "@oclif/command": "^1.5.1",
-    "@oclif/config": "^1.7.6",
+    "@oclif/config": "^1.8.1",
     "@oclif/errors": "^1.2.1",
     "@salesforce/command": "^0.2.5",
-    "@salesforce/core": "^0.21.1",
+    "@salesforce/core": "^0.22.0",
     "chalk": "^2.4.1",
     "debug": "^4.0.1",
     "falcon-listr-update-renderer": "^0.4.2",
@@ -28,7 +28,7 @@
     "yosay": "^2.0.2"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1.18.0",
+    "@oclif/dev-cli": "^1.19.0",
     "@oclif/plugin-help": "^2.1.2",
     "@oclif/test": "^1.2.1",
     "@oclif/tslint": "^3.1.0",

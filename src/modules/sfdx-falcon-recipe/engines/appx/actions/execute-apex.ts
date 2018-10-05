@@ -1,11 +1,12 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-recipe/actions/deploy-metadata.ts
+ * @file          modules/sfdx-falcon-recipe/actions/execute-apex.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       Exposes the CLI Command force:mdapi:deploy
- * @description   Deploys Salesforce metadata via the MDAPI from the given metadata source directory
- *                to the target org.
+ * @summary       Exposes the CLI Command force:apex:execute
+ * @description   Executes anonymous Apex against the Target Org. Depending on the options set by
+ *                the caller, this Action can execute a single line of Apex or call out to an enitre
+ *                file containing valid Apex.
  * @version       1.0.0
  * @license       MIT
  */
@@ -16,7 +17,7 @@ import * as path                    from  'path';                           // M
 // Import Local Modules
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
 import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result'; // Enum. Represents the status of SfdxFalconResults.
-import {SfdxFalconError}            from  '../../../../sfdx-falcon-error';  // Why?
+import {SfdxFalconError}            from '../../../../sfdx-falcon-error';   // Why?
 
 // Executor Imports
 import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
@@ -27,19 +28,19 @@ import {AppxEngineActionContext}    from  '../../appx';                     // I
 import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'ACTION:deploy-metadata:';
-//const clsDbgNs  = 'DeployMetadataAction:';
+const dbgNs     = 'ACTION:execute-apex:';
+//const clsDbgNs  = 'ExecuteApexAction:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       DeployMetadataAction
+ * @class       ExecuteApexAction
  * @extends     AppxEngineAction
- * @description Implements the action "deploy-metadata".
+ * @description Implements the action "execute-apex".
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class DeployMetadataAction extends AppxEngineAction {
+export class ExecuteApexAction extends AppxEngineAction {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -54,9 +55,9 @@ export class DeployMetadataAction extends AppxEngineAction {
 
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
-    this.actionName       = 'deploy-metadata';
+    this.actionName       = 'execute-apex';
     this.executorName     = 'sfdx:executeSfdxCommand';
-    this.description      = 'Deploy Metadata';
+    this.description      = 'Execute Apex';
     this.successDelay     = 2;
     this.errorDelay       = 2;
     this.progressDelay    = 1000;
@@ -76,7 +77,7 @@ export class DeployMetadataAction extends AppxEngineAction {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected validateActionOptions(actionOptions:any):void {
-    if (typeof actionOptions.mdapiSource === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'mdapiSource'`);
+    if (typeof actionOptions.apexCodeFile === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'apexCodeFile'`);
   }  
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -111,16 +112,16 @@ export class DeployMetadataAction extends AppxEngineAction {
 
     // Define the messages that are relevant to this Action
     let executorMessages = {
-      progressMsg:  `Deploying MDAPI source from '${actionOptions.mdapiSource}'`,
-      errorMsg:     `Deployment failed for MDAPI source '${actionOptions.mdapiSource}'`,
-      successMsg:   `Deployment of '${actionOptions.mdapiSource}' succeeded`
+      progressMsg:  `Executing anonymous Apex from '${actionOptions.apexCodeFile}'`,
+      errorMsg:     `Execution failed for anonymous Apex in '${actionOptions.apexCodeFile}'`,
+      successMsg:   `Execution of anonymous Apex in '${actionOptions.apexCodeFile}' succeeded`
     }
     actionResult.detail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     let sfdxCommandDef = {
-      command:      'force:mdapi:deploy',
+      command:      'force:apex:execute',
       progressMsg:  executorMessages.progressMsg,
       errorMsg:     executorMessages.errorMsg,
       successMsg:   executorMessages.successMsg,
@@ -128,9 +129,7 @@ export class DeployMetadataAction extends AppxEngineAction {
       commandArgs:  new Array<string>(),
       commandFlags: {
         FLAG_TARGETUSERNAME:  actionContext.targetOrg.alias,
-        FLAG_DEPLOYDIR:       path.join(actionContext.projectContext.mdapiSourcePath, actionOptions.mdapiSource),
-        FLAG_WAIT:            5,
-        FLAG_TESTLEVEL:       'NoTestRun',
+        FLAG_APEXCODEFILE:    path.join(actionContext.projectContext.configPath, actionOptions.apexCodeFile),
         FLAG_JSON:            true,
         FLAG_LOGLEVEL:        actionContext.logLevel
       }
@@ -153,7 +152,7 @@ export class DeployMetadataAction extends AppxEngineAction {
         if (actionResult.lastChild.status === SfdxFalconResultStatus.FAILURE) {
           let execFailureError 
             = new SfdxFalconError (`ERROR_FAILED_EXECUTOR: Executor '${actionResult.lastChild.name}' `
-                                  +`has failed during MDAPI deployment of ${actionOptions.mdapiSource}`, 
+                                  +`has failed during anonymous Apex execution of ${actionOptions.apexCodeFile}`, 
                                    `FailedExecutor`);
           execFailureError.setFalconData(actionResult.lastChild.detail.sfdxCliError);
           actionResult.throw(execFailureError);
