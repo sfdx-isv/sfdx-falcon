@@ -29,7 +29,7 @@ sections:
 
 This content is being developed and will appear soon.
 
-In the meantime,  check out the documentation for [SFDX-Falcon Recipes](/docs/recipes/schema), the secret to any AppExchange Demo Kit (ADK) or AppExchange Package Kit (APK) project!
+In the meantime,  check out the documentation for [SFDX-Falcon Recipes](../docs/recipes), the secret to any AppExchange Demo Kit (ADK) or AppExchange Package Kit (APK) project!
 
 
 <br>
