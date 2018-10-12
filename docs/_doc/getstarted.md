@@ -27,8 +27,7 @@ navigation:
 ---
 
 Install **SFDX-Falcon** and create/test-drive an **AppExchange Demo Kit (ADK)** project in 10 
-minutes or less! Just [**check the prerequisites**](../start/prereqs) and follow the
-[**Quick Start Guide**](../start/quickstart).
+minutes or less! Just [**check the prerequisites**](/sfdx-falcon/start/prereqs.html) and follow the
+[**Quick Start Guide**](/sfdx-falcon/start/quickstart.html).
 
-Wondering what else **SFDX-Falcon** can do? Check out the [**Next Steps Guide**](../start/nextsteps) 
-for some ideas.
+Wondering what else **SFDX-Falcon** can do? Check out the [**Next Steps Guide**](/sfdx-falcon/start/nextsteps.html) for some ideas.
