@@ -2,7 +2,7 @@
 title: Git / GitHub Environment Prerequisites
 sections:
   - Create a GitHub Account
-  - Install / Configure Git
+  - Install and Configure Git
   - Create a Repository
   - Invite Collaborators
 ---
@@ -19,7 +19,7 @@ A GitHub account is required for publication / sharing of AppExchange Demo Kit (
 **APK projects can be used with other Git-based repository hosts (eg. BitBucket).**
 </div></div>
 
-## Install / Configure Git
+## Install and Configure Git
 
 Once you have a GitHub account (or an account from another Git Host if using the AppExchange Package Kit), you will need to install and configure Git on your local machine.  For detailed instructions, see ["Set up Git"][SETUP_GIT]. 
 

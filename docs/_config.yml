@@ -3,7 +3,7 @@
 #
 remote_theme: sfdx-isv/pretty-docs
 url: https://sfdx-isv.github.io
-#baseurl: /docs
+baseurl: /sfdx-falcon
 title: &site_title SFDX-Falcon
 description: &site_description A Salesforce CLI plugin built for AppExchange Partners
 branding:

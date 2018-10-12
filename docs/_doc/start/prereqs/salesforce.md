@@ -26,7 +26,7 @@ If you are part of a team, you will want to grant your Developers, QA Engineers,
 
 ### Access to a Packaging Org
 
-**Optional.** If you plan on working with managed packages using the [AppExchange Package Kit (APK)](/docs/apk), you will need access to a packaging org. For detailed instructions, see ["Overview of Salesforce Packages"][PACKAGE_OVERVIEW].
+**Optional.** If you plan on working with managed packages using the [AppExchange Package Kit (APK)](../docs/apk), you will need access to a packaging org. For detailed instructions, see ["Overview of Salesforce Packages"][PACKAGE_OVERVIEW].
 
 <div class="callout-block callout-info"><div class="icon-holder">*&nbsp;*{: .fa .fa-info-circle}
 </div><div class="content">
