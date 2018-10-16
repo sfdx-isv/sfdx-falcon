@@ -48,23 +48,32 @@
     debug "^4.0.1"
     semver "^5.5.1"
 
-"@oclif/config@^1.7.6":
-  version "1.7.6"
-  resolved "https://registry.yarnpkg.com/@oclif/config/-/config-1.7.6.tgz#849e5f79591c8dd29d99dd3aba0914b50e2c2e74"
+"@oclif/command@^1.5.4":
+  version "1.5.4"
+  resolved "https://registry.yarnpkg.com/@oclif/command/-/command-1.5.4.tgz#659456def965454e1c0115e8265533980eefb200"
   dependencies:
-    debug "^4.0.1"
+    "@oclif/errors" "^1.2.2"
+    "@oclif/parser" "^3.6.1"
+    debug "^4.1.0"
+    semver "^5.6.0"
+
+"@oclif/config@^1.8.1", "@oclif/config@^1.8.7":
+  version "1.8.8"
+  resolved "https://registry.yarnpkg.com/@oclif/config/-/config-1.8.8.tgz#fc29da619c9e3dcce6ca786dde3bf65e1875874d"
+  dependencies:
+    debug "^4.1.0"
     tslib "^1.9.3"
 
-"@oclif/dev-cli@^1.18.0":
-  version "1.18.1"
-  resolved "https://registry.yarnpkg.com/@oclif/dev-cli/-/dev-cli-1.18.1.tgz#e53a6fa13749262e0fe2495e59e7e2fa38c356d5"
+"@oclif/dev-cli@^1.19.0":
+  version "1.19.2"
+  resolved "https://registry.yarnpkg.com/@oclif/dev-cli/-/dev-cli-1.19.2.tgz#dd82389d0de7c36d9e37237bc622546bd8e5ca9c"
   dependencies:
-    "@oclif/command" "^1.5.1"
-    "@oclif/config" "^1.7.6"
-    "@oclif/errors" "^1.2.1"
+    "@oclif/command" "^1.5.4"
+    "@oclif/config" "^1.8.7"
+    "@oclif/errors" "^1.2.2"
     "@oclif/plugin-help" "^2.1.2"
-    cli-ux "^4.8.2"
-    debug "^4.0.1"
+    cli-ux "^4.9.0"
+    debug "^4.1.0"
     fs-extra "^7.0.0"
     lodash "^4.17.11"
     normalize-package-data "^2.4.0"
@@ -99,6 +108,16 @@
     fs-extra "^7.0.0"
     indent-string "^3.2.0"
     strip-ansi "^4.0.0"
+    wrap-ansi "^4.0.0"
+
+"@oclif/errors@^1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@oclif/errors/-/errors-1.2.2.tgz#9d8f269b15f13d70aa93316fed7bebc24688edc2"
+  dependencies:
+    clean-stack "^1.3.0"
+    fs-extra "^7.0.0"
+    indent-string "^3.2.0"
+    strip-ansi "^5.0.0"
     wrap-ansi "^4.0.0"
 
 "@oclif/linewrap@^1.0.0":
@@ -150,6 +169,10 @@
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@oclif/screen/-/screen-1.0.2.tgz#c9d7c84b0ea60ecec8dd7a9b22c012ba9967aed8"
 
+"@oclif/screen@^1.0.3":
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/@oclif/screen/-/screen-1.0.4.tgz#b740f68609dfae8aa71c3a6cab15d816407ba493"
+
 "@oclif/test@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@oclif/test/-/test-1.2.0.tgz#764ca66215f5bd36c0b5cbcbfc5963f0271825b8"
@@ -184,7 +207,7 @@
     chalk "^2.4.0"
     cli-ux "^4.8.0"
 
-"@salesforce/core@0.21.1", "@salesforce/core@^0.21.1":
+"@salesforce/core@0.21.1":
   version "0.21.1"
   resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.21.1.tgz#74639c0622ad7478d88c86f924ef830e15cb1ed0"
   dependencies:
@@ -198,9 +221,23 @@
     jsonwebtoken "7.0.0"
     mkdirp "0.5.1"
 
-"@salesforce/dev-config@1.1.4":
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/@salesforce/dev-config/-/dev-config-1.1.4.tgz#d38c1090c8d82769cc1238ee2115b23a1cdc49f6"
+"@salesforce/core@^0.22.0":
+  version "0.22.0"
+  resolved "https://registry.yarnpkg.com/@salesforce/core/-/core-0.22.0.tgz#9d51f0eae8ef61cb9dd8817703fe69dbbb5aca0c"
+  dependencies:
+    "@salesforce/kit" "0.4.0"
+    "@salesforce/ts-types" "0.11.0"
+    "@types/jsforce" "1.8.12"
+    bunyan-sfdx-no-dtrace "1.8.2"
+    debug "^3.1.0"
+    jsen "0.6.6"
+    jsforce "1.8.4"
+    jsonwebtoken "7.0.0"
+    mkdirp "0.5.1"
+
+"@salesforce/dev-config@1.1.5":
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/@salesforce/dev-config/-/dev-config-1.1.5.tgz#acf08bbe14d4f963dc33275399fada9e8a87e3c0"
   dependencies:
     tslint "5.11.0"
     tslint-microsoft-contrib "5.2.0"
@@ -464,6 +501,10 @@ ansi-regex@^2.0.0:
 ansi-regex@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-3.0.0.tgz#ed0317c322064f79466c02966bddb605ab37d998"
+
+ansi-regex@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-4.0.0.tgz#70de791edf021404c3fd615aa89118ae0432e5a9"
 
 ansi-styles@^2.2.1:
   version "2.2.1"
@@ -827,13 +868,13 @@ cli-ux@^4.8.0:
     supports-color "^5.5.0"
     supports-hyperlinks "^1.0.1"
 
-cli-ux@^4.8.2:
-  version "4.8.2"
-  resolved "https://registry.yarnpkg.com/cli-ux/-/cli-ux-4.8.2.tgz#6be3c966919727106fba875de1dc771b2567de1d"
+cli-ux@^4.9.0:
+  version "4.9.1"
+  resolved "https://registry.yarnpkg.com/cli-ux/-/cli-ux-4.9.1.tgz#3fce340f4d86f4e9249242d0c6a6adab10da4222"
   dependencies:
-    "@oclif/errors" "^1.2.0"
+    "@oclif/errors" "^1.2.2"
     "@oclif/linewrap" "^1.0.0"
-    "@oclif/screen" "^1.0.2"
+    "@oclif/screen" "^1.0.3"
     ansi-escapes "^3.1.0"
     ansi-styles "^3.2.1"
     cardinal "^2.1.1"
@@ -846,10 +887,11 @@ cli-ux@^4.8.2:
     is-wsl "^1.1.0"
     lodash "^4.17.11"
     password-prompt "^1.0.7"
-    semver "^5.5.1"
-    strip-ansi "^4.0.0"
+    semver "^5.6.0"
+    strip-ansi "^5.0.0"
     supports-color "^5.5.0"
     supports-hyperlinks "^1.0.1"
+    treeify "^1.1.0"
 
 cli-width@^2.0.0:
   version "2.2.0"
@@ -1021,6 +1063,12 @@ debug@^2.2.0, debug@^2.3.3:
 debug@^4.0.1:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/debug/-/debug-4.0.1.tgz#f9bb36d439b8d1f0dd52d8fb6b46e4ebb8c1cd5b"
+  dependencies:
+    ms "^2.1.1"
+
+debug@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/debug/-/debug-4.1.0.tgz#373687bffa678b38b1cd91f861b63850035ddc87"
   dependencies:
     ms "^2.1.1"
 
@@ -2900,6 +2948,10 @@ semver@^5.5.1:
   version "5.5.1"
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.5.1.tgz#7dfdd8814bdb7cabc7be0fb1d734cfb66c940477"
 
+semver@^5.6.0:
+  version "5.6.0"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-5.6.0.tgz#7e74256fbaa49c75aa7c7a205cc22799cac80004"
+
 sequin@*:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/sequin/-/sequin-0.1.1.tgz#5c2d389d66a383734eaafbc45edeb2c1cb1be701"
@@ -3143,6 +3195,12 @@ strip-ansi@^4.0.0:
   dependencies:
     ansi-regex "^3.0.0"
 
+strip-ansi@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-5.0.0.tgz#f78f68b5d0866c20b2c9b8c61b5298508dc8756f"
+  dependencies:
+    ansi-regex "^4.0.0"
+
 strip-bom-stream@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/strip-bom-stream/-/strip-bom-stream-2.0.0.tgz#f87db5ef2613f6968aa545abfe1ec728b6a829ca"
@@ -3300,6 +3358,10 @@ tough-cookie@>=2.3.3:
   dependencies:
     psl "^1.1.24"
     punycode "^1.4.1"
+
+treeify@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/treeify/-/treeify-1.1.0.tgz#4e31c6a463accd0943879f30667c4fdaff411bb8"
 
 ts-node@7:
   version "7.0.0"
