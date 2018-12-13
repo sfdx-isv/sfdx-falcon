@@ -14,6 +14,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as path                      from  'path';                 // Helps resolve local paths at runtime.
+import {flags}                        from  '@salesforce/command';  // Allows creation of flags for CLI commands.
 import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
 
 // Import Local Modules
@@ -73,29 +74,26 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
   //                  install process with.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    projectdir: {
+    projectdir: flags.directory({
       char: 'd', 
       required: false,
-      type: 'directory',
       description: baseMessages.getMessage('projectdir_FlagDescription'),
       default: '.',
       hidden: false
-    },
-    configfile: {
+    }),
+    configfile: flags.filepath({
       char: 'f', 
       required: false,
-      type: 'filepath',
       description: baseMessages.getMessage('configfile_FlagDescription'),
       hidden: false
-    },
-    extendedoptions: {
+    }),
+    extendedoptions: flags.string({
       char: 'x', 
       required: false,
-      type: 'string',
       description: baseMessages.getMessage('extendedoptions_FlagDescription'),
       default: '{}',
       hidden: false
-    },
+    }),
     
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconCommand.falconBaseflagsConfig

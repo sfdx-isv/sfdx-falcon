@@ -11,7 +11,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as path                      from  'path';                       // Helps resolve local paths at runtime.
-import {flags}                        from  '@oclif/command';             // Requried to create CLI command flags.
+import {flags}                        from  '@salesforce/command';        // Required by child classe to create a CLI command
 import {SfdxCommand}                  from  '@salesforce/command';        // Required by child classe to create a CLI command
 import {Messages}                     from  '@salesforce/core';           // Messages library that simplifies using external JSON for string reuse.
 
@@ -119,13 +119,12 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //    --FALCONDEBUGDEPTH      Object inspection depth when debug is rendered.
   //───────────────────────────────────────────────────────────────────────────┘
   public static falconBaseflagsConfig = {
-    falcondebug: {
+    falcondebug: flags.array({
       description: baseMessages.getMessage('falcondebug_FlagDescription'),
       required: false,
       hidden: false,
-      type: 'array',
-      default: ''
-    },
+      default: []
+    }),
     falcondebugerror: flags.boolean({
       description: baseMessages.getMessage('falcondebugerror_FlagDescription'),
       required: false,
@@ -136,13 +135,12 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
       required: false,
       hidden: false
     }),
-    falcondebugdepth: {
+    falcondebugdepth: flags.number({
       description: baseMessages.getMessage('falcondebugdepth_FlagDescription'),
       required: false,
       hidden: false,
-      type: 'number',
       default: 2
-    }
+    })
   };
 
   //───────────────────────────────────────────────────────────────────────────┐

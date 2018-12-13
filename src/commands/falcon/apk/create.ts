@@ -14,7 +14,8 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // External Imports
-import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
+import {flags}                        from  '@salesforce/command';  // Allows creation of flags for CLI commands.
+import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
 
 // Import Internal Modules
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
@@ -67,14 +68,13 @@ export default class FalconApkCreate extends SfdxFalconYeomanCommand {
   //                  Defaults to . (current directory) if not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    outputdir: {
+    outputdir: flags.directory({
       char: 'd', 
       required: false,
-      type: 'directory',
       description: commandMessages.getMessage('outputdir_FlagDescription'),
       default: '.',
       hidden: false
-    },
+    }),
 
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconYeomanCommand.falconBaseflagsConfig
