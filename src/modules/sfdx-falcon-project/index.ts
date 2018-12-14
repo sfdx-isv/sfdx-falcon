@@ -233,7 +233,7 @@ export class SfdxFalconProject {
     SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconLocalConfig:configOptions: `);
 
     // Using the options set above, retrieve the local SFDX-Falcon Config file.
-    let sfdxFalconLocalConfigFile = await core.ConfigFile.retrieve(configOptions);
+    let sfdxFalconLocalConfigFile = await core.ConfigFile.create(configOptions);
 
     // Make sure that the file actually exists on disk (as opposed to being created for us).
     if (await sfdxFalconLocalConfigFile.exists() === false) {

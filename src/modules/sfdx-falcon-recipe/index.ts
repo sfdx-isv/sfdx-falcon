@@ -338,7 +338,7 @@ export class SfdxFalconRecipe {
     SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
 
     // Using the options set above, retrieve the SFDX-Falcon Recipe file.
-    let sfdxFalconRecipeFile = await core.ConfigFile.retrieve(configOptions);
+    let sfdxFalconRecipeFile = await core.ConfigFile.create(configOptions);
 
     // Make sure that the file actually exists on disk (as opposed to being created for us).
     if (await sfdxFalconRecipeFile.exists() === false) {

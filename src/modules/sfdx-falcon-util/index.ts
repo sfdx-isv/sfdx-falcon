@@ -67,7 +67,7 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
   SfdxFalconDebug.obj(`${dbgNs}readConfigFile`, configFileOptions, `${clsDbgNs}configFileOptions: `);
 
   // Retrieve the config file specified by the Config File Options.
-  let configFile = await ConfigFile.retrieve(configFileOptions);
+  let configFile = await ConfigFile.create(configFileOptions);
 
   // Verify that the file exists before trying to parse it.
   if (await configFile.exists() === false) {
