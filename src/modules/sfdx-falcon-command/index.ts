@@ -178,19 +178,11 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     this.gitCloneDirectory          = this.args.GIT_CLONE_DIR         ||  '';
 
     // Read the incoming values for all DEBUG flags.
-    this.falconDebugFlag            = this.flags.falcondebug          ||  '';
+    this.falconDebugFlag            = this.flags.falcondebug          ||  [];
     this.falconDebugErrorFlag       = this.flags.falcondebugerror     ||  false;
     this.falconDebugSuccessFlag     = this.flags.falcondebugsuccess   ||  false;
     this.falconDebugDepthFlag       = this.flags.falcondebugdepth     ||  2;
-
-    // Parse the list of Debug Namespaces to build an array of namespaces to enable.
-    if (this.flags.falcondebug) {
-      this.falconDebugFlag = this.flags.falcondebug.split(',');
-    }
-    else {
-      this.falconDebugFlag = [];
-    }
-
+    
     // Specify the top-level SFDX-Falcon debugger namespaces to enable.
     let enabledDebuggers = new Array<string>();
 
