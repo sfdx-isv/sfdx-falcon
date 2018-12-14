@@ -234,10 +234,10 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
   }
 
   // Create an AuthInfo object for the username we got from the alias.
-  const authInfo = await AuthInfo.create(username);
+  const authInfo = await AuthInfo.create({username: username});
 
   // Create and return a connection to the org attached to the username.
-  const connection = await Connection.create(authInfo);
+  const connection = await Connection.create({authInfo: authInfo});
 
   // Set the API version (if specified by the caller).
   if (typeof apiVersion !== 'undefined') {
