@@ -126,7 +126,7 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
     if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
       SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE DEVHUB: Alias(Username)`);
       devHubOrgInfos.push({
-        alias:            rawOrgInfo.alias,
+        alias:            rawOrgInfo.alias || rawOrgInfo.username,
         username:         rawOrgInfo.username,
         orgId:            rawOrgInfo.orgId,
         isDevHub:         rawOrgInfo.isDevHub,
@@ -191,7 +191,7 @@ export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       // TODO: Implement some kind of "Environment Hub Check" logic
 
       envHubOrgInfos.push({
-        alias:            rawOrgInfo.alias,
+        alias:            rawOrgInfo.alias || rawOrgInfo.username,
         username:         rawOrgInfo.username,
         orgId:            rawOrgInfo.orgId,
         isDevHub:         rawOrgInfo.isDevHub,
