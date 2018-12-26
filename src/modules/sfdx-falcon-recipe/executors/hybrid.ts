@@ -10,10 +10,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-//import * as jsf             from 'jsforce';                                   // Why?
+//import * as jsf             from 'jsforce';                                 // Why?
 //import {Aliases}            from '@salesforce/core'                         // Why?
 //import {AuthInfo}           from '@salesforce/core'                         // Why?
 import {Connection}           from '@salesforce/core'                         // Why?
+import {RecordResult}         from 'jsforce';                                 // Wny?
 
 // Import Internal Modules
 import {waitASecond}                  from  '../../sfdx-falcon-async';          // Why?
@@ -24,19 +25,17 @@ import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';  
 
 // Import Local Types
 import {TargetOrg}                    from  '../types';                         // Interface. Represents an org that will be targeted by SFDX/JSForce code.
-import {ExecutorMessages}             from  '../types';                         // Interface. Represents an org that will be targeted by SFDX/JSForce code.
-import {InsertResult}                 from  '../../sfdx-falcon-util/jsforce';   // Interface. Represents the result of a JSForce insert() call.
+import {ExecutorMessages}             from  '../types';                         // Interface. Represents the standard messages that most Executors use for Observer notifications.
 
 // Import Utility Functions
-
 import {changePassword}               from  '../../sfdx-falcon-util/jsforce';   // Function. Changes the password of the specified user in the target org.
 //import {createSfdxOrgConfig}          from  '../../sfdx-falcon-util/jsforce';   // Function. Creates an SfdxOrgConfig struct based on a given connection.
 import {getAssignedPermsets}          from  '../../sfdx-falcon-util/jsforce';   // Function. Gets a list of permsets assigned to a given user.
-import {getProfileId, }               from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a profile, given its name.
+import {getProfileId}                 from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a profile, given its name.
 import {getUserId}                    from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a user, given the username.
-import {restApiRequest}               from  '../../sfdx-falcon-util/jsforce';   // Function. ???
-import {RestApiRequestDefinition}     from  '../../sfdx-falcon-util/jsforce';   // Interface. ???
-import {getConnection}                from  '../../sfdx-falcon-util/sfdx';      // Function. ???
+import {restApiRequest}               from  '../../sfdx-falcon-util/jsforce';   // Function. Makes a REST API request via a JSForce connection.
+import {RestApiRequestDefinition}     from  '../../sfdx-falcon-util/jsforce';   // Interface. Defines the proper structure of a Salesforce REST API Request.
+import {getConnection}                from  '../../sfdx-falcon-util/sfdx';      // Function. Gets a JSForce Connection to a particular org.
 import {resolveConnection}            from  '../../sfdx-falcon-util/sfdx';      // Function. Takes either an alias or a connection and gives back a connection.
 
 // Set the File Local Debug Namespace
@@ -144,15 +143,27 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
   // Insert the PermissionSetAssignment records.
   const permSetAssignment = rc.connection.sobject('PermissionSetAssignment');
   const assignmentResults = await permSetAssignment.insert(permsetAssignmentRecs)
-    .catch(error => {executorResult.throw(error)}) as [InsertResult];
+    .catch(error => {executorResult.throw(error)}) as RecordResult;
   executorResult.detail.assignmentResults = assignmentResults;
 
   // Make sure the insert was successful.
-  for (let i=0; i < assignmentResults.length; i++) {
-    if (assignmentResults[0].success === false) {
+  if (Array.isArray(assignmentResults)) {
+    // Check for failure on an array of records.
+    for (let i=0; i < assignmentResults.length; i++) {
+      if (assignmentResults[0].success === false) {
+        // Found a failed insert
+        executorResult.throw(new Error(`ERROR_PERMSET_ASSIGNMENT: One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`));
+      }
+    }
+  }
+  else {
+    // Check for failure on a single record.
+    if (assignmentResults.success === false) {
       executorResult.throw(new Error(`ERROR_PERMSET_ASSIGNMENT: One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`));
     }
   }
+
+  // Debug
   executorResult.debugResult(`Permset Assignment Successful`, `${dbgNs}assignPermsets`);
 
   // Mark the EXECUTOR Result as successful and return to caller.
