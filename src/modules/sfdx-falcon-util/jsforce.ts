@@ -25,37 +25,28 @@ const clsDbgNs  = '';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @interface   InsertResult
- * @description Represents the result of a JSForce insert() method.
+ * @type        PermissionSetAssignment
+ * @description Represents the Salesforce PermissionSetAssignment SObject
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface InsertResult {
-  id:       string;
-  success:  boolean;
-  errors:   [any]
-}
+type PermissionSetAssignment = {
+  PermissionSetId: string;
+};
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @interface   QueryResult
- * @description Represents query results as returned from Salesforce during an MDAPI/REST API call.
+ * @type        Profile
+ * @description Represents the Salesforce Profile SObject
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface QueryResult {
-  totalSize: number;
-  done: boolean;
-  records: Record[];
-}
+type Profile = {};
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @interface   Record
- * @description Represents a single Salesforce Record.
+ * @type        User
+ * @description Represents the Salesforce User SObject
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface Record {
-  attributes: object;
-  Id: string;
-  ContentDocumentId?: string;
-}
+type User = {};
+
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @interface   RestApiRequestDefinition
@@ -175,13 +166,13 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Ids of all Permsets assigned to the user.
-  const queryResult = <QueryResult> await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`);
+  const queryResult = await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`) as jsf.QueryResult<jsf.Record<PermissionSetAssignment>>;
   SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, queryResult.records, `${clsDbgNs}queryResult.records: `);
 
   // Parse the result and extract the Permset IDs (if found).
   let assignedPermsets = new Array<string>();
-  for (let record of queryResult.records as any) {
-    assignedPermsets.push(record.PermissionSetId)
+  for (let record of queryResult.records) {
+    assignedPermsets.push(record.PermissionSetId);
   }
   SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, assignedPermsets, `${clsDbgNs}assignedPermsets: `);
 
@@ -212,7 +203,7 @@ export async function getProfileId(aliasOrConnection:any, profileName:string):Pr
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
-  const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`);
+  const queryResult = await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`) as jsf.QueryResult<jsf.Record<Profile>>;
   SfdxFalconDebug.obj(`${dbgNs}getProfileId`, queryResult.records[0], `${clsDbgNs}queryResult.records[0]: `);
 
   // Make sure we got a result.  If not, throw error.
@@ -247,7 +238,7 @@ export async function getUserId(aliasOrConnection:any, username:string, observer
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named User
-  const queryResult = <QueryResult> await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`);
+  const queryResult = await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`) as jsf.QueryResult<jsf.Record<User>>;
   SfdxFalconDebug.obj(`${dbgNs}getUserId`, queryResult.records[0], `${clsDbgNs}queryResult: `);
 
   // Make sure we got a result.  If not, throw error.
