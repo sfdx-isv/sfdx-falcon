@@ -9,9 +9,12 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules
+import {isEmpty}          from  'lodash';               // Why?
+
 // Import Local Modules
-import {SfdxFalconError}  from '../sfdx-falcon-error';
-import {SfdxFalconDebug}  from '../sfdx-falcon-debug';
+import {SfdxFalconError}  from '../sfdx-falcon-error';  // Why?
+import {SfdxFalconDebug}  from '../sfdx-falcon-debug';  // Why?
 
 // Require Modules
 const chalk = require('chalk'); // Why?
@@ -23,21 +26,34 @@ const clsDbgNs  = 'SfdxFalconResult:';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @interface   SfdxFalconResultDisplayOptions
+ * @description Options object used by the displayResult() function.
+ * @version     1.0.0
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export interface SfdxFalconResultDisplayOptions {
+  displayResult?:     boolean;
+  contextLabel:       string;
+  detailInspectDepth: number;
+  childInspectDepth:  number;
+  errorInspectDepth:  number;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @interface   SfdxFalconResultRenderOptions
+ * @extends     SfdxFalconResultDisplayOptions
  * @description Options object used by the various Render functions to customize display output.
  * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface SfdxFalconResultRenderOptions {
+export interface SfdxFalconResultRenderOptions extends SfdxFalconResultDisplayOptions {
   headerColor:        string;
   labelColor:         string;
   errorLabelColor:    string;
   valueColor:         string;
-  contextLabel:       string;
-  childInspectDepth:  number;
-  detailInspectDepth: number;
-  errorInspectDepth:  number;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -294,14 +310,8 @@ export class SfdxFalconResult {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      displayResult
-   * @param       {string}  [contextLabel]  Optional. Adds a string inside
-   *              parenthesis to the immediate right of the Result Label.
-   * @param       {number}  [childInspectDepth]   Optional. Overrides the
-   *              default setting for inspection depth of Child Results.
-   * @param       {number}  [detailInspectDepth]  Optional. Overrides the
-   *              default setting for inspection depth of Detail Results.
-   * @param       {number}  [errorInspectDepth]   Optional. Overrides the
-   *              default setting for inspection depth of stored Errors.
+   * @param       {SfdxFalconResultDisplayOptions}  [displayOptions]  Optional. 
+   *              Sets all the display options for the displayResult() function.
    * @returns     {void}  
    * @description Calls this.renderResult() to generate a complete, formatted
    *              set of information about this Result and displays that result
@@ -310,8 +320,30 @@ export class SfdxFalconResult {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public displayResult(contextLabel:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):void {
-    console.log(this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth));
+  public displayResult(displayOptions:SfdxFalconResultDisplayOptions={} as any):void {
+
+    // Make sure that displayOptions is an object.
+    if (typeof displayOptions !== 'object') {
+      displayOptions = {} as any;
+    }
+    
+    // Set default options for any undefined Display Options.
+    displayOptions.displayResult      = displayOptions.displayResult      || true;
+    displayOptions.contextLabel       = displayOptions.contextLabel       || '';
+    displayOptions.detailInspectDepth = displayOptions.detailInspectDepth || 2;
+    displayOptions.childInspectDepth  = displayOptions.childInspectDepth  || 2;
+    displayOptions.errorInspectDepth  = displayOptions.errorInspectDepth  || 4;
+
+    // Make sure we should display this result.  Exit if not.
+    if (displayOptions.displayResult !== true) {
+      return;
+    }
+
+    // Render this result using the options provided.
+    console.log(this.renderResult(displayOptions.contextLabel, 
+                                  displayOptions.childInspectDepth, 
+                                  displayOptions.detailInspectDepth, 
+                                  displayOptions.errorInspectDepth));
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -501,11 +533,12 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderAnyDetail(result:SfdxFalconResult, options:SfdxFalconResultRenderOptions):string {
-    let renderResult = 
-        chalk`\n{${options.labelColor} Result Detail: (Depth=${options.detailInspectDepth})} {reset ${util.inspect(result.detail, {depth:options.detailInspectDepth, colors:true})}}`
-      + chalk`\n{${options.labelColor} Number of Children:} {${options.valueColor} ${result.children.length}}`
-      + chalk`\n{${options.labelColor} Child Results: (Depth=${options.childInspectDepth})}\n{reset ${util.inspect(result.children, {depth:options.childInspectDepth, colors:true})}}`;
-    return renderResult;    
+    let renderResult = '';
+    // Only render Child Results if the Child Inspect Depth is 3 or greater.
+    if (isEmpty(result.children) === false && options.childInspectDepth >= 3) {
+      renderResult += chalk`\n{${options.labelColor} Child Results: (Depth=${options.childInspectDepth})}\n{reset ${util.inspect(result.children, {depth:options.childInspectDepth, colors:true})}}`;
+    }
+    return renderResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -523,14 +556,9 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderActionDetail(result:SfdxFalconResult, options:SfdxFalconResultRenderOptions):string {
-    // Give the chance to override colors here
-    let childInspectDepth   = options.childInspectDepth;
-    let detailInspectDepth  = options.detailInspectDepth;
-    let renderResult = 
-        chalk`\n{${options.labelColor} Result Detail: (Depth=${detailInspectDepth})} {reset ${util.inspect(result.detail, {depth:detailInspectDepth, colors:true})}}`
-      + chalk`\n{${options.labelColor} Number of Children:} {${options.valueColor} ${result.children.length}}`
-      + chalk`\n{${options.labelColor} Child Results: (Depth=${childInspectDepth})}\n{reset ${util.inspect(result.children, {depth:childInspectDepth, colors:true})}}`;
-    return renderResult;    
+    // TODO: Add custom rendering for ACTION results. 
+    // In the meantime, just forward to the renderAnyDetail() function.
+    return SfdxFalconResult.renderAnyDetail(result, options);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -548,16 +576,19 @@ export class SfdxFalconResult {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderBaseDetail(result:SfdxFalconResult, options:SfdxFalconResultRenderOptions):string {
-    let renderOutput  = 
+    let renderResult  = 
         chalk`\n{${options.headerColor} ${result.type}_RESULT_DEBUG${options.contextLabel ? ' (' + options.contextLabel + ')' : ''}:}`
-      + chalk`\n{${options.labelColor} Result Type:}       {${options.valueColor} ${result.type}}`
-      + chalk`\n{${options.labelColor} Result Name:}       {${options.valueColor} ${result.name}}`
-      + chalk`\n{${options.labelColor} Result Status:}     {${options.valueColor} ${result.status}}`
-      + chalk`\n{${options.labelColor} Result Start Time:} {${options.valueColor} ${result._startTime} (UTC)}`
-      + chalk`\n{${options.labelColor} Result End Time:}   {${options.valueColor} ${result._endTime} (UTC)}`
-      + chalk`\n{${options.labelColor} Result Duration:}   {${options.valueColor} ${result.duration/1000} seconds}`
-      //+ chalk`\n{${labelColor} Result Error:}     \n${xxxxxxxxx}`
-    return renderOutput;
+      + chalk`\n{${options.labelColor} Result Type:}        {${options.valueColor} ${result.type}}`
+      + chalk`\n{${options.labelColor} Result Name:}        {${options.valueColor} ${result.name}}`
+      + chalk`\n{${options.labelColor} Result Status:}      {${options.valueColor} ${result.status}}`
+      + chalk`\n{${options.labelColor} Result Start Time:}  {${options.valueColor} ${result._startTime} (UTC)}`
+      + chalk`\n{${options.labelColor} Result End Time:}    {${options.valueColor} ${result._endTime} (UTC)}`
+      + chalk`\n{${options.labelColor} Result Duration:}    {${options.valueColor} ${result.duration/1000} seconds}`
+      + chalk`\n{${options.labelColor} Number of Children:} {${options.valueColor} ${result.children.length}}`;
+    if (isEmpty(result.detail) === false) {
+      renderResult += chalk`\n{${options.labelColor} Result Detail: (Depth=${options.detailInspectDepth})}\n{reset ${util.inspect(result.detail, {depth:options.detailInspectDepth, colors:true})}}`;
+    }
+    return renderResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -581,21 +612,41 @@ export class SfdxFalconResult {
       return '';
     }
 
+    // Declare local vars used to render the error detail.
     let renderResult  = '';
-    let indent        = '';
+    let separator     = '---------------';
+
+    // Unpack the Result's Error object and unwind all child errors.
+    let errors          = [] as Array<SfdxFalconError>;
+    let currentError    = result.errObj;
+    let foundLastError  = false;
+    while (foundLastError === false) {
+      errors.push(currentError);
+      if (currentError.childError instanceof Error) {
+        // Found a child error. Make it the new current error.
+        currentError = currentError.childError;
+      }
+      else {
+        // No child error found. That means we found the last error.
+        foundLastError = true;
+      }
+    }
+
+    // Render output for each Error object in the errors array.
+    for (let i=0; i < errors.length; i++) {
+      renderResult += chalk`\n{yellow ${separator}--------------${separator}}`
+      renderResult += chalk`\n{yellow ${separator} ERROR ${errors.length - i} of ${errors.length} ${separator}}`
+      renderResult += chalk`\n{yellow ${separator}--------------${separator}}`
+      renderResult += SfdxFalconError.renderError(errors[i]);
+    }
+
+    // Add a final separator.
+    renderResult += chalk`\n{yellow ${separator}---------------${separator}}`
+    renderResult += chalk`\n{yellow ${separator} END OF ERRORS ${separator}}`
+    renderResult += chalk`\n{yellow ${separator}---------------${separator}}`
 
     // We have an Error to render.
-    renderResult += 
-        chalk`\n{${options.errorLabelColor} ${indent}Result Error:}      {${options.valueColor} ${result.errObj.name}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Message:}           {${options.valueColor} ${result.errObj.message}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Exit Code:}         {${options.valueColor} ${result.errObj.exitCode}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Stack:} {${options.valueColor} ${result.errObj.stack}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Falcon Stack:} {${options.valueColor} ${result.errObj.falconStack}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Actions:}   {${options.valueColor} ${result.errObj.actions}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Falcon Data (Depth=${options.errorInspectDepth}):} {reset ${util.inspect(result.errObj.falconData, {depth:options.errorInspectDepth, colors:true})}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Data (Depth=${options.errorInspectDepth}):}        {reset ${util.inspect(result.errObj.data, {depth:options.errorInspectDepth, colors:true})}}`
-      + chalk`\n{${options.errorLabelColor} ${indent}Cause (Depth=${options.errorInspectDepth}):}       {reset ${util.inspect(result.errObj.cause, {depth:options.errorInspectDepth, colors:true})}}`
-      return renderResult;    
+    return renderResult;    
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -615,10 +666,10 @@ export class SfdxFalconResult {
    *              for display to the user via console.log() or debug(). Relies
    *              on the caller to decide how to actually display to the user.
    * @version     1.0.0
-   * @public
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public renderResult(contextLabel:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):string {
+  private renderResult(contextLabel:string='', childInspectDepth:number=1, detailInspectDepth:number=4, errorInspectDepth:number=4):string {
 
     // Setup the options that will be used
     let renderOptions:SfdxFalconResultRenderOptions = {
@@ -926,5 +977,33 @@ export class SfdxFalconResult {
 
     // Now we WRAP the error as an SFDX-Falcon Result.
     return SfdxFalconResult.wrap(rejectedPromiseError, resultName, resultType, resultOptions)
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      wrapResolvedPromise
+   * @param       {any}  resolvedPromiseData  Required.  The data passed into
+   *              a then() function that's hung off of a resolved Promise.
+   * @param       {string}  name  Required. The name of the new Result.
+   * @param       {SfdxFalconResultType}  type  Required. Type of the new Result.
+   * @param       {any} [options] Optional. Options are "startNow", 
+   *              "bubbleError", and "bubbleFailure".
+   * @returns     {SfdxFalconResult}  Returns a new SFDX-Falcon Result
+   * @description Tries to figure out what's in the Resolved Promise Data and
+   *              then instantiates an SFDX-Falcon Result object and tries to 
+   *              populate it as best as possible.
+   * @version     1.0.0
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static wrapResolvedPromise(resolvedPromiseData:any, resultName:string, resultType:SfdxFalconResultType=SfdxFalconResultType.UNKNOWN, resultOptions:any={}):SfdxFalconResult {
+
+    // If it's already an SFDX-Falcon Result, return it.
+    if (resolvedPromiseData instanceof SfdxFalconResult) {
+      return resolvedPromiseData;
+    }
+
+    // Now we WRAP the the resolved Promise data in an SfdxFalconResult object and return it.
+    return SfdxFalconResult.wrap(resolvedPromiseData, resultName, resultType, resultOptions)
   }
 }

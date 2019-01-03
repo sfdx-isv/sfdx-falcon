@@ -154,7 +154,7 @@ export class ExecuteApexAction extends AppxEngineAction {
             = new SfdxFalconError (`ERROR_FAILED_EXECUTOR: Executor '${actionResult.lastChild.name}' `
                                   +`has failed during anonymous Apex execution of ${actionOptions.apexCodeFile}`, 
                                    `FailedExecutor`);
-          execFailureError.setFalconData(actionResult.lastChild.detail.sfdxCliError);
+          execFailureError.setChildError(actionResult.lastChild.detail.error);
           actionResult.throw(execFailureError);
         }
         else {

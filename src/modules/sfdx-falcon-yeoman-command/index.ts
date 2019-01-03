@@ -106,18 +106,23 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    onError
-   * @param       {any}   error Required. ???
-   * @returns     {void}
+   * @param       {any} rejectedPromise Required. 
+   * @param       {boolean} [showErrorDebug]  Optional. Determines if extended
+   *              debugging output the Error Result can be shown.
+   * @param       {boolean} [promptUser] Optional. Determines if the user will
+   *              be prompted to display debug info. If FALSE, debug info will
+   *              be shown without requiring additional user input.
+   * @returns     {Promise<void>}
    * @description ???
    * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected onError(error:any) {
-
-    super.onError(error);
+  protected async onError(rejectedPromise:any, showErrorDebug:boolean=true, promptUser:boolean=true):Promise<void> {
 
     // TODO: Implement special onError logic for an SfdxFalconYeomanCommand.
+
+    await super.onError(rejectedPromise, showErrorDebug, promptUser);
     
   }
 
@@ -125,13 +130,16 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
   /**
    * @function    onSuccess
    * @param       {SfdxFalconStatus}  statusReport
-   * @returns     {void}  
+   * @returns     {Promise<void>}
    * @description ???
    * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected onSuccess(statusReport:any):void {
+  protected async onSuccess(statusReport:any):Promise<void> {
+
+    // TODO: Need to generalize onSuccess() to handle "resolved promises", and not just "status reports".
+
     this.generatorStatus.printStatusMessages();
 
     let actionResult = new SfdxFalconResult(`YeomanAction`, SfdxFalconResultType.ACTION);
@@ -140,7 +148,7 @@ export abstract class SfdxFalconYeomanCommand extends SfdxFalconCommand {
     }
     actionResult.success();
 
-    super.onSuccess(actionResult);
+    await super.onSuccess(actionResult);
   }
 }
 

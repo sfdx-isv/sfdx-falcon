@@ -226,8 +226,13 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    onError
-   * @param       {any}   rejectedResult  Required. 
-   * @returns     {void}
+   * @param       {any}   rejectedPromise Required. 
+   * @param       {boolean} [showErrorDebug]  Optional. Determines if extended
+   *              debugging output the Error Result can be shown.
+   * @param       {boolean} [promptUser] Optional. Determines if the user will
+   *              be prompted to display debug info. If FALSE, debug info will
+   *              be shown without requiring additional user input.
+   * @returns     {Promise<void>}
    * @description Recieves the results from a Rejected Promise and processes 
    *              them to settle out the ultimate exit status of this
    *              COMMAND Result.
@@ -235,48 +240,48 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected onError(rejectedResult:any) {
+  protected async onError(rejectedPromise:any, showErrorDebug:boolean=true, promptUser:boolean=true):Promise<void> {
 
     // Make sure any rejected promises are wrapped as an ERROR Result.
-    rejectedResult = SfdxFalconResult.wrapRejectedPromise(rejectedResult, 'Promise Returned (REJECTED)', SfdxFalconResultType.UNKNOWN);
+    let errorResult = SfdxFalconResult.wrapRejectedPromise(rejectedPromise, 'Promise Returned (REJECTED)', SfdxFalconResultType.UNKNOWN);
 
     // Add the DETAIL for this COMMAND Result.
     this.falconCommandResultDetail.commandExitCode = 1;
     this.falconCommandResult.setDetail(this.falconCommandResultDetail);
 
-    // Add the rejected Result to the COMMAND Result.
-    this.falconCommandResult.addChild(rejectedResult);
+    // Add the ERROR Result to the COMMAND Result.
+    this.falconCommandResult.addChild(errorResult);
 
     // Manually mark the COMMAND Result as an Error (since bubbleError is FALSE)
-    this.falconCommandResult.error(rejectedResult.errObj);
-
-    // If the FalconDebugError flag is set, render the COMMAND Result.
-    if (this.falconDebugErrorFlag) {
-      this.falconCommandResult.displayResult('',2,4,4);
-    }
+    this.falconCommandResult.error(errorResult.errObj);
 
     // Terminate with Error.
-    SfdxFalconError.terminateWithError(rejectedResult, this.falconCommandName, this.falconDebugErrorFlag);
+    // TODO: Need to add a global parameter to store the "show prompt" setting
+    await SfdxFalconError.terminateWithError(this.falconCommandResult, showErrorDebug, promptUser);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    onSuccess
-   * @param       {SfdxFalconResult}  sfdxFalconResult Required. 
-   * @returns     {void}  
-   * @description Takes an SFDX-Falcon Result which should be returned by some
+   * @param       {any}  resolvedPromise Required.
+   * @returns     {Promise<void>}
+   * @description Takes any resolved Promise which should be returned by some
    *              sort of Asynchronous call (implemented in a derived class)
-   *              that does whatever "work" the CLI Command is meant to do.
+   *              that does whatever "work" the CLI Command is meant to do and
+   *              makes sure it's wrapped as an SFDX Falcon Result
    * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected onSuccess(sfdxFalconResult:any):void {
+  protected async onSuccess(resolvedPromise:any):Promise<void> {
+
+    // Make sure any resolved promises are wrapped as an SfdxFalconResult.
+    let successResult = SfdxFalconResult.wrapResolvedPromise(resolvedPromise, 'Promise Returned (RESOLVED)', SfdxFalconResultType.UNKNOWN);
 
     // Add the SFDX-Falcon Result as a Child of the COMMAND Result.
-    this.falconCommandResult.addChild(sfdxFalconResult);
+    this.falconCommandResult.addChild(successResult);
 
-    // Right now, we're only running one Recipe at a time, so mark the Recipe as complete, too.
+    // Mark the COMMAND Result as completing successfully.
     this.falconCommandResult.success(this.falconCommandResultDetail);
 
     // If the "falcondebugsuccess" flag was set, render the COMMAND Result

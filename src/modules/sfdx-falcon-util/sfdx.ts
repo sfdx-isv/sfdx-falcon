@@ -20,6 +20,7 @@ import {SfdxFalconError}      from '../sfdx-falcon-error';  // Why?
 import {SfdxFalconResult}     from '../sfdx-falcon-result'; // Why?
 import {SfdxFalconResultType} from '../sfdx-falcon-result'; // Why?
 import {SfdxCliError}         from '../sfdx-falcon-error';  // Why?
+import {ShellError}           from '../sfdx-falcon-error';  // Why?
 
 // Import Utility Functions
 import {safeParse}            from '../sfdx-falcon-util';  // Why?
@@ -58,37 +59,34 @@ export interface SfdxOrgInfo {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    detectCliError
- * @param       {string} stdErrBuffer  Required. A string buffer containing an stderr CLI response.
- * @returns     {boolean} Returns TRUE if the stdErrBuffer contains something that might be
+ * @function    detectSalesforceCliError
+ * @param       {string} stdOutBuffer  Required. A string buffer containing an stderr CLI response.
+ * @returns     {boolean} Returns TRUE if the stdOutBuffer contains something that might be
  *              considered an error.  FALSE if otherwise.
- * @description Given a string buffer containing an stderr response, determines if that response
- *              should be considered an error or if it's just a warning.
+ * @description Given a string buffer containing an stdout response, determines if that response
+ *              should be considered a Salesforce CLI error. Please note that there could still be
+ *              something wrong with the result even if this function returns FALSE.  It just means
+ *              that stdOutBuffer did not contain something that could be interpreted as a 
+ *              Salesforce CLI Error.
  * @version     1.0.0
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function detectCliError(stdErrBuffer:string):boolean {
+export function detectSalesforceCliError(stdOutBuffer:string):boolean {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}detectCliError:`, arguments, `detectCliError:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, arguments, `detectSalesforceCliError:arguments: `);
 
-  // Safely parse the incoming stdErrBuffer
-  let parsedErrBuffer = safeParse(stdErrBuffer) as any;
-  SfdxFalconDebug.obj(`${dbgNs}detectCliError:`, parsedErrBuffer, `detectCliError:parsedErrBuffer: `);
+  // Safely parse the incoming stdOutBuffer
+  let parsedStdOutBuffer = safeParse(stdOutBuffer) as any;
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, parsedStdOutBuffer, `detectSalesforceCliError:parsedStdOutBuffer: `);
 
-  // If the Parsed Error Buffer has an "unparsed" property, something went wrong. Consider this a CLI error.
-  if (parsedErrBuffer.unparsed) {
-    return true;
+  // If the Parsed Error Buffer has a non-zero "status" value, then this is a Salesforce CLI Error.
+  if (parsedStdOutBuffer.status && parsedStdOutBuffer.status !== 0) {
+    return true;  // This is definitely a Salesforce CLI Error
   }
-
-  // If the Parsed Error Buffer has a non-zero "status" value, consider this a CLI error.
-  if (parsedErrBuffer.status && parsedErrBuffer !== 0) {
-    return true;
-  }
-  // If "status" is not present, or IS zero, then there was NOT a CLI Error.
   else {
-    return false;
+    return false; // This is NOT a Salesforce CLI Error.
   }
 }
 
@@ -315,14 +313,17 @@ export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedC
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
+  // Set the SFDX Command String to be used by this function.
+  let sfdxCommandString = `sfdx force:org:list --json`;
+
   // Initialize an UTILITY Result for this function.
   let utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
   utilityResult.detail = {
-    sfdxCommandString:  `sfdx force:org:list --json`,
-    stdOutParsed:       null,
-    sfdxCliError:       null,
-    stdOutBuffer:       null,
-    stdErrBuffer:       null
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null as any,
+    stdOutBuffer:       null as string,
+    stdErrBuffer:       null as string,
+    error:              null as Error
   };
   utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs`);
 
@@ -333,33 +334,45 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     let stdOutBuffer:string = '';
     let stdErrBuffer:string = '';
 
-    // Run force:org:list asynchronously inside a child process.
-    const childProcess = shell.exec('sfdx force:org:list --json', {silent:true, async: true});
+    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.  
+    // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
+    shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
 
-    // Capture stdout data stream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
-    childProcess.stdout.on('data', (data) => {
-      stdOutBuffer += data;
+    // Run force:org:list asynchronously inside a child process.
+    const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
+
+    // Capture stdout datastream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
+    childProcess.stdout.on('data', (stdOutDataStream:string) => {
+      stdOutBuffer += stdOutDataStream;
     });
 
-    // Handle stderr "data". Values here usually mean an error occured BUT can also come if the CLI prints warning messages.
-    childProcess.stderr.on('data', (stdErrDataStream) => {
+    // Capture the stderr datastream. Values should only come here if there was a shell error.
+    // CLI warnings used to be sent to stderr as well, but as of CLI v45 all output should be going to stdout.
+    childProcess.stderr.on('data', (stdErrDataStream:string) => {
       stdErrBuffer += stdErrDataStream;
     });
 
-    // Handle stdout "close". Fires only once the contents of stdout and stderr are read.
-    // FYI: Ignore the "code" and "signal" vars. They don't work.
-    childProcess.stdout.on('close', (code, signal) => {
+    // Handle Child Process "close". Fires only once the contents of stdout and stderr are read.
+    childProcess.on('close', (code:number, signal:string) => {
 
       // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
       utilityResult.detail.stdOutBuffer = stdOutBuffer;
       utilityResult.detail.stdErrBuffer = stdErrBuffer;
 
       // Determine if the command succeded or failed.
-      if (detectCliError(stdErrBuffer)) {
+      if (code !== 0) {
+        if (detectSalesforceCliError(stdOutBuffer)) {
 
-        // Prepare the ERROR detail for this function's Result.
-        utilityResult.detail.sfdxCliError = new SfdxCliError(stdErrBuffer, `SFDX_CLI_ERROR: Error executing scanConnectedOrgs()`);
-        utilityResult.error(utilityResult.detail.sfdxCliError);
+          // We have a Salesforce CLI Error. Prepare FAILURE detail using SfdxCliError.
+          utilityResult.detail.error = new SfdxCliError(stdOutBuffer, `SFDX_CLI_ERROR: Error executing scanConnectedOrgs()`);
+        }
+        else {
+          // We have a shell Error. Prepare FAILURE detail using ShellError.
+          utilityResult.detail.error = new ShellError(code, signal, stdErrBuffer, stdOutBuffer);
+        }
+
+        // Process this as an ERROR result.
+        utilityResult.error(utilityResult.detail.error);
         utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs`);
 
         // Process this as an ERROR result.
