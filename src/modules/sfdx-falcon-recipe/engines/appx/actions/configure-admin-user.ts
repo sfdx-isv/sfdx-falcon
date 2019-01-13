@@ -116,12 +116,15 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
         bubbleFailure:  true,
         failureIsError: true} as SfdxFalconResultOptions);
 
-    // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
-    actionResult.detail = {...{
-      executorMessages:   null,
-      userDefinition:     null,
-      adminUsername:      null
-    }} as ActionResultDetail;
+    // Merge core DETAIL added by createActionResult() with additional DETAIL for this specific Result.
+    actionResult.detail = {
+      ...actionResult.detail,
+      ...{
+        executorMessages:   null,
+        userDefinition:     null,
+        adminUsername:      null
+      }
+    } as ActionResultDetail;
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.

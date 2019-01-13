@@ -110,11 +110,14 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
         bubbleFailure:  false,                              // Required FALSE to suppress CLI failures for force:org:delete
         failureIsError: false} as SfdxFalconResultOptions); // Required FALSE to suppress CLI failures for force:org:delete
 
-    // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
-    actionResult.detail = {...{
-      executorMessages:   null,
-      sfdxCommandDef:     null
-    }} as ActionResultDetail;
+    // Merge core DETAIL added by createActionResult() with additional DETAIL for this specific Result.
+    actionResult.detail = {
+      ...actionResult.detail,
+      ...{
+        executorMessages:   null,
+        sfdxCommandDef:     null
+      }
+    } as ActionResultDetail;
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
