@@ -12,24 +12,36 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path                    from  'path';                           // Module. Node's path library.
+import * as path                    from  'path'; // Module. Node's path library.
 
 // Import Local Modules
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result'; // Enum. Represents the status of SfdxFalconResults.
-import {SfdxFalconError}            from '../../../../sfdx-falcon-error';   // Why?
+import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result'; // Interface. Represents the options that can be set when an SfdxFalconResult object is constructed.
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Interface. Represents the different types of sources where Results might come from.
 
 // Executor Imports
-import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
+import {executeSfdxCommand}         from  '../../../executors/sfdx';  // Function. SFDX Executor (CLI-based Commands).
+import {SfdxCommandDefinition}      from  '../../../executors/sfdx';  // Interface. Represents an SFDX "Command Definition" that can be compiled into a string that can be executed at the command line against the Salesforce CLI.
 
 // Engine/Action Imports
-import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
-import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
-import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
+import {AppxEngineAction}           from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
+import {AppxEngineActionContext}    from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
+import {ExecutorMessages}           from  '../../../types';     // Interface. Represents the standard messages that most Executors use for Observer notifications.
+import {SfdxFalconActionType}       from  '../../../types';     // Enum. Represents types of SfdxFalconActions.
+import {SfdxCliActionResultDetail}  from  '../../appx/actions'; // Interface. Represents the "detail" information that every SFDX-CLI ACTION result should have.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:execute-apex:';
 //const clsDbgNs  = 'ExecuteApexAction:';
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ActionResultDetail
+ * @extends     SfdxCliActionResultDetail
+ * @description Represents the structure of the "Result Detail" object used by this ACTION.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface ActionResultDetail extends SfdxCliActionResultDetail {}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -56,7 +68,6 @@ export class ExecuteApexAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
     this.actionName       = 'execute-apex';
-    this.executorName     = 'sfdx:executeSfdxCommand';
     this.description      = 'Execute Apex';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -101,22 +112,26 @@ export class ExecuteApexAction extends AppxEngineAction {
       actionContext, actionOptions,
       { startNow:       true,
         bubbleError:    true,
-        bubbleFailure:  true});
+        bubbleFailure:  true,
+        failureIsError: true} as SfdxFalconResultOptions);
+    
     // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
     actionResult.detail = {...{
-      executorName:       this.executorName,
       executorMessages:   null,
       sfdxCommandDef:     null
-    }};
+    }} as ActionResultDetail;
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+
+    // Create a typed variable to represent this function's ACTION Result Detail.
+    let actionResultDetail = actionResult.detail as ActionResultDetail;
 
     // Define the messages that are relevant to this Action
     let executorMessages = {
       progressMsg:  `Executing anonymous Apex from '${actionOptions.apexCodeFile}'`,
       errorMsg:     `Execution failed for anonymous Apex in '${actionOptions.apexCodeFile}'`,
       successMsg:   `Execution of anonymous Apex in '${actionOptions.apexCodeFile}' succeeded`
-    }
-    actionResult.detail.executorMessages = executorMessages;
+    } as ExecutorMessages;
+    actionResultDetail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
@@ -133,38 +148,22 @@ export class ExecuteApexAction extends AppxEngineAction {
         FLAG_JSON:            true,
         FLAG_LOGLEVEL:        actionContext.logLevel
       }
-    }
-    actionResult.detail.sfdxCommandDef = sfdxCommandDef;
+    } as SfdxCommandDefinition;
+    actionResultDetail.sfdxCommandDef = sfdxCommandDef;
     actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction`);
 
     // Run the executor then return or throw the result.
     // OPTIONAL: If you want to override success/error handling, do it here.
     return await executeSfdxCommand(sfdxCommandDef)
-      .then(executorResult => {
-
-        // Override standard behavior here so we can convert a FAILED Executor to an ERROR
-        //return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
-
-        // Use the normal process to handle/wrap/add the resolved Exeuctor
-        this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
-
-        // Check for FAILURE. If there is, create an SFDX-Falcon error and add as a new child.
-        if (actionResult.lastChild.status === SfdxFalconResultStatus.FAILURE) {
-          let execFailureError 
-            = new SfdxFalconError (`ERROR_FAILED_EXECUTOR: Executor '${actionResult.lastChild.name}' `
-                                  +`has failed during anonymous Apex execution of ${actionOptions.apexCodeFile}`, 
-                                   `FailedExecutor`);
-          execFailureError.setChildError(actionResult.lastChild.detail.error);
-          actionResult.throw(execFailureError);
+      .catch(rejectedPromise => {return actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`);})
+      .then(resolvedPromise => {
+        if (resolvedPromise === actionResult) {
+          // If "resolvedPromise" points to the same location in memory as "actionResult", it means that
+          // executeSfdxCommand() returned an ERROR which was suppressed. If you don't want to suppress EXECUTOR
+          // errors, the ACTION Result used by this class must be instantiated with "bubbleError" set to FALSE.
+          return actionResult;
         }
-        else {
-
-          // No FAILURE or ERROR, so just return the Action Result.
-          return actionResult;        
-        }
-      })
-      .catch(executorResult => {
-        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+        return actionResult.addResolvedChild(resolvedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`);
       });
   }
 }

@@ -329,29 +329,43 @@ export abstract class AppxRecipeEngine {
               observer:     observer
             }
             this.executeStep(recipeStep, listrExecOptions)
-              .then(falconActionResult => {
+              .then(resolvedPromise => {
+                let falconActionResult = SfdxFalconResult.wrap(resolvedPromise, SfdxFalconResultType.FUNCTION, 'executeStep:then');
                 falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Resolved)', 'LISTR_TASK_DEBUG:');
-                this.falconEngineResult.addChild(falconActionResult);
-                observer.complete();
-              })
-              .catch(falconActionResult => {
-                // Make sure we ONLY deal with an SFDX-Falcon Result
-                falconActionResult = 
-                  SfdxFalconResult.wrapRejectedPromise(
-                    falconActionResult, 
-                    `ActionResult (REJECTED)`,
-                    SfdxFalconResultType.ACTION
-                  );
-                  falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
+                // We should NOT be getting ACTION Results that are marked as ERROR, but it's possible.
+                // We need to use try/catch precautions here or we could leave the observer in an incomplete state.
                 try {
-                  // If ENGINE Result's "bubbleError" is FALSE, call observer.complete() to suppress the error.
+                  this.falconEngineResult.addChild(falconActionResult);
+                  this.falconEngineResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Child Added)', 'LISTR_TASK_DEBUG:');
+                  observer.complete();  
+                } catch (bubbledError) {
+                  // Somehow, an ERROR Result came through as a Resolved Promise. This SHOULD NOT happen, but in
+                  // case it does, create a special SfdxFalconError and throw it to the user by calling observer.error().
+                  falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (WARNING: Error Bubbled by a Resolved Promise)', 'LISTR_TASK_DEBUG:');
+                  let unexpectedError = 
+                    new SfdxFalconError (`An ERROR was mistakenly bubbled by a Resolved Promise.`
+                                        ,`UnexpectedError`
+                                        ,`${dbgNs}executeStep`
+                                        ,SfdxFalconError.wrap(bubbledError));
+                  unexpectedError.setData(falconActionResult);
+                  observer.error(unexpectedError);
+                }
+              })
+              .catch(rejectedPromise => {
+                // Make sure we ONLY deal with an SFDX-Falcon Result
+                let falconActionResult = SfdxFalconResult.wrapRejectedPromise(rejectedPromise, SfdxFalconResultType.UNKNOWN, `ActionResult (REJECTED)`);
+                falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
+                try {
+                  // If ENGINE Result's "bubbleError" is FALSE, then the call to addChild() will NOT throw an error.
+                  // By calling observer.complete() we will effectively suppress whatever error led to the rejected promise.
                   this.falconEngineResult.addChild(falconActionResult);
                   this.falconEngineResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Suppressed', 'LISTR_TASK_DEBUG:');
                   observer.complete();
-                } catch (falconEngineError) {
-                  // If ENGINE Result's "bubbleError" is TRUE, call observer.error() to bubble the error.
+                } catch (bubbledError) {
+                  // If ENGINE Result's "bubbleError" is TRUE, then the above call to addChild() will have thrown an error.
+                  // By calling observer.error() we force Listr to stop and we bubble the error up to the user.
                   falconActionResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Bubbled', 'LISTR_TASK_DEBUG:');
-                  observer.error(falconEngineError);
+                  observer.error(bubbledError);
                 }
               });
           });

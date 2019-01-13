@@ -257,7 +257,7 @@ export class SfdxFalconRecipe {
   private onError(engineError:SfdxFalconResult):void {
 
     // Make sure any rejected promises are wrapped as an ERROR Result.
-    let falconEngineResult = SfdxFalconResult.wrapRejectedPromise(engineError, 'EngineResult (REJECTED)', SfdxFalconResultType.ENGINE);
+    let falconEngineResult = SfdxFalconResult.wrapRejectedPromise(engineError, SfdxFalconResultType.ENGINE, `EngineResult (REJECTED)`);
 
     // Debug the contents of the RECIPE Result in it's final state.
     SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);

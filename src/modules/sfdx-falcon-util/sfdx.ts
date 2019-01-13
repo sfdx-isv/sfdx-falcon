@@ -16,7 +16,6 @@ import {Connection}           from '@salesforce/core';      // Why?
 
 // Import Internal Modules
 import {SfdxFalconDebug}      from '../sfdx-falcon-debug';  // Why?
-import {SfdxFalconError}      from '../sfdx-falcon-error';  // Why?
 import {SfdxFalconResult}     from '../sfdx-falcon-result'; // Why?
 import {SfdxFalconResultType} from '../sfdx-falcon-result'; // Why?
 import {SfdxCliError}         from '../sfdx-falcon-error';  // Why?
@@ -55,6 +54,20 @@ export interface SfdxOrgInfo {
   orgId:            string;         // Why?
   isDevHub:         boolean;        // Why?
   connectedStatus:  string;         // Why?
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   SfdxUtilityResultDetail
+ * @description Represents the expected possible input and output of a generic Salesforce CLI call.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export interface SfdxUtilityResultDetail {
+  sfdxCommandString:  string;
+  stdOutParsed:       any;
+  stdOutBuffer:       string;
+  stdErrBuffer:       string;
+  error:              Error;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -318,13 +331,14 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
   // Initialize an UTILITY Result for this function.
   let utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
-  utilityResult.detail = {
+  let utilityResultDetail = {
     sfdxCommandString:  sfdxCommandString,
-    stdOutParsed:       null as any,
-    stdOutBuffer:       null as string,
-    stdErrBuffer:       null as string,
-    error:              null as Error
-  };
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null,
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
   utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs`);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
@@ -337,6 +351,10 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.  
     // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
     shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
+
+    // Set the SFDX_AUTOUPDATE_DISABLE environment variable to TRUE.
+    // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
+    shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
 
     // Run force:org:list asynchronously inside a child process.
     const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
@@ -356,23 +374,23 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     childProcess.on('close', (code:number, signal:string) => {
 
       // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
-      utilityResult.detail.stdOutBuffer = stdOutBuffer;
-      utilityResult.detail.stdErrBuffer = stdErrBuffer;
+      utilityResultDetail.stdOutBuffer = stdOutBuffer;
+      utilityResultDetail.stdErrBuffer = stdErrBuffer;
 
       // Determine if the command succeded or failed.
       if (code !== 0) {
         if (detectSalesforceCliError(stdOutBuffer)) {
 
-          // We have a Salesforce CLI Error. Prepare FAILURE detail using SfdxCliError.
-          utilityResult.detail.error = new SfdxCliError(stdOutBuffer, `SFDX_CLI_ERROR: Error executing scanConnectedOrgs()`);
+          // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
+          utilityResultDetail.error = new SfdxCliError(stdOutBuffer, `Unable to scan Connected Orgs`, `${dbgNs}scanConnectedOrgs`);
         }
         else {
-          // We have a shell Error. Prepare FAILURE detail using ShellError.
-          utilityResult.detail.error = new ShellError(code, signal, stdErrBuffer, stdOutBuffer);
+          // We have a shell Error. Prepare ERROR detail using ShellError.
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}scanConnectedOrgs`);
         }
 
         // Process this as an ERROR result.
-        utilityResult.error(utilityResult.detail.error);
+        utilityResult.error(utilityResultDetail.error);
         utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs`);
 
         // Process this as an ERROR result.
@@ -381,7 +399,7 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
       else {
 
         // Prepare the SUCCESS detail for this function's Result.
-        utilityResult.detail.stdOutParsed = safeParse(stdOutBuffer);
+        utilityResultDetail.stdOutParsed = safeParse(stdOutBuffer);
 
         // Regiser a SUCCESS result
         utilityResult.success();
@@ -392,50 +410,4 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
       }
     });
   }) as Promise<SfdxFalconResult>;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       SfdxShellResult
- * @description Wraps the JSON result of a Salesforce CLI command executed via the shell.
- * @version     1.0.0
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxShellResult__DEPRECATE {
-
-  public cmd:       string;           // A copy of the CLI command that was executed
-  public error:     Error;            // Error object in case of exceptions.
-  public falconErr: SfdxFalconError;  // A Falcon Error Object (if provided)
-  public json:      any;              // Result of the call, converted to JSON.
-  public raw:       any;              // Raw result from the CLI.
-  public status:    number;           // Status code returned by the CLI command after execution.
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @constructs  SfdxShellResult
-   * @param       {string} rawResult Required. ???
-   * @param       {string} cmdString Optional. ???
-   * @param       {SfdxFalconError} falconError Optional. ???
-   * @description ???
-   * @version     1.0.0
-   * @public
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  public constructor(rawResult:string, cmdString:string='', falconError?:SfdxFalconError) {
-    this.cmd        = cmdString || 'NOT_PROVIDED';
-    this.raw        = rawResult;
-    this.falconErr  = falconError || {} as any;
-    try {
-      // Try to parse the result into a object.
-      this.json      = JSON.parse(rawResult);
-      // Get the status. If not found, set to -1 to indicate trouble.
-      this.status    = this.json.status || -1;
-    } catch(err) {
-      // Raw result was not parseable.  Set status to 1 and attach error to the
-      // response so the caller can inspect it if they want to.
-      this.status  = 1;
-      this.error   = err;
-    }
-  }
 }

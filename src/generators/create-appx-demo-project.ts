@@ -298,7 +298,8 @@ export default class CreateAppxDemoProject extends Generator {
                     // DEBUG
                     SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:`, utilityResult, `${clsDbgNs}_executeListrSetupTasks:sfdxInitTasks:sfdxHelper.scanConnectedOrgs:then:utilityResult: `);
                     // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-                    this.rawSfdxOrgList = utilityResult.detail.stdOutParsed.result.nonScratchOrgs;
+                    let utilityResultDetail = utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail;
+                    this.rawSfdxOrgList = utilityResultDetail.stdOutParsed.result.nonScratchOrgs;
                     // Make sure that there is at least ONE connnected org
                     if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
                       throw new Error (`ERROR_NO_CONNECTED_ORGS: No orgs have been authenticated to the Salesforce CLI. `

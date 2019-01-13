@@ -40,13 +40,28 @@ const dbgNs     = 'EXECUTOR:sfdx:';
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface SfdxCommandDefinition {
-  command:        string;           // Why?
-  progressMsg:    string;           // Why?
-  errorMsg:       string;           // Why?
-  successMsg:     string;           // Why?
-  commandArgs:    Array<string>;    // Why?
-  commandFlags:   any;              // Why?
-  observer:       any;              // Why?
+  command:        string;
+  progressMsg:    string;
+  errorMsg:       string;
+  successMsg:     string;
+  commandArgs:    Array<string>;
+  commandFlags:   any;
+  observer:       any;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ExecutorResultDetail
+ * @description Represents the structure of the Detail object used by the EXECUTOR 
+ *              executeSfdxCommand().
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export interface ExecutorResultDetail {
+  sfdxCommandDef:     SfdxCommandDefinition,
+  sfdxCommandString:  string;
+  stdOutParsed:       any;
+  stdOutBuffer:       string;
+  stdErrBuffer:       string;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -64,19 +79,21 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 
   // Initialize an EXECUTOR Result for this function.
   let executorResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.EXECUTOR);
-  executorResult.detail = {
+
+  // Initialize the EXECUTOR Result Detail for this function and attach it to the EXECUTOR Result.
+  let executorResultDetail = {
     sfdxCommandDef:     sfdxCommandDef,
-    sfdxCommandString:  null as string,
-    stdOutParsed:       null as any,
-    stdOutBuffer:       null as string,
-    stdErrBuffer:       null as string,
-    error:              null as Error
-  };
+    sfdxCommandString:  null,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null
+  } as ExecutorResultDetail;
+  executorResult.detail = executorResultDetail;
   executorResult.debugResult('Executor Result Initialized', `${dbgNs}executeSfdxCommand`);
 
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
-  executorResult.detail.sfdxCommandString = sfdxCommandString;
+  executorResultDetail.sfdxCommandString = sfdxCommandString;
   executorResult.debugResult('Parsed SFDX Command Object to String', `${dbgNs}executeSfdxCommand`);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
@@ -90,6 +107,10 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
     shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
 
+    // Set the SFDX_AUTOUPDATE_DISABLE environment variable to TRUE.
+    // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
+    shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
+
     // Run the SFDX Command String asynchronously inside a child process.
     const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
 
@@ -100,10 +121,9 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     const progressNotifications 
       = FalconProgressNotifications.start2(sfdxCommandDef.progressMsg, 1000, executorResult, sfdxCommandDef.observer);
 
-    // Capture the stdout datastream. We ONLY care about the LAST output sent to the buffer
-    // because we are expecting JSON output from the Salesforce CLI to be the last output sent.
+    // Capture the stdout datastream. This should end up being a valid JSON object.
     childProcess.stdout.on('data', (stdOutDataStream:string) => {
-      stdOutBuffer = stdOutDataStream; 
+      stdOutBuffer += stdOutDataStream;
     });
 
     // Capture the ENTIRE stderr datastream. Values should only come here if there was a shell error.
@@ -119,33 +139,35 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       FalconProgressNotifications.finish(progressNotifications);
 
       // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
-      executorResult.detail.stdOutBuffer = stdOutBuffer;
-      executorResult.detail.stdErrBuffer = stdErrBuffer;
+      executorResultDetail.stdOutBuffer = stdOutBuffer;
+      executorResultDetail.stdErrBuffer = stdErrBuffer;
 
       // Determine if the shell execution was successful.
       if (code !== 0) {
         if (detectSalesforceCliError(stdOutBuffer)) {
 
-          // We have a Salesforce CLI Error. Prepare FAILURE detail using SfdxCliError.
-          executorResult.detail.error = new SfdxCliError(stdOutBuffer, sfdxCommandDef.errorMsg);
+          // We have a Salesforce CLI Error. This should be considered a FAILURE instead of an
+          // ERROR because the Salesforce CLI was able to return a recognizable JSON response.
+          // By resolving this call, we allow the ACTION to decide if it wants to convert the
+          // FAILURE to an ERROR.
+          executorResult.failure(new SfdxCliError(stdOutBuffer, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand`);
+          resolve(executorResult);
         }
         else {
 
-          // We have a shell Error. Prepare FAILURE detail using ShellError.
-          executorResult.detail.error = new ShellError(code, signal, stdErrBuffer, stdOutBuffer);
+          // We have a Shell Error. This is NOT expected and should always be considered an ERROR.
+          // Also, this should cause a rejected result, NOT a resolved result.
+          // Prepare executor for ERROR using ShellError.
+          executorResult.error(new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`));
+          executorResult.debugResult('CLI Command Shell Error', `${dbgNs}executeSfdxCommand`);
+          reject(executorResult);
         }
-
-        // Process this as a FAILURE result.
-        executorResult.failure();
-        executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand`);
-
-        // DO NOT REJECT! Resolve so the caller can decide to suppress or bubble FAILURE.
-        resolve(executorResult);
       }
       else {
 
         // Prepare the SUCCESS detail for this function's Result.
-        executorResult.detail.stdOutParsed = safeParse(stdOutBuffer);
+        executorResultDetail.stdOutParsed = safeParse(stdOutBuffer);
 
         // Make a final update to the observer
         updateObserver(sfdxCommandDef.observer, `[${executorResult.durationString}] SUCCESS: ${sfdxCommandDef.successMsg}`);

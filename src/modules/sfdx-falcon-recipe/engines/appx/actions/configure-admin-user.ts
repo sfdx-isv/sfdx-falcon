@@ -10,23 +10,39 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
-import {SfdxFalconResult}             from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result'; // Interface. Represents the options that can be set when an SfdxFalconResult object is constructed.
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Interface. Represents the different types of sources where Results might come from.
 
 // Executor Imports
-import {configureUser}                from  '../../../executors/hybrid';  // Function. Hybrid executor
+import {configureUser}              from  '../../../executors/hybrid';  // Function. Hybrid executor.
 
 // Engine/Action Imports
-import {AppxEngineAction}             from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
-import {AppxEngineActionContext}      from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
-import {SfdxFalconActionType}         from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
+import {AppxEngineAction}           from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
+import {AppxEngineActionContext}    from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
+import {CoreActionResultDetail}     from  '../../appx/actions'; // Interface. Represents the core "result detail" info common to every ACTION.
+import {ExecutorMessages}           from  '../../../types/';    // Interface. Represents the standard messages that most Executors use for Observer notifications.
+import {SfdxFalconActionType}       from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
 
 // Import Utility Functions
-import {getUsernameFromAlias}         from  '../../../../sfdx-falcon-util/sfdx';  // Function. SFDX Executor for getting the username associated with an Org Alias.
-import {readConfigFile}               from  '../../../../sfdx-falcon-util';       // Function. Reads a JSON config file from disk and returns as JS Object.
+import {getUsernameFromAlias}       from  '../../../../sfdx-falcon-util/sfdx';  // Function. SFDX Executor for getting the username associated with an Org Alias.
+import {readConfigFile}             from  '../../../../sfdx-falcon-util';       // Function. Reads a JSON config file from disk and returns as JS Object.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:configure-admin-user:';
 //const clsDbgNs  = 'ConfigureAdminUserAction:';
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ActionResultDetail
+ * @extends     CoreActionResultDetail
+ * @description Represents the structure of the "Result Detail" object used by this ACTION.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface ActionResultDetail extends CoreActionResultDetail {
+  userDefinition:   string;
+  adminUsername:    string;
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -53,7 +69,6 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDC_API;
     this.actionName       = 'configure-admin-user';
-    this.executorName     = 'hybrid:configureUser';
     this.description      = 'Configure Admin User';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -98,26 +113,33 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       actionContext, actionOptions,
       { startNow:       true,
         bubbleError:    true,
-        bubbleFailure:  true});
+        bubbleFailure:  true,
+        failureIsError: true} as SfdxFalconResultOptions);
+
     // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
     actionResult.detail = {...{
-      executorName:       this.executorName,
       executorMessages:   null,
       userDefinition:     null,
       adminUsername:      null
-    }};
+    }} as ActionResultDetail;
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+
+    // Create a typed variable to represent this function's ACTION Result Detail.
+    let actionResultDetail = actionResult.detail as ActionResultDetail;
 
     // Find and read the user definition file.
     let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
-      .catch(error => {actionResult.throw(error)});
-    actionResult.detail.userDefinition = userDefinition;
+      .catch(rejectedPromise => {actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.UTILITY, `general:readConfigFile`)});
+//      .catch(error => {actionResult.throw(error)});
+
+
+    actionResultDetail.userDefinition = userDefinition;
     actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction`);
 
     // Get the username associated with the Target Org Alias (this should be the Admin User)
     let adminUsername = await getUsernameFromAlias(actionContext.targetOrg.alias)
       .catch(error => {actionResult.throw(error)}) as string;
-    actionResult.detail.adminUsername = adminUsername;
+    actionResultDetail.adminUsername = adminUsername;
     actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction`);
 
     // Define the messages that are relevant to this Action
@@ -125,8 +147,8 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       progressMsg:  `Configuring user '${adminUsername}' in ${actionContext.targetOrg.alias}`,
       errorMsg:     `Failed to configure user '${adminUsername}' in ${actionContext.targetOrg.alias}`,
       successMsg:   `User '${adminUsername}' configured successfully`,
-    }
-    actionResult.detail.executorMessages = executorMessages;
+    } as ExecutorMessages;
+    actionResultDetail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
 
     // Run the executor then return or throw the result. 
@@ -134,11 +156,15 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     return await configureUser( adminUsername, userDefinition, 
                                 actionContext.targetOrg, executorMessages, 
                                 actionContext.listrExecOptions.observer)
-      .then(executorResult => {
-        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
-      })
-      .catch(executorResult => {
-        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+      .catch(rejectedPromise => {return actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `hybrid:configureUser`);})
+      .then(resolvedPromise => {
+        if (resolvedPromise === actionResult) {
+          // If "resolvedPromise" points to the same location in memory as "actionResult", it means that
+          // executeSfdxCommand() returned an ERROR which was suppressed. If you don't want to suppress EXECUTOR
+          // errors, the ACTION Result used by this class must be instantiated with "bubbleError" set to FALSE.
+          return actionResult;
+        }
+        return actionResult.addResolvedChild(resolvedPromise, SfdxFalconResultType.EXECUTOR, `hybrid:configureUser`);
       });
   }
 }
