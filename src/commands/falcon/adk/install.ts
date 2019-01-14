@@ -17,14 +17,18 @@ import * as path                      from  'path';                 // Helps res
 import {flags}                        from  '@salesforce/command';  // Allows creation of flags for CLI commands.
 import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
 import {SfdxError}                    from  '@salesforce/core';     // Generalized SFDX error which also contains an action.
+import {isEmpty}                      from  'lodash';               // Why?
 
 // Import Local Modules
 import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
 import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
-import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';           // Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconResult}             from  '../../../modules/sfdx-falcon-result';  // Why?
+import {SfdxFalconResultType}         from  '../../../modules/sfdx-falcon-result';  // Why?
 
 // Import Internal Types
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
+import {CoreActionResultDetail}       from  '../../../modules/sfdx-falcon-recipe/engines/appx/actions'; // Interface. Represents the core set of "detail" information that every ACTION result should have.
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-install:';
@@ -102,43 +106,6 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      buildFinalError
-   * @param       {SfdxFalconError} cmdError  Required. Error object used as 
-   *              the basis for the "friendly error message" being created 
-   *              by this method.
-   * @returns     {SfdxError}
-   * @description Builds a user-friendly error message that is appropriate to
-   *              the CLI command that's being implemented by this class. The
-   *              output of this method will always be used by the onError()
-   *              method from the base class to communicate the end-of-command 
-   *              error state.
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected buildFinalError(cmdError:SfdxFalconError):SfdxError {
-    /*
-    let actionError:SfdxFalconError = this.errObj;
-
-    // Find the first Error Object that has an associated ACTION Result.
-    while (actionError && (isEmpty(actionError) === false)) {
-      if (actionError.data && actionError.data.sfdxFalconResult) {
-        if (actionError.data.sfdxFalconResult.type === SfdxFalconResultType.ACTION) {
-          // Found what we were looking for.
-          let actionDetail = actionError.data.sfdxFalconResult.detail;
-          return `Action '${actionDetail.actionName}' has failed because of this error: `
-                +`${actionError.rootCause.name}: ${actionError.rootCause.message}`;
-        }
-      }
-      // Get the next child error object.
-      actionError = actionError.cause as SfdxFalconError;
-    }
-    */
-    // Make sure we have an Action Error.
-    return cmdError; // Temp...change this
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
    * @function    run
    * @returns     {Promise<any>}  This should resolve by returning a JSON object
    *              that the CLI will then forward to the user if the --json flag
@@ -171,4 +138,48 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     // Return the JSON Response that was populated by onSuccess().
     return this.falconJsonResponse;
   }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      buildFinalError
+   * @param       {SfdxFalconError} cmdError  Required. Error object used as 
+   *              the basis for the "friendly error message" being created 
+   *              by this method.
+   * @returns     {SfdxError}
+   * @description Builds a user-friendly error message that is appropriate to
+   *              the CLI command that's being implemented by this class. The
+   *              output of this method will always be used by the onError()
+   *              method from the base class to communicate the end-of-command 
+   *              error state.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected buildFinalError(cmdError:SfdxFalconError):SfdxError {
+    let actionError:SfdxFalconError = cmdError;
+
+    // Find the first Error Object that has an associated ACTION Result.
+    while (actionError && (isEmpty(actionError) === false)) {
+      if (actionError.data && actionError.data.sfdxFalconResult) {
+        if (actionError.data.sfdxFalconResult.type === SfdxFalconResultType.ACTION) {
+          // Found what we were looking for.
+          let actionResult  = actionError.data.sfdxFalconResult as SfdxFalconResult;
+          let actionDetail  = actionResult.detail as CoreActionResultDetail;
+          // Build the FINAL error that we'll throw to the CLI.
+          let finalError = 
+            new SfdxError (`Action '${actionDetail.actionName}' failed. The root cause is below:\n`
+                          +`${actionError.rootCause.name}: ${actionError.rootCause.message}`
+                          ,`FailedCommand`
+                          ,actionError.rootCause.actions
+                          ,1
+                          ,cmdError);
+          finalError.commandName = `falcon:adk:install`;
+          return finalError
+        }
+      }
+      // Get the next child error object.
+      actionError = actionError.cause as SfdxFalconError;
+    }
+    // We could not find an ACTION error. Just reflect the COMMAND error.
+    return cmdError;
+  }  
 } // End of Class FalconDemoInstall
