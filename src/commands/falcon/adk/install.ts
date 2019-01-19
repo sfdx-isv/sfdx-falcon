@@ -164,9 +164,17 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
           // Found what we were looking for.
           let actionResult  = actionError.data.sfdxFalconResult as SfdxFalconResult;
           let actionDetail  = actionResult.detail as CoreActionResultDetail;
+          let errorMessage  = '';
+          try {
+            let stepName = actionDetail.actionContext.listrExecOptions.listrTask._task.title;
+            errorMessage = `The step "${stepName}" has failed. Its action, "${actionDetail.actionName}", returned the following error:`;
+          } catch (err) {
+            errorMessage = `A step with the action "${actionDetail.actionName}" has failed with the following error:`;
+          }
+
           // Build the FINAL error that we'll throw to the CLI.
           let finalError = 
-            new SfdxError (`Action '${actionDetail.actionName}' failed. The root cause is below:\n`
+            new SfdxError (`${errorMessage}\n`
                           +`${actionError.rootCause.name}: ${actionError.rootCause.message}`
                           ,`FailedCommand`
                           ,actionError.rootCause.actions
