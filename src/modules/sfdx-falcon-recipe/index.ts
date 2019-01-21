@@ -12,14 +12,18 @@
 // Import External Modules
 import * as core                        from  '@salesforce/core';                   // Allows us to use SFDX core functionality.
 import * as path                        from  'path';                               // Why?
+
 // Import Local Modules
 import {SfdxFalconDebug}                from  '../../modules/sfdx-falcon-debug';    // Why?
+import {SfdxFalconError}                from  '../../modules/sfdx-falcon-error';    // Why?
 import {SfdxFalconProject}              from  '../../modules/sfdx-falcon-project';  // Why?
 import {SfdxFalconResult}               from  '../../modules/sfdx-falcon-result';   // Why?
 import {SfdxFalconResultType}           from  '../../modules/sfdx-falcon-result';   // Why?
+
 // Engine/Action Imports
 import {AppxDemoConfigEngine}           from  './engines/appx/demo-config';         // Why?
 import {AppxRecipeEngine}               from  './engines/appx';                     // Why?
+
 // Import Recipe-Specific Types
 import {RecipeType}                     from  './types';                            // Why?
 
@@ -129,7 +133,16 @@ export class SfdxFalconRecipe {
     let recipe:any = await SfdxFalconRecipe.resolveSfdxFalconRecipe(recipePath, recipeFile);
 
     // Validate the overall Recipe before continuing.
-    SfdxFalconRecipe.validate(recipe);
+    try {
+      SfdxFalconRecipe.validate(recipe);
+    }
+    catch (error) {
+      let combinedPath = path.join(recipePath, recipeFile);
+      throw new SfdxFalconError (`Recipe file '${combinedPath}' is invalid.  ${error.message}`
+                                ,`InvalidRecipe`
+                                ,`${dbgNs}read`
+                                ,error);
+    }
 
     // Instantiate an SfdxFalconRecipe object so we can populate and return it.
     let sfdxFR = new SfdxFalconRecipe();
@@ -182,7 +195,7 @@ export class SfdxFalconRecipe {
   //───────────────────────────────────────────────────────────────────────────┘
   public async compile(compileOptions:any={}):Promise<void> {
 
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, compileOptions, `${clsDbgNs}compile:compileOptions: `);
+    SfdxFalconDebug.obj(`${dbgNs}compile`, compileOptions, `${clsDbgNs}compile:compileOptions: `);
 
     // Figure out which Engine to use
     switch (this._recipeType) {
@@ -193,7 +206,9 @@ export class SfdxFalconRecipe {
         //this._recipeEngine = new AppxPackageRecipeEngine(this, compileOptions);
         break;
       default:
-        throw new Error (`ERROR_INVALID_RECIPE: The value '${this._recipeType}' is not a valid recipe type`)
+        throw new SfdxFalconError (`Recipe type '${this._recipeType}' is invalid.`
+                                  ,`InvalidRecipe`
+                                  ,`${dbgNs}compile`);
     }
 
     // If we get here, it means the recipe compiled successfully.
@@ -235,7 +250,7 @@ export class SfdxFalconRecipe {
       });
 
     // Use stardard Debug to show the entire Recipe Response results.
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}execute`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
 
     // Render a "success message" to the user via the Console.
     this.renderSuccessMessage();
@@ -260,13 +275,13 @@ export class SfdxFalconRecipe {
     let falconEngineResult = SfdxFalconResult.wrapRejectedPromise(engineError, SfdxFalconResultType.ENGINE, `EngineResult (REJECTED)`);
 
     // Debug the contents of the RECIPE Result in it's final state.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);
     
     // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
     this._falconRecipeResult.addChild(falconEngineResult);
 
     // Debug the contents of the RECIPE Result in it's final state.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.falconRecipeResult, `${clsDbgNs}onError:this.falconRecipeResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError`, this.falconRecipeResult, `${clsDbgNs}onError:this.falconRecipeResult: `);
 
     // Throw the ENGINE Result so the caller (likely a COMMAND) knows what happened.
     throw this._falconRecipeResult;
@@ -285,7 +300,7 @@ export class SfdxFalconRecipe {
   private onSuccess(falconEngineResult:SfdxFalconResult):void {
 
     // Debug the contents of the Engine Success Response.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, falconEngineResult, `${clsDbgNs}onSuccess:falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onSuccess`, falconEngineResult, `${clsDbgNs}onSuccess:falconEngineResult: `);
 
     // Add the successful engine to the Recipe's array of engine success.
     this._falconRecipeResult.addChild(falconEngineResult);
@@ -335,21 +350,30 @@ export class SfdxFalconRecipe {
       isGlobal:   false,
       isState:    false,
     }
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
+    let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
+
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
 
     // Using the options set above, retrieve the SFDX-Falcon Recipe file.
-    let sfdxFalconRecipeFile = await core.ConfigFile.create(configOptions);
+    let sfdxFalconRecipeFile = await core.ConfigFile.create(configOptions)
+    .catch(error => {
+      throw new SfdxFalconError (`Recipe file '${combinedPath}' is invalid.  Reason: ${error.message}`
+                                ,`InvalidRecipe`
+                                ,`${dbgNs}resolveSfdxFalconRecipe`
+                                ,error);
+    });
 
     // Make sure that the file actually exists on disk (as opposed to being created for us).
     if (await sfdxFalconRecipeFile.exists() === false) {
-      let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
-      throw new Error(`ERROR_CONFIG_NOT_FOUND: Recipe does not exist - ${combinedPath}`);
+      throw new SfdxFalconError (`Recipe file '${combinedPath}' does not exist.`
+                                ,`RecipeNotFound`
+                                ,`${dbgNs}resolveSfdxFalconRecipe`);
     }
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconRecipeFile, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, sfdxFalconRecipeFile, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
 
     // Convert the SFDX-Falcon Recipe file to an object
     let sfdxFalconRecipe:any = sfdxFalconRecipeFile.toObject() as any;
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconRecipe, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, sfdxFalconRecipe, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
 
     // Done. Return the resolved Recipe object to the caller.
     return sfdxFalconRecipe;
@@ -383,7 +407,9 @@ export class SfdxFalconRecipe {
         //AppxPackageConfigEngine.validateRecipe(sfdxFalconRecipeJson);
         break;
       default:
-        throw new Error (`ERROR_INVALID_RECIPE: '${sfdxFalconRecipeJson.recipeType}' is not a valid SFDX-Falcon Recipe type`)
+        throw new SfdxFalconError (`Recipe type '${sfdxFalconRecipeJson.recipeType}' does not exist.`
+                                  ,`InvalidRecipe`
+                                  ,`${dbgNs}validate`);
     }
   }
 
@@ -418,7 +444,9 @@ export class SfdxFalconRecipe {
 
     // Check if any invalid keys were found.
     if (invalidConfigKeys.length > 0) {
-      throw new Error(`ERROR_INVALID_RECIPE: The selected recipe has missing/invalid settings (${invalidConfigKeys}).`)
+      throw new SfdxFalconError (`Recipe has missing/invalid settings (${invalidConfigKeys}).`
+                                ,`InvalidRecipe`
+                                ,`${dbgNs}validateTopLevelProperties`);
     }
   }
 } // End of SfdxFalconRecipe class.
