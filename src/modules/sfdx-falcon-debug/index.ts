@@ -221,4 +221,21 @@ export class SfdxFalconDebug {
       SfdxFalconDebug.debugString(namespace, strToDebug, strLead, strTail);
     }
   }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      toConsole
+   * @param       {string}  message Required. Message to send to console.log().
+   * @description Sends a message to console.log that's pre and post-pended
+   *              with newline breaks to help the output be easy to see.
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static toConsole(message:string):void {
+    console.log(
+      `${SfdxFalconDebug.printLineBreaks()}` +
+      `\n${chalk.yellow(message)}\n` +
+      `${SfdxFalconDebug.printLineBreaks()}`
+    );
+  }
 } // ENDOF class SfdxFalconDebug
