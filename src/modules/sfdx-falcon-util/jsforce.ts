@@ -121,11 +121,11 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   // Try to create the new connection using the username and password.
   const userInfo = await newConnection.login(username, password)
     .catch(error => {
-      SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig`, error, `${clsDbgNs}error: `);
+      SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, error, `${clsDbgNs}error: `);
 
       throw error;
     });
-  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig`, userInfo, `${clsDbgNs}userInfo: `);
+  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, userInfo, `${clsDbgNs}userInfo: `);
 
   // Create the Org Config data structure.
   const orgSaveData = {} as any;
@@ -135,7 +135,7 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   orgSaveData.instanceUrl = newConnection.instanceUrl;
   orgSaveData.username    = username;
   orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
-  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig`, orgSaveData, `${clsDbgNs}orgSaveData: `);
+  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, orgSaveData, `${clsDbgNs}orgSaveData: `);
 
   // Save the Org Config
   // TODO: Not sure how to proceed here.  Looks like we can't persist 
@@ -160,21 +160,21 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
 export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
  
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, arguments, `${clsDbgNs}arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Ids of all Permsets assigned to the user.
   const queryResult = await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`) as jsf.QueryResult<jsf.Record<PermissionSetAssignment>>;
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, queryResult.records, `${clsDbgNs}queryResult.records: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, queryResult.records, `${clsDbgNs}queryResult.records: `);
 
   // Parse the result and extract the Permset IDs (if found).
   let assignedPermsets = new Array<string>();
   for (let record of queryResult.records) {
     assignedPermsets.push(record.PermissionSetId);
   }
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets`, assignedPermsets, `${clsDbgNs}assignedPermsets: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, assignedPermsets, `${clsDbgNs}assignedPermsets: `);
 
   // Done
   return assignedPermsets;
@@ -197,14 +197,14 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
 export async function getProfileId(aliasOrConnection:any, profileName:string):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getProfileId`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getProfileId:`, arguments, `${clsDbgNs}arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
   const queryResult = await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`) as jsf.QueryResult<jsf.Record<Profile>>;
-  SfdxFalconDebug.obj(`${dbgNs}getProfileId`, queryResult.records[0], `${clsDbgNs}queryResult.records[0]: `);
+  SfdxFalconDebug.obj(`${dbgNs}getProfileId:`, queryResult.records[0], `${clsDbgNs}queryResult.records[0]: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -232,14 +232,14 @@ export async function getProfileId(aliasOrConnection:any, profileName:string):Pr
 export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getUserId`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getUserId:`, arguments, `${clsDbgNs}arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named User
   const queryResult = await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`) as jsf.QueryResult<jsf.Record<User>>;
-  SfdxFalconDebug.obj(`${dbgNs}getUserId`, queryResult.records[0], `${clsDbgNs}queryResult: `);
+  SfdxFalconDebug.obj(`${dbgNs}getUserId:`, queryResult.records[0], `${clsDbgNs}queryResult: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -269,7 +269,7 @@ export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Pr
   const restResult = await rc.connection.request(restRequestDef.request);
 
   // Debug
-  SfdxFalconDebug.obj(`${dbgNs}restApiRequest`, restResult, `${clsDbgNs}restResult: `);
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:`, restResult, `${clsDbgNs}restResult: `);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...

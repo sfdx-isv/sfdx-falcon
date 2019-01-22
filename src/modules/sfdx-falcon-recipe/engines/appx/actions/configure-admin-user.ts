@@ -125,7 +125,7 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
         adminUsername:      null
       }
     } as ActionResultDetail;
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
     let actionResultDetail = actionResult.detail as ActionResultDetail;
@@ -133,17 +133,15 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
     // Find and read the user definition file.
     let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
       .catch(rejectedPromise => {actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.UTILITY, `general:readConfigFile`)});
-//      .catch(error => {actionResult.throw(error)});
-
 
     actionResultDetail.userDefinition = userDefinition;
-    actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction:`);
 
     // Get the username associated with the Target Org Alias (this should be the Admin User)
     let adminUsername = await getUsernameFromAlias(actionContext.targetOrg.alias)
       .catch(error => {actionResult.throw(error)}) as string;
     actionResultDetail.adminUsername = adminUsername;
-    actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Determined Admin Username from Alias`, `${dbgNs}executeAction:`);
 
     // Define the messages that are relevant to this Action
     let executorMessages = {
@@ -152,7 +150,7 @@ export class ConfigureAdminUserAction extends AppxEngineAction {
       successMsg:   `User '${adminUsername}' configured successfully`,
     } as ExecutorMessages;
     actionResultDetail.executorMessages = executorMessages;
-    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
 
     // Run the executor then return or throw the result. 
     // OPTIONAL: If you want to override success/error handling, do it here.

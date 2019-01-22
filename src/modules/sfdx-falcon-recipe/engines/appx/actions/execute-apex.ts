@@ -123,7 +123,7 @@ export class ExecuteApexAction extends AppxEngineAction {
         sfdxCommandDef:     null
       }
     } as ActionResultDetail;
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
     let actionResultDetail = actionResult.detail as ActionResultDetail;
@@ -135,7 +135,7 @@ export class ExecuteApexAction extends AppxEngineAction {
       successMsg:   `Execution of anonymous Apex in '${actionOptions.apexCodeFile}' succeeded`
     } as ExecutorMessages;
     actionResultDetail.executorMessages = executorMessages;
-    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     let sfdxCommandDef = {
@@ -153,7 +153,7 @@ export class ExecuteApexAction extends AppxEngineAction {
       }
     } as SfdxCommandDefinition;
     actionResultDetail.sfdxCommandDef = sfdxCommandDef;
-    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction:`);
 
     // Run the executor then return or throw the result.
     // OPTIONAL: If you want to override success/error handling, do it here.

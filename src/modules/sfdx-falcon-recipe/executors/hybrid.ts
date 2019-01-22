@@ -130,7 +130,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
     assignmentResults:      null
   } as AssignPermsetsResultDetail;
   executorResult.detail = executorResultDetail;
-  executorResult.debugResult(`Initialized`, `${dbgNs}assignPermsets`);
+  executorResult.debugResult(`Initialized`, `${dbgNs}assignPermsets:`);
 
   // Validate arguments
   if (typeof userId !== 'string') {
@@ -163,7 +163,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
   // Create an array of just the permset Ids.
   let permsetIds = qrPermsets.map(record => record.Id) as [string];
   executorResultDetail.permsetIds = permsetIds;
-  executorResult.debugResult(`Got the IDs for all requested Permsets`, `${dbgNs}assignPermsets`);
+  executorResult.debugResult(`Got the IDs for all requested Permsets`, `${dbgNs}assignPermsets:`);
   
   // Make sure we found IDs for each Permset on the list.
   if (permsets.length !== permsetIds.length) {
@@ -171,7 +171,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
     let permsetsFound = qrPermsets.map(record => `${record.Name} (${record.Id})`);
     permsetsFound = (permsetsFound) ? permsetsFound.join('\n') : 'NONE';
     executorResultDetail.permsetsFound = permsetsFound;
-    executorResult.debugResult(`One or more requested Permsets not found`, `${dbgNs}assignPermsets`);
+    executorResult.debugResult(`One or more requested Permsets not found`, `${dbgNs}assignPermsets:`);
 
     executorResult.throw(new Error  (`ERROR_MISSING_PERMSET: One or more of the specified permsets do not `
                                     +`exist in the target org (${rc.orgIdentifier}).\n\n`
@@ -222,7 +222,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
   }
 
   // Debug
-  executorResult.debugResult(`Permset Assignment Successful`, `${dbgNs}assignPermsets`);
+  executorResult.debugResult(`Permset Assignment Successful`, `${dbgNs}assignPermsets:`);
 
   // Mark the EXECUTOR Result as successful and return to caller.
   return executorResult.success();
@@ -262,7 +262,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
     updateUserResponse:   null
   } as ConfigureUserResultDetail;
   executorResult.detail = executorResultDetail;
-  executorResult.debugResult(`Initialized`, `${dbgNs}configureUser`);
+  executorResult.debugResult(`Initialized`, `${dbgNs}configureUser:`);
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
@@ -305,7 +305,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
     }
   }
   executorResultDetail.updateUserRequest = updateUserRequest;
-  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}configureUser`);
+  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}configureUser:`);
 
   // Execute the command. If the user fails to update, JSForce will throw an exception.
   // TODO: Find out why Admin user update fails.
@@ -319,7 +319,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
       .then(successResult => {executorResult.addChild(successResult)})
       .catch(error => {executorResult.throw(error)});
   }
-  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}configureUser`);
+  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}configureUser:`);
 
   // Stop the progress notifications for this command.
   FalconProgressNotifications.finish(progressNotifications)
@@ -371,7 +371,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
     createUserResponse:   null
   } as CreateUserResultDetail;
   executorResult.detail = executorResultDetail;
-  executorResult.debugResult(`Initialized`, `${dbgNs}createUser`)
+  executorResult.debugResult(`Initialized`, `${dbgNs}createUser:`)
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
@@ -410,13 +410,13 @@ export async function createUser(uniqueUsername:string, password:string, userDef
     }
   }
   executorResultDetail.createUserRequest = createUserRequest;
-  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}createUser`);
+  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}createUser:`);
 
   // Execute the command. If the user fails to create, JSForce will throw an exception.
   let createUserResponse = await restApiRequest(createUserRequest)
     .catch(error => {executorResult.throw(error)});
   executorResultDetail.createUserResponse = createUserResponse;
-  executorResult.debugResult(`Created a new Salesforce User`, `${dbgNs}createUser`);
+  executorResult.debugResult(`Created a new Salesforce User`, `${dbgNs}createUser:`);
 
   // Get the Record Id of the User that was just created.
   let userId = createUserResponse.id;
@@ -431,7 +431,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
       .then(successResult => {executorResult.addChild(successResult)})
       .catch(error => {executorResult.throw(error)});
   }
-  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}createUser`);
+  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}createUser:`);
 
   // Register the user with the local CLI
   // TODO: createSfdxOrgConfig is causing installations to fail when performed from 

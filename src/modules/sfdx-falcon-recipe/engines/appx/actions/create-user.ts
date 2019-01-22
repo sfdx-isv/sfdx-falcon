@@ -129,7 +129,7 @@ export class CreateUserAction extends AppxEngineAction {
         defaultPassword:    null
       }
     } as ActionResultDetail;
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
     let actionResultDetail = actionResult.detail as ActionResultDetail;
@@ -138,17 +138,17 @@ export class CreateUserAction extends AppxEngineAction {
     let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
       .catch(error => {actionResult.throw(error)});
     actionResultDetail.userDefinition = userDefinition;
-    actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction:`);
 
     // Create a unique username based on what's in the definition file.
     let uniqueUsername  = createUniqueUsername(userDefinition.Username);
     actionResultDetail.uniqueUsername = uniqueUsername;
-    actionResult.debugResult(`Unique Username Generated`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Unique Username Generated`, `${dbgNs}executeAction:`);
 
     // Determine what the appropriate default password should be.
     let defaultPassword = determineDefaultPassword(userDefinition.password);
     actionResultDetail.defaultPassword = defaultPassword;
-    actionResult.debugResult(`Default Password Determined`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Default Password Determined`, `${dbgNs}executeAction:`);
 
     // Define the messages for this command.
     let executorMessages = {
@@ -157,7 +157,7 @@ export class CreateUserAction extends AppxEngineAction {
       successMsg:   `User '${uniqueUsername}' created successfully`,
     } as ExecutorMessages;
     actionResultDetail.executorMessages = executorMessages;
-    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
   
     // Run the executor then return or throw the result. 
     // OPTIONAL: If you want to override success/error handling, do it here.

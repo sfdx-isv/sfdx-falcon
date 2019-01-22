@@ -15,6 +15,10 @@ import {SfdxFalconDebug} from '../sfdx-falcon-debug';         // Provides specia
 
 // Requires
 
+// Set the File Local Debug Namespace
+const dbgNs     = 'VALIDATOR:git:';
+//const clsDbgNs  = 'NotSpecified:';
+
 // Globals
 const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?$/;
 
@@ -31,7 +35,7 @@ const gitUriRegEx   = /(^(git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitUriValid(gitRemoteUri:string,  acceptedProtocols?:RegExp):boolean {
   // Debug and input validation
-  SfdxFalconDebug.obj('FALCON_EXT:git-validator', arguments, `isGitUriValid:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}isGitUriValid:`, arguments, `isGitUriValid:arguments: `);
   if (typeof gitRemoteUri !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
@@ -51,26 +55,3 @@ export function isGitUriValid(gitRemoteUri:string,  acceptedProtocols?:RegExp):b
   // If we get here, the Git Remote URI was not valid.
   return false;
 }
-
-
-
-
-
-
-// Comment Templates
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    validateLocalPath
- * @param       {string}    pathString  Required|Optional. ???
- * @returns     {boolean}   ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-//─────────────────────────────────────────────────────────────────────────────┐
-//─────────────────────────────────────────────────────────────────────────────┘
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘

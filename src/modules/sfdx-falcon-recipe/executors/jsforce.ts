@@ -19,11 +19,11 @@ import {SfdxFalconDebug}      from  '../../../modules/sfdx-falcon-debug';   // W
 // Import Local Types
 
 // Import Utility Functions
-import {resolveConnection}    from  '../../sfdx-falcon-util/sfdx';       // Why?
+import {resolveConnection}    from  '../../sfdx-falcon-util/sfdx';          // Why?
 
 // Set the File Local Debug Namespace
-//const dbgNs     = 'EXECUTOR:jsforce:';
-//const clsDbgNs  = '';
+const dbgNs     = 'EXECUTOR:jsforce:';
+//const clsDbgNs  = 'NotSpecified:';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -58,15 +58,15 @@ export async function executeJsForceCommand(jsForceCommandDef:JSForceCommandDefi
   //       The main question is whether or not making a general "execute" command wrapper
   //       for JSForce is useful or not.
 
-  SfdxFalconDebug.obj('FALCON_XL:jsforce-helper', jsForceCommandDef, `executeJsForceCommand:jsForceCommandDef: `);
+  SfdxFalconDebug.obj(`${dbgNs}executeJsForceCommand:`, jsForceCommandDef, `executeJsForceCommand:jsForceCommandDef: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(jsForceCommandDef.aliasOrConnection);
   
   // Execute the command. Note that this is a synchronous request.
-  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', jsForceCommandDef.request, `executeJsForceCommand:jsForceCommandDef:request: `);
+  SfdxFalconDebug.obj(`${dbgNs}executeJsForceCommand:`, jsForceCommandDef.request, `executeJsForceCommand:jsForceCommandDef:request: `);
   const restResult = await rc.connection.request(jsForceCommandDef.request);
-  SfdxFalconDebug.obj('FALCON_EXT:jsforce-helper', restResult, `executeJsForceCommand:restResult: `);
+  SfdxFalconDebug.obj(`${dbgNs}executeJsForceCommand:`, restResult, `executeJsForceCommand:restResult: `);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...

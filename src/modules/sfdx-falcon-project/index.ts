@@ -171,7 +171,7 @@ export class SfdxFalconProject {
     await SfdxFalconProject.validateOverallConfig(sfdxFPO);
 
     // The SFDX-Falcon Project Object should now be validated a a basic level. Return it to the caller.
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFPO, `${clsDbgNs}resolve:sfdxFPO: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolve:`, sfdxFPO, `${clsDbgNs}resolve:sfdxFPO: `);
     return sfdxFPO;
   }
 
@@ -189,11 +189,11 @@ export class SfdxFalconProject {
 
     // Resolve an SFDX Project from the provided project directory.
     let sfdxProject = await core.SfdxProject.resolve(projectPath);
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxProject, `${clsDbgNs}:resolveAggregatedSfdxConfig:sfdxProject: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveAggregatedSfdxConfig:`, sfdxProject, `${clsDbgNs}:resolveAggregatedSfdxConfig:sfdxProject: `);
 
     // Get the aggregated config (local, global, and sfdx-project.json) for the SFDX project.
     let sfdxAggregateConfig = await sfdxProject.resolveProjectConfig();
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxAggregateConfig, `${clsDbgNs}resolveAggregatedSfdxConfig:sfdxAggregateConfig: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveAggregatedSfdxConfig:`, sfdxAggregateConfig, `${clsDbgNs}resolveAggregatedSfdxConfig:sfdxAggregateConfig: `);
 
     return sfdxAggregateConfig;
   }
@@ -230,7 +230,7 @@ export class SfdxFalconProject {
       isGlobal:   false,
       isState:    false,
     }
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, configOptions, `${clsDbgNs}resolveSfdxFalconLocalConfig:configOptions: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconLocalConfig:`, configOptions, `${clsDbgNs}resolveSfdxFalconLocalConfig:configOptions: `);
 
     // Using the options set above, retrieve the local SFDX-Falcon Config file.
     let sfdxFalconLocalConfigFile = await core.ConfigFile.create(configOptions);
@@ -240,11 +240,11 @@ export class SfdxFalconProject {
       let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
       throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${combinedPath}`);
     }
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconLocalConfigFile, `${clsDbgNs}resolveSfdxFalconLocalConfig:falconLocalConfigFile: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconLocalConfig:`, sfdxFalconLocalConfigFile, `${clsDbgNs}resolveSfdxFalconLocalConfig:falconLocalConfigFile: `);
 
     // Convert the SFDX-Falcon Local Config file to an object.
     let sfdxFalconLocalConfig:SfdxFalconLocalConfig = sfdxFalconLocalConfigFile.toObject() as any;
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, sfdxFalconLocalConfig, `${clsDbgNs}resolveSfdxFalconLocalConfig:sfdxFalconLocalConfig: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconLocalConfig:`, sfdxFalconLocalConfig, `${clsDbgNs}resolveSfdxFalconLocalConfig:sfdxFalconLocalConfig: `);
 
     // Return the local config object to the caller.
     return sfdxFalconLocalConfig;

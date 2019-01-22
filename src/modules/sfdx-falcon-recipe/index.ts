@@ -195,7 +195,7 @@ export class SfdxFalconRecipe {
   //───────────────────────────────────────────────────────────────────────────┘
   public async compile(compileOptions:any={}):Promise<void> {
 
-    SfdxFalconDebug.obj(`${dbgNs}compile`, compileOptions, `${clsDbgNs}compile:compileOptions: `);
+    SfdxFalconDebug.obj(`${dbgNs}compile:`, compileOptions, `${clsDbgNs}compile:compileOptions: `);
 
     // Figure out which Engine to use
     switch (this._recipeType) {
@@ -250,7 +250,7 @@ export class SfdxFalconRecipe {
       });
 
     // Use stardard Debug to show the entire Recipe Response results.
-    SfdxFalconDebug.obj(`${dbgNs}execute`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}execute:`, this._falconRecipeResult, `${clsDbgNs}execute:this._falconRecipeResult: `);
 
     // Render a "success message" to the user via the Console.
     this.renderSuccessMessage();
@@ -275,13 +275,13 @@ export class SfdxFalconRecipe {
     let falconEngineResult = SfdxFalconResult.wrapRejectedPromise(engineError, SfdxFalconResultType.ENGINE, `EngineResult (REJECTED)`);
 
     // Debug the contents of the RECIPE Result in it's final state.
-    SfdxFalconDebug.obj(`${dbgNs}onError`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:`, falconEngineResult, `${clsDbgNs}onError:falconEngineResult: `);
     
     // If the ACTION Result's "bubbleError" is TRUE, addChild() will throw an Error.
     this._falconRecipeResult.addChild(falconEngineResult);
 
     // Debug the contents of the RECIPE Result in it's final state.
-    SfdxFalconDebug.obj(`${dbgNs}onError`, this.falconRecipeResult, `${clsDbgNs}onError:this.falconRecipeResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:`, this.falconRecipeResult, `${clsDbgNs}onError:this.falconRecipeResult: `);
 
     // Throw the ENGINE Result so the caller (likely a COMMAND) knows what happened.
     throw this._falconRecipeResult;
@@ -300,7 +300,7 @@ export class SfdxFalconRecipe {
   private onSuccess(falconEngineResult:SfdxFalconResult):void {
 
     // Debug the contents of the Engine Success Response.
-    SfdxFalconDebug.obj(`${dbgNs}onSuccess`, falconEngineResult, `${clsDbgNs}onSuccess:falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onSuccess:`, falconEngineResult, `${clsDbgNs}onSuccess:falconEngineResult: `);
 
     // Add the successful engine to the Recipe's array of engine success.
     this._falconRecipeResult.addChild(falconEngineResult);
@@ -352,7 +352,7 @@ export class SfdxFalconRecipe {
     }
     let combinedPath = path.join(configOptions.rootFolder, configOptions.filename);
 
-    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe:`, configOptions, `${clsDbgNs}resolveSfdxFalconRecipe:configOptions: `);
 
     // Using the options set above, retrieve the SFDX-Falcon Recipe file.
     let sfdxFalconRecipeFile = await core.ConfigFile.create(configOptions)
@@ -369,11 +369,11 @@ export class SfdxFalconRecipe {
                                 ,`RecipeNotFound`
                                 ,`${dbgNs}resolveSfdxFalconRecipe`);
     }
-    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, sfdxFalconRecipeFile, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe:`, sfdxFalconRecipeFile, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipeFile: `);
 
     // Convert the SFDX-Falcon Recipe file to an object
     let sfdxFalconRecipe:any = sfdxFalconRecipeFile.toObject() as any;
-    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe`, sfdxFalconRecipe, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
+    SfdxFalconDebug.obj(`${dbgNs}resolveSfdxFalconRecipe:`, sfdxFalconRecipe, `${clsDbgNs}resolveSfdxFalconRecipe:sfdxFalconRecipe: `);
 
     // Done. Return the resolved Recipe object to the caller.
     return sfdxFalconRecipe;

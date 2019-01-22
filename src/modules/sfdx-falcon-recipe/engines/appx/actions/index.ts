@@ -189,7 +189,7 @@ export abstract class AppxEngineAction {
   private onError(rejectedPromise:unknown):SfdxFalconResult {
 
     // Debug the contents of the Rejected Promise BEFORE we do anything to it.
-    SfdxFalconDebug.obj(`${dbgNs}onError`, {rejectedPromise: rejectedPromise}, `${clsDbgNs}onError:falconActionResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:`, {rejectedPromise: rejectedPromise}, `${clsDbgNs}onError:falconActionResult: `);
 
     // Make sure any rejected promises are wrapped as an SFDX-Falcon Result.
     let thisActionResult = SfdxFalconResult.wrap(rejectedPromise, SfdxFalconResultType.UNKNOWN, 'ActionResult (REJECTED)');
@@ -228,7 +228,7 @@ export abstract class AppxEngineAction {
     }
 
     // Debug the contents of the Action Result.
-    SfdxFalconDebug.obj(`${dbgNs}onSuccess`, falconActionResult, `${clsDbgNs}onSuccess:falconActionResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onSuccess:`, falconActionResult, `${clsDbgNs}onSuccess:falconActionResult: `);
 
     // If the ACTION Result still WAITING, then the Child class did not complete the Result.  Do that now.
     if (falconActionResult.status === SfdxFalconResultStatus.WAITING) {

@@ -376,7 +376,7 @@ export class SfdxFalconResult {
   public addRejectedChild(rejectedPromise:unknown, resultType:SfdxFalconResultType, resultName:string, resultSource?:string):this {
 
     // Debug
-    SfdxFalconDebug.obj(`${dbgNs}addRejectedChild`, {rejectedPromise: rejectedPromise});
+    SfdxFalconDebug.obj(`${dbgNs}addRejectedChild:`, {rejectedPromise: rejectedPromise});
 
     // Ensure that resultSource has a value. Default is "RESULT_TYPE:RESULT_NAME"
     if (typeof resultSource === 'undefined') {
@@ -387,7 +387,7 @@ export class SfdxFalconResult {
     let rejectedChild:SfdxFalconResult = SfdxFalconResult.wrap(rejectedPromise, resultType, resultName, resultSource);
 
     // Debug the Rejected Child Result
-    rejectedChild.debugResult(`Rejected Child Result`, `${dbgNs}addRejectedChild`);
+    rejectedChild.debugResult(`Rejected Child Result`, `${dbgNs}addRejectedChild:`);
 
     // Now call the normal addChild() method and return the result.
     // IMPORTANT: This call can result in a thrown error if the Rejected
@@ -419,7 +419,7 @@ export class SfdxFalconResult {
   public addResolvedChild(resolvedPromise:unknown, resultType:SfdxFalconResultType, resultName:string, resultSource?:string):this {
 
     // Debug
-    SfdxFalconDebug.obj(`${dbgNs}addResolvedChild`, {resolvedPromise: resolvedPromise});
+    SfdxFalconDebug.obj(`${dbgNs}addResolvedChild:`, {resolvedPromise: resolvedPromise});
 
     // Ensure that resultSource has a value. Default is "RESULT_TYPE:RESULT_NAME"
     if (typeof resultSource === 'undefined') {
@@ -430,7 +430,7 @@ export class SfdxFalconResult {
     let resolvedChild:SfdxFalconResult = SfdxFalconResult.wrap(resolvedPromise, resultType, resultName, resultSource);
 
     // Debug the Rejected Child Result
-    resolvedChild.debugResult(`Resolved Child Result`, `${dbgNs}addResolvedChild`);
+    resolvedChild.debugResult(`Resolved Child Result`, `${dbgNs}addResolvedChild:`);
 
     // Now call the normal addChild() method and return the result.
     // IMPORTANT: This call can result in a thrown error if the Resolved
@@ -461,7 +461,7 @@ export class SfdxFalconResult {
     let debugOutput 
       = '-\n'
       + this.renderResult(contextLabel, childInspectDepth, detailInspectDepth, errorInspectDepth)
-      + '\n-\n-\n-\n-\n-\n-';
+      + '\n-\n-\n-\n-\n-\n-\n-\n-\n-\n-';
 
     // If namespace is provided, use the standard debug channel. Force debug message if no namespace.
     if(debugNamespace) {

@@ -66,7 +66,7 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
     isGlobal:   false,
     isState:    false,
   }
-  SfdxFalconDebug.obj(`${dbgNs}readConfigFile`, configFileOptions, `${clsDbgNs}configFileOptions: `);
+  SfdxFalconDebug.obj(`${dbgNs}readConfigFile:`, configFileOptions, `${clsDbgNs}configFileOptions: `);
 
   // Retrieve the config file specified by the Config File Options.
   let configFile = await ConfigFile.create(configFileOptions);
@@ -75,7 +75,7 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
   if (await configFile.exists() === false) {
     throw new SfdxFalconError(`Config file does not exist - ${filePath}`, `FileNotFound`);
   }
-  SfdxFalconDebug.obj(`${dbgNs}readConfigFile`, configFile, `${clsDbgNs}configFile: `);
+  SfdxFalconDebug.obj(`${dbgNs}readConfigFile:`, configFile, `${clsDbgNs}configFile: `);
 
   // Parse the Demo Build Config File to get a Demo Build Sequence object.
   return configFile.toObject();
@@ -94,7 +94,7 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function safeParse(contentToParse:any):object {
-  SfdxFalconDebug.obj(`${dbgNs}safeParse`, contentToParse, `${clsDbgNs}contentToParse: `);
+  SfdxFalconDebug.obj(`${dbgNs}safeParse:`, contentToParse, `${clsDbgNs}contentToParse: `);
   try {
     return JSON.parse(contentToParse);
   } catch(e) {

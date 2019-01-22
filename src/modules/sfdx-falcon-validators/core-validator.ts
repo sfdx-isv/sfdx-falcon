@@ -13,6 +13,10 @@
 import  {SfdxFalconDebug}     from '../sfdx-falcon-debug';         // Provides specialized debugging capabilities.
 import  {isGitUriValid}       from './git-validator';
 
+// Set the File Local Debug Namespace
+const dbgNs     = 'VALIDATOR:core:';
+//const clsDbgNs  = 'NotSpecified:';
+
 // File Globals
 const standardAlias = /^[a-zA-Z0-9_-]+$/
 
@@ -29,8 +33,10 @@ const standardAlias = /^[a-zA-Z0-9_-]+$/
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateGitRemoteUri(gitRemoteUri:string, acceptedProtocols?:RegExp):boolean {
+
   // Debug, but no input validation. The isGitUriValid function takes care of that.
-  SfdxFalconDebug.obj('FALCON:core-validator', arguments, `validateGitRemoteUri:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}validateGitRemoteUri:`, arguments, `validateGitRemoteUri:arguments: `);
+
   // Leverage helper function from git-helper.
   return isGitUriValid(gitRemoteUri, acceptedProtocols);
 }
@@ -48,11 +54,13 @@ export function validateGitRemoteUri(gitRemoteUri:string, acceptedProtocols?:Reg
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateLocalPath(pathString:string):boolean {
+
   // Begin with Input Debug & Validation
-  SfdxFalconDebug.obj('FALCON:core-validator', arguments, `validateLocalPath:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}validateLocalPath:`, arguments, `validateLocalPath:arguments: `);
   if (typeof pathString !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
+
   // Can't begin with tilde
   // Can't have any spaces (all spaces must be escaped by the user)
   // Can't have any double or single quotes
@@ -74,8 +82,9 @@ export function validateLocalPath(pathString:string):boolean {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateStandardAlias(alias:string, maxLength?:number):boolean {
+
   // Begin with Input Debug & Validation
-  SfdxFalconDebug.obj('FALCON:core-validator', arguments, `validateStandardAlias:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}validateStandardAlias:`, arguments, `validateStandardAlias:arguments: `);
   if (typeof alias !== 'string') {
     throw new TypeError('ERROR_UNEXPECTED_TYPE');
   }
@@ -97,24 +106,3 @@ export function validateStandardAlias(alias:string, maxLength?:number):boolean {
   // Failed at least one test
   return false;
 }
-
-
-
-
-// Comment Templates
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    validateLocalPath
- * @param       {string}    pathString  Required|Optional. ???
- * @returns     {boolean}   ???
- * @description ???
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-//─────────────────────────────────────────────────────────────────────────────┐
-//─────────────────────────────────────────────────────────────────────────────┘
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
