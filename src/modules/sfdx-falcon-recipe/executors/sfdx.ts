@@ -89,12 +89,12 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     stdErrBuffer:       null
   } as ExecutorResultDetail;
   executorResult.detail = executorResultDetail;
-  executorResult.debugResult('Executor Result Initialized', `${dbgNs}executeSfdxCommand`);
+  executorResult.debugResult('Executor Result Initialized', `${dbgNs}executeSfdxCommand:`);
 
   // Construct the SFDX Command String
   let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
   executorResultDetail.sfdxCommandString = sfdxCommandString;
-  executorResult.debugResult('Parsed SFDX Command Object to String', `${dbgNs}executeSfdxCommand`);
+  executorResult.debugResult('Parsed SFDX Command Object to String', `${dbgNs}executeSfdxCommand:`);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
@@ -142,39 +142,67 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       executorResultDetail.stdOutBuffer = stdOutBuffer;
       executorResultDetail.stdErrBuffer = stdErrBuffer;
 
+      //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
+      //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
+
+      // Try to tickle out a JSON object from the stdout buffer. We have to do this because 
+      // the Salesforce CLI sometimes streams non-JSON output to stdout before finalizing 
+      // with valid JSON content as the last thing to come into stdout.
+      let stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+      let parsedCliResponse   = safeParse(stdOutJsonResponse) as any;
+
       // Determine if the shell execution was successful.
       if (code !== 0) {
-        if (detectSalesforceCliError(stdOutBuffer)) {
+        if (detectSalesforceCliError(parsedCliResponse)) {
 
           // We have a Salesforce CLI Error. This should be considered a FAILURE instead of an
           // ERROR because the Salesforce CLI was able to return a recognizable JSON response.
-          // By resolving this call, we allow the ACTION to decide if it wants to convert the
-          // FAILURE to an ERROR.
-          executorResult.failure(new SfdxCliError(stdOutBuffer, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
-          executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand`);
+          // By resolving instead of rejecting, we allow the caller to decide if it wants to
+          // convert the FAILURE to an ERROR.
+          executorResult.failure(new SfdxCliError(stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
           resolve(executorResult);
         }
         else {
 
           // We have a Shell Error. This is NOT expected and should always be considered an ERROR.
           // Also, this should cause a rejected result, NOT a resolved result.
-          // Prepare executor for ERROR using ShellError.
           executorResult.error(new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`));
-          executorResult.debugResult('CLI Command Shell Error', `${dbgNs}executeSfdxCommand`);
+          executorResult.debugResult('CLI Command Shell Error', `${dbgNs}executeSfdxCommand:`);
           reject(executorResult);
         }
       }
       else {
 
-        // Prepare the SUCCESS detail for this function's Result.
-        executorResultDetail.stdOutParsed = safeParse(stdOutBuffer);
+        // We have what LOOKS like a successful result, but sometimes the Salesforce CLI returns
+        // an ERROR result as a garbled stdout stream with a shell exit code of 0.  Check the parsed
+        // CLI Response for an "unparsed" property. Unparseable responses from the CLI are SHELL ERRORS 
+        // and should be marked ERROR and rejected.
+        if (parsedCliResponse.unparsed) {
+          executorResult.error(new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`));
+          executorResult.debugResult('CLI Command Shell Error', `${dbgNs}executeSfdxCommand:`);
+          reject(executorResult);
+        }
+
+        // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
+        // This is a rejected ERROR instead of resolved FAILURE because it's an ERROR JSON response from 
+        // the CLI even though the exit code from the shell indicated success.  For now, we want to surface
+        // the fact that this is happening. Rejecting this promise will force the caller to bubble this ERROR.
+        if (detectSalesforceCliError(parsedCliResponse)) {
+          executorResult.error(new SfdxCliError(stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
+          reject(executorResult);
+        }
+
+        // If we get here, the call was successful. Start preparing for SUCCESS Result.
+        executorResultDetail.stdOutParsed = parsedCliResponse;
 
         // Make a final update to the observer
         updateObserver(sfdxCommandDef.observer, `[${executorResult.durationString}] SUCCESS: ${sfdxCommandDef.successMsg}`);
 
         // Regiser a SUCCESS result
         executorResult.success();
-        executorResult.debugResult('CLI Command Succeeded', `${dbgNs}executeSfdxCommand`);
+        executorResult.debugResult('CLI Command Succeeded', `${dbgNs}executeSfdxCommand:`);
 
         // Resolve with the successful SFDX-Falcon Result.
         resolve(executorResult);
@@ -230,7 +258,7 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
     }
 
     // Combine the Resolved Flag and a sanitized version of the value and append to the Parsed Command.
-    parsedCommand += ` ${resolvedFlag} ${sanitizeArgument(value)}`
+    parsedCommand += ` ${resolvedFlag} ${sanitizeArgument(value)}`;
   }
 
   // Done. This should be a complete, valid SFDX CLI command.

@@ -73,7 +73,9 @@ export interface SfdxUtilityResultDetail {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    detectSalesforceCliError
- * @param       {string} stdOutBuffer  Required. A string buffer containing an stderr CLI response.
+ * @param       {unknown} thingToCheck  Required. Either a string buffer containing an 
+ *              stderr CLI response or a safeParse() JSON object that (hopefully) came from a
+ *              Salesforce CLI command.
  * @returns     {boolean} Returns TRUE if the stdOutBuffer contains something that might be
  *              considered an error.  FALSE if otherwise.
  * @description Given a string buffer containing an stdout response, determines if that response
@@ -85,17 +87,25 @@ export interface SfdxUtilityResultDetail {
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function detectSalesforceCliError(stdOutBuffer:string):boolean {
+export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, arguments, `detectSalesforceCliError:arguments: `);
 
-  // Safely parse the incoming stdOutBuffer
-  let parsedStdOutBuffer = safeParse(stdOutBuffer) as any;
-  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, parsedStdOutBuffer, `detectSalesforceCliError:parsedStdOutBuffer: `);
+  // Parse thingToCheck if it's a string, assign it directly if not.
+  let possibleCliError:any; 
+  if (typeof thingToCheck === 'string') {
+    possibleCliError  = safeParse(thingToCheck);
+  }
+  else {
+    possibleCliError  = thingToCheck;
+  }
 
-  // If the Parsed Error Buffer has a non-zero "status" value, then this is a Salesforce CLI Error.
-  if (parsedStdOutBuffer.status && parsedStdOutBuffer.status !== 0) {
+  // Debug
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, possibleCliError, `detectSalesforceCliError:possibleCliError: `);
+
+  // If the Possible CLI Error "status" property is present AND has a non-zero value, then IT IS a Salesforce CLI Error.
+  if (possibleCliError.status && possibleCliError.status !== 0) {
     return true;  // This is definitely a Salesforce CLI Error
   }
   else {
@@ -135,7 +145,7 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
   // SfdxOrgInfo that will be added to the devHubOrgInfos array.
   for (let rawOrgInfo of rawSfdxOrgList) {
     if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
-      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE DEVHUB: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE DEVHUB: Alias(Username)`);
       devHubOrgInfos.push({
         alias:            rawOrgInfo.alias || rawOrgInfo.username,
         username:         rawOrgInfo.username,
@@ -145,12 +155,12 @@ export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       });
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE DEVHUB: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE DEVHUB: Alias(Username)`);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs`, devHubOrgInfos, `${clsDbgNs}devHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:`, devHubOrgInfos, `${clsDbgNs}devHubOrgInfos: `);
 
   // Return the list of Dev Hubs to the caller
   return devHubOrgInfos;
@@ -197,7 +207,7 @@ export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
   for (let rawOrgInfo of rawSfdxOrgList) {
     if (rawOrgInfo.connectedStatus === 'Connected') {
 
-      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE ORG: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE ORG: Alias(Username)`);
 
       // TODO: Implement some kind of "Environment Hub Check" logic
 
@@ -210,12 +220,12 @@ export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
       });
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE ORG: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE ORG: Alias(Username)`);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs`, envHubOrgInfos, `${clsDbgNs}envHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:`, envHubOrgInfos, `${clsDbgNs}envHubOrgInfos: `);
 
   // Return the list of Dev Hubs to the caller
   return envHubOrgInfos;
@@ -235,9 +245,9 @@ export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
 export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
 
   // Fetch the username associated with this alias.
-  SfdxFalconDebug.str(`${dbgNs}getConnection`, orgAlias, `${clsDbgNs}orgAlias: `);
+  SfdxFalconDebug.str(`${dbgNs}getConnection:`, orgAlias, `${clsDbgNs}orgAlias: `);
   const username:string = await getUsernameFromAlias(orgAlias);
-  SfdxFalconDebug.str(`${dbgNs}getConnection`, username, `${clsDbgNs}username: `);
+  SfdxFalconDebug.str(`${dbgNs}getConnection:`, username, `${clsDbgNs}username: `);
 
   // Make sure a value was returned for the alias
   if (typeof username === 'undefined') {
@@ -252,7 +262,7 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 
   // Set the API version (if specified by the caller).
   if (typeof apiVersion !== 'undefined') {
-    SfdxFalconDebug.str(`${dbgNs}getConnection`, apiVersion, `${clsDbgNs}apiVersion: `);
+    SfdxFalconDebug.str(`${dbgNs}getConnection:`, apiVersion, `${clsDbgNs}apiVersion: `);
     connection.setApiVersion(apiVersion);
   }
 
@@ -339,7 +349,7 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     error:              null,
   } as SfdxUtilityResultDetail;
   utilityResult.detail = utilityResultDetail;
-  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs`);
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs:`);
 
   // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
   return new Promise((resolve, reject) => {
@@ -391,19 +401,41 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
         // Process this as an ERROR result.
         utilityResult.error(utilityResultDetail.error);
-        utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs`);
+        utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs:`);
 
         // Process this as an ERROR result.
         reject(utilityResult);
       }
       else {
 
-        // Prepare the SUCCESS detail for this function's Result.
-        utilityResultDetail.stdOutParsed = safeParse(stdOutBuffer);
+        //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
+        //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
+
+        // Make sure we got back a valid JSON Response
+        let stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+        let parsedCliResponse   = safeParse(stdOutJsonResponse) as any;
+
+        // Unparseable responses from the CLI are SHELL ERRORS and should be rejected.
+        if (parsedCliResponse.unparsed) {
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}scanConnectedOrgs`);
+          utilityResult.error(utilityResultDetail.error);
+          reject(utilityResult);
+        }
+
+        // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
+        if (detectSalesforceCliError(parsedCliResponse)) {
+          utilityResultDetail.error = new SfdxCliError(stdOutJsonResponse, `Unable to scan Connected Orgs`, `${dbgNs}scanConnectedOrgs:`);
+          utilityResult.error(utilityResultDetail.error);
+          utilityResult.debugResult('Scan Connected Orgs Failed but the CLI Returned a Success Response', `${dbgNs}scanConnectedOrgs:`);
+          reject(utilityResult);
+        }
+
+        // If we get here, the call was successful. Prepare the SUCCESS detail for this function's Result.
+        utilityResultDetail.stdOutParsed = parsedCliResponse;
 
         // Regiser a SUCCESS result
         utilityResult.success();
-        utilityResult.debugResult('Scan Connected Orgs Succeeded', `${dbgNs}scanConnectedOrgs`);
+        utilityResult.debugResult('Scan Connected Orgs Succeeded', `${dbgNs}scanConnectedOrgs:`);
 
         // Resolve with the successful SFDX-Falcon Result.
         resolve(utilityResult);
