@@ -94,7 +94,7 @@ EXAMPLES
                           --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/clone.ts)_
+_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/clone.ts)_
 
 ## `sfdx-falcon falcon:adk:create`
 
@@ -124,7 +124,7 @@ EXAMPLES
   $ sfdx falcon:adk:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/create.ts)_
+_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/create.ts)_
 
 ## `sfdx-falcon falcon:adk:install`
 
@@ -164,7 +164,7 @@ EXAMPLES
                             --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/install.ts)_
+_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/install.ts)_
 
 ## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
@@ -200,7 +200,7 @@ EXAMPLES
                          --outputdir ~/projects/appexchange-package-kit-projects
 ```
 
-_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/clone.ts)_
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/clone.ts)_
 
 ## `sfdx-falcon falcon:apk:create`
 
@@ -230,7 +230,7 @@ EXAMPLES
   $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/create.ts)_
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/create.ts)_
 <!-- commandsstop -->
 
 
