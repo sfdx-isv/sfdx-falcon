@@ -11,17 +11,20 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import {Observable}               from  'rxjs';                                     // Class. Used to communicate status with Listr.
+
 // Import Local Modules
 import {SfdxFalconDebug}          from  '../../../../modules/sfdx-falcon-debug';    // Class. Internal Debug module
 import {SfdxFalconError}          from  '../../../../modules/sfdx-falcon-error';    // Class. Provides custom Error structures for SFDX-Falcon.
 import {SfdxFalconResult}         from  '../../../../modules/sfdx-falcon-result';   // Class. Provides framework for bubbling "results" up from nested calls.
 import {SfdxFalconResultStatus}   from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents possible states of an SFDX-Falcon Result.
 import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents types of SfdxFalconResults.
+
 // Import Local Types
 import {ListrContext}             from '../../../../modules/sfdx-falcon-types';     // Type. Alias to "any". Used in project to make code easier to read.
 import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';     // Why?
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';     // Why?
 import {TargetOrg}                from '../../types';                               // Interface. Represents an org that will be targeted by SFDX/JSForce code.
+
 // Project/Recipe/Engine Imports
 import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';    // Why?
 import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';    // Why?
@@ -211,7 +214,7 @@ export abstract class AppxRecipeEngine {
     this.compileAllTasks();
 
     // We should be done by this point. Debug and return.
-    SfdxFalconDebug.obj(`FALCON_XL:${dbgNs}`, this, `${clsDbgNs}constructor:this: `)
+    SfdxFalconDebug.obj(`${dbgNs}compile:`, this, `${clsDbgNs}constructor:this: `)
     return;
   }
 
@@ -234,9 +237,9 @@ export abstract class AppxRecipeEngine {
     }
 
     // Debug - See what the pre and post build Step Groups are, and how they bookend the core group.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.preBuildStepGroups, `${clsDbgNs}compileAllTasks:this.preBuildStepGroups: `)
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.recipe.recipeStepGroups, `${clsDbgNs}compileAllTasks:this.recipe.recipeStepGroups: `)
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.postBuildStepGroups, `${clsDbgNs}compileAllTasks:this.postBuildStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.preBuildStepGroups, `${clsDbgNs}compileAllTasks:this.preBuildStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.recipe.recipeStepGroups, `${clsDbgNs}compileAllTasks:this.recipe.recipeStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.postBuildStepGroups, `${clsDbgNs}compileAllTasks:this.postBuildStepGroups: `)
 
     // Join the pre and post-build Recipe Step Groups with the "core" given to us by the Recipe.
     let completeRecipeStepGroups = [
@@ -246,7 +249,7 @@ export abstract class AppxRecipeEngine {
     ];
 
     // Debug - Show the combined Step Groups
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, completeRecipeStepGroups, `${clsDbgNs}compileAllTasks:completeRecipeStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, completeRecipeStepGroups, `${clsDbgNs}compileAllTasks:completeRecipeStepGroups: `)
 
     // Call compileParentTasks() from the Recipe's "Step Group root" and all tasks should compile.
     this.listrTasks = this.compileParentTasks(completeRecipeStepGroups);
@@ -329,29 +332,43 @@ export abstract class AppxRecipeEngine {
               observer:     observer
             }
             this.executeStep(recipeStep, listrExecOptions)
-              .then(falconActionResult => {
+              .then(resolvedPromise => {
+                let falconActionResult = SfdxFalconResult.wrap(resolvedPromise, SfdxFalconResultType.FUNCTION, 'executeStep:then');
                 falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Resolved)', 'LISTR_TASK_DEBUG:');
-                this.falconEngineResult.addChild(falconActionResult);
-                observer.complete();
-              })
-              .catch(falconActionResult => {
-                // Make sure we ONLY deal with an SFDX-Falcon Result
-                falconActionResult = 
-                  SfdxFalconResult.wrapRejectedPromise(
-                    falconActionResult, 
-                    `ActionResult (REJECTED)`,
-                    SfdxFalconResultType.ACTION
-                  );
-                  falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
+                // We should NOT be getting ACTION Results that are marked as ERROR, but it's possible.
+                // We need to use try/catch precautions here or we could leave the observer in an incomplete state.
                 try {
-                  // If ENGINE Result's "bubbleError" is FALSE, call observer.complete() to suppress the error.
+                  this.falconEngineResult.addChild(falconActionResult);
+                  this.falconEngineResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Child Added)', 'LISTR_TASK_DEBUG:');
+                  observer.complete();  
+                } catch (bubbledError) {
+                  // Somehow, an ERROR Result came through as a Resolved Promise. This SHOULD NOT happen, but in
+                  // case it does, create a special SfdxFalconError and throw it to the user by calling observer.error().
+                  falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (WARNING: Error Bubbled by a Resolved Promise)', 'LISTR_TASK_DEBUG:');
+                  let unexpectedError = 
+                    new SfdxFalconError (`An ERROR was mistakenly bubbled by a Resolved Promise.`
+                                        ,`UnexpectedError`
+                                        ,`${dbgNs}executeStep`
+                                        ,SfdxFalconError.wrap(bubbledError));
+                  unexpectedError.setData(falconActionResult);
+                  observer.error(unexpectedError);
+                }
+              })
+              .catch(rejectedPromise => {
+                // Make sure we ONLY deal with an SFDX-Falcon Result
+                let falconActionResult = SfdxFalconResult.wrapRejectedPromise(rejectedPromise, SfdxFalconResultType.UNKNOWN, `ActionResult (REJECTED)`);
+                falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
+                try {
+                  // If ENGINE Result's "bubbleError" is FALSE, then the call to addChild() will NOT throw an error.
+                  // By calling observer.complete() we will effectively suppress whatever error led to the rejected promise.
                   this.falconEngineResult.addChild(falconActionResult);
                   this.falconEngineResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Suppressed', 'LISTR_TASK_DEBUG:');
                   observer.complete();
-                } catch (falconEngineError) {
-                  // If ENGINE Result's "bubbleError" is TRUE, call observer.error() to bubble the error.
+                } catch (bubbledError) {
+                  // If ENGINE Result's "bubbleError" is TRUE, then the above call to addChild() will have thrown an error.
+                  // By calling observer.error() we force Listr to stop and we bubble the error up to the user.
                   falconActionResult.debugResult('LISTR TASK DEBUG - Rejected Promise Error Bubbled', 'LISTR_TASK_DEBUG:');
-                  observer.error(falconEngineError);
+                  observer.error(bubbledError);
                 }
               });
           });
@@ -488,7 +505,7 @@ export abstract class AppxRecipeEngine {
     if (! SfdxFalconResult.validate(listrError, SfdxFalconResultType.ENGINE, SfdxFalconResultStatus.ERROR)) {
 
       // We got something we were not expecting. Debug the contents of listrError.
-      SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrError, `${clsDbgNs}onError:listrError: `);
+      SfdxFalconDebug.obj(`${dbgNs}onError:`, listrError, `${clsDbgNs}onError:listrError: `);
 
       // Create an Error to throw.
       let falconError = new SfdxFalconError(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
@@ -500,10 +517,10 @@ export abstract class AppxRecipeEngine {
 
     // Debug the contents of listrError
     let lastActionResult = this.falconEngineResult.children[this.falconEngineResult.children.length-1];
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, lastActionResult, `${clsDbgNs}onError:lastActionResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:`, lastActionResult, `${clsDbgNs}onError:lastActionResult: `);
 
     // Debug the contents of the ENGINE Result in it's final state.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.falconEngineResult, `${clsDbgNs}onError:this.falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:`, this.falconEngineResult, `${clsDbgNs}onError:this.falconEngineResult: `);
 
     // Throw the ENGINE Result so the caller (likely a RECIPE) knows what happened.
     throw this.falconEngineResult;
@@ -523,7 +540,7 @@ export abstract class AppxRecipeEngine {
 
     // Debug the contents of the Listr Context
     // TODO: Do we really need to know what's in the Listr Context var?
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, listrContext, `${clsDbgNs}onSuccess:listrContext: `);
+    SfdxFalconDebug.obj(`${dbgNs}onSuccess:`, listrContext, `${clsDbgNs}onSuccess:listrContext: `);
 
     if (this.falconEngineResult.status === SfdxFalconResultStatus.FAILURE) {
       if (this.engineContext.haltOnError) {

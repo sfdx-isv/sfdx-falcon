@@ -11,18 +11,32 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Local Modules
 import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result'; // Interface. Represents the options that can be set when an SfdxFalconResult object is constructed.
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Interface. Represents the different types of sources where Results might come from.
 
 // Executor Imports
-import {executeSfdxCommand}         from  '../../../executors/sfdx';        // Function. SFDX Executor (CLI-based Commands).
+import {executeSfdxCommand}         from  '../../../executors/sfdx';  // Function. SFDX Executor (CLI-based Commands).
+import {SfdxCommandDefinition}      from  '../../../executors/sfdx';  // Interface. Represents an SFDX "Command Definition" that can be compiled into a string that can be executed at the command line against the Salesforce CLI.
 
 // Engine/Action Imports
-import {AppxEngineAction}           from  '../../appx/actions';             // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
-import {AppxEngineActionContext}    from  '../../appx';                     // Interface. Represents the context of an Appx Recipe Engine.
-import {SfdxFalconActionType}       from  '../../../types';                 // Enum. Represents types of SfdxFalconActions.
+import {AppxEngineAction}           from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
+import {AppxEngineActionContext}    from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
+import {ExecutorMessages}           from  '../../../types';     // Interface. Represents the standard messages that most Executors use for Observer notifications.
+import {SfdxFalconActionType}       from  '../../../types';     // Enum. Represents types of SfdxFalconActions.
+import {SfdxCliActionResultDetail}  from  '../../appx/actions'; // Interface. Represents the "detail" information that every SFDX-CLI ACTION result should have.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:delete-scratch-org:';
 //const clsDbgNs  = 'DeleteScratchOrgAction:';
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ActionResultDetail
+ * @extends     SfdxCliActionResultDetail
+ * @description Represents the structure of the "Result Detail" object used by this ACTION.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface ActionResultDetail extends SfdxCliActionResultDetail {}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -49,7 +63,6 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
     // Set values for all the base member vars to better define THIS AppxEngineAction.
     this.actionType       = SfdxFalconActionType.SFDX_CLI;
     this.actionName       = 'delete-scratch-org';
-    this.executorName     = 'sfdx:executeSfdxCommand';
     this.description      = 'Delete Scratch Org';
     this.successDelay     = 2;
     this.errorDelay       = 2;
@@ -94,23 +107,30 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
       actionContext, actionOptions,
       { startNow:       true,
         bubbleError:    true,
-        bubbleFailure:  false});  // Required FALSE to suppress CLI failures for force:org:delete
-    // Add additional DETAIL for this Result (beyond what is added by createActionResult()).
-    actionResult.detail = {...{
-      executorName:       this.executorName,
-      executorMessages:   null,
-      sfdxCommandDef:     null
-    }};
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction`);
+        bubbleFailure:  false,                              // Required FALSE to suppress CLI failures for force:org:delete
+        failureIsError: false} as SfdxFalconResultOptions); // Required FALSE to suppress CLI failures for force:org:delete
+
+    // Merge core DETAIL added by createActionResult() with additional DETAIL for this specific Result.
+    actionResult.detail = {
+      ...actionResult.detail,
+      ...{
+        executorMessages:   null,
+        sfdxCommandDef:     null
+      }
+    } as ActionResultDetail;
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
+
+    // Create a typed variable to represent this function's ACTION Result Detail.
+    let actionResultDetail = actionResult.detail as ActionResultDetail;
 
     // Define the messages that are relevant to this Action
     let executorMessages = {
       progressMsg:  `Marking scratch org '${actionOptions.scratchOrgAlias}' for deletion`,
       errorMsg:     `Request to mark scratch org '${actionOptions.scratchOrgAlias}' for deletion failed`,
       successMsg:   `Scratch org '${actionOptions.scratchOrgAlias}' successfully marked for deletion`
-    }
-    actionResult.detail.executorMessages = executorMessages;
-    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction`);
+    } as ExecutorMessages;
+    actionResultDetail.executorMessages = executorMessages;
+    actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
     let sfdxCommandDef = {
@@ -127,18 +147,22 @@ export class DeleteScratchOrgAction extends AppxEngineAction {
         FLAG_JSON:                  true,
         FLAG_LOGLEVEL:              actionContext.logLevel
       }
-    }
-    actionResult.detail.sfdxCommandDef = sfdxCommandDef;
-    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction`);
+    } as SfdxCommandDefinition;
+    actionResultDetail.sfdxCommandDef = sfdxCommandDef;
+    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction:`);
 
-    // Run the executor then return or throw the result. 
+    // Run the executor then return or throw the result.
     // OPTIONAL: If you want to override success/error handling, do it here.
     return await executeSfdxCommand(sfdxCommandDef)
-      .then(executorResult => {
-        return this.handleResolvedExecutor(executorResult, actionResult, this.executorName, dbgNs);
-      })
-      .catch(executorResult => {
-        return this.handleRejectedExecutor(executorResult, actionResult, this.executorName, dbgNs);
+      .catch(rejectedPromise => {return actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`);})
+      .then(resolvedPromise => {
+        if (resolvedPromise === actionResult) {
+          // If "resolvedPromise" points to the same location in memory as "actionResult", it means that
+          // executeSfdxCommand() returned an ERROR which was suppressed. If you don't want to suppress EXECUTOR
+          // errors, the ACTION Result used by this class must be instantiated with "bubbleError" set to FALSE.
+          return actionResult;
+        }
+        return actionResult.addResolvedChild(resolvedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`);
       });
   }
 }

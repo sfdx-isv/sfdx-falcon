@@ -10,13 +10,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path            from  'path';                   // Module. Node's path library.
-import {ConfigFile}         from  '@salesforce/core';       // Module. SFDX Core library.
+import * as path            from  'path';             // Module. Node's path library.
+import {ConfigFile}         from  '@salesforce/core'; // Module. SFDX Core library.
+
 // Import Local Modules
-import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';   // Class. Internal Debug module
+import {SfdxFalconDebug}    from  '../sfdx-falcon-debug'; // Class. Internal Debug module
+import {SfdxFalconError}    from  '../sfdx-falcon-error'; // Class. Provides custom Error structures for SFDX-Falcon.
+
 // Require Modules
 const uuid = require('uuid/v1');                            // Generates a timestamp-based UUID
-
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:general:';
@@ -36,8 +38,8 @@ const clsDbgNs  = '';
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function createUniqueUsername(baseUsername:string):string {
   let usernameMaxLength = 35;
-  if (typeof baseUsername === 'undefined') throw new Error(`ERROR_INVALID_ARGUMENT: Expected a value for baseUsername but got undefined`);
-  if (baseUsername.length > usernameMaxLength) throw new Error(`ERROR_USERNAME_LENGTH: Username can not be longer than ${usernameMaxLength} chars to keep room for appending a UUID`);
+  if (typeof baseUsername === 'undefined') throw new SfdxFalconError(`Function createUniqueUsername() expects a value for baseUsername but got undefined`, `InvalidArgument`);
+  if (baseUsername.length > usernameMaxLength) throw new SfdxFalconError(`Username can not be longer than ${usernameMaxLength} chars to keep room for appending a UUID`, `InvalidUsername` );
   return baseUsername + uuid();
 }
 
@@ -64,16 +66,16 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
     isGlobal:   false,
     isState:    false,
   }
-  SfdxFalconDebug.obj(`${dbgNs}readConfigFile`, configFileOptions, `${clsDbgNs}configFileOptions: `);
+  SfdxFalconDebug.obj(`${dbgNs}readConfigFile:`, configFileOptions, `${clsDbgNs}configFileOptions: `);
 
   // Retrieve the config file specified by the Config File Options.
-  let configFile = await ConfigFile.retrieve(configFileOptions);
+  let configFile = await ConfigFile.create(configFileOptions);
 
   // Verify that the file exists before trying to parse it.
   if (await configFile.exists() === false) {
-    throw new Error(`ERROR_CONFIG_NOT_FOUND: File does not exist - ${filePath}`);
+    throw new SfdxFalconError(`Config file does not exist - ${filePath}`, `FileNotFound`);
   }
-  SfdxFalconDebug.obj(`${dbgNs}readConfigFile`, configFile, `${clsDbgNs}configFile: `);
+  SfdxFalconDebug.obj(`${dbgNs}readConfigFile:`, configFile, `${clsDbgNs}configFile: `);
 
   // Parse the Demo Build Config File to get a Demo Build Sequence object.
   return configFile.toObject();
@@ -92,7 +94,7 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function safeParse(contentToParse:any):object {
-  SfdxFalconDebug.obj(`${dbgNs}safeParse`, contentToParse, `${clsDbgNs}contentToParse: `);
+  SfdxFalconDebug.obj(`${dbgNs}safeParse:`, contentToParse, `${clsDbgNs}contentToParse: `);
   try {
     return JSON.parse(contentToParse);
   } catch(e) {

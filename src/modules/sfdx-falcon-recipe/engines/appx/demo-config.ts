@@ -189,7 +189,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     } while (userSelectionsTwo.proceed === false && userSelectionsTwo.tryAgain === true)
 
     // Debug
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelectionsTwo, `${clsDbgNs}askUserForSkipGroups:userSelections: `);
+    SfdxFalconDebug.obj(`${dbgNs}askUserForSkipGroups:`, userSelectionsTwo, `${clsDbgNs}askUserForSkipGroups:userSelections: `);
 
     // If the user did not affirmatively ask to PROCEED, then we must exit.
     if (userSelectionsTwo.proceed === false) {
@@ -206,7 +206,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     }
 
     // Done! This list of Skip Groups should be respected when the recipe is compiled.
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, finalSkipGroups, `${clsDbgNs}askUserForSkipGroups:finalSkipGroups: `);
+    SfdxFalconDebug.obj(`${dbgNs}askUserForSkipGroups:`, finalSkipGroups, `${clsDbgNs}askUserForSkipGroups:finalSkipGroups: `);
     return finalSkipGroups;
   }
 
@@ -296,7 +296,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     } while (userSelections.proceed === false && userSelections.tryAgain === true)
 
     // Debug
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, userSelections, `${clsDbgNs}askUserForTargetOrgAlias:userSelections: `);
+    SfdxFalconDebug.obj(`${dbgNs}askUserForTargetOrgAlias:`, userSelections, `${clsDbgNs}askUserForTargetOrgAlias:userSelections: `);
 
     // If the user did not affirmatively ask to PROCEED, then we must exit.
     if (userSelections.proceed !== true) {
@@ -455,7 +455,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
   protected async initializePostBuildStepGroups():Promise<void> {
     // Intentionally empty. No post-build steps needed for AppxDemoConfigEngine.
     // DEBUG (see all the pre-build step groups added in this call).
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.postBuildStepGroups, `${clsDbgNs}initializePostBuildStepGroups:this.postBuildStepGroups: `);
+    SfdxFalconDebug.obj(`${dbgNs}initializePostBuildStepGroups:`, this.postBuildStepGroups, `${clsDbgNs}initializePostBuildStepGroups:this.postBuildStepGroups: `);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -503,7 +503,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     }
 
     // DEBUG (see all the pre-build step groups added in this call).
-    SfdxFalconDebug.obj(`FALCON:${dbgNs}`, this.preBuildStepGroups, `${clsDbgNs}initializePreBuildStepGroups:this.preBuildStepGroups: `);
+    SfdxFalconDebug.obj(`${dbgNs}initializePreBuildStepGroups:`, this.preBuildStepGroups, `${clsDbgNs}initializePreBuildStepGroups:this.preBuildStepGroups: `);
 
   }
 
@@ -523,7 +523,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
       throw new Error (`ERROR_RECIPE_NOT_VALIDATED: The call to initializeRecipeEngineContext () `
                       +`was made before the incoming recipe was validated`);
     }
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext.compileOptions, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext.compileOptions: `);
+    SfdxFalconDebug.obj(`${dbgNs}initializeRecipeEngineContext:`, this.engineContext.compileOptions, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext.compileOptions: `);
 
     // Store a reference to the Recipe's Project Context.
     this.engineContext.projectContext = this.recipe.projectContext;
@@ -544,7 +544,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     this.engineContext.executing    = false;
 
     // Final DEBUG before returning.
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
+    SfdxFalconDebug.obj(`${dbgNs}initializeRecipeEngineContext:`, this.engineContext, `${clsDbgNs}initializeRecipeEngineContext:this.engineContext: (at end of Engine Context Initialization) `);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -639,7 +639,7 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
                       +`does not match any of the targetOrgs in your recipe`);
     }
 
-    SfdxFalconDebug.obj(`FALCON_EXT:${dbgNs}`, selectedTargetOrg, `${clsDbgNs}initializeTargetOrg:selectedTargetOrg: `);
+    SfdxFalconDebug.obj(`${dbgNs}initializeTargetOrg:`, selectedTargetOrg, `${clsDbgNs}initializeTargetOrg:selectedTargetOrg: `);
 
     // Set the Engine Context's Target Org.
     this.engineContext.targetOrg = selectedTargetOrg;

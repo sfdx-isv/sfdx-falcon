@@ -74,7 +74,7 @@ OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory to clone the AppExchange Demo Kit (ADK) project
                                                   into
 
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
+  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
@@ -94,7 +94,7 @@ EXAMPLES
                           --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.91/src/commands/falcon/adk/clone.ts)_
+_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/clone.ts)_
 
 ## `sfdx-falcon falcon:adk:create`
 
@@ -106,7 +106,7 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory where your ADK project will be created
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
+  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
@@ -124,7 +124,7 @@ EXAMPLES
   $ sfdx falcon:adk:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.91/src/commands/falcon/adk/create.ts)_
+_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/create.ts)_
 
 ## `sfdx-falcon falcon:adk:install`
 
@@ -144,7 +144,7 @@ OPTIONS
   -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
                                                   JSON string
 
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
+  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
@@ -164,7 +164,7 @@ EXAMPLES
                             --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.91/src/commands/falcon/adk/install.ts)_
+_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/install.ts)_
 
 ## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
 
@@ -180,7 +180,7 @@ ARGUMENTS
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory to clone the project into
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
+  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
@@ -200,7 +200,7 @@ EXAMPLES
                          --outputdir ~/projects/appexchange-package-kit-projects
 ```
 
-_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.91/src/commands/falcon/apk/clone.ts)_
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/clone.ts)_
 
 ## `sfdx-falcon falcon:apk:create`
 
@@ -212,7 +212,7 @@ USAGE
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory where your APK project will be created
-  --falcondebug=falcondebug                       List of debug namespaces which should render output
+  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
 
   --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
                                                   displayed
@@ -230,7 +230,7 @@ EXAMPLES
   $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.91/src/commands/falcon/apk/create.ts)_
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/create.ts)_
 <!-- commandsstop -->
 
 

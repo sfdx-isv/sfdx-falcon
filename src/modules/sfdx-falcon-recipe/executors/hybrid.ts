@@ -10,10 +10,11 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-//import * as jsf             from 'jsforce';                                   // Why?
-//import {Aliases}            from '@salesforce/core'                         // Why?
-//import {AuthInfo}           from '@salesforce/core'                         // Why?
-import {Connection}           from '@salesforce/core'                         // Why?
+//import * as jsf             from 'jsforce';           // Why?
+//import {Aliases}            from '@salesforce/core';  // Why?
+//import {AuthInfo}           from '@salesforce/core';  // Why?
+import {Connection}           from '@salesforce/core';  // Why?
+import {RecordResult}         from 'jsforce';           // Wny?
 
 // Import Internal Modules
 import {waitASecond}                  from  '../../sfdx-falcon-async';          // Why?
@@ -23,25 +24,80 @@ import {updateObserver}               from  '../../sfdx-falcon-notifications';  
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';  // Class. Provides services related to Listr-based progress notifications.
 
 // Import Local Types
-import {TargetOrg}                    from  '../types';                         // Interface. Represents an org that will be targeted by SFDX/JSForce code.
-import {ExecutorMessages}             from  '../types';                         // Interface. Represents an org that will be targeted by SFDX/JSForce code.
-import {InsertResult}                 from  '../../sfdx-falcon-util/jsforce';   // Interface. Represents the result of a JSForce insert() call.
+import {TargetOrg}                    from  '../types'; // Interface. Represents an org that will be targeted by SFDX/JSForce code.
+import {ExecutorMessages}             from  '../types'; // Interface. Represents the standard messages that most Executors use for Observer notifications.
 
 // Import Utility Functions
-
 import {changePassword}               from  '../../sfdx-falcon-util/jsforce';   // Function. Changes the password of the specified user in the target org.
 //import {createSfdxOrgConfig}          from  '../../sfdx-falcon-util/jsforce';   // Function. Creates an SfdxOrgConfig struct based on a given connection.
 import {getAssignedPermsets}          from  '../../sfdx-falcon-util/jsforce';   // Function. Gets a list of permsets assigned to a given user.
-import {getProfileId, }               from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a profile, given its name.
+import {getProfileId}                 from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a profile, given its name.
 import {getUserId}                    from  '../../sfdx-falcon-util/jsforce';   // Function. Gets the Record ID of a user, given the username.
-import {restApiRequest}               from  '../../sfdx-falcon-util/jsforce';   // Function. ???
-import {RestApiRequestDefinition}     from  '../../sfdx-falcon-util/jsforce';   // Interface. ???
-import {getConnection}                from  '../../sfdx-falcon-util/sfdx';      // Function. ???
+import {restApiRequest}               from  '../../sfdx-falcon-util/jsforce';   // Function. Makes a REST API request via a JSForce connection.
+import {RestApiRequestDefinition}     from  '../../sfdx-falcon-util/jsforce';   // Interface. Defines the proper structure of a Salesforce REST API Request.
+import {getConnection}                from  '../../sfdx-falcon-util/sfdx';      // Function. Gets a JSForce Connection to a particular org.
 import {resolveConnection}            from  '../../sfdx-falcon-util/sfdx';      // Function. Takes either an alias or a connection and gives back a connection.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'EXECUTOR:hybrid:';
 //const clsDbgNs  = '';
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   AssignPermsetsResultDetail
+ * @description Represents the structure of the "Result Detail" object used by assignPermsets().
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface AssignPermsetsResultDetail {
+  userId:                 string;
+  permsets:               Array<string>;
+  connection:             Connection;
+  permsetList:            string;
+  qrPermsets:             any;
+  permsetIds:             Array<string>;
+  permsetsFound:          any;
+  assignedPermsets:       Array<string>;
+  unassignedPermsets:     Array<string>;
+  permsetAssignmentRecs:  Array<any>;
+  assignmentResults:      RecordResult;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   ConfigureUserResultDetail
+ * @description Represents the structure of the "Result Detail" object used by configureUser().
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface ConfigureUserResultDetail {
+  username:             string;
+  userDefinition:       any;
+  targetOrg:            TargetOrg;
+  connection:           Connection;
+  profileId:            string;
+  userId:               string;
+  cleanUserDefinition:  any;
+  updateUserRequest:    RestApiRequestDefinition;
+  updateUserResponse:   any;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @interface   CreateUserResultDetail
+ * @description Represents the structure of the "Result Detail" object used by createUser().
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+interface CreateUserResultDetail {
+  uniqueUsername:       string;
+  password:             string;
+  userDefinition:       any;
+  targetOrg:            TargetOrg;
+  connection:           Connection;
+  profileId:            string;
+  userId:               string;
+  cleanUserDefinition:  any;
+  createUserRequest:    RestApiRequestDefinition;
+  createUserResponse:   any;
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -60,7 +116,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Initialize an EXECUTOR Result for this function.
   let executorResult = new SfdxFalconResult(`hybrid:assignPermsets`, SfdxFalconResultType.EXECUTOR);
-  executorResult.detail = {
+  let executorResultDetail = {
     userId:                 userId,
     permsets:               permsets,
     connection:             null,
@@ -72,8 +128,9 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
     unassignedPermsets:     null,
     permsetAssignmentRecs:  null,
     assignmentResults:      null
-  };
-  executorResult.debugResult(`Initialized`, `${dbgNs}assignPermsets`);
+  } as AssignPermsetsResultDetail;
+  executorResult.detail = executorResultDetail;
+  executorResult.debugResult(`Initialized`, `${dbgNs}assignPermsets:`);
 
   // Validate arguments
   if (typeof userId !== 'string') {
@@ -93,7 +150,7 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
 
   // Create the search list of permset names
   let permsetList = permsets.map(item => `'${item}'`).join(',');
-  executorResult.detail.permsetList = permsetList;
+  executorResultDetail.permsetList = permsetList;
 
   // Get the IDs for the array of permsets passed by the caller.
   const permSet = rc.connection.sobject('PermissionSet');
@@ -101,20 +158,20 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
       `Name IN (${permsetList})`, // Conditions
       `Name, Id`                  // Fields
     )
-  executorResult.detail.qrPermsets = qrPermsets;
+  executorResultDetail.qrPermsets = qrPermsets;
 
   // Create an array of just the permset Ids.
   let permsetIds = qrPermsets.map(record => record.Id) as [string];
-  executorResult.detail.permsetIds = permsetIds;
-  executorResult.debugResult(`Got the IDs for all requested Permsets`, `${dbgNs}assignPermsets`);
+  executorResultDetail.permsetIds = permsetIds;
+  executorResult.debugResult(`Got the IDs for all requested Permsets`, `${dbgNs}assignPermsets:`);
   
   // Make sure we found IDs for each Permset on the list.
   if (permsets.length !== permsetIds.length) {
     let permsetsRequested = permsets.join('\n');
     let permsetsFound = qrPermsets.map(record => `${record.Name} (${record.Id})`);
     permsetsFound = (permsetsFound) ? permsetsFound.join('\n') : 'NONE';
-    executorResult.detail.permsetsFound = permsetsFound;
-    executorResult.debugResult(`One or more requested Permsets not found`, `${dbgNs}assignPermsets`);
+    executorResultDetail.permsetsFound = permsetsFound;
+    executorResult.debugResult(`One or more requested Permsets not found`, `${dbgNs}assignPermsets:`);
 
     executorResult.throw(new Error  (`ERROR_MISSING_PERMSET: One or more of the specified permsets do not `
                                     +`exist in the target org (${rc.orgIdentifier}).\n\n`
@@ -125,11 +182,11 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
   // Find out if any Permsets are already assigned.
   let assignedPermsets = await getAssignedPermsets(rc.connection, userId)
     .catch(error => {executorResult.throw(error)}) as string[];
-  executorResult.detail.assignedPermsets = assignedPermsets;
+  executorResultDetail.assignedPermsets = assignedPermsets;
 
   // Remove assigned permset IDs from the list of requested permset IDs
   let unassignedPermsets = permsetIds.filter(permsetId => !assignedPermsets.includes(permsetId));
-  executorResult.detail.unassignedPermsets = unassignedPermsets;
+  executorResultDetail.unassignedPermsets = unassignedPermsets;
   
   // Create PermissionSetAssignment records.
   let permsetAssignmentRecs = new Array();
@@ -139,21 +196,33 @@ export async function assignPermsets(aliasOrConnection:string|Connection, userId
       PermissionSetId: permsetId
     });
   }
-  executorResult.detail.permsetAssignmentRecs = permsetAssignmentRecs;
+  executorResultDetail.permsetAssignmentRecs = permsetAssignmentRecs;
 
   // Insert the PermissionSetAssignment records.
   const permSetAssignment = rc.connection.sobject('PermissionSetAssignment');
   const assignmentResults = await permSetAssignment.insert(permsetAssignmentRecs)
-    .catch(error => {executorResult.throw(error)}) as [InsertResult];
-  executorResult.detail.assignmentResults = assignmentResults;
+    .catch(error => {executorResult.throw(error)}) as RecordResult;
+  executorResultDetail.assignmentResults = assignmentResults;
 
   // Make sure the insert was successful.
-  for (let i=0; i < assignmentResults.length; i++) {
-    if (assignmentResults[0].success === false) {
-      executorResult.throw(new Error(`ERROR_PERMSET_ASSIGNMENT: One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`));
+  if (Array.isArray(assignmentResults)) {
+    // Check for failure on an array of records.
+    for (let i=0; i < assignmentResults.length; i++) {
+      if (assignmentResults[0].success === false) {
+        // Found a failed insert
+        executorResult.throw(new Error(`One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`));
+      }
     }
   }
-  executorResult.debugResult(`Permset Assignment Successful`, `${dbgNs}assignPermsets`);
+  else {
+    // Check for failure on a single record.
+    if (assignmentResults.success === false) {
+      executorResult.throw(new Error(`One or more Permission Sets could not be assigned.\n\n${JSON.stringify(assignmentResults)}`));
+    }
+  }
+
+  // Debug
+  executorResult.debugResult(`Permset Assignment Successful`, `${dbgNs}assignPermsets:`);
 
   // Mark the EXECUTOR Result as successful and return to caller.
   return executorResult.success();
@@ -181,7 +250,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
 
   // Initialize an EXECUTOR Result for this function.
   let executorResult = new SfdxFalconResult(`hybrid:configureUser`, SfdxFalconResultType.EXECUTOR);
-  executorResult.detail = {
+  let executorResultDetail = {
     username:             username,
     userDefinition:       userDefinition,
     targetOrg:            targetOrg,
@@ -191,8 +260,9 @@ export async function configureUser(username:string, userDefinition:any, targetO
     cleanUserDefinition:  null,
     updateUserRequest:    null,
     updateUserResponse:   null
-  };
-  executorResult.debugResult(`Initialized`, `${dbgNs}configureUser`);
+  } as ConfigureUserResultDetail;
+  executorResult.detail = executorResultDetail;
+  executorResult.debugResult(`Initialized`, `${dbgNs}configureUser:`);
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
@@ -201,17 +271,17 @@ export async function configureUser(username:string, userDefinition:any, targetO
   // We will be making multiple API calls, so grab a connection.
   const connection = await getConnection(targetOrg.alias)
     .catch(error => {executorResult.throw(error)}) as Connection;
-  executorResult.detail.connection = connection;
+  executorResultDetail.connection = connection;
 
   // Get the ID of the Profile Name from the User Definition.
   let profileId = await getProfileId(connection, userDefinition.profileName)
     .catch(error => {executorResult.throw(error)}) as string;
-  executorResult.detail.profileId = profileId;
+  executorResultDetail.profileId = profileId;
 
   // Get the Record Id of the Salesforce User that will be updated.
   let userId = await getUserId(connection, username)
     .catch(error => {executorResult.throw(error)}) as string;
-  executorResult.detail.userId = userId;
+  executorResultDetail.userId = userId;
 
   // Strip all SFDX-specific properties from the user definition object.
   let cleanUserDefinition = {...userDefinition};
@@ -221,7 +291,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
   delete cleanUserDefinition.password;
   delete cleanUserDefinition.Username;
   delete cleanUserDefinition.Email;
-  executorResult.detail.cleanUserDefinition = cleanUserDefinition;
+  executorResultDetail.cleanUserDefinition = cleanUserDefinition;
 
   // Create a REST API Request object
   let updateUserRequest:RestApiRequestDefinition = {
@@ -234,14 +304,14 @@ export async function configureUser(username:string, userDefinition:any, targetO
       })
     }
   }
-  executorResult.detail.updateUserRequest = updateUserRequest;
-  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}configureUser`);
+  executorResultDetail.updateUserRequest = updateUserRequest;
+  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}configureUser:`);
 
   // Execute the command. If the user fails to update, JSForce will throw an exception.
   // TODO: Find out why Admin user update fails.
   let updateUserResponse = await restApiRequest(updateUserRequest)
     .catch(error => {executorResult.throw(error)});
-  executorResult.detail.updateUserResponse = updateUserResponse;
+  executorResultDetail.updateUserResponse = updateUserResponse;
 
   // Assign permsets to the Admin User (if present)
   if (typeof userDefinition.permsets !== 'undefined') {
@@ -249,7 +319,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
       .then(successResult => {executorResult.addChild(successResult)})
       .catch(error => {executorResult.throw(error)});
   }
-  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}configureUser`);
+  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}configureUser:`);
 
   // Stop the progress notifications for this command.
   FalconProgressNotifications.finish(progressNotifications)
@@ -288,7 +358,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
 
   // Initialize an EXECUTOR Result for this function.
   let executorResult = new SfdxFalconResult(`hybrid:createUser`, SfdxFalconResultType.EXECUTOR);
-  executorResult.detail = {
+  let executorResultDetail = {
     uniqueUsername:       uniqueUsername,
     password:             password,
     userDefinition:       userDefinition,
@@ -299,8 +369,9 @@ export async function createUser(uniqueUsername:string, password:string, userDef
     cleanUserDefinition:  null,
     createUserRequest:    null,
     createUserResponse:   null
-  };
-  executorResult.debugResult(`Initialized`, `${dbgNs}createUser`)
+  } as CreateUserResultDetail;
+  executorResult.detail = executorResultDetail;
+  executorResult.debugResult(`Initialized`, `${dbgNs}createUser:`)
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
@@ -309,12 +380,12 @@ export async function createUser(uniqueUsername:string, password:string, userDef
   // We will be making multiple API calls, so grab a connection.
   const connection = await getConnection(targetOrg.alias)
     .catch(error => {executorResult.throw(error)}) as Connection;
-  executorResult.detail.connection = connection;
+  executorResultDetail.connection = connection;
 
   // Get the ID of the Profile Name from the User Definition.
   let profileId = await getProfileId(targetOrg.alias, userDefinition.profileName)
     .catch(error => {executorResult.throw(error)}) as string;
-  executorResult.detail.profileId = profileId;
+  executorResultDetail.profileId = profileId;
 
   // Strip all SFDX-specific properties from the user definition object.
   let cleanUserDefinition = {...userDefinition};
@@ -323,7 +394,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
   delete cleanUserDefinition.profileName;
   delete cleanUserDefinition.password;
   delete cleanUserDefinition.Username;
-  executorResult.detail.cleanUserDefinition = cleanUserDefinition;
+  executorResultDetail.cleanUserDefinition = cleanUserDefinition;
 
   // Create a REST API Request object
   let createUserRequest:RestApiRequestDefinition = {
@@ -338,14 +409,14 @@ export async function createUser(uniqueUsername:string, password:string, userDef
       })
     }
   }
-  executorResult.detail.createUserRequest = createUserRequest;
-  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}createUser`);
+  executorResultDetail.createUserRequest = createUserRequest;
+  executorResult.debugResult(`Created REST API Request Object`, `${dbgNs}createUser:`);
 
   // Execute the command. If the user fails to create, JSForce will throw an exception.
   let createUserResponse = await restApiRequest(createUserRequest)
     .catch(error => {executorResult.throw(error)});
-  executorResult.detail.createUserResponse = createUserResponse;
-  executorResult.debugResult(`Created a new Salesforce User`, `${dbgNs}createUser`);
+  executorResultDetail.createUserResponse = createUserResponse;
+  executorResult.debugResult(`Created a new Salesforce User`, `${dbgNs}createUser:`);
 
   // Get the Record Id of the User that was just created.
   let userId = createUserResponse.id;
@@ -360,7 +431,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
       .then(successResult => {executorResult.addChild(successResult)})
       .catch(error => {executorResult.throw(error)});
   }
-  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}createUser`);
+  executorResult.debugResult(`Assigned Permission Sets`, `${dbgNs}createUser:`);
 
   // Register the user with the local CLI
   // TODO: createSfdxOrgConfig is causing installations to fail when performed from 

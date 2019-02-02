@@ -14,14 +14,16 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Messages}                     from  '@salesforce/core'; // Messages library that simplifies using external JSON for string reuse.
+import {flags}                        from  '@salesforce/command';  // Allows creation of flags for CLI commands.
+import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
+import {SfdxError}                    from  '@salesforce/core';     // Generalized SFDX error which also contains an action.
 
 // Import Local Modules
 import {SfdxFalconYeomanCommand}      from  '../../../modules/sfdx-falcon-yeoman-command';  // Base class that CLI commands in this project that use Yeoman should use.
+import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';           // Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 
 // Import Internal Types
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
-
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-create:';
@@ -67,14 +69,13 @@ export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
   //                  Defaults to . (current directory) if not specified.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
-    outputdir: {
+    outputdir: flags.directory({
       char: 'd', 
       required: false,
-      type: 'directory',
       description: commandMessages.getMessage('outputdir_FlagDescription'),
       default: '.',
       hidden: false
-    },
+    }),
 
     // IMPORTANT! The next line MUST be here to import the FalconDebug flags.
     ...SfdxFalconYeomanCommand.falconBaseflagsConfig
@@ -106,5 +107,25 @@ export default class FalconDemoCreate extends SfdxFalconYeomanCommand {
 
     // Return the JSON Response that was created by onSuccess()
     return this.falconJsonResponse;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      buildFinalError
+   * @param       {SfdxFalconError} cmdError  Required. Error object used as 
+   *              the basis for the "friendly error message" being created 
+   *              by this method.
+   * @returns     {SfdxError}
+   * @description Builds a user-friendly error message that is appropriate to
+   *              the CLI command that's being implemented by this class. The
+   *              output of this method will always be used by the onError()
+   *              method from the base class to communicate the end-of-command 
+   *              error state.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected buildFinalError(cmdError:SfdxFalconError):SfdxError {
+    // If not implementing anything special here, simply return cmdError.
+    return cmdError;
   }
 }
