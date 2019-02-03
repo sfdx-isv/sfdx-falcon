@@ -18,7 +18,7 @@ import {SfdxFalconDebug}    from  '../sfdx-falcon-debug'; // Class. Internal Deb
 import {SfdxFalconError}    from  '../sfdx-falcon-error'; // Class. Provides custom Error structures for SFDX-Falcon.
 
 // Require Modules
-const uuid = require('uuid/v1');                            // Generates a timestamp-based UUID
+const uuid = require('uuid/v1');  // Generates a timestamp-based UUID
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:general:';
@@ -85,11 +85,9 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
 /**
  * @function    safeParse
  * @param       {any} contentToParse  Required. The content to be parsed.
- *                                      that will be parsed to create an SFDX Command String.
  * @returns     {object}  A JavaScript object based on the content to parse.
  * @description Given any content to parse, returns a JavaScript object based on that content. If
  *              the content is not parseable, it is returned as an object with one key: unparsed.
- * @version     1.0.0
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -100,4 +98,24 @@ export function safeParse(contentToParse:any):object {
   } catch(e) {
     return {unparsed: `${contentToParse}`}
   }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    findJson
+ * @param       {string} contentToSearch  Required. A string buffer that may contain JSON.
+ * @returns     {object}  A parsed JavaScript object found in the string buffer, or NULL.
+ * @description Given any string buffer, search that buffer to find a single JSON object. If
+ *              a parseable object is found, it is returned as an object. Otherwise returns NULL.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function findJson(contentToSearch:string):object {
+  SfdxFalconDebug.str(`${dbgNs}findJson:`, contentToSearch, `${clsDbgNs}contentToSearch: `);
+  let possibleJson  = contentToSearch.substring(contentToSearch.indexOf('{'), contentToSearch.lastIndexOf('}')+1);
+  let foundJson     = safeParse(possibleJson);
+  if (foundJson.hasOwnProperty('unparsed')) {
+    foundJson = null;
+  }
+  return foundJson;
 }
