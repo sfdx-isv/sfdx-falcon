@@ -22,6 +22,7 @@
     "sfdx-falcon-appx-demo-kit": "0.0.9",
     "sfdx-falcon-appx-package-kit": "0.0.3",
     "shelljs": "0.8.3",
+    "tslib": "^1.9.3",
     "uuid": "3.3.2",
     "yeoman-environment": "2.3.4",
     "yeoman-generator": "3.2.0",
@@ -31,7 +32,6 @@
     "@oclif/dev-cli": "1.21.0",
     "@oclif/plugin-help": "2.1.6",
     "@oclif/test": "1.2.2",
-    "@oclif/tslint": "3.1.1",
     "@salesforce/dev-config": "1.4.4",
     "@types/chai": "^4.1.7",
     "@types/jsforce": "^1.9.4",
@@ -45,19 +45,19 @@
     "chai": "4.2.0",
     "globby": "9.0.0",
     "mocha": "5.2.0",
+    "nyc": "^13.2.0",
     "sinon": "^7.2.3",
     "ts-node": "^8.0.2",
-    "tslib": "^1.9.3",
-    "tslint": "^5.12.1",
     "typescript": "^3.3.1"
   },
   "engines": {
     "node": ">=8.0.0"
   },
   "files": [
-    ".oclif.manifest.json",
     "/lib",
-    "/messages"
+    "/messages",
+    "/npm-shrinkwrap.json",
+    ".oclif.manifest.json"
   ],
   "homepage": "https://sfdx-isv.github.io/sfdx-falcon/",
   "keywords": [
@@ -74,17 +74,24 @@
   "license": "MIT",
   "oclif": {
     "commands": "./lib/commands",
+    "topics": {
+      "adk": {
+        "description": "AppExchange Demo Kit commands"
+      },
+      "apk": {
+        "description": "AppExchange Package Kit commands"
+      }
+    },
     "devPlugins": [
       "@oclif/plugin-help"
     ]
   },
   "repository": "sfdx-isv/sfdx-falcon",
   "scripts": {
-    "postpack": "rm -f .oclif.manifest.json",
-    "posttest": "tsc -p test --noEmit && tslint -p test -t stylish",
-    "prepack": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
-    "prepare": "rm -rf lib && tsc && oclif-dev manifest && oclif-dev readme",
-    "test": "mocha --forbid-only \"test/**/*.test.ts\"",
+    "postpack": "rm -f oclif.manifest.json npm-shrinkwrap.json",
+    "posttest": "tslint -p test -t stylish",
+    "prepare": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme && npm shrinkwrap",
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif-dev readme && git add README.md"
   }
 }
