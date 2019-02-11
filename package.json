@@ -5,7 +5,7 @@
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon/issues",
   "dependencies": {
-    "@oclif/command": "1.5.8",
+    "@oclif/command": "1.5.10",
     "@oclif/config": "1.12.4",
     "@oclif/errors": "1.2.2",
     "@salesforce/command": "1.2.0",
