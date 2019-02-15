@@ -17,7 +17,7 @@
     "listr": "0.14.3",
     "lodash": "4.17.11",
     "pad": "2.2.2",
-    "request-promise-native": "1.0.5",
+    "request-promise-native": "1.0.6",
     "rxjs": "6.4.0",
     "sfdx-falcon-appx-demo-kit": "0.0.9",
     "sfdx-falcon-appx-package-kit": "0.0.3",
