@@ -1,7 +1,7 @@
 import { expect, test } from '@salesforce/command/lib/test';
 import { ensureJsonMap, ensureString } from '@salesforce/ts-types';
 
-describe('hello:org', () => {
+describe('VMC Testing TESTS', () => {
   test
     .withOrg({ username: 'test@org.com' }, true)
     .withConnectionRequest(request => {
@@ -12,7 +12,7 @@ describe('hello:org', () => {
       return Promise.resolve({ records: [] });
     })
     .stdout()
-    .command(['hello:org', '--targetusername', 'test@org.com'])
+    .command(['falcon:adk:create', '--targetusername', 'test@org.com'])
     .it('runs hello:org22 --targetusername test@org.com', ctx => {
       expect(ctx.stdout).to.contain('Hello world! This is org: Super Awesome Org and I will be around until Tue Mar 20 2018!');
     });
