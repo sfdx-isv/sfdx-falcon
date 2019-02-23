@@ -1,3 +1,31 @@
 {
-  "extends": "@salesforce/dev-config/tslint"
+  "extends": "@salesforce/dev-config/tslint",
+  "rules": {
+    "comment-format": false,
+    "typedef-whitespace": [
+      true,
+      {
+        "call-signature": "nospace",
+        "index-signature": "nospace",
+        "parameter": "nospace",
+        "property-declaration": "nospace",
+        "variable-declaration": "nospace"
+      },
+      {
+        "call-signature": "nospace",
+        "index-signature": "onespace",
+        "parameter": "nospace",
+        "property-declaration": "space",
+        "variable-declaration": "nospace"
+      }      
+    ],
+    "import-spacing": false,
+    "no-consecutive-blank-lines": false,
+    "no-trailing-whitespace": [true, "ignore-blank-lines"],
+    "one-line": [true, "check-open-brace", "check-whitespace"],
+    "whitespace": [true, "check-branch", "check-separator"],
+    // Remove these rule overrides once we have time for a style/formatting pass
+    "quotemark": false
+
+  }
 }
