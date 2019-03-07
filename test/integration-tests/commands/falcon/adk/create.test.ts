@@ -1,39 +1,74 @@
-import { test } from '@salesforce/command/lib/test';
-//import { ensureJsonMap, ensureString } from '@salesforce/ts-types';
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @file          test/integration-tests/commands/falcon/adk/create.test.ts
+ * @copyright     Vivek M. Chawla - 2019
+ * @author        Vivek M. Chawla <@VivekMChawla>
+ * @summary       Integration tests for the falcon:adk:create command.
+ * @description   Integration tests for the falcon:adk:create command.
+ * @version       1.0.0
+ * @license       MIT
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import Modules=
+import { expect }           from 'chai';
+import { executeWithInput } from '../../../../helpers/cmd';
+import { getOutputLines }   from '../../../../helpers/cmd';
+import { KEY }              from '../../../../helpers/cmd';
 
-export enum KEY {
-  DOWN  = '\x1B\x5B\x42',
-  UP    = '\x1B\x5B\x41',
-  ENTER = '\x0D',
-  SPACE = '\x20'
-}
 
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * Test suite for falcon:adk:create.
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 describe('falcon:adk:create', () => {
 
+  // Test One
+  it('should successfully create an ADK project', async () => {
+    const commandResponse = await executeWithInput(
+      process.env.FALCON_COMMAND_RUNNER,    // Path to the process that will be run.
+      [
+        'falcon:adk:create'                 // First member of the array must be the CLI command we want to run.
+      ],
+      [
+        {input: KEY.ENTER, delay: 20000},
+        {input: KEY.ENTER, delay: 200},
+        {input: KEY.ENTER, delay: 200},
+        {input: 'N' + KEY.ENTER, delay: 200},
+        {input: 'Y' + KEY.ENTER, delay: 200},
+        {input: KEY.ENTER, delay: 200},
+        {input: KEY.ENTER, delay: 200},
+        {input: KEY.ENTER, delay: 200},
+        {input: KEY.ENTER, delay: 200},
+        {input: 'Y' + KEY.ENTER, delay: 200}
+      ],
+      {
+        envVars: {
+          SFDX_JSON_TO_STDOUT: true,      // Sends all JSON output to STDOUT
+          SFDX_AUTOUPDATE_DISABLE: true   // Disables the Salesforce CLI AutoUpdate feature
+        },
+        workingDir: process.env.FALCON_TEST_TEMPDIR,
+        showOutput: true,
+        minTimeout: 100,
+        maxTimeout: 300000
+      }
+    );
+
+    // Display the Command Response if the DEBUG_FALCON_TESTS environment variable is TRUE
+    if (process.env.DEBUG_FALCON_TESTS) {
+      console.log('Command Response:\n%O', commandResponse);
+    }
+
+    // Check exit code.
+    expect(commandResponse.exitCode)
+      .to
+      .equal(0, 'Non-zero Exit Code');
+    // Check final output.
+    expect(getOutputLines(commandResponse, [-1]))
+      .to
+      .equal('Command Succeded   : falcon:adk:create completed successfully',  'Incorrect Final Output');
+  }).timeout(120000);
+
+  // Test Two...
 
 });
-
-
-
-
-/*
-describe('falcon:adk:create', () => {
-  test
-//    .stdin(KEY.ENTER, 30000)
-//    .stdin(KEY.ENTER, 34000)
-//    .stdin(KEY.ENTER, 38000)
-    .stdout({print: true})
-    .timeout(2000000)
-    .do(() => console.log('foo'))
-//    .do(({stdout}) => expect(stdout).to.equal('foo\n'))
-//    .it('does something with context', ctx => {
-//      expect(ctx.stdout).to.equal('foos\n');
-//    });
-    .command(['falcon:adk:create'])
-    .do(() => console.log('foo22222222'))
-    .it('runs falcon:adk:create', ctx => {
-      //console.log(ctx.stdout);
-//      expect(ctx.stdout).to.contain('Initialization Complete', 'HORROR! No Inclusion!');
-    });
-});
-*/
