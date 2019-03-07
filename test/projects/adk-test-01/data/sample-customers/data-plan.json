@@ -1,0 +1,10 @@
+[
+  {
+    "sobject": "Account",
+    "saveRefs": true,
+    "resolveRefs": false,
+    "files": [
+      "account-data-tree.json"
+    ]
+  }
+]

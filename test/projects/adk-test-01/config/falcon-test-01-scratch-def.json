@@ -1,0 +1,19 @@
+{
+  "orgName": "Falcon Test 01",
+  "country": "US",
+  "edition": "Developer",
+  "description": "Falcon Test Scratch Org",
+  "hasSampleData": "false",
+  "language": "en_US",
+  "features": [
+    "Communities",
+    "ContactsToMultipleAccounts"
+  ],
+  "settings": {
+    "orgPreferenceSettings": {
+      "networksEnabled": true,
+      "s1DesktopEnabled": true,
+      "chatterEnabled": true
+    }
+  }
+}

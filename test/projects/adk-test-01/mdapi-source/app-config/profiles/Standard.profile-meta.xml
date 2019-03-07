@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Profile xmlns="http://soap.sforce.com/2006/04/metadata">
+    <layoutAssignments>
+        <layout>Account-isvte_falcon_x__DW Account Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>isvte_falcon_x__DW_Account__c-isvte_falcon_x__DW Account Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>isvte_falcon_x__DW_Order__c-isvte_falcon_x__DW Order Layout</layout>
+    </layoutAssignments>
+    <layoutAssignments>
+        <layout>isvte_falcon_x__DW_Session__c-isvte_falcon_x__DW Session Layout</layout>
+    </layoutAssignments>
+</Profile>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SecuritySettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sessionSettings>
+        <disableTimeoutWarning>true</disableTimeoutWarning>
+        <enableCSPOnEmail>true</enableCSPOnEmail>
+        <enableCSRFOnGet>true</enableCSRFOnGet>
+        <enableCSRFOnPost>true</enableCSRFOnPost>
+        <enableCacheAndAutocomplete>true</enableCacheAndAutocomplete>
+        <enableClickjackNonsetupSFDC>true</enableClickjackNonsetupSFDC>
+        <enableClickjackNonsetupUser>false</enableClickjackNonsetupUser>
+        <enableClickjackNonsetupUserHeaderless>false</enableClickjackNonsetupUserHeaderless>
+        <enableClickjackSetup>true</enableClickjackSetup>
+        <enableContentSniffingProtection>true</enableContentSniffingProtection>
+        <enablePostForSessions>false</enablePostForSessions>
+        <enableSMSIdentity>false</enableSMSIdentity>
+        <enableUpgradeInsecureRequests>true</enableUpgradeInsecureRequests>
+        <enableXssProtection>true</enableXssProtection>
+        <enforceIpRangesEveryRequest>false</enforceIpRangesEveryRequest>
+        <forceLogoutOnSessionTimeout>false</forceLogoutOnSessionTimeout>
+        <forceRelogin>false</forceRelogin>
+        <hstsOnForcecomSites>false</hstsOnForcecomSites>
+        <identityConfirmationOnEmailChange>false</identityConfirmationOnEmailChange>
+        <identityConfirmationOnTwoFactorRegistrationEnabled>false</identityConfirmationOnTwoFactorRegistrationEnabled>
+        <lockSessionsToDomain>false</lockSessionsToDomain>
+        <lockSessionsToIp>false</lockSessionsToIp>
+        <redirectionWarning>true</redirectionWarning>
+        <referrerPolicy>true</referrerPolicy>
+        <requireHttpOnly>false</requireHttpOnly>
+        <requireHttps>true</requireHttps>
+        <securityCentralKillSession>true</securityCentralKillSession>
+        <sessionTimeout>TwentyFourHours</sessionTimeout>
+    </sessionSettings>
+</SecuritySettings>
