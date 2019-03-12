@@ -52,19 +52,20 @@ The AppExchange Package Kit (APK) builds on the [SFDX-Falcon Template](https://g
 ## Available Commands
 <!-- install -->
 <!-- commands -->
-* [`sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconadkclone-git-remote-uri-git-clone-dir)
-* [`sfdx-falcon falcon:adk:create`](#sfdx-falcon-falconadkcreate)
-* [`sfdx-falcon falcon:adk:install`](#sfdx-falcon-falconadkinstall)
-* [`sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconapkclone-git-remote-uri-git-clone-dir)
-* [`sfdx-falcon falcon:apk:create`](#sfdx-falcon-falconapkcreate)
+* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-1)
+* [`sfdx-falcon <%= command.id %> [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory--f-string--x-string---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-2)
+* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-3)
 
-## `sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Clones an AppExchange Demo Kit (ADK) project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+  $ sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]
 
 ARGUMENTS
   GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
@@ -85,7 +86,7 @@ OPTIONS
 
   --json                                          format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal)  [default: warn] logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:clone https://github.com/GitHubUser/my-repository.git
@@ -96,13 +97,14 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/clone.ts)_
 
-## `sfdx-falcon falcon:adk:create`
+## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Creates an AppExchange Demo Kit (ADK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:create
+  $ sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory where your ADK project will be created
@@ -117,7 +119,7 @@ OPTIONS
 
   --json                                          format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal)  [default: warn] logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:create
@@ -126,19 +128,21 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/create.ts)_
 
-## `sfdx-falcon falcon:adk:install`
+## `sfdx-falcon <%= command.id %> [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Reads an AppExchange Demo Kit (ADK) Recipe and builds a customized org
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:install
+  $ sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] 
+  [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal]
 
 OPTIONS
   -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
                                                   project
 
-  -f, --configfile=configfile                     Overrides 'demoRecipes' setting from sfdx-project.json to run a
+  -f, --recipefile=recipefile                     Overrides 'demoRecipes' setting from sfdx-project.json to run a
                                                   specific Recipe
 
   -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
@@ -155,7 +159,7 @@ OPTIONS
 
   --json                                          format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal)  [default: warn] logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:install
@@ -166,13 +170,14 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/install.ts)_
 
-## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+  $ sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]
 
 ARGUMENTS
   GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
@@ -191,7 +196,7 @@ OPTIONS
 
   --json                                          format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal)  [default: warn] logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git
@@ -202,13 +207,14 @@ EXAMPLES
 
 _See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/clone.ts)_
 
-## `sfdx-falcon falcon:apk:create`
+## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Creates an AppExchange Package Kit (APK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:apk:create
+  $ sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]
 
 OPTIONS
   -d, --outputdir=outputdir                       [default: .] Directory where your APK project will be created
@@ -223,7 +229,7 @@ OPTIONS
 
   --json                                          format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal)  [default: warn] logging level for this command invocation
 
 EXAMPLES
   $ sfdx falcon:apk:create
