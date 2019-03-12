@@ -1,0 +1,140 @@
+{
+  "recipeName":     "Falcon Test: Recipe 01",
+  "description":    "Test Recipe for Building an ADK Demo",
+  "recipeType":     "appx:demo-recipe",
+  "recipeVersion":  "1.0.0",
+  "schemaVersion":  "0.1.2",
+  "options":  {
+    "haltOnError":      true,
+    "noCustomInstall":  false,
+    "skipGroups":       [],
+    "skipActions":      [],
+    "targetOrgs": [
+      {
+        "orgName":        "Falcon Test: Recipe 01",
+        "alias":          "falcon-test-recipe-01",
+        "description":    "Falcon Test Scratch Org",
+        "isScratchOrg":   true,
+        "scratchDefJson": "falcon-test-01-scratch-def.json"
+      }
+    ]
+  },
+  "recipeStepGroups": [
+    {
+      "stepGroupName":  "Install Packages",
+      "alias":          "install-packages",
+      "description":    "Installs managed and unmanged packages required by this test",
+      "recipeSteps": [
+        { 
+          "stepName":     "Install Falcon-X Managed Package",
+          "description":  "Installs version 1.2 (Beta 10) of the Falcon-X package",
+          "action":       "install-package",
+          "options": {
+            "packageName":      "Falcon-X, Version 1.2 (Beta 10)",
+            "packageVersionId": "04t1N000001bW4g"
+          }
+        },
+        {
+          "stepName":     "Install VMC Base Package",
+          "description":  "Installs version 1.37 (Beta 1) of the VMC Base Package",
+          "action":       "install-package",
+          "options": {
+            "packageName":      "VMC Base Package, Version 1.37 (Beta 1)",
+            "packageVersionId": "04t360000011vqy"
+          }
+        }
+      ]
+    },
+    {
+      "stepGroupName":    "Deploy Metadata",
+      "alias":            "deploy-metadata",
+      "description":      "Deploys code from the mdapi-source directory",
+      "recipeSteps": [
+        {
+          "stepName":     "Deploy App Config",
+          "description":  "Deploys metadata found in mdapi-source/app-config",
+          "action":       "deploy-metadata",
+          "options": {
+            "mdapiSource": "app-config"
+          }
+        },
+        {
+          "stepName":     "Deploy Data Config",
+          "description":  "Deploys metadata found in mdapi-source/data-config",
+          "action":       "deploy-metadata",
+          "options": {
+            "mdapiSource": "data-config"
+          }
+        },
+        {
+          "stepName":     "Deploy Org Config",
+          "description":  "Deploys metadata found in mdapi-source/org-config",
+          "action":       "deploy-metadata",
+          "options": {
+            "mdapiSource": "org-config"
+          }
+        }
+      ]
+    },
+    {
+      "stepGroupName":    "Create and Configure Users",
+      "alias":            "create-users",
+      "description":      "Configure the Admin User and create primary and secondary demo users",
+      "recipeSteps": [
+        {
+          "stepName":     "Configure Admin User",
+          "description":  "Configures the Admin User based on demo-user-admin.json",
+          "action":       "configure-admin-user",
+          "options": {
+            "definitionFile": "falcon-test-01-demo-user-admin.json"
+          }
+        },
+        {
+          "stepName":     "Create Primary Demo User",
+          "description":  "Creates a demo user based on demo-user-primary.json",
+          "action":       "create-user",
+          "options": {
+            "definitionFile": "falcon-test-01-demo-user-primary.json",
+            "sfdxUserAlias":  "sfdc_primary-demo-user"
+          }
+        },
+        {
+          "stepName":     "Create Secondary Demo User",
+          "description":  "Creates a demo user based on demo-user-secondary.json",
+          "action":       "create-user",
+          "options": {
+            "definitionFile": "falcon-test-01-demo-user-secondary.json",
+            "sfdxUserAlias":  "sfdc_secondary-demo-user"
+          }
+        }
+      ]
+    },
+    {
+      "stepGroupName":    "Import/Create Data",
+      "alias":            "import-data",
+      "description":      "Imports or creates data in the demo org",
+      "recipeSteps": [
+        {
+          "stepName":     "Import Custom Settings",
+          "description":  "Imports custom settings data",
+          "action":       "import-data-tree",
+          "options": {
+            "plan": "custom-settings/data-plan.json"
+          }
+        },
+        {
+          "stepName":     "Import Sample Data",
+          "description":  "Imports sample account and DriveWealth data",
+          "action":       "import-data-tree",
+          "options": {
+            "plan": "sample-customers/data-plan.json"
+          }
+        }
+      ]
+    }
+  ],
+  "handlers": [
+    {},
+    {}
+  ]
+}
