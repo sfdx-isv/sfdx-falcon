@@ -45,7 +45,9 @@ export interface ExecOptions {
   envVars?:     AnyJson;
   maxTimeout?:  number;
   minTimeout?:  number;
-  showOutput?:  boolean;
+  showStdout?:  boolean;
+  showStderr?:  boolean;
+  showResult?:  boolean;
   workingDir?:  string;
 }
 
@@ -197,8 +199,10 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
   childProcess.stderr.setEncoding('utf8');
 
   // Pipe stdout and stderr to the console if the caller wants to show output.
-  if (opts && opts.showOutput) {
+  if (opts && opts.showStdout) {
     childProcess.stdout.pipe(process.stdout);
+  }
+  if (opts && opts.showStderr) {
     childProcess.stderr.pipe(process.stderr);
   }
 
@@ -234,6 +238,11 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
       commandOutput.output    = commandOutput.stdout.trim().split('\n');
       commandOutput.exitCode  = code;
       commandOutput.signal    = signal;
+
+      // Show the contents of the Command Output if the showResults option was set.
+      if (opts && opts.showResult) {
+        console.log('Command Output:\n%O', commandOutput);
+      }
 
       // Resolve the promise, returning the Command Output we've collected.
       resolve(commandOutput);

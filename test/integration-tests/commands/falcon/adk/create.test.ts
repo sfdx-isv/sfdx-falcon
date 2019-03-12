@@ -21,7 +21,7 @@ import { KEY }              from '../../../../helpers/cmd';
  * Test suite for falcon:adk:create.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-describe('falcon:adk:create', () => {
+describe.skip('falcon:adk:create', () => {
 
   // Test One
   it('should successfully create an ADK project', async () => {
@@ -48,16 +48,13 @@ describe('falcon:adk:create', () => {
           SFDX_AUTOUPDATE_DISABLE: true   // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: process.env.FALCON_TEST_TEMPDIR,
-        showOutput: true,
+        showStdout: true,
+        showStderr: true,
+        showResult: true,
         minTimeout: 100,
         maxTimeout: 300000
       }
     );
-
-    // Display the Command Response if the DEBUG_FALCON_TESTS environment variable is TRUE
-    if (process.env.DEBUG_FALCON_TESTS) {
-      console.log('Command Response:\n%O', commandResponse);
-    }
 
     // Check exit code.
     expect(commandResponse.exitCode)
