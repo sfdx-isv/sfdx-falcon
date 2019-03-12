@@ -1,5 +1,5 @@
 {
-  "configfile_FlagDescription":         "Overrides 'demoRecipes' setting from sfdx-project.json to run a specific Recipe",
+  "recipefile_FlagDescription":         "Overrides 'demoRecipes' setting from sfdx-project.json to run a specific Recipe",
   "extendedoptions_FlagDescription":    "Options for overriding internal settings passed as a JSON string",
   "projectdir_FlagDescription":         "Path to a directory that contains a fully-configured ADK project",
 

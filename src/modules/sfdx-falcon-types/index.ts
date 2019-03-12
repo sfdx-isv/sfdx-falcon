@@ -1,17 +1,17 @@
-import { Observable } from "rx";
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-types/index.d.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @requires      module:???
  * @summary       ???
  * @description   ???
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules/Types
+import {AnyJson}    from  '@salesforce/ts-types';
+import {Observable} from  'rx';
 
 export interface AppxDemoLocalConfig {
   demoValidationOrgAlias: string;
@@ -55,7 +55,7 @@ export interface AppxPackageProjectConfig {
   packageVersionId: {
     stable: string;
     beta:   string;
-  }
+  };
   partnerAlias:       string;
   partnerName:        string;
   projectAlias:       string;
@@ -74,7 +74,7 @@ export interface FalconConfig {
 }
 
 export interface FalconCommandContext extends FalconSequenceContext {
-  commandObserver:  any;
+  commandObserver:  any;  // tslint:disable-line: no-any
 }
 
 // TODO: Need to finish defining FalconCommandHandler
@@ -87,7 +87,7 @@ export interface FalconCommandSequence {
   sequenceType:     string;
   sequenceVersion:  string;
   description:      string;
-  options:          any;
+  options:          any;  // tslint:disable-line: no-any
   sequenceGroups:   [FalconCommandSequenceGroup];
   handlers:         [FalconCommandHandler];
   schemaVersion:    string;
@@ -97,25 +97,25 @@ export interface FalconCommandSequenceGroup {
   groupId:        string;
   groupName:      string;
   description:    string;
-  sequenceSteps:  Array<FalconCommandSequenceStep>;
+  sequenceSteps:  FalconCommandSequenceStep[];
 }
 
 export interface FalconCommandSequenceStep {
   stepName:     string;
   description:  string;
   action:       string;
-  options:      any;
+  options:      any;  // tslint:disable-line: no-any
   onSuccess?: {
     handler:  string;
-  }
-  onError?:  {
+  };
+  onError?: {
     handler:  string;
-  }
+  };
 }
 
 export interface SfdxFalconJsonResponse {
   falconStatus: number;
-  falconResult: any;
+  falconResult: AnyJson;
 }
 
 export interface FalconSequenceContext {
@@ -127,7 +127,7 @@ export interface FalconSequenceContext {
   mdapiSourcePath:    string;
   dataPath:           string;
   logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-  sequenceObserver:   any;
+  sequenceObserver:   any;  // tslint:disable-line: no-any
 }
 
 export interface ListrTask {
@@ -136,22 +136,24 @@ export interface ListrTask {
   skip?:    boolean|ListrSkipFunction;
   enabled?: boolean|ListrEnabledFunction;
 }
-export interface ListrEnabledFunction {
-  (context?:any):boolean;
-}
-export interface ListrSkipFunction {
-  (context?:any):boolean|string|Promise<boolean|string>;
-}
-export interface ListrTaskFunction {
-  (context?:any, task?:any):void|Promise<void>|Observable<any>; 
-}
-export interface ListrExecutionOptions {
-  listrContext: any;
-  listrTask:    any;
-  observer:     any;
-}
-export type ListrContext = any;
 
+export type ListrEnabledFunction =
+  (context?:any)=> boolean; // tslint:disable-line: no-any
+
+export type ListrSkipFunction =
+  (context?:any) => boolean|string|Promise<boolean|string>;  // tslint:disable-line: no-any
+
+export type ListrTaskFunction =
+  (context?:ListrContext, task?:ListrTask) => void|Promise<void>|Observable<any>; // tslint:disable-line: no-any
+
+export interface ListrExecutionOptions {
+  listrContext: any;  // tslint:disable-line: no-any
+  listrTask:    any;  // tslint:disable-line: no-any
+  observer:     any;  // tslint:disable-line: no-any
+}
+
+export type ListrContext    = any;  // tslint:disable-line: no-any
+export type ListrObservable = any;  // tslint:disable-line: no-any
 
 export enum SfdxCliLogLevel {
   TRACE = 'trace',
@@ -161,4 +163,3 @@ export enum SfdxCliLogLevel {
   ERROR = 'error',
   FATAL = 'fatal'
 }
-

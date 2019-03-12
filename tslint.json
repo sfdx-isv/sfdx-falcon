@@ -22,6 +22,8 @@
     "import-spacing": false,
     "no-consecutive-blank-lines": false,
     "no-trailing-whitespace": [true, "ignore-blank-lines"],
+    "no-var-requires": false,
+    "object-literal-shorthand": [true, "never"],
     "one-line": [true, "check-open-brace", "check-whitespace"],
     "whitespace": [true, "check-branch", "check-separator"],
     // Remove these rule overrides once we have time for a style/formatting pass
