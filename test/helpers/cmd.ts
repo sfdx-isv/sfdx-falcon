@@ -19,6 +19,7 @@ import {ChildProcess} from "child_process";
 const {existsSync}          = require('fs');
 const {constants}           = require('os');
 const {ChildProcess, spawn} = require('cross-spawn');
+const util                  = require('util');        // Provides access to the "inspect" function to help output objects via console.log.
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -29,10 +30,11 @@ const {ChildProcess, spawn} = require('cross-spawn');
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface CommandOutput {
   exitCode?:  number;
-  output?:    string[];
-  signal?:    string;
-  stderr?:    string;
-  stdout?:    string;
+  signal?:      string;
+  stderr?:      string;
+  stderrLines?: string[];
+  stdout?:      string;
+  stdoutLines?: string[];
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -150,14 +152,14 @@ export function createProcess(processPath:string, args:string[]=[], envVars:AnyJ
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    createProcess
+ * @function    executeWithInput
  * @param       {string}      processPath Path of the process to execute
  * @param       {string[]}    args  Arguments to the command
  * @param       {MockInput[]} [mockInputs] (Optional) Array of MockInput objects (user responses)
  * @param       {ExecOptions} [opts] (optional) Environment variables
  * @returns     {Promise<CommandOutput>}  Returns a promise that resolves when all inputs are sent.
  *              Rejects the promise if any error.
- * @description Creates a command and executes inputs (user responses) to the stdin
+ * @description Executes a CLI Plugin command and is capable of sending mock stdin inputs.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -176,10 +178,11 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
 
   // Initialize an object to store output from this function.
   const commandOutput:CommandOutput = {
-    exitCode: null,
-    output:   [],
-    stderr:   '',
-    stdout:   ''
+    exitCode:     null,
+    stderrLines:  [],
+    stdoutLines:  [],
+    stderr:       '',
+    stdout:       ''
   };
 
   // DEVTEST: Echo a variety of path related info so we can see differences between local and CircleCI.
@@ -235,13 +238,14 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
       clearAllTimeouts(trackedTimeouts);
 
       // Prep the Command Output variable for return.
-      commandOutput.output    = commandOutput.stdout.trim().split('\n');
-      commandOutput.exitCode  = code;
-      commandOutput.signal    = signal;
+      commandOutput.stdoutLines = commandOutput.stdout.trim().split('\n');
+      commandOutput.stderrLines = commandOutput.stderr.trim().split('\n');
+      commandOutput.exitCode    = code;
+      commandOutput.signal      = signal;
 
       // Show the contents of the Command Output if the showResults option was set.
       if (opts && opts.showResult) {
-        console.log('Command Output:\n%O', commandOutput);
+        console.log(`Command Output:\n${util.inspect(commandOutput, {depth:10, maxArrayLength:1000, colors:true})}`);
       }
 
       // Resolve the promise, returning the Command Output we've collected.
@@ -252,9 +256,9 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    getOutputLines
- * @param       {CommandOutput} commandOutput Contains the output results of a call to executeWithInput().
- * @param       {number[]}      linesToGet  Index values of individual line numbers to retrieve.
+ * @function    getLines
+ * @param       {string[]}  stringArray Contains the output results of a call to executeWithInput().
+ * @param       {number[]}  linesToGet  Index values of individual line numbers to retrieve.
  *              Negative numbers will fetch lines offset from the end of the output array.
  * @returns     {string} Single concatenated string of all requested lines.
  * @description Given a CommandOutput object and an array of index values, returns a single string
@@ -262,10 +266,10 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function getOutputLines(commandOutput:CommandOutput, linesToGet:number[]):string {
+export function getLines(stringArray:string[], linesToGet:number[]):string {
 
-  // Return an empty string if we didn't get a populated string array in commandOutput.
-  if (Array.isArray(commandOutput.output) === false || commandOutput.output.length === 0) {
+  // Return an empty string if we didn't get a populated string array.
+  if (Array.isArray(stringArray) === false || stringArray.length === 0) {
     return '';
   }
 
@@ -285,14 +289,14 @@ export function getOutputLines(commandOutput:CommandOutput, linesToGet:number[])
     }
 
     // Fetch lines from the END of the array if the requested line is a negative number.
-    if (line < 0 && (commandOutput.output.length - line >= 0)) {
-      returnString += commandOutput.output[commandOutput.output.length - Math.abs(line)];
+    if (line < 0 && (stringArray.length - line >= 0)) {
+      returnString += stringArray[stringArray.length - Math.abs(line)];
       continue;
     }
 
     // Fetch lines by the normal array index if the requested line is a positive number.
-    if (line >= 0 && (line <= commandOutput.output.length - 1)) {
-      returnString += commandOutput.output[line];
+    if (line >= 0 && (line <= stringArray.length - 1)) {
+      returnString += stringArray[line];
       continue;
     }
   }

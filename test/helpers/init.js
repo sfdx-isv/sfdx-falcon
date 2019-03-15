@@ -7,6 +7,27 @@ process.env.FALCON_COMMAND_RUNNER   = path.resolve('bin/run');            // Pat
 process.env.FALCON_TEST_TEMPDIR     = path.resolve('test/temp');          // Path to the temp directory used during tests.
 process.env.FALCON_TEST_PROJECTDIR  = path.resolve('test/projects');      // Path to the directory that holds sample ADK projects.
 
+// Check environment for cues about handling debug. Allows CI environment to flip debug on/off.
+process.env.FALCON_TEST_SHOW_STDOUT = process.env.FALCON_TEST_SHOW_STDOUT || ''; // stdout from spawned process is piped to the main process.
+process.env.FALCON_TEST_SHOW_STDERR = process.env.FALCON_TEST_SHOW_STDERR || ''; // stderr from spawned process is piped to the main process.
+process.env.FALCON_TEST_SHOW_RESULT = process.env.FALCON_TEST_SHOW_RESULT || ''; // Prints internal commandResult object at the conclusion of executeWithInput().
+
+// DEVTEST: Echo the various "debug" env vars.
+console.log(`FALCON_TEST_SHOW_STDOUT: ${process.env.FALCON_TEST_SHOW_STDOUT}`);
+console.log(`FALCON_TEST_SHOW_STDERR: ${process.env.FALCON_TEST_SHOW_STDERR}`);
+console.log(`FALCON_TEST_SHOW_RESULT: ${process.env.FALCON_TEST_SHOW_RESULT}`);
+
+// DEVTEST: Demonstrate how boolean checks of env vars goes.
+if (process.env.FALCON_TEST_SHOW_STDOUT) {
+  console.log('-->FALCON_TEST_SHOW_STDOUT environment var deemed TRUE<--');
+}
+if (process.env.FALCON_TEST_SHOW_STDERR) {
+  console.log('-->FALCON_TEST_SHOW_STDERR environment var deemed TRUE<--');
+}
+if (process.env.FALCON_TEST_SHOW_RESULT) {
+  console.log('-->FALCON_TEST_SHOW_RESULT environment var deemed TRUE<--');
+}
+
 // Delete everything inside of the Falcon Test Temp Directory EXCEPT .gitignore
 del.sync(
   [

@@ -9,11 +9,10 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import Modules=
-import { expect }           from 'chai';
-import { executeWithInput } from '../../../../helpers/cmd';
-import { getOutputLines }   from '../../../../helpers/cmd';
-import { KEY }              from '../../../../helpers/cmd';
+// Import Modules
+import {expect}           from 'chai';
+import {executeWithInput} from '../../../../helpers/cmd';
+import {KEY}              from '../../../../helpers/cmd';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -23,7 +22,9 @@ import { KEY }              from '../../../../helpers/cmd';
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 describe.skip('falcon:adk:create', () => {
 
+  //───────────────────────────────────────────────────────────────────────────┐
   // Test One
+  //───────────────────────────────────────────────────────────────────────────┘
   it('should successfully create an ADK project', async () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,    // Path to the process that will be run.
@@ -31,26 +32,26 @@ describe.skip('falcon:adk:create', () => {
         'falcon:adk:create'                 // First member of the array must be the CLI command we want to run.
       ],
       [
-        {input: KEY.ENTER, delay: 20000},
-        {input: KEY.ENTER, delay: 200},
-        {input: KEY.ENTER, delay: 200},
-        {input: 'N' + KEY.ENTER, delay: 200},
-        {input: 'Y' + KEY.ENTER, delay: 200},
-        {input: KEY.ENTER, delay: 200},
-        {input: KEY.ENTER, delay: 200},
-        {input: KEY.ENTER, delay: 200},
-        {input: KEY.ENTER, delay: 200},
-        {input: 'Y' + KEY.ENTER, delay: 200}
+        {input: KEY.ENTER, delay: 20000},       // Choose first DevHub listed
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: 'N' + KEY.ENTER, delay: 200},   // ???
+        {input: 'Y' + KEY.ENTER, delay: 200},   // ???
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: KEY.ENTER, delay: 200},         // ???
+        {input: 'Y' + KEY.ENTER, delay: 200}    // ???
       ],
       {
         envVars: {
-          SFDX_JSON_TO_STDOUT: true,      // Sends all JSON output to STDOUT
-          SFDX_AUTOUPDATE_DISABLE: true   // Disables the Salesforce CLI AutoUpdate feature
+          SFDX_JSON_TO_STDOUT: true,        // Sends all JSON output to STDOUT
+          SFDX_AUTOUPDATE_DISABLE: true     // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: process.env.FALCON_TEST_TEMPDIR,
-        showStdout: true,
-        showStderr: true,
-        showResult: true,
+        showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,
+        showStderr: process.env.FALCON_TEST_SHOW_STDERR ? true : false,
+        showResult: process.env.FALCON_TEST_SHOW_RESULT ? true : false,
         minTimeout: 100,
         maxTimeout: 300000
       }
@@ -59,13 +60,17 @@ describe.skip('falcon:adk:create', () => {
     // Check exit code.
     expect(commandResponse.exitCode)
       .to
-      .equal(0, 'Non-zero Exit Code');
-    // Check final output.
-    expect(getOutputLines(commandResponse, [-1]))
-      .to
-      .equal('Command Succeded   : falcon:adk:create completed successfully',  'Incorrect Final Output');
-  }).timeout(120000);
+      .equal(0, 'FAILURE! Non-zero exit code');
 
-  // Test Two...
+    // Check final output for success indicators.
+    expect(commandResponse.stdoutLines)
+      .to
+      .include('Command Succeded   : falcon:adk:create completed successfully',
+               'FAILURE! Final output missing success message');
+    }).timeout(120000);
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  // Test Two
+  //───────────────────────────────────────────────────────────────────────────┘
 
 });
