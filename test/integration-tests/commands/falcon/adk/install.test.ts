@@ -28,7 +28,7 @@ describe('falcon:adk:install', () => {
   //───────────────────────────────────────────────────────────────────────────┐
   // Test One
   //───────────────────────────────────────────────────────────────────────────┘
-  it.skip('should successfully run the default Recipe inside project "adk-test-01"', async () => {
+  it('should successfully run the default Recipe inside project "adk-test-01"', async () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,    // Path to the process that will be run.
       [

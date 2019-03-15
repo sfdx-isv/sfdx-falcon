@@ -188,7 +188,7 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
   // DEVTEST: Echo a variety of path related info so we can see differences between local and CircleCI.
   console.log(
     `\nCurrent Working Dir:   ${process.cwd()}` +
-    `\nFALCON_COMMAND_RUNNER: ${process.env.FALCON_COMMAND_RUNNER}` +
+    `\nCLI Command Runner:    ${process.env.FALCON_COMMAND_RUNNER}` +
     `\nIntended Working Dir:  ${opts.workingDir}` +
     `\nCommand to Execute:    ${args.join(' ')}\n`
   );
