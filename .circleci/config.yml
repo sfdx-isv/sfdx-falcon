@@ -34,6 +34,7 @@ jobs:
             which git
             which openssl
             base64 --help
+            apk search xxd
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
@@ -41,7 +42,7 @@ jobs:
             mkdir /tmp/sfdx-keys
             # Convert the Hex Keys stored in the context's environment variables back to binary
             #echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
-            echo "$DEVHUB_SERVER_KEY_HEX" | base64 -d -i -w 0 >> /tmp/sfdx-keys/dev-hub.key
+            echo $DEVHUB_SERVER_KEY_HEX | base64 -d -i -w 0 >> /tmp/sfdx-keys/dev-hub.key
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
       - run: &authenticate_dev_hub
