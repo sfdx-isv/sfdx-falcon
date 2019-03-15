@@ -15,6 +15,8 @@ jobs:
           command: |
             sfdx version          # Output the version of the CLI
             sfdx plugins --core   # Output the version of the core plugins
+            node --version
+            git --version
       - run:
           name: Prepare all JWT Key Files that might be required by subsequent jobs
           command: |
@@ -25,6 +27,7 @@ jobs:
 
             #sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' "$DEVHUB_SERVER_KEY_HEX" | xargs printf
             echo $DEVHUB_SERVER_KEY_HEX >> /tmp/sfdx-keys/dev-hub.hex
+            ls -al /tmp/sfdx-keys
 
             base64 -d /tmp/sfdx-keys/dev-hub.hex >> /tmp/sfdx-keys/dev-hub.key
 
