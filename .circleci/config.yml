@@ -40,7 +40,7 @@ jobs:
             # Create directory where all JWT Org Keys will be stored
             mkdir /tmp/sfdx-keys
             # Convert the Hex Keys stored in the context's environment variables back to binary
-#            echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
+            #echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
             echo $DEVHUB_SERVER_KEY_HEX | base64 -d -w 0 >> /tmp/sfdx-keys/dev-hub.key
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
