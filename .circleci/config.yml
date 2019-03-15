@@ -1,6 +1,55 @@
 ---
 version: 2
 jobs:
+####################################################################################################
+## JOB:     setup-build-environment
+## PURPOSE: Creates an RSA private key in a build workspace directory based on values from 
+##          environment variables that are available to this project.
+####################################################################################################
+  setup-build-environment:
+    docker:
+      - image: ncino/ci-sfdx-only
+    steps:
+      - run: 
+          name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
+          command: |
+            sfdx version          # Output the version of the CLI
+            sfdx plugins --core   # Output the version of the core plugins
+      - run:
+          name: Prepare all JWT Key Files that might be required by subsequent jobs
+          command: |
+            # Create directory where all JWT Org Keys will be stored
+            mkdir /tmp/sfdx-keys
+            # Convert the Hex Keys stored in the context's environment variables back to binary
+            echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
+            # Confirm that our converted keys are both valid RSA Private Keys
+            openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
+      - run:
+          name: Validate connection/authentication against the Dev Hub
+          command: |
+            # Confirm that the key can actually be used to login to the specific
+            # Salesforce Org that the username stored in $DEVHUB_SFDC_USERNAME
+            # is associated with.
+            sfdx force:auth:jwt:grant --clientid $DEVHUB_CONSUMER_KEY \
+                                      --jwtkeyfile /tmp/sfdx-keys/dev-hub.key \
+                                      --username $DEVHUB_SFDC_USERNAME
+
+      # Ensure that that the dev-hub.key file that was just created will be
+      # available to other jobs performed during this build.
+      - persist_to_workspace:
+          root: /tmp/sfdx-keys
+          paths:
+            - dev-hub.key
+
+      # Store SFDX logs as artifacts
+      - store_artifacts:
+          path: ~/.sfdx/sfdx.log
+          destination: sfdx-logs
+
+####################################################################################################
+## JOB:     node-latest
+## PURPOSE: ???
+####################################################################################################
   node-latest: &test
     docker:
       - image: node:latest
@@ -22,6 +71,11 @@ jobs:
           command: |
             ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
             curl -s https://codecov.io/bash | bash
+
+####################################################################################################
+## JOB:     node-8
+## PURPOSE: ???
+####################################################################################################
   node-8:
     <<: *test
     docker:
@@ -40,15 +94,27 @@ jobs:
             - /usr/local/share/.cache/yarn
             - /usr/local/share/.config/yarn
 
+####################################################################################################
+## WORKFLOW:  SFDX-Falcon Plugin Tests
+## PURPOSE:   Primary workflow used by the CI process.
+####################################################################################################
 workflows:
   version: 2
-  "sfdx-falcon":
+  "SFDX-Falcon Plugin Tests":
     jobs:
-      - node-latest
-      - node-8
-      - cache:
+      - setup-test-environment:
+          context: org-global
           filters:
-            tags:
-              only: /^v.*/
             branches:
-              ignore: /.*/
+              only:
+                - test-config
+
+
+#      - node-latest
+#      - node-8
+#      - cache:
+#          filters:
+#            tags:
+#              only: /^v.*/
+#            branches:
+#              ignore: /.*/
