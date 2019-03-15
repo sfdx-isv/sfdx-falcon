@@ -8,8 +8,18 @@ jobs:
 ####################################################################################################
   setup-test-environment:
     docker:
-      - image: ncino/ci-sfdx-lite
+      - image: node:latest
     steps:
+      - run: &download_sfdx
+          name: Download the Salesforce CLI
+          command: |
+            mkdir sfdx
+            wget -qO- $DX_CLI_URL | tar xJ -C sfdx --strip-components 1
+      - run: &install_sfdx
+          name: Install the Salesforce CLI
+          command: |
+            ./sfdx/install
+            sfdx
       - run: &echo_sfdx_version
           name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
           command: |
@@ -21,13 +31,6 @@ jobs:
             node --version
             npm  --version
             git  --version
-      - run: &install_yarn
-          name: Install the Yarn Package Manager
-          command: |
-            curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
-            echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
-            apt-get update && apt-get install --no-install-recommends yarn
-            export PATH="$PATH:`yarn global bin`"
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
@@ -191,10 +194,10 @@ workflows:
             branches:
               only:
                 - test-config
-      - integration-test:
-          context: org-global
-          requires:
-            - setup-test-environment
+#      - integration-test:
+#          context: org-global
+#          requires:
+#            - setup-test-environment
 
 
 #      - node-latest
