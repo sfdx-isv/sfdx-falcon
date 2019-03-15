@@ -20,6 +20,11 @@ jobs:
           command: |
             ./sfdx/install
             sfdx
+      - run: &install_non_sfdx_dependencies
+          name: Install non-SFDX dependencies
+          command: |
+            apt-get update -y
+            apt-get install -y xxd
       - run: &echo_sfdx_version
           name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
           command: |
@@ -31,18 +36,13 @@ jobs:
             node --version
             npm  --version
             git  --version
-            which git
-            which openssl
-            apt-get update -y
-            apt-get install -y xxd
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
             # Create directory where all JWT Org Keys will be stored
             mkdir /tmp/sfdx-keys
             # Convert the Hex Keys stored in the context's environment variables back to binary
-            #echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
-            echo $DEVHUB_SERVER_KEY_HEX | base64 -d -i -w 0 >> /tmp/sfdx-keys/dev-hub.key
+            echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
       - run: &authenticate_dev_hub
