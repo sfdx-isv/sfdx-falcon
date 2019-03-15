@@ -2,11 +2,11 @@
 version: 2
 jobs:
 ####################################################################################################
-## JOB:     setup-build-environment
-## PURPOSE: Creates an RSA private key in a build workspace directory based on values from 
-##          environment variables that are available to this project.
+## JOB:     setup-test-environment
+## PURPOSE: Creates an RSA private key in a CircleCI workspace directory based on values from 
+##          the environment variables that are available to this project.
 ####################################################################################################
-  setup-build-environment:
+  setup-test-environment:
     docker:
       - image: ncino/ci-sfdx-only
     steps:
