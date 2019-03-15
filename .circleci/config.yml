@@ -6,12 +6,13 @@ jobs:
 ## PURPOSE: Creates an RSA private key in a CircleCI workspace directory based on values from 
 ##          the environment variables that are available to this project.
 ####################################################################################################
-  setup-test-environment:
+  node-latest2: &test2
     docker:
       - image: node:latest
+    working_directory: ~/cli
     steps:
-      - run: &install_dependencies
-          name: Install dependencies
+      - run:
+          name: Install system dependencies
           command: |
             mkdir sfdx
             wget -qO- $DX_CLI_URL | tar xJ -C sfdx --strip-components 1
@@ -19,8 +20,8 @@ jobs:
             sfdx
             apt-get update -y
             apt-get install -y xxd
-      - run: &echo_dependency_versions
-          name: Display version info for installed dependencies
+      - run:
+          name: Display version info for installed system dependencies
           command: |
             sfdx version          # Output the version of the CLI
             sfdx plugins --core   # Output the version of the core plugins
@@ -29,7 +30,7 @@ jobs:
             git  --version
             xxd  --version
       - run:
-          name: Prepare JWT Key Files for use by subsequent jobs
+          name: Prepare JWT key file for use by force:auth:jwt:grant
           command: |
             # Create directory where all JWT Org Keys will be stored
             mkdir /tmp/sfdx-keys
@@ -48,13 +49,22 @@ jobs:
                                       -u $DEVHUB_SFDC_USERNAME \
                                       -d \
                                       -a DevHub-PBO
-
-      # Ensure that that the dev-hub.key file that was just created will be
-      # available to other jobs performed during this build.
-      - persist_to_workspace:
-          root: /tmp/sfdx-keys
-          paths:
-            - dev-hub.key
+      - checkout
+      - restore_cache: &restore_cache2
+          keys:
+            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+            - v1-npm-{{checksum ".circleci/config.yml"}}
+      - run:
+          name: Install dependencies
+          command: yarn
+      - run:
+          name: Testing
+          command: yarn test
+      - run:
+          name: Submitting code coverage to codecov
+          command: |
+            ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
+            curl -s https://codecov.io/bash | bash
 
       # Store SFDX logs as artifacts
       - store_artifacts:
@@ -123,8 +133,6 @@ jobs:
 
 
 
-
-
 ####################################################################################################
 ## JOB:     node-latest
 ## PURPOSE: ???
@@ -185,7 +193,7 @@ workflows:
   version: 2
   "SFDX-Falcon Plugin Tests":
     jobs:
-      - setup-test-environment:
+      - node-latest2:
           context: org-global
           filters:
             branches:
