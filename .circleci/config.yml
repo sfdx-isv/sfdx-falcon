@@ -2,17 +2,16 @@
 version: 2
 jobs:
 ####################################################################################################
-## JOB:     setup-test-environment
-## PURPOSE: Creates an RSA private key in a CircleCI workspace directory based on values from 
-##          the environment variables that are available to this project.
+## JOB:     node-latest
+## PURPOSE: Tests the Falcon plugin using the latest stable version of Node.js.
 ####################################################################################################
-  node-latest2: &test2
+  node-latest: &test
     docker:
       - image: node:latest
     working_directory: ~/cli
     steps:
       - checkout
-      - restore_cache: &restore_cache2
+      - restore_cache:
           keys:
             - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
             - v1-npm-{{checksum ".circleci/config.yml"}}
@@ -55,11 +54,19 @@ jobs:
                                       -d \
                                       -a DevHub-PBO
       - run:
-          name: Install node package dependencies
+          name: Override the apiVersion global config value
+          command: |
+            # This setting ensures that a WARNING message is sent to stderr on every
+            # Salesforce CLI command. The Falcon plugin needs to be able to ignore 
+            # this output, so all tests must function while the warning is present.
+            sfdx force:config:set apiVersion=45.0 --global
+      - run:
+          name: Install package dependencies
           command: yarn
       - run:
           name: Run package test and post-test commands
           command: yarn test
+          no_output_timeout: 20m
       - run:
           name: Submit code coverage to codecov
           command: |
@@ -75,38 +82,6 @@ jobs:
           path: ~/.sfdx/sfdx.log
           destination: sfdx-logs
 
-
-
-
-
-
-
-####################################################################################################
-## JOB:     node-latest
-## PURPOSE: ???
-####################################################################################################
-  node-latest: &test
-    docker:
-      - image: node:latest
-    working_directory: ~/cli
-    steps:
-      - checkout
-      - restore_cache: &restore_cache
-          keys:
-            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
-            - v1-npm-{{checksum ".circleci/config.yml"}}
-      - run:
-          name: Install dependencies
-          command: yarn
-      - run:
-          name: Testing
-          command: yarn test
-      - run:
-          name: Submitting code coverage to codecov
-          command: |
-            ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
-            curl -s https://codecov.io/bash | bash
-
 ####################################################################################################
 ## JOB:     node-8
 ## PURPOSE: ???
@@ -115,6 +90,7 @@ jobs:
     <<: *test
     docker:
       - image: node:8
+
 ####################################################################################################
 ## JOB:     cache
 ## PURPOSE: ???
@@ -124,7 +100,7 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install dependencies
+          name: Install package dependencies
           command: yarn
       - save_cache:
           key: v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
@@ -141,12 +117,28 @@ workflows:
   version: 2
   "SFDX-Falcon Plugin Tests":
     jobs:
-      - node-latest2:
+      - node-latest:
           context: org-global
           filters:
             branches:
               only:
                 - test-config
+      - node-8:
+          context: org-global
+          requires:
+            - node-latest
+      - cache:
+          context: org-global
+          requires:
+            - node-latest
+          filters:
+            branches:
+              only: test-config
+#              only: /^v.*/
+
+
+
+
 #      - integration-test:
 #          context: org-global
 #          requires:
@@ -154,7 +146,6 @@ workflows:
 
 
 #      - node-latest
-#      - node-8
 #      - cache:
 #          filters:
 #            tags:
