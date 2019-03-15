@@ -10,26 +10,24 @@ jobs:
     docker:
       - image: node:latest
     steps:
-      - run: &download_sfdx
-          name: Download the Salesforce CLI
+      - run: &install_dependencies
+          name: Install dependencies
           command: |
             mkdir sfdx
             wget -qO- $DX_CLI_URL | tar xJ -C sfdx --strip-components 1
-      - run: &install_sfdx
-          name: Install the Salesforce CLI
-          command: |
             ./sfdx/install
             sfdx
-      - run: &install_non_sfdx_dependencies
-          name: Install non-SFDX dependencies
-          command: |
             apt-get update -y
             apt-get install -y xxd
-      - run: &echo_sfdx_version
-          name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
+      - run: &echo_dependency_versions
+          name: Display version info for installed dependencies
           command: |
             sfdx version          # Output the version of the CLI
             sfdx plugins --core   # Output the version of the core plugins
+            node --version
+            npm  --version
+            git  --version
+            xxd  --version
       - run: &echo_node_and_git_versions
           name: Display version info for locally installed Node, NPM, and Git
           command: |
