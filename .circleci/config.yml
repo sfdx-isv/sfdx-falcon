@@ -33,6 +33,7 @@ jobs:
             git  --version
             which git
             which openssl
+            base64 --help
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
