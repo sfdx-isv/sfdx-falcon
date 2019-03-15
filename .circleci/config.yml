@@ -55,16 +55,20 @@ jobs:
                                       -d \
                                       -a DevHub-PBO
       - run:
-          name: Install dependencies
+          name: Install node package dependencies
           command: yarn
       - run:
-          name: Testing
+          name: Run package test and post-test commands
           command: yarn test
       - run:
-          name: Submitting code coverage to codecov
+          name: Submit code coverage to codecov
           command: |
             ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
             curl -s https://codecov.io/bash | bash
+      - run:
+          name: Mark scratch orgs for deletion
+          command: |
+            sfdx force:org:delete -p -u falcon-test-recipe-01
 
       # Store SFDX logs as artifacts
       - store_artifacts:
