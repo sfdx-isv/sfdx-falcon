@@ -69,9 +69,9 @@ jobs:
       - checkout                  # Required step.  Checks out the code from your repository.
       - attach_workspace:
           at: /tmp/sfdx-keys      # Attaches the workspace where our private key files were stored.
-      - <<: *echo_sfdx_version
-      - <<: *echo_node_and_git_versions
-      - <<: *authenticate_dev_hub
+      - run: *echo_sfdx_version
+      - run: *echo_node_and_git_versions
+      - run: *authenticate_dev_hub
       - restore_cache: &restore_cache
           keys:
             - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
