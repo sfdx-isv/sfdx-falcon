@@ -34,7 +34,8 @@ jobs:
             which git
             which openssl
             base64 --help
-            apk search xxd
+            sudo apt-get update -y
+            sudo apt-get install -y xxd
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
