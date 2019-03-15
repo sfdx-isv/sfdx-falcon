@@ -28,12 +28,6 @@ jobs:
             npm  --version
             git  --version
             xxd  --version
-      - run: &echo_node_and_git_versions
-          name: Display version info for locally installed Node, NPM, and Git
-          command: |
-            node --version
-            npm  --version
-            git  --version
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
@@ -83,8 +77,8 @@ jobs:
       - checkout                  # Required step.  Checks out the code from your repository.
       - attach_workspace:
           at: /tmp/sfdx-keys      # Attaches the workspace where our private key files were stored.
-      - run: *echo_sfdx_version
-      - run: *echo_node_and_git_versions
+      - run: *install_dependencies
+      - run: *echo_dependency_versions
       - run: *authenticate_dev_hub
       - restore_cache: &restore_cache
           keys:
