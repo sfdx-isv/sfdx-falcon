@@ -20,33 +20,33 @@ import {KEY}              from '../../../../helpers/cmd';
  * Test suite for falcon:adk:create.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-describe.skip('falcon:adk:create', () => {
+describe('falcon:adk:create', () => {
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Test One
   //───────────────────────────────────────────────────────────────────────────┘
   it('should successfully create an ADK project', async () => {
     const commandResponse = await executeWithInput(
-      process.env.FALCON_COMMAND_RUNNER,    // Path to the process that will be run.
+      process.env.FALCON_COMMAND_RUNNER,        // Path to the process that will be run.
       [
-        'falcon:adk:create'                 // First member of the array must be the CLI command we want to run.
+        'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
       ],
       [
-        {input: KEY.ENTER, delay: 20000},       // Choose first DevHub listed
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: 'N' + KEY.ENTER, delay: 200},   // ???
-        {input: 'Y' + KEY.ENTER, delay: 200},   // ???
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: KEY.ENTER, delay: 200},         // ???
-        {input: 'Y' + KEY.ENTER, delay: 200}    // ???
+        {input: KEY.ENTER, delay: 45000},       // Choose first DevHub listed
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: 'N' + KEY.ENTER, delay: 500},   // ???
+        {input: 'Y' + KEY.ENTER, delay: 500},   // ???
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: KEY.ENTER, delay: 500},         // ???
+        {input: 'Y' + KEY.ENTER, delay: 500}    // ???
       ],
       {
         envVars: {
-          SFDX_JSON_TO_STDOUT: true,        // Sends all JSON output to STDOUT
-          SFDX_AUTOUPDATE_DISABLE: true     // Disables the Salesforce CLI AutoUpdate feature
+          SFDX_JSON_TO_STDOUT:      true,       // Sends all JSON output to STDOUT
+          SFDX_AUTOUPDATE_DISABLE:  true        // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: process.env.FALCON_TEST_TEMPDIR,
         showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,

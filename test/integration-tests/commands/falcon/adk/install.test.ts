@@ -36,7 +36,7 @@ describe('falcon:adk:install', () => {
       ],
       [
         {input: 'Y' + KEY.ENTER, delay: 10000}, // Confirm recipe execution.
-        {input: 'Y' + KEY.ENTER, delay: 2000}   // Confirm recipe execution.
+        {input: 'Y' + KEY.ENTER, delay: 2000}   // Request display of extended error information (queues till end of install).
       ],
       {
         envVars: {
@@ -71,11 +71,11 @@ describe('falcon:adk:install', () => {
   //───────────────────────────────────────────────────────────────────────────┘
   it('should fail to run Recipe "adk-test-01/falcon-test-01B-recipe.json" because packages can\'t be installed twice', async () => {
     const commandResponse = await executeWithInput(
-      process.env.FALCON_COMMAND_RUNNER,    // Path to the process that will be run.
+      process.env.FALCON_COMMAND_RUNNER,          // Path to the process that will be run.
       [
-        'falcon:adk:install',               // First member of the array must be the CLI command we want to run.
-        '-f',                               // The --recipefile flag.
-        'falcon-test-01B-recipe.json'       // Specific ADK Recipe to run.
+        'falcon:adk:install',                     // First member of the array must be the CLI command we want to run.
+        '-f',                                     // The --recipefile flag.
+        'falcon-test-01B-recipe.json'             // Specific ADK Recipe to run.
       ],
       [
         {input: 'Y' + KEY.ENTER,  delay: 8000},   // Confirm recipe execution.
@@ -86,7 +86,7 @@ describe('falcon:adk:install', () => {
         {input: KEY.SPACE,        delay: 500},    // Toggle choice to TRUE.
         {input: KEY.ENTER,        delay: 500},    // Submit step-group choice selections.
         {input: 'Y' + KEY.ENTER,  delay: 500},    // Confirm choice selections and start execution.
-        {input: 'Y' + KEY.ENTER,  delay: 15000}   // Request display of extended error information.
+        {input: 'Y' + KEY.ENTER,  delay: 2000}    // Request display of extended error information (queues till end of install).
       ],
       {
         envVars: {
@@ -120,7 +120,7 @@ describe('falcon:adk:install', () => {
     // Check for the correct "friendly error" message to the user.
     expect(commandResponse.stderrLines)
       .to
-      .include('WARNING: apiVersion configuration overridden at "42.0"',
+      .include('WARNING: apiVersion configuration overridden at "45.0"',
                'FAILURE! apiVersion override config variable not set to "42.0" in the test environment')
       .include('ERROR running falcon:adk:install:  The step "Install Falcon-X Managed Package" has failed. Its action, "install-package", returned the following error:',
                'FAILURE! Incorrect "friendly error" message sent to stderr')
