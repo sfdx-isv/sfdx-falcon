@@ -35,7 +35,8 @@ describe('falcon:adk:install', () => {
         'falcon:adk:install'                // First member of the array must be the CLI command we want to run.
       ],
       [
-        {input: 'Y' + KEY.ENTER, delay: 10000}  // Confirm recipe execution.
+        {input: 'Y' + KEY.ENTER, delay: 10000}, // Confirm recipe execution.
+        {input: 'Y' + KEY.ENTER, delay: 2000}   // Confirm recipe execution.
       ],
       {
         envVars: {
