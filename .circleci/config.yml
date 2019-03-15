@@ -31,6 +31,8 @@ jobs:
             node --version
             npm  --version
             git  --version
+            which xxd
+            which openssl
       - run:
           name: Prepare JWT Key Files for use by subsequent jobs
           command: |
