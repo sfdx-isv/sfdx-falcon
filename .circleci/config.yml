@@ -38,7 +38,7 @@ jobs:
             echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
-      - run: &authenticate_dev_hub
+      - run:
           name: Authenticate and connect to the Dev Hub
           command: |
             # Confirm that the key can actually be used to login to the specific
@@ -70,62 +70,6 @@ jobs:
       - store_artifacts:
           path: ~/.sfdx/sfdx.log
           destination: sfdx-logs
-
-####################################################################################################
-## JOB:     integration-test
-## PURPOSE: ???
-####################################################################################################
-  integration-test: &test
-    docker:
-      - image: ncino/ci-sfdx
-    working_directory: ~/cli
-#    environment:
-#      - SCRATCH_ORG_CONFIG: test-build-1-scratch-def.json
-#      - TEST_RESULTS_PATH:  /tmp/test-results
-#      - TEST_RESULTS_DIR:   test-build-1
-    steps:
-      - checkout                  # Required step.  Checks out the code from your repository.
-      - attach_workspace:
-          at: /tmp/sfdx-keys      # Attaches the workspace where our private key files were stored.
-      - run: *install_dependencies
-      - run: *echo_dependency_versions
-      - run: *authenticate_dev_hub
-      - restore_cache: &restore_cache
-          keys:
-            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
-            - v1-npm-{{checksum ".circleci/config.yml"}}
-      - run:
-          name: Install dependencies
-          command: yarn
-      - run:
-          name: Testing
-          command: yarn test
-      - run:
-          name: Submitting code coverage to codecov
-          command: |
-            ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
-            curl -s https://codecov.io/bash | bash
-
-#      - run:
-#          name: Mark all scratch orgs created by this job for deletion
-#          command: |
-#            #### Mark the scratch org we used for deletion.
-#            ## sfdx force:org:delete
-#            # -u --TARGETUSERNAME           Required. Username or alias for the target org
-#            # -p --NOPROMPT                 Optional. Do not prompt the user to confirm deletion
-#            sfdx force:org:delete -u circle_build_$CIRCLE_BUILD_NUM \
-#                                  -p
-
-      # Store test results and SFDX logs as artifacts
-#      - store_test_results:
-#          path: /tmp/test-results
-#      - store_artifacts:
-#          path: /tmp/test-results
-#          destination: test-results
-      - store_artifacts:
-          path: ~/.sfdx/sfdx.log
-          destination: sfdx-logs
-
 
 
 
