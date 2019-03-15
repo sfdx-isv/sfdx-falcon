@@ -15,21 +15,18 @@ jobs:
           command: |
             sfdx version          # Output the version of the CLI
             sfdx plugins --core   # Output the version of the core plugins
+      - run: 
+          name: Display version info for locally installed Node and Git
+          command: |
             node --version
-            git --version
+            git  --version
       - run:
-          name: Prepare all JWT Key Files that might be required by subsequent jobs
+          name: Prepare JWT Key Files for use by subsequent jobs
           command: |
             # Create directory where all JWT Org Keys will be stored
             mkdir /tmp/sfdx-keys
             # Convert the Hex Keys stored in the context's environment variables back to binary
             echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
-
-            #sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' "$DEVHUB_SERVER_KEY_HEX" | xargs printf
-            #echo $DEVHUB_SERVER_KEY_HEX >> /tmp/sfdx-keys/dev-hub.hex
-            #ls -al /tmp/sfdx-keys
-            #base64 -d /tmp/sfdx-keys/dev-hub.hex >> /tmp/sfdx-keys/dev-hub.key
-
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
       - run:
