@@ -8,7 +8,7 @@ jobs:
 ####################################################################################################
   setup-test-environment:
     docker:
-      - image: ncino/ci-sfdx-only
+      - image: ncino/ci-sfdx-lite
     steps:
       - run: 
           name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
@@ -23,13 +23,12 @@ jobs:
             # Create directory where all JWT Org Keys will be stored
             mkdir /tmp/sfdx-keys
             # Convert the Hex Keys stored in the context's environment variables back to binary
-            #echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
+            echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
 
             #sed 's/\([0-9A-F]\{2\}\)/\\\\\\x\1/gI' "$DEVHUB_SERVER_KEY_HEX" | xargs printf
-            echo $DEVHUB_SERVER_KEY_HEX >> /tmp/sfdx-keys/dev-hub.hex
-            ls -al /tmp/sfdx-keys
-
-            base64 -d /tmp/sfdx-keys/dev-hub.hex >> /tmp/sfdx-keys/dev-hub.key
+            #echo $DEVHUB_SERVER_KEY_HEX >> /tmp/sfdx-keys/dev-hub.hex
+            #ls -al /tmp/sfdx-keys
+            #base64 -d /tmp/sfdx-keys/dev-hub.hex >> /tmp/sfdx-keys/dev-hub.key
 
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
