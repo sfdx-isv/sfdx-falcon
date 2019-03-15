@@ -10,12 +10,12 @@ jobs:
     docker:
       - image: ncino/ci-sfdx-lite
     steps:
-      - run: 
+      - run: &echo_sfdx_version
           name: Display version info for the Salesforce CLI and core plugins (will force updates if needed)
           command: |
             sfdx version          # Output the version of the CLI
             sfdx plugins --core   # Output the version of the core plugins
-      - run: 
+      - run: &echo_node_and_git_versions
           name: Display version info for locally installed Node and Git
           command: |
             node --version
@@ -29,15 +29,17 @@ jobs:
             echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
             # Confirm that our converted keys are both valid RSA Private Keys
             openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
-      - run:
-          name: Validate connection/authentication against the Dev Hub
+      - run: &authenticate_dev_hub
+          name: Authenticate and connect to the Dev Hub
           command: |
             # Confirm that the key can actually be used to login to the specific
             # Salesforce Org that the username stored in $DEVHUB_SFDC_USERNAME
             # is associated with.
-            sfdx force:auth:jwt:grant --clientid $DEVHUB_CONSUMER_KEY \
-                                      --jwtkeyfile /tmp/sfdx-keys/dev-hub.key \
-                                      --username $DEVHUB_SFDC_USERNAME
+            sfdx force:auth:jwt:grant -i $DEVHUB_CONSUMER_KEY \
+                                      -f /tmp/sfdx-keys/dev-hub.key \
+                                      -u $DEVHUB_SFDC_USERNAME \
+                                      -d \
+                                      -a DevHub-PBO
 
       # Ensure that that the dev-hub.key file that was just created will be
       # available to other jobs performed during this build.
@@ -50,6 +52,70 @@ jobs:
       - store_artifacts:
           path: ~/.sfdx/sfdx.log
           destination: sfdx-logs
+
+####################################################################################################
+## JOB:     integration-test
+## PURPOSE: ???
+####################################################################################################
+  integration-test: &test
+    docker:
+      - image: ncino/ci-sfdx
+    working_directory: ~/cli
+#    environment:
+#      - SCRATCH_ORG_CONFIG: test-build-1-scratch-def.json
+#      - TEST_RESULTS_PATH:  /tmp/test-results
+#      - TEST_RESULTS_DIR:   test-build-1
+    steps:
+      - checkout                  # Required step.  Checks out the code from your repository.
+      - attach_workspace:
+          at: /tmp/sfdx-keys      # Attaches the workspace where our private key files were stored.
+      <<: *echo_sfdx_version
+      <<: *echo_node_and_git_versions
+      <<: *authenticate_dev_hub
+      - restore_cache: &restore_cache
+          keys:
+            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+            - v1-npm-{{checksum ".circleci/config.yml"}}
+      - run:
+          name: Install dependencies
+          command: yarn
+      - run:
+          name: Testing
+          command: yarn test
+      - run:
+          name: Submitting code coverage to codecov
+          command: |
+            ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
+            curl -s https://codecov.io/bash | bash
+
+#      - run:
+#          name: Mark all scratch orgs created by this job for deletion
+#          command: |
+#            #### Mark the scratch org we used for deletion.
+#            ## sfdx force:org:delete
+#            # -u --TARGETUSERNAME           Required. Username or alias for the target org
+#            # -p --NOPROMPT                 Optional. Do not prompt the user to confirm deletion
+#            sfdx force:org:delete -u circle_build_$CIRCLE_BUILD_NUM \
+#                                  -p
+
+      # Store test results and SFDX logs as artifacts
+#      - store_test_results:
+#          path: /tmp/test-results
+#      - store_artifacts:
+#          path: /tmp/test-results
+#          destination: test-results
+      - store_artifacts:
+          path: ~/.sfdx/sfdx.log
+          destination: sfdx-logs
+
+
+
+
+
+
+
+
+
 
 ####################################################################################################
 ## JOB:     node-latest
@@ -85,6 +151,10 @@ jobs:
     <<: *test
     docker:
       - image: node:8
+####################################################################################################
+## JOB:     cache
+## PURPOSE: ???
+####################################################################################################
   cache:
     <<: *test
     steps:
@@ -113,6 +183,10 @@ workflows:
             branches:
               only:
                 - test-config
+      - integration-test:
+          context: org-global
+          requires:
+            - setup-test-environment
 
 
 #      - node-latest
