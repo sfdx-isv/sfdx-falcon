@@ -21,6 +21,9 @@ const {constants}           = require('os');
 const {ChildProcess, spawn} = require('cross-spawn');
 const util                  = require('util');        // Provides access to the "inspect" function to help output objects via console.log.
 
+// RegEx for detecting ANSI escape codes.
+const ansiRegEx = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d\/#&.:=?%@~_]*)*)?\u0007)|(?:(?:\d{1,4}(?:;\d{0,4})*)?[\dA-PR-TZcf-ntqry=><~]))/g;
+
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -116,9 +119,12 @@ function clearAllTimeouts(trackedTimeouts:TrackedTimeouts):void {
  * @function    createProcess
  * @param       {string}    processPath Path of the process to execute.
  * @param       {string[]}  args  Arguments to the command.
- * @param       {string}    [workingDir]  Directory that should be set as the current working dir.
  * @param       {AnyJson}   [envVars] (optional) Environment variables.
- * @description Spawns a child process that executes whatever is pointed to by the processPath var.
+ * @param       {string}    [workingDir]  Directory that should be set as the current working dir.
+ * @returns     {ChildProcess}  Returns the spawned Child Process.
+ * @description Given a path to a process, arguments that should be passed to the process, and
+ *              optionally any environment vars and the initial working directory of the desired
+ *              process, spawns a child process and returns a reference to it to the caller.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -138,10 +144,10 @@ export function createProcess(processPath:string, args:string[]=[], envVars:AnyJ
       cwd: workingDir,
       env: Object.assign(
         {
-          //FORCE_COLOR: true,              // Output will include color.
-          NODE_ENV: 'test',               // Specifies that production code is NOT being run.
-          PATH: process.env.PATH,         // This is needed in order to get all the binaries in your current terminal.
-          HOME: process.env.HOME          // Required by the SFDX executable.
+          FORCE_COLOR: true,        // Output will include color.
+          NODE_ENV: 'test',         // Specifies that production code is NOT being run.
+          PATH: process.env.PATH,   // This is needed in order to get all the binaries in your current terminal.
+          HOME: process.env.HOME    // Required by the SFDX executable.
         },
         envVars
       ),
@@ -157,9 +163,12 @@ export function createProcess(processPath:string, args:string[]=[], envVars:AnyJ
  * @param       {string[]}    args  Arguments to the command
  * @param       {MockInput[]} [mockInputs] (Optional) Array of MockInput objects (user responses)
  * @param       {ExecOptions} [opts] (optional) Environment variables
- * @returns     {Promise<CommandOutput>}  Returns a promise that resolves when all inputs are sent.
- *              Rejects the promise if any error.
- * @description Executes a CLI Plugin command and is capable of sending mock stdin inputs.
+ * @returns     {Promise<CommandOutput>}  Resolves with a CommandOutput object.
+ * @description Given the path to a process, the arguments to that process, an optional array of
+ *              Mock Inputs and an optional Execution Options object, executes that process and
+ *              sends any Mock Input to the process via stdin. Resolves with a CommandOutput object
+ *              which holds a record of the stdout and stderr streams from the child process, as
+ *              well as string arrays that hold the "lines" of output from stdout and stderr.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -185,12 +194,14 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
     stdout:       ''
   };
 
-  // DEVTEST: Echo a variety of path related info so we can see differences between local and CircleCI.
+  // Echo useful info about the command and related paths relevant to this execution.
   console.log(
+    `\n--------------------------------------------------------------------------------` +
+    `\nCommand to Execute:    ${args.join(' ')}\n` +
     `\nCurrent Working Dir:   ${process.cwd()}` +
-    `\nCLI Command Runner:    ${process.env.FALCON_COMMAND_RUNNER}` +
     `\nIntended Working Dir:  ${opts.workingDir}` +
-    `\nCommand to Execute:    ${args.join(' ')}\n`
+    `\nCLI Command Runner:    ${process.env.FALCON_COMMAND_RUNNER}` +
+    `\n--------------------------------------------------------------------------------\n`
   );
 
   // Create a child process using the details provided by the caller.
@@ -238,8 +249,8 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
       clearAllTimeouts(trackedTimeouts);
 
       // Prep the Command Output variable for return.
-      commandOutput.stdoutLines = commandOutput.stdout.trim().split('\n');
-      commandOutput.stderrLines = commandOutput.stderr.trim().split('\n');
+      commandOutput.stdoutLines = removeAnsiEscapeSequences(commandOutput.stdout.trim().split('\n'));
+      commandOutput.stderrLines = removeAnsiEscapeSequences(commandOutput.stderr.trim().split('\n'));
       commandOutput.exitCode    = code;
       commandOutput.signal      = signal;
 
@@ -306,12 +317,34 @@ export function getLines(stringArray:string[], linesToGet:number[]):string {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    removeAnsiEscapeSequences
+ * @param       {string[]}   stringsToProcess Array of strings that will be processed.
+ * @returns     {string[]}  Returns the array that was passed into the function.
+ * @description Given an array of strings to process, goes through each element in the array and
+ *              removes any ANSI Escape Sequences (CSI codes). Strings are manipulated in-place in
+ *              the array, and the returned array is the same that was passed in.
+ * @private
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+function removeAnsiEscapeSequences(stringsToProcess:string[]):string[] {
+  const processedStrings:string[] = [];
+  for (const stringToProcess of stringsToProcess) {
+    processedStrings.push(stringToProcess.replace(ansiRegEx, ''));
+  }
+  return processedStrings;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    setMockInputTimeouts
- * @param       {MockInput[]}   inputs Array of MockInput objects (user responses)
- * @param       {ChildProcess}  childProcess  Child process where mock input will be directed.
- * @param       {ExecOptions}   opts  (optional) Environment variables
- * @returns     {MockInputTimeouts} ???
- * @description ???
+ * @param       {MockInput[]}   mockInputs  Array of MockInput objects (simulates user input).
+ * @param       {ChildProcess}  childProcess  Child process to which mock input will be directed.
+ * @param       {ExecOptions}   opts  Various execution options (like Max Timeout).
+ * @returns     {TrackedTimeouts} Returns a TrackedTimeouts object populated with all set timeouts.
+ * @description Given an array of MockInput objects, a ChildProcess to which the mock input will
+ *              be sent, and a set of Execution Options (like a Max Timeout), sets timeouts for
+ *              each mock input and an "overall timeout" killer, then returns all of them inside of
+ *              a TrackedTimeouts object.
  * @private
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
