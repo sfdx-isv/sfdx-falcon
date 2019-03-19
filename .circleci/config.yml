@@ -66,7 +66,7 @@ jobs:
           command: yarn
       - run:
           name: Run Mocha tests
-          command: nyc --extension .ts mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
+          command: ./node_modules/.bin/nyc --extension .ts mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
           no_output_timeout: 20m
 
 #  ./node_modules/.bin/nyc ./node_modules/.bin/mocha --recursive --timeout=10000 --exit --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
@@ -74,7 +74,7 @@ jobs:
 
       - run:
           name: Run tslint
-          command: tslint -p test -t junit -o ./reports/eslint/eslint.xml
+          command: ./node_modules/.bin/tslint -p test -t junit -o ./reports/tslint/tslint.xml
 #       ./node_modules/.bin/eslint ./ --format junit --output-file ./reports/eslint/eslint.xml
 
 
@@ -97,7 +97,11 @@ jobs:
       - store_artifacts:
           path: ./reports/mocha/test-results.xml
       - store_artifacts:
-          path: ./reports/tslint/          
+          path: ./reports/tslint/tslint.xml
+      - store_artifacts: # upload test coverage as artifact
+          path: ./coverage/lcov.info
+          prefix: tests
+
 
 ####################################################################################################
 ## JOB:     node-8
