@@ -66,18 +66,11 @@ jobs:
           command: yarn
       - run:
           name: Run Mocha tests
-          command: ./node_modules/.bin/nyc --extension .ts mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
+          command: ./node_modules/.bin/nyc --extension .ts ./node_modules/.bin/mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
           no_output_timeout: 20m
-
-#  ./node_modules/.bin/nyc ./node_modules/.bin/mocha --recursive --timeout=10000 --exit --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
-
-
       - run:
           name: Run tslint
           command: ./node_modules/.bin/tslint -p test -t junit -o ./reports/tslint/tslint.xml
-#       ./node_modules/.bin/eslint ./ --format junit --output-file ./reports/eslint/eslint.xml
-
-
       - run:
           name: Submit code coverage to codecov
           command: |
