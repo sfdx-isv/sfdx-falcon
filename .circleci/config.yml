@@ -89,11 +89,13 @@ jobs:
           destination: sfdx-logs
       - store_artifacts:
           path: ./reports/mocha/test-results.xml
+          destination: mocha-test-results.xml
       - store_artifacts:
           path: ./reports/tslint/tslint.xml
+          destination: tslint-results.xml
       - store_artifacts: # upload test coverage as artifact
-          path: ./coverage/lcov.info
-          prefix: tests
+          path: ./coverage.lcov
+          destination: code-coverage.lcov
 
 
 ####################################################################################################
