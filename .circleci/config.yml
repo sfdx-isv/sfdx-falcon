@@ -24,6 +24,7 @@ jobs:
             sfdx
             apt-get update -y
             apt-get install -y xxd
+            npm install -g npm@latest
       - run:
           name: Display version info for installed system dependencies
           command: |
@@ -64,9 +65,19 @@ jobs:
           name: Install package dependencies
           command: yarn
       - run:
-          name: Run package test and post-test commands
-          command: yarn test
+          name: Run Mocha tests
+          command: nyc --extension .ts mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
           no_output_timeout: 20m
+
+#  ./node_modules/.bin/nyc ./node_modules/.bin/mocha --recursive --timeout=10000 --exit --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
+
+
+      - run:
+          name: Run tslint
+          command: tslint -p test -t junit -o ./reports/eslint/eslint.xml
+#       ./node_modules/.bin/eslint ./ --format junit --output-file ./reports/eslint/eslint.xml
+
+
       - run:
           name: Submit code coverage to codecov
           command: |
@@ -77,10 +88,16 @@ jobs:
           command: |
             sfdx force:org:delete -p -u falcon-test-recipe-01
 
-      # Store SFDX logs as artifacts
+      # Store test results and other artifacts
+      - store_test_results:
+          path: reports
       - store_artifacts:
           path: ~/.sfdx/sfdx.log
           destination: sfdx-logs
+      - store_artifacts:
+          path: ./reports/mocha/test-results.xml
+      - store_artifacts:
+          path: ./reports/tslint/          
 
 ####################################################################################################
 ## JOB:     node-8
