@@ -9,3 +9,4 @@
 node_modules
 /docs/_site
 /docs/Gemfile.lock
+/reports
