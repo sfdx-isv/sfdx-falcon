@@ -147,6 +147,24 @@
         "tslib": "^1.9.3"
       },
       "dependencies": {
+        "@oclif/command": {
+          "version": "1.5.12",
+          "dev": true,
+          "requires": {
+            "@oclif/errors": "^1.2.2",
+            "@oclif/parser": "^3.7.3",
+            "debug": "^4.1.1",
+            "semver": "^5.6.0"
+          }
+        },
+        "@oclif/config": {
+          "version": "1.12.10",
+          "dev": true,
+          "requires": {
+            "debug": "^4.1.1",
+            "tslib": "^1.9.3"
+          }
+        },
         "ansi-regex": {
           "version": "4.1.0",
           "dev": true
@@ -195,7 +213,7 @@
           }
         },
         "strip-ansi": {
-          "version": "5.1.0",
+          "version": "5.2.0",
           "dev": true,
           "requires": {
             "ansi-regex": "^4.1.0"
@@ -220,7 +238,7 @@
           "version": "1.3.0"
         },
         "strip-ansi": {
-          "version": "5.1.0",
+          "version": "5.2.0",
           "requires": {
             "ansi-regex": "^4.1.0"
           }
@@ -250,7 +268,7 @@
       "version": "1.0.0"
     },
     "@oclif/parser": {
-      "version": "3.7.2",
+      "version": "3.7.3",
       "requires": {
         "@oclif/linewrap": "^1.0.0",
         "chalk": "^2.4.1",
@@ -270,6 +288,15 @@
         "wrap-ansi": "^4.0.0"
       },
       "dependencies": {
+        "@oclif/command": {
+          "version": "1.5.12",
+          "requires": {
+            "@oclif/errors": "^1.2.2",
+            "@oclif/parser": "^3.7.3",
+            "debug": "^4.1.1",
+            "semver": "^5.6.0"
+          }
+        },
         "ansi-regex": {
           "version": "4.1.0"
         },
@@ -285,7 +312,7 @@
           }
         },
         "strip-ansi": {
-          "version": "5.1.0",
+          "version": "5.2.0",
           "requires": {
             "ansi-regex": "^4.1.0"
           }
@@ -340,6 +367,65 @@
         "@salesforce/ts-types": "^1.0.0",
         "chalk": "^2.4.0",
         "cli-ux": "^4.8.0"
+      },
+      "dependencies": {
+        "@oclif/command": {
+          "version": "1.5.12",
+          "requires": {
+            "@oclif/errors": "^1.2.2",
+            "@oclif/parser": "^3.7.3",
+            "debug": "^4.1.1",
+            "semver": "^5.6.0"
+          },
+          "dependencies": {
+            "debug": {
+              "version": "4.1.1",
+              "requires": {
+                "ms": "^2.1.1"
+              }
+            }
+          }
+        },
+        "@salesforce/core": {
+          "version": "1.2.3",
+          "requires": {
+            "@salesforce/kit": "^1.0.0",
+            "@salesforce/ts-sinon": "^1.0.0",
+            "@salesforce/ts-types": "^1.0.0",
+            "@types/jsforce": "1.9.2",
+            "bunyan-sfdx-no-dtrace": "1.8.2",
+            "debug": "^3.1.0",
+            "jsen": "0.6.6",
+            "jsforce": "1.8.5",
+            "jsonwebtoken": "8.5.0",
+            "mkdirp": "0.5.1",
+            "sfdx-faye": "^1.0.9"
+          }
+        },
+        "@types/jsforce": {
+          "version": "1.9.2"
+        },
+        "debug": {
+          "version": "3.2.6",
+          "requires": {
+            "ms": "^2.1.1"
+          }
+        },
+        "jsonwebtoken": {
+          "version": "8.5.0",
+          "requires": {
+            "jws": "^3.2.1",
+            "lodash.includes": "^4.3.0",
+            "lodash.isboolean": "^3.0.3",
+            "lodash.isinteger": "^4.0.4",
+            "lodash.isnumber": "^3.0.3",
+            "lodash.isplainobject": "^4.0.6",
+            "lodash.isstring": "^4.0.1",
+            "lodash.once": "^4.0.0",
+            "ms": "^2.1.1",
+            "semver": "^5.6.0"
+          }
+        }
       }
     },
     "@salesforce/core": {
@@ -500,7 +586,7 @@
       }
     },
     "@types/node": {
-      "version": "11.11.2"
+      "version": "11.11.3"
     },
     "@types/normalize-package-data": {
       "version": "2.4.0",
@@ -622,7 +708,7 @@
       }
     },
     "@types/sinon": {
-      "version": "7.0.9"
+      "version": "7.0.10"
     },
     "@types/through": {
       "version": "0.0.29",
@@ -780,6 +866,13 @@
             "has-ansi": "^2.0.0",
             "strip-ansi": "^3.0.0",
             "supports-color": "^2.0.0"
+          }
+        },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "dev": true,
+          "requires": {
+            "ansi-regex": "^2.0.0"
           }
         },
         "supports-color": {
@@ -949,6 +1042,10 @@
     "chardet": {
       "version": "0.7.0"
     },
+    "charenc": {
+      "version": "0.0.2",
+      "dev": true
+    },
     "check-error": {
       "version": "1.0.2",
       "dev": true
@@ -1004,6 +1101,12 @@
             "is-fullwidth-code-point": "^1.0.0",
             "strip-ansi": "^3.0.0"
           }
+        },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
+          }
         }
       }
     },
@@ -1037,7 +1140,7 @@
           "version": "4.1.0"
         },
         "strip-ansi": {
-          "version": "5.1.0",
+          "version": "5.2.0",
           "requires": {
             "ansi-regex": "^4.1.0"
           }
@@ -1054,19 +1157,6 @@
         "string-width": "^2.1.1",
         "strip-ansi": "^4.0.0",
         "wrap-ansi": "^2.0.0"
-      },
-      "dependencies": {
-        "ansi-regex": {
-          "version": "3.0.0",
-          "dev": true
-        },
-        "strip-ansi": {
-          "version": "4.0.0",
-          "dev": true,
-          "requires": {
-            "ansi-regex": "^3.0.0"
-          }
-        }
       }
     },
     "clone": {
@@ -1159,6 +1249,10 @@
         "shebang-command": "^1.2.0",
         "which": "^1.2.9"
       }
+    },
+    "crypt": {
+      "version": "0.0.2",
+      "dev": true
     },
     "csprng": {
       "version": "0.1.2",
@@ -1545,6 +1639,14 @@
         "log-symbols": "^1.0.2",
         "log-update": "^1.0.2",
         "strip-ansi": "^3.0.1"
+      },
+      "dependencies": {
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
+          }
+        }
       }
     },
     "fancy-test": {
@@ -1880,9 +1982,9 @@
       "dev": true
     },
     "handlebars": {
-      "version": "4.1.0",
+      "version": "4.1.1",
       "requires": {
-        "async": "^2.5.0",
+        "neo-async": "^2.6.0",
         "optimist": "^0.6.1",
         "source-map": "^0.6.1",
         "uglify-js": "^3.1.4"
@@ -2065,7 +2167,7 @@
           }
         },
         "strip-ansi": {
-          "version": "5.1.0",
+          "version": "5.2.0",
           "requires": {
             "ansi-regex": "^4.1.0"
           }
@@ -2410,7 +2512,7 @@
       "version": "4.0.2"
     },
     "jwa": {
-      "version": "1.4.0",
+      "version": "1.4.1",
       "requires": {
         "buffer-equal-constant-time": "1.0.1",
         "ecdsa-sig-formatter": "1.0.11",
@@ -2418,9 +2520,9 @@
       }
     },
     "jws": {
-      "version": "3.2.1",
+      "version": "3.2.2",
       "requires": {
-        "jwa": "^1.2.0",
+        "jwa": "^1.4.1",
         "safe-buffer": "^5.0.1"
       }
     },
@@ -2470,9 +2572,6 @@
         "strip-ansi": "^3.0.1"
       },
       "dependencies": {
-        "ansi-regex": {
-          "version": "3.0.0"
-        },
         "ansi-styles": {
           "version": "2.2.1"
         },
@@ -2494,6 +2593,12 @@
             "wrap-ansi": "^3.0.1"
           }
         },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
+          }
+        },
         "supports-color": {
           "version": "2.0.0"
         },
@@ -2504,6 +2609,9 @@
             "strip-ansi": "^4.0.0"
           },
           "dependencies": {
+            "ansi-regex": {
+              "version": "3.0.0"
+            },
             "strip-ansi": {
               "version": "4.0.0",
               "requires": {
@@ -2560,6 +2668,27 @@
     "lodash.get": {
       "version": "4.4.2"
     },
+    "lodash.includes": {
+      "version": "4.3.0"
+    },
+    "lodash.isboolean": {
+      "version": "3.0.3"
+    },
+    "lodash.isinteger": {
+      "version": "4.0.4"
+    },
+    "lodash.isnumber": {
+      "version": "3.0.3"
+    },
+    "lodash.isplainobject": {
+      "version": "4.0.6"
+    },
+    "lodash.isstring": {
+      "version": "4.0.1"
+    },
+    "lodash.once": {
+      "version": "4.1.1"
+    },
     "lodash.template": {
       "version": "4.4.0",
       "requires": {
@@ -2590,6 +2719,12 @@
             "has-ansi": "^2.0.0",
             "strip-ansi": "^3.0.0",
             "supports-color": "^2.0.0"
+          }
+        },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
           }
         },
         "supports-color": {
@@ -2668,6 +2803,15 @@
       "version": "1.0.0",
       "requires": {
         "object-visit": "^1.0.0"
+      }
+    },
+    "md5": {
+      "version": "2.2.1",
+      "dev": true,
+      "requires": {
+        "charenc": "~0.0.1",
+        "crypt": "~0.0.1",
+        "is-buffer": "~1.1.1"
       }
     },
     "mem": {
@@ -2909,6 +3053,30 @@
         }
       }
     },
+    "mocha-junit-reporter": {
+      "version": "1.18.0",
+      "dev": true,
+      "requires": {
+        "debug": "^2.2.0",
+        "md5": "^2.1.0",
+        "mkdirp": "~0.5.1",
+        "strip-ansi": "^4.0.0",
+        "xml": "^1.0.0"
+      },
+      "dependencies": {
+        "debug": {
+          "version": "2.6.9",
+          "dev": true,
+          "requires": {
+            "ms": "2.0.0"
+          }
+        },
+        "ms": {
+          "version": "2.0.0",
+          "dev": true
+        }
+      }
+    },
     "mock-stdin": {
       "version": "0.3.1"
     },
@@ -2967,7 +3135,7 @@
       }
     },
     "nan": {
-      "version": "2.12.1",
+      "version": "2.13.1",
       "optional": true
     },
     "nanomatch": {
@@ -3012,12 +3180,15 @@
       }
     },
     "natural-orderby": {
-      "version": "2.0.1",
+      "version": "2.0.2",
       "dev": true
     },
     "ncp": {
       "version": "2.0.0",
       "optional": true
+    },
+    "neo-async": {
+      "version": "2.6.0"
     },
     "nice-try": {
       "version": "1.0.5"
@@ -4288,7 +4459,7 @@
       }
     },
     "opn": {
-      "version": "5.4.0",
+      "version": "5.5.0",
       "requires": {
         "is-wsl": "^1.1.0"
       }
@@ -4386,7 +4557,7 @@
       }
     },
     "p-try": {
-      "version": "2.0.0"
+      "version": "2.1.0"
     },
     "package-hash": {
       "version": "3.0.0",
@@ -5101,19 +5272,10 @@
         "strip-ansi": "^4.0.0"
       },
       "dependencies": {
-        "ansi-regex": {
-          "version": "3.0.0"
-        },
         "debug": {
           "version": "3.2.6",
           "requires": {
             "ms": "^2.1.1"
-          }
-        },
-        "strip-ansi": {
-          "version": "4.0.0",
-          "requires": {
-            "ansi-regex": "^3.0.0"
           }
         }
       }
@@ -5129,17 +5291,6 @@
       "requires": {
         "is-fullwidth-code-point": "^2.0.0",
         "strip-ansi": "^4.0.0"
-      },
-      "dependencies": {
-        "ansi-regex": {
-          "version": "3.0.0"
-        },
-        "strip-ansi": {
-          "version": "4.0.0",
-          "requires": {
-            "ansi-regex": "^3.0.0"
-          }
-        }
       }
     },
     "string_decoder": {
@@ -5149,9 +5300,14 @@
       }
     },
     "strip-ansi": {
-      "version": "3.0.1",
+      "version": "4.0.0",
       "requires": {
-        "ansi-regex": "^2.0.0"
+        "ansi-regex": "^3.0.0"
+      },
+      "dependencies": {
+        "ansi-regex": {
+          "version": "3.0.0"
+        }
       }
     },
     "strip-bom": {
@@ -5362,7 +5518,7 @@
       "version": "1.9.3"
     },
     "tslint": {
-      "version": "5.13.1",
+      "version": "5.14.0",
       "dev": true,
       "requires": {
         "babel-code-frame": "^6.22.0",
@@ -5377,7 +5533,7 @@
         "resolve": "^1.3.2",
         "semver": "^5.3.0",
         "tslib": "^1.8.0",
-        "tsutils": "^2.27.2"
+        "tsutils": "^2.29.0"
       },
       "dependencies": {
         "js-yaml": {
@@ -5387,6 +5543,13 @@
             "argparse": "^1.0.7",
             "esprima": "^4.0.0"
           }
+        },
+        "tsutils": {
+          "version": "2.29.0",
+          "dev": true,
+          "requires": {
+            "tslib": "^1.8.1"
+          }
         }
       }
     },
@@ -5395,19 +5558,10 @@
       "dev": true,
       "requires": {
         "tsutils": "^2.27.2 <2.29.0"
-      },
-      "dependencies": {
-        "tsutils": {
-          "version": "2.28.0",
-          "dev": true,
-          "requires": {
-            "tslib": "^1.8.1"
-          }
-        }
       }
     },
     "tsutils": {
-      "version": "2.29.0",
+      "version": "2.28.0",
       "dev": true,
       "requires": {
         "tslib": "^1.8.1"
@@ -5430,17 +5584,11 @@
       "dev": true
     },
     "uglify-js": {
-      "version": "3.4.9",
+      "version": "3.4.10",
       "optional": true,
       "requires": {
-        "commander": "~2.17.1",
+        "commander": "~2.19.0",
         "source-map": "~0.6.1"
-      },
-      "dependencies": {
-        "commander": {
-          "version": "2.17.1",
-          "optional": true
-        }
       }
     },
     "union-value": {
@@ -5644,6 +5792,12 @@
             "is-fullwidth-code-point": "^1.0.0",
             "strip-ansi": "^3.0.0"
           }
+        },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
+          }
         }
       }
     },
@@ -5678,6 +5832,10 @@
           }
         }
       }
+    },
+    "xml": {
+      "version": "1.0.1",
+      "dev": true
     },
     "xml2js": {
       "version": "0.4.19",
@@ -5754,9 +5912,6 @@
         "untildify": "^3.0.3"
       },
       "dependencies": {
-        "ansi-regex": {
-          "version": "3.0.0"
-        },
         "debug": {
           "version": "3.2.6",
           "requires": {
@@ -5793,12 +5948,6 @@
         },
         "slash": {
           "version": "1.0.0"
-        },
-        "strip-ansi": {
-          "version": "4.0.0",
-          "requires": {
-            "ansi-regex": "^3.0.0"
-          }
         }
       }
     },
@@ -5891,6 +6040,12 @@
             "ansi-styles": {
               "version": "2.2.1"
             }
+          }
+        },
+        "strip-ansi": {
+          "version": "3.0.1",
+          "requires": {
+            "ansi-regex": "^2.0.0"
           }
         },
         "supports-color": {
