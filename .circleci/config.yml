@@ -94,8 +94,8 @@ jobs:
           path: ./reports/tslint/tslint.xml
           destination: tslint-results.xml
       - store_artifacts: # upload test coverage as artifact
-          path: ./coverage.lcov
-          destination: code-coverage.lcov
+          path: coverage
+          destination: coverage
 
 
 ####################################################################################################
