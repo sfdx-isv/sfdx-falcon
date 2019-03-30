@@ -16,7 +16,7 @@
     "inquirer": "6.2.2",
     "listr": "0.14.3",
     "lodash": "4.17.11",
-    "pad": "2.2.2",
+    "pad": "2.2.3",
     "request-promise-native": "1.0.5",
     "rxjs": "6.4.0",
     "sfdx-falcon-appx-demo-kit": "0.0.9",
