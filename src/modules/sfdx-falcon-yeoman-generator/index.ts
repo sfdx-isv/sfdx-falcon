@@ -12,20 +12,26 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 import * as Generator     from  'yeoman-generator';     // Generator class must extend this.
+import {Questions}        from  'yeoman-generator';
 
 // Import Internal Modules
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';           // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}          from  '../sfdx-falcon-error';           // Class. Specialized Error object. Wraps SfdxError.
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
-import {SfdxFalconResultType}     from  '../sfdx-falcon-result';          // Enum. Represents the different types of sources where Results might come from.
-import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Library of UX Helper functions specific to SFDX-Falcon.
-import {ConfirmationAnswers}      from  '../sfdx-falcon-util/yeoman';     // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // ???
+import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
+import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
+import {ConfirmationAnswers}      from  '../sfdx-falcon-util/yeoman';     // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
+import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Class. Status tracking object for use with Yeoman Generators.
+import {doNotProceed}             from  '../sfdx-falcon-util/yeoman';     // Function. useful helper for testing whether Yeoman should show a particular question or not, based on a previous "proceed" val.
+import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Interface. Specifies options used when spinning up an SFDX-Falcon Yeoman environment.
+
+// Requires
+const chalk     = require('chalk');                 // Utility for creating colorful console output.
+const {version} = require('../../../package.json'); // The version of the SFDX-Falcon plugin
+const yosay     = require('yosay');                 // ASCII art creator brings Yeoman to life.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'GENERATOR:sfdx-falcon-yeoman-generator:';
-const clsDbgNs  = 'SfdxFalconYeomanGenerator:';
+const dbgNs = 'GENERATOR:sfdx-falcon-yeoman-generator:';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -42,19 +48,22 @@ const clsDbgNs  = 'SfdxFalconYeomanGenerator:';
 export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
   // Define class members.
+  protected cliCommandName:         string;                     // Name of the CLI command that kicked off this generator.
+  protected successMessage:         string;                     // Message that will be displayed upon successful completion of the Generator.
+  protected failureMessage:         string;                     // Message that will be displayed upon failure of the Generator.
+  protected warningMessage:         string;                     // Message that will be displayed upon partial success of the Generator.
+  protected openingMessage:         string;                     // Message that is displayed by the yosay "Yeoman" ASCII art when the generator is loaded.
+  protected generatorStatus:        GeneratorStatus;            // Used to keep track of status and to return messages to the caller.
+  protected generatorResult:        SfdxFalconResult;           // Used to keep track of status and to return messages to the caller.
+  protected generatorType:          string;                     // Tracks the name (type) of generator being run, eg. 'clone-appx-package-project'.
+  protected installComplete:        boolean;                    // Indicates that the install() function completed successfully.
+  protected falconTable:            SfdxFalconKeyValueTable;    // Falcon Table from ux-helper.
   protected userAnswers:            T;                          // Why?
   protected defaultAnswers:         T;                          // Why?
   protected finalAnswers:           T;                          // Why?
   protected metaAnswers:            T;                          // Provides a means to send meta values (usually template tags) to EJS templates.
+  protected confirmationQuestion:   string;                     // Why?
   protected confirmationAnswers:    ConfirmationAnswers;        // Why?
-
-  protected cliCommandName:         string;                     // Name of the CLI command that kicked off this generator.
-  protected installComplete:        boolean;                    // Indicates that the install() function completed successfully.
-  protected falconTable:            SfdxFalconKeyValueTable;    // Falcon Table from ux-helper.
-  protected commandResult:          SfdxFalconResult;           // The RESULT object owned by the command that called this generator.
-  protected generatorResult:        SfdxFalconResult;           // Used to keep track of status and to return messages to the caller.
-  protected generatorStatus:        GeneratorStatus;            // Used to keep track of status and to return messages to the caller.
-  protected generatorType:          string;                     // Tracks the name (type) of generator being run, eg. 'clone-appx-package-project'.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -67,10 +76,10 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(args:string|string[], opts:GeneratorOptions) {
 
-    // Make sure we get a valid SfdxFalconResult COMMAND Result object in the options.
-    if ((opts.commandResult instanceof SfdxFalconResult) !== true) {
+    // Make sure we get a valid SfdxFalconResult GENERATOR Result object in the options.
+    if ((opts.generatorResult instanceof SfdxFalconResult) !== true) {
       throw new SfdxFalconError( `Options provided to SfdxFalconYeomanGenerator must have `
-                               + `a 'commandResult' key containing an SfdxFalconResult object.`
+                               + `a 'generatorResult' key containing an SfdxFalconResult object.`
                                , `InvalidOption`
                                , `${dbgNs}constructor`);
     }
@@ -79,40 +88,284 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
     super(args, opts);
 
     // Initialize class members.
-    this.cliCommandName       = opts.commandName;               // ???
-    this.generatorStatus      = opts.generatorStatus;           // Tracks status and build messages to the user.
-    this.generatorType        = opts.generatorType;             // ???
-    this.commandResult        = opts.commandResult;             // ???
-    this.installComplete      = false;                          // ???
-    this.userAnswers          = {} as T;                        // ???
-    this.defaultAnswers       = {} as T;                        // ???
-    this.confirmationAnswers  = {} as ConfirmationAnswers;      // ???
+    this.cliCommandName       = opts.commandName;               // Name of the command that's executing the Generator (eg. 'falcon:adk:clone').
+    this.generatorType        = opts.generatorType;             // Type (ie. file name minus the .ts extension) of the Generator being run.
+    this.generatorResult      = opts.generatorResult;           // Used for activity tracking and communication back to the calling command.
+    this.generatorStatus      = new GeneratorStatus();          // Tracks status and build messages to the user.
+    this.installComplete      = false;                          // Marked true only after the "writing" and "install" Yeoman phases are completely successful.
     this.falconTable          = new SfdxFalconKeyValueTable();  // Initialize the Falcon Table for end-of-command output.
+    this.userAnswers          = {} as T;                        // Set of answers that the User provides during the interview.
+    this.defaultAnswers       = {} as T;                        // Set of default answers.
+    this.finalAnswers         = {} as T;                        // Set of final answers, ie. merging of User and Default answers in case user did not supply some answers.
+    this.metaAnswers          = {} as T;                        // Special set of answers that can be used by special file copy templates.
+    this.confirmationAnswers  = {} as ConfirmationAnswers;      // Set of "proceed/abort/retry" answers, used as part of control flow during interviews.
+
+    // Set defaults for the success, failure, and warning messages.
+    this.successMessage   = `${this.cliCommandName} completed successfully`;
+    this.failureMessage   = `${this.cliCommandName} exited without completing the expected tasks`;
+    this.warningMessage   = `${this.cliCommandName} completed successfully, but with some warnings (see above)`;
+    this.openingMessage   = `SFDX-Falcon Plugin\n${this.cliCommandName}\nv${version}`;
+
+    // Start the Generator Status and add it to the detail of the GENERATOR Result.
+    this.generatorStatus.start();
+    this.generatorResult.setDetail({
+      generatorType:      this.generatorType,
+      generatorStatus:    this.generatorStatus,
+      userAnswers:        this.userAnswers,
+      defaultAnswers:     this.defaultAnswers,
+      finalAnswers:       this.finalAnswers,
+      interviewQuestions: null
+    });
 
     // Initialize properties for Confirmation Answers.
     this.confirmationAnswers.proceed  = false;
     this.confirmationAnswers.restart  = true;
     this.confirmationAnswers.abort    = false;
 
-    // Initialize the GENERATOR Result.
-    this.generatorResult =
-      new SfdxFalconResult(this.generatorType, SfdxFalconResultType.GENERATOR,
-                          { startNow:       true,
-                            bubbleError:    true,     // Bubble errors to the COMMAND result
-                            bubbleFailure:  false});  // Do not bubble failures (eg. Git commit not working)
-
-    // Add the GENERATOR Result as a child of the COMMAND Result.
-    // Usually this happens at the end of a process, but this is the only way
-    // for the caller to have access to the GENERATOR result once the Yeoman
-    // run loop is complete.
-    this.commandResult.addChild(this.generatorResult);
+    // Initialize the "Confirmation Question". This should be overridden by the subclass.
+    this.confirmationQuestion = 'Would you like to proceed based on the above settings?';
 
     // DEBUG
-    SfdxFalconDebug.str(`${dbgNs}constructor:`, `${this.cliCommandName}`,                 `${clsDbgNs}constructor:this.cliCommandName: `);
-    SfdxFalconDebug.str(`${dbgNs}constructor:`, `${this.installComplete}`,                `${clsDbgNs}constructor:this.installComplete: `);
-    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.userAnswers as unknown as object,    `${clsDbgNs}constructor:this.userAnswers: `);
-    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.defaultAnswers as unknown as object, `${clsDbgNs}constructor:this.defaultAnswers: `);
-    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.confirmationAnswers,                 `${clsDbgNs}constructor:this.confirmationAnswers: `);
+    SfdxFalconDebug.str(`${dbgNs}constructor:`, this.cliCommandName,                        `this.cliCommandName: `);
+    SfdxFalconDebug.str(`${dbgNs}constructor:`, this.installComplete as unknown as string,  `this.installComplete: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.userAnswers as unknown as object,      `this.userAnswers: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.defaultAnswers as unknown as object,   `this.defaultAnswers: `);
+    SfdxFalconDebug.obj(`${dbgNs}constructor:`, this.confirmationAnswers,                   `this.confirmationAnswers: `);
+  }
 
+  // Define abstract methods.
+  protected abstract async  _executeInitializationTasks():Promise<void>;          // Performs any setup/initialization tasks prior to starting the interview.
+  protected abstract        _getInterviewQuestions():Questions;                   // Creates the interview questions used by the "prompting" phase.
+  protected abstract        _getInterviewAnswersTableData():SfdxFalconTableData;  // Creates the Interview Answers data table so the user can confirm their choices.
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _displayInterviewAnswers
+   * @returns     {void}
+   * @description Display the current set of Interview Answers in a Falcon Table.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _displayInterviewAnswers():void {
+    this.log('');
+    this.falconTable.render(this._getInterviewAnswersTableData());
+    this.log('');
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _initializeConfirmProceedAbort
+   * @returns     {Questions}
+   * @description Returns a "confirm, proceed, abort" set of questions.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _initializeConfirmProceedAbort():Questions {
+
+    // Interview Prompts:
+    // 1. Would you like to proceed based on the above settings?  (y/n)
+    // 2. Would you like to start again and enter new values?     (y/n)
+    return [
+      {
+        type:     'confirm',
+        name:     'proceed',
+        message:  this.confirmationQuestion,
+        default:  this.confirmationAnswers.proceed,
+        when:     true
+      },
+      {
+        type:     'confirm',
+        name:     'restart',
+        message:  'Would you like to start again and enter new values?',
+        default:  this.confirmationAnswers.restart,
+        when:     doNotProceed
+      }
+    ];
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _promptConfirmProceedAbort
+   * @returns     {Promise<boolean>}
+   * @description Prompts the user with questions that ask if they want to
+   *              proceed, restart, or abort. Returns true if the user wants
+   *              to restart, false if otherwise.
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async _promptProceedAbortRestart():Promise<boolean> {
+
+    // Initialize confirmation questions.
+    const confirmationQuestions = this._initializeConfirmProceedAbort();
+
+    // Tell Yeoman to prompt the user for confirmation of installation.
+    this.confirmationAnswers = await this.prompt(confirmationQuestions) as ConfirmationAnswers;
+
+    // Separate confirmation from next action in UX with a blank line.
+    this.log('');
+
+    // DEBUG
+    SfdxFalconDebug.obj(`${dbgNs}_promptConfirmProceedAbort:`, this.confirmationAnswers, `this.confirmationAnswers (POST-PROMPT): `);
+
+    // Return the value of the "restart" answer.
+    return this.confirmationAnswers.restart;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      default_initializing
+   * @returns     {Promise<void>}
+   * @description STEP ONE in the Yeoman run-loop.  Uses Yeoman's "initializing"
+   *              run-loop priority.  This is a "default" implementation and
+   *              should work for most SFDX-Falcon use cases. It must be called
+   *              from inside the initializing() method of the child class.
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async default_initializing():Promise<void> {
+
+    // Show the Yeoman to announce that the generator is running.
+    this.log(yosay(this.openingMessage));
+
+    // Execute the async Listr task runner for initialization.
+    try {
+
+      // Execute the initialization tasks for this generator
+      await this._executeInitializationTasks();
+
+      // Show an "Initialization Complete" message
+      this.log(chalk`\n{bold Initialization Complete}\n`);
+    }
+    catch (initializationError) {
+
+      SfdxFalconDebug.obj(`${dbgNs}default_initializing:`, initializationError, `initializationError: `);
+
+      // Add an "abort" item to the Generator Status object.
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Initialization Error',
+        message:  `${this.cliCommandName} command aborted because one or more initialization tasks failed`
+      });
+
+      // Throw an Initialization Error.
+      throw new SfdxFalconError( `Command initialization failed. ${initializationError.message}`
+                               , `InitializationError`
+                               , `${dbgNs}default_initializing`
+                               , SfdxFalconError.wrap(initializationError));
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      default_prompting
+   * @returns     {Promise<void>}
+   * @description STEP TWO in the Yeoman run-loop. Interviews the User to get
+   *              information needed by the "writing" and "installing" phases.
+   *              This is a "default" implementation and should work for most
+   *              SFDX-Falcon use cases. It must be called from inside the
+   *              prompting() method of the child class.
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async default_prompting():Promise<void> {
+
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}prompting:`, `generatorStatus.aborted found as TRUE inside prompting()`);
+      return;
+    }
+
+    // Start the interview loop.  This will ask the user questions until they
+    // verify they want to take action based on the info they provided, or
+    // they deciede to cancel the whole process.
+    do {
+
+      // Initialize interview questions.
+      const interviewQuestions = this._getInterviewQuestions();
+
+      // Prompt the user with the Interview Questions and store the answers.
+      this.userAnswers = await this.prompt(interviewQuestions) as T;
+
+      // Display the answers provided during the interview
+      this._displayInterviewAnswers();
+      
+    } while (await this._promptProceedAbortRestart() === true);
+
+    // Check if the user decided to proceed with the install.  If not, abort.
+    if (this.confirmationAnswers.proceed !== true) {
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Command Aborted',
+        message:  `${this.cliCommandName} command canceled by user`
+      });
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      default_configuring
+   * @returns     {void}
+   * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
+   *              configuration steps based on the answers provided by the User.
+   *              This is a "default" implementation and should work for most
+   *              SFDX-Falcon use cases. It must be called from inside the
+   *              configuring() method of the child class.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected default_configuring() {
+
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}configuring:`, `generatorStatus.aborted found as TRUE inside configuring()`);
+      return;
+    }
+
+    // Normally we have nothing else to run in the configuring step, but
+    // I'm keeping this here to help create a standard framework for running
+    // Yeoman in CLI Plugin scripts.
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      default_end
+   * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
+   *              Yeoman runs and it gives us a chance to do any post-Yeoman
+   *              updates and/or cleanup. This is a "default" implementation
+   *              and should work for most SFDX-Falcon use cases. It must be
+   *              called from inside the end() method of the child class.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected default_end() {
+
+    // Check if the Yeoman interview/installation process was aborted.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}end:`, `generatorStatus.aborted found as TRUE inside end()`);
+
+      // Add a final error message
+      this.generatorStatus.addMessage({
+        type:     'error',
+        title:    'Command Failed',
+        message:  `${this.failureMessage}\n`
+      });
+    }
+    else {
+      // Generator completed successfully. Final message depends on wheter
+      // or not a "complete install" happened.
+      this.generatorStatus.complete([
+        {
+          type:     'success',
+          title:    'Command Succeded',
+          message:  this.installComplete
+                    ? `${this.successMessage}\n`
+                    : `${this.warningMessage}\n`
+        }
+      ]);
+    }
+
+    // Print the final status table.
+    this.generatorStatus.printStatusMessages();
+    return;
   }
 }
