@@ -18,6 +18,7 @@ import {Questions}        from  'yeoman-generator';
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';           // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}          from  '../sfdx-falcon-error';           // Class. Specialized Error object. Wraps SfdxError.
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
+import * as gitHelper             from  '../sfdx-falcon-util/git';        // Library. Git Helper functions specific to SFDX-Falcon.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {ConfirmationAnswers}      from  '../sfdx-falcon-util/yeoman';     // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
@@ -49,6 +50,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
   // Define class members.
   protected cliCommandName:         string;                     // Name of the CLI command that kicked off this generator.
+  protected pluginVersion:          string;                     // Version of the plugin, taken from package.json.
   protected successMessage:         string;                     // Message that will be displayed upon successful completion of the Generator.
   protected failureMessage:         string;                     // Message that will be displayed upon failure of the Generator.
   protected warningMessage:         string;                     // Message that will be displayed upon partial success of the Generator.
@@ -92,6 +94,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
     this.generatorType        = opts.generatorType;             // Type (ie. file name minus the .ts extension) of the Generator being run.
     this.generatorResult      = opts.generatorResult;           // Used for activity tracking and communication back to the calling command.
     this.generatorStatus      = new GeneratorStatus();          // Tracks status and build messages to the user.
+    this.pluginVersion        = version;                        // Version of the plugin, taken from package.json.
     this.installComplete      = false;                          // Marked true only after the "writing" and "install" Yeoman phases are completely successful.
     this.falconTable          = new SfdxFalconKeyValueTable();  // Initialize the Falcon Table for end-of-command output.
     this.userAnswers          = {} as T;                        // Set of answers that the User provides during the interview.
@@ -104,7 +107,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
     this.successMessage   = `${this.cliCommandName} completed successfully`;
     this.failureMessage   = `${this.cliCommandName} exited without completing the expected tasks`;
     this.warningMessage   = `${this.cliCommandName} completed successfully, but with some warnings (see above)`;
-    this.openingMessage   = `SFDX-Falcon Plugin\n${this.cliCommandName}\nv${version}`;
+    this.openingMessage   = `SFDX-Falcon Plugin\n${this.cliCommandName}\nv${this.pluginVersion}`;
 
     // Start the Generator Status and add it to the detail of the GENERATOR Result.
     this.generatorStatus.start();
@@ -195,6 +198,11 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _promptProceedAbortRestart():Promise<boolean> {
 
+    // Set appropriate "confirmation answers" defaults before prompting the user.
+    this.confirmationAnswers.proceed  = false;
+    this.confirmationAnswers.restart  = true;
+    this.confirmationAnswers.abort    = false;
+
     // Initialize confirmation questions.
     const confirmationQuestions = this._initializeConfirmProceedAbort();
 
@@ -213,7 +221,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      default_initializing
+   * @method      _default_initializing
    * @returns     {Promise<void>}
    * @description STEP ONE in the Yeoman run-loop.  Uses Yeoman's "initializing"
    *              run-loop priority.  This is a "default" implementation and
@@ -222,7 +230,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async default_initializing():Promise<void> {
+  protected async _default_initializing():Promise<void> {
 
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(this.openingMessage));
@@ -257,7 +265,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      default_prompting
+   * @method      _default_prompting
    * @returns     {Promise<void>}
    * @description STEP TWO in the Yeoman run-loop. Interviews the User to get
    *              information needed by the "writing" and "installing" phases.
@@ -267,7 +275,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async default_prompting():Promise<void> {
+  protected async _default_prompting():Promise<void> {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -313,7 +321,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected default_configuring() {
+  protected _default_configuring():void {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -328,7 +336,8 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      default_end
+   * @method      _default_end
+   * @returns     {void}
    * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
    *              Yeoman runs and it gives us a chance to do any post-Yeoman
    *              updates and/or cleanup. This is a "default" implementation
@@ -337,7 +346,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected default_end() {
+  protected _default_end():void {
 
     // Check if the Yeoman interview/installation process was aborted.
     if (this.generatorStatus.aborted) {
@@ -366,6 +375,129 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
 
     // Print the final status table.
     this.generatorStatus.printStatusMessages();
+    return;
+  }
+
+ //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _finalizeProjectCreation
+   * @returns     {void}
+   * @description Intended to run after the Yeoman "writing" phase.  Has logic
+   *              that ensures the Generator wasn't aborted, and then carries
+   *              out finalization tasks that are specific to "creation"
+   *              Generators. This function must be executed using the call()
+   *              method because it relies on the caller's "this" context
+   *              to properly function.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _finalizeProjectCreation():void {
+
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}_finalizeProjectCreation:`, `generatorStatus.aborted found as TRUE inside install()`);
+      return;
+    }
+
+    // Make sure that a Destination Root was set.
+    if (!this.destinationRoot()) {
+      SfdxFalconDebug.msg(`${dbgNs}_finalizeProjectCreation:`, `No value returned by this.destinationRoot(). Skipping finalization tasks.`);
+      return;
+    }
+
+    // Add a "project creation" success message to Generator Status.
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Project Creation`,
+      message:  `Success - Project created at ${this.destinationRoot()}`
+    });
+
+    // Show an in-process Success Message telling the user that we just created their project files.
+    this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
+
+    // If Git is NOT installed, store a WARNING message, mark the install as INCOMPLETE, then exit.
+    if (gitHelper.isGitInstalled() === false) {
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Initializing Git`,
+        message:  `Warning - git executable not found in your environment - no Git operations attempted`
+      });
+
+      // Mark installComplete as FALSE to ensure the user sees the WARNING in the closing status.
+      this.installComplete = false;
+      return;
+    }
+
+    // Start with the assumption that all Git tasks will be successful.
+    let allGitTasksSuccessful = true;
+
+    // Extract key vars from User Answers. Use bracket notation because the generic type T
+    // does not let us know for sure that these properties exist on the userAnswers object.
+    const projectAlias            = this.userAnswers['projectAlias']            as string;
+    const gitRemoteUri            = this.userAnswers['gitRemoteUri']            as string;
+    const hasGitRemoteRepository  = this.userAnswers['hasGitRemoteRepository']  as boolean;
+
+    // Tell the user that we are adding their project to Git
+    this.log(chalk`{blue Adding project to Git...}\n`);
+
+    // Run git init to initialize the repo (no ill effects for reinitializing)
+    gitHelper.gitInit(this.destinationRoot());
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Git Initialization`,
+      message:  `Success - Repository created successfully (${projectAlias})`
+    });
+
+    // Stage (add) all project files and make the initial commit.
+    try {
+      gitHelper.gitAddAndCommit(this.destinationRoot(), `Initial commit after running ${this.cliCommandName}`);
+      this.generatorStatus.addMessage({
+        type:     'success',
+        title:    `Git Commit`,
+        message:  `Success - Staged all project files and executed the initial commit`
+      });
+    }
+    catch (gitError) {
+      SfdxFalconDebug.obj(`${dbgNs}_finalizeProjectCreation:`, gitError, `gitError: `);
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Git Commit`,
+        message:  `Warning - Attempt to stage and commit project files failed - Nothing to commit`
+      });
+
+      // Note that a Git Task failed
+      allGitTasksSuccessful = false;
+    }
+
+    // If the user specified a Git Remote, add it as "origin".
+    if (hasGitRemoteRepository) {
+      try {
+        gitHelper.gitRemoteAddOrigin(this.destinationRoot(), `${gitRemoteUri}`);
+        this.generatorStatus.addMessage({
+          type:     'success',
+          title:    `Git Remote`,
+          message:  `Success - Remote repository ${gitRemoteUri} added as "origin"`
+        });
+      } catch (gitError) {
+        SfdxFalconDebug.obj(`${dbgNs}install:`, gitError, `gitError: `);
+        this.generatorStatus.addMessage({
+          type:     'warning',
+          title:    `Git Remote`,
+          message:  `Warning - Could not add Git Remote - A remote named "origin" already exists`
+        });
+
+        // Note that a Git Task failed
+        allGitTasksSuccessful = false;
+      }
+    }
+
+    // Done with install(). Mark installComplete TRUE if all Git tasks were successful.
+    this.installComplete = allGitTasksSuccessful;
+
+    // Tell the user that we are adding their project to Git
+    this.log(chalk`{blue Git tasks complete}\n`);
+
+    // All done.
     return;
   }
 }
