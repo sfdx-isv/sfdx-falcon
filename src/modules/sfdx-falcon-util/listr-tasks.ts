@@ -24,7 +24,7 @@ import * as gitHelper       from  './git';                      // Library of Gi
 const listr = require('listr'); // Provides asynchronous list with status of task completion.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'UTILITY:listr-tasks:';
+const dbgNs = 'UTILITY:listr-tasks:';
 
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -95,11 +95,6 @@ export function gitInitTasks() {
   // Check for the presence of key variables in the calling scope.
   if (typeof this.cliCommandName !== 'string' || this.cliCommandName === '') {
     throw new SfdxFalconError( `Expected this.cliCommandName to be a non-empty string but got type '${typeof this.cliCommmandName}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}gitInitTasks`);
-  }
-  if (typeof this.gitRemoteUri !== 'string' || this.gitRemoteUri === '') {
-    throw new SfdxFalconError( `Expected this.gitRemoteUri to be a non-empty string but got type '${typeof this.gitRemoteUri}' instead.`
                              , `TypeError`
                              , `${dbgNs}gitInitTasks`);
   }
@@ -346,8 +341,8 @@ export function sfdxInitTasks() {
 export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
 
   // Validate incoming arguments.
-  if (typeof gitRemoteUri !== 'string' || gitRemoteUri === '') {
-    throw new SfdxFalconError( `Expected gitRemoteUri to be a non-empty string but got type '${typeof gitRemoteUri}' instead.`
+  if (typeof gitRemoteUri !== 'string') {
+    throw new SfdxFalconError( `Expected gitRemoteUri to be string but got type '${typeof gitRemoteUri}' instead.`
                              , `TypeError`
                              , `${dbgNs}validateGitRemote`);
   }
@@ -355,7 +350,7 @@ export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
   // Build and return the Listr task.
   return {
     title:  'Validating Git Remote...',
-    enabled: listrContext => listrContext.gitIsInstalled === true,
+    enabled: listrContext => (gitRemoteUri && listrContext.gitIsInstalled === true),
     task:   (listrContext, thisTask) => {
       return gitHelper.isGitRemoteEmptyAsync(gitRemoteUri, 3)
         .then(result => {

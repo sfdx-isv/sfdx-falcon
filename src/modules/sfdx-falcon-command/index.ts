@@ -96,7 +96,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   //    --FALCONDEBUGSUCCESS    Command should run in SUCCESS DEBUG mode.
   //    --FALCONDEBUGDEPTH      Object inspection depth when debug is rendered.
   //───────────────────────────────────────────────────────────────────────────┘
-  public static falconBaseflagsConfig = {
+  protected static falconBaseflagsConfig = {
     falcondebug: flags.array({
       description: baseMessages.getMessage('falcondebug_FlagDescription'),
       required: false,
@@ -314,7 +314,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
    * @description Kills all ongoing async code (ie. Progress Notifications) and
    *              possibly renders an Error Debug before throwing an SfdxError
    *              so that the CLI can present user-friendly error info.
-   * @protected
+   * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async terminateWithError(showErrorDebug:boolean=true, promptUser:boolean=true):Promise<void> {

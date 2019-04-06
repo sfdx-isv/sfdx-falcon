@@ -32,7 +32,7 @@ import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-com
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';            // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
 
 // Requires
-const chalk = require('chalk'); // Utility for creating colorful console output.
+const chalk = require('chalk');   // Utility for creating colorful console output.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'GENERATOR:clone-appx-demo:';
@@ -67,10 +67,10 @@ interface InterviewAnswers {
 export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<InterviewAnswers> {
 
   // Define class members specific to this Generator.
-  private devHubAliasChoices:     YeomanChoice[];   // Array of DevOrg aliases/usernames in the form of Yeoman choices.
-  private envHubAliasChoices:     YeomanChoice[];   // Array of EnvHub aliases/usernames in the form of Yeoman choices.
-  private gitRemoteUri:           string;           // URI of the Git repo to clone.
-  private gitCloneDirectory:      string;           // Name of the Git repo directory once cloned to local storage.
+  protected devHubAliasChoices:     YeomanChoice[];   // Array of DevOrg aliases/usernames in the form of Yeoman choices.
+  protected envHubAliasChoices:     YeomanChoice[];   // Array of EnvHub aliases/usernames in the form of Yeoman choices.
+  protected gitRemoteUri:           string;           // URI of the Git repo to clone.
+  protected gitCloneDirectory:      string;           // Name of the Git repo directory once cloned to local storage.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -122,11 +122,11 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
 
     // Run the Git Init Tasks. Make sure to use await since Listr will run asynchronously.
     const gitInitResults = await gitInitTasks.run();
-    SfdxFalconDebug.obj(`${dbgNs}_executeListrSetupTasks:`, gitInitResults, `gitInitResults: `);
+    SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:`, gitInitResults, `gitInitResults: `);
 
     // Followed by the SFDX Init Tasks.
     const sfdxInitResults = await sfdxInitTasks.run();
-    SfdxFalconDebug.obj(`${dbgNs}_executeListrSetupTasks:`, sfdxInitResults, `sfdxInitResults: `);
+    SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:`, sfdxInitResults, `sfdxInitResults: `);
 
   }
 
@@ -213,7 +213,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected async initializing():Promise<void> {
 
     // Call the default initializing() function. Replace with custom behavior if desired.
-    return super.default_initializing();
+    return super._default_initializing();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -228,7 +228,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected async prompting():Promise<void> {
 
     // Call the default prompting() function. Replace with custom behavior if desired.
-    return super.default_prompting();
+    return super._default_prompting();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -240,10 +240,10 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected configuring() {
+  protected configuring():void {
 
     // Call the default configuring() function. Replace with custom behavior if desired.
-    return super.default_configuring();
+    return super._default_configuring();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -255,7 +255,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected writing() {
+  protected writing():void {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -335,10 +335,8 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
       ...this.userAnswers
     };
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // Add custom config info to the local .sfdx-falcon project config file.
     // This is found in a hidden directory at the root of the project.
-    //─────────────────────────────────────────────────────────────────────────┘
     this.fs.copyTpl(this.templatePath('./.templates/sfdx-falcon-config.json.ejs'),
                     this.destinationPath('./.sfdx-falcon/sfdx-falcon-config.json'),
                     this);
@@ -359,7 +357,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected install() {
+  protected install():void {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -367,28 +365,21 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
       return;
     }
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the writing() step completed successfully.
-    //─────────────────────────────────────────────────────────────────────────┘
     this.generatorStatus.addMessage({
       type:     'success',
       title:    `Local Config Created`,
       message:  `.sfdx-falcon/sfdx-falcon-config.json created and customized successfully`
     });
   
-    //─────────────────────────────────────────────────────────────────────────┐
-    // Show an in-process Success Message telling the user that we just created
-    // their project files.
-    //─────────────────────────────────────────────────────────────────────────┘
+    // Show in-process Success Message explaining that we just created the project files.
     printStatusMessage({
       type:     'success',
       title:    `\nSuccess`,
       message:  `Project files customized at ${this.destinationRoot()}\n`
     });
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // If we get here, it means that the install() step completed successfully.
-    //─────────────────────────────────────────────────────────────────────────┘
     this.installComplete = true;
   }
 
@@ -402,9 +393,9 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected end() {
+  protected end():void {
 
     // Call the default end() function. Replace with custom behavior if desired.
-    return super.default_end();
+    return super._default_end();
   }
 }

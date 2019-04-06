@@ -40,7 +40,7 @@ export interface GeneratorOptions {
   generatorType?:   string;
   generatorStatus?: GeneratorStatus;
   generatorResult?: SfdxFalconResult;
-  [key:string]: AnyJson | GeneratorStatus | SfdxFalconResult | string;
+  [key:string]: AnyJson | GeneratorStatus | SfdxFalconResult | string | number;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

@@ -44,7 +44,6 @@ const commandMessages = Messages.loadMessages('sfdx-falcon', 'falconAdkClone');
  *              existing project that's based on the AppExchange Demo Kit (ADK) template.  After
  *              the project is cloned, the user is taken through an interview to help set up
  *              developer-specific project variables.
- * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -111,7 +110,6 @@ export default class FalconAdkClone extends SfdxFalconYeomanCommand {
    * @returns     {Promise<AnyJson>}  Resolves with a JSON object that the CLI
    *              will pass to the user as stdout if the --json flag was set.
    * @description Entrypoint function for "sfdx falcon:adk:clone".
-   * @version     1.0.0
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘

@@ -65,13 +65,6 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     `                         --configfile my-alternate-demo-config.json`
   ];
 
-  // Identify the core SFDX arguments/features required by this command.
-  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
-  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
-  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
-  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
-  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.
-
   //───────────────────────────────────────────────────────────────────────────┐
   // -d --PROJECTDIR  Directory where a fully configured AppX Demo Kit (ADK)
   //                  project exists. All commands for deployment must be
@@ -106,10 +99,17 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     ...SfdxFalconCommand.falconBaseflagsConfig
   };
 
+  // Identify the core SFDX arguments/features required by this command.
+  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
+  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
+  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
+  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
+  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    run
-   * @returns     {Promise<any>}  This should resolve by returning a JSON object
+   * @returns     {Promise<AnyJson>}  This should resolve by returning a JSON object
    *              that the CLI will then forward to the user if the --json flag
    *              was set when this command was called.
    * @description Entrypoint function used by the CLI when the user wants to
