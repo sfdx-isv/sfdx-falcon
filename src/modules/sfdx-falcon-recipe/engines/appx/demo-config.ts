@@ -33,8 +33,8 @@ import {ImportDataTreeAction}     from '../appx/actions/import-data-tree';      
 import {InstallPackageAction}     from '../appx/actions/install-package';             // Why?
 
 // Import Utility Functions/Types
-import {YeomanChoice}             from '../../../sfdx-falcon-util/yeoman';            // Why?
-import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-util/yeoman';            // Why?
+import {YeomanChoice}             from '../../../sfdx-falcon-types';     // Interface. Represents a Yeoman/Inquirer choice object.
+import {YeomanCheckboxChoice}     from '../../../sfdx-falcon-types';     // Interface. Represents a "checkbox choice" in Yeoman/Inquirer.
 
 // Requires
 const inquirer  = require('inquirer');    // Provides UX for getting feedback from the user.

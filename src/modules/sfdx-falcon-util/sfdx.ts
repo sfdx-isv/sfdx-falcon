@@ -233,6 +233,69 @@ export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo>
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    identifyPkgOrgs
+ * @param       {Array<any>}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
+ *              in the result of a call to force:org:list.
+ * @returns     {SfdxOrgInfo[]}  Array containing only SfdxOrgInfo objects that point to Packaging Orgs.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              finds all the org connections that point to Packaging Orgs and returns them as
+ *              an array of SfdxOrgInfo objects.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function identifyPkgOrgs(rawSfdxOrgList:Array<any>):SfdxOrgInfo[] {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, arguments, `arguments: `);
+
+  // Make sure that the caller passed us an Array.
+  if ((rawSfdxOrgList instanceof Array) === false) {
+    throw new Error(`ERROR_INVALID_TYPE: Expected an Array but got type '${typeof rawSfdxOrgList}'`);
+  }
+
+  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
+  const pkgOrgInfos = new Array<SfdxOrgInfo>();
+
+
+
+  // DEVTEST - for now, just return the empty org infos list
+  // TODO: Implement the check for EnvHub orgs
+  return pkgOrgInfos;
+
+
+
+  // Iterate over rawSfdxOrgList to find orgs where connectedStatus is TRUE.
+  // Then, for each one, make a connection and try to touch objects that
+  // would ONLY be present in an Environment Hub org (eg. SignupRequest Object).
+  for (const rawOrgInfo of rawSfdxOrgList) {
+    if (rawOrgInfo.connectedStatus === 'Connected') {
+
+      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ACTIVE ORG: Alias(Username)`);
+
+      // TODO: Implement some kind of "Environment Hub Check" logic
+
+      pkgOrgInfos.push({
+        alias:            rawOrgInfo.alias || rawOrgInfo.username,
+        username:         rawOrgInfo.username,
+        orgId:            rawOrgInfo.orgId,
+        isDevHub:         rawOrgInfo.isDevHub,
+        connectedStatus:  rawOrgInfo.connectedStatus
+      });
+    }
+    else {
+      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `NOT AN ACTIVE ORG: Alias(Username)`);
+    }
+  }
+
+  // DEBUG
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, pkgOrgInfos, `pkgOrgInfos: `);
+
+  // Return the list of Dev Hubs to the caller
+  return pkgOrgInfos;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    getConnection
  * @param       {string} orgAlias   Required. The alias of the org to create a connection to.
  * @param       {string} apiVersion Optional. Expects format "[1-9][0-9].0", i.e. 42.0.

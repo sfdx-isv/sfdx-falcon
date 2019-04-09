@@ -39,14 +39,20 @@ const dbgNs = 'UTILITY:listr-tasks:';
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function buildDevHubAliasList():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
   return {
     title:  'Building DevHub Alias List...',
+    enabled:() => Array.isArray(this.sharedData.devHubAliasChoices),
     task:   (listrContext, thisTask) => {
-      this.devHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.devHubOrgInfos);
+      this.sharedData.devHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.devHubOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.devHubAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.devHubAliasChoices.push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
+      this.sharedData.devHubAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.devHubAliasChoices.push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
       return;
     }
@@ -65,14 +71,54 @@ export function buildDevHubAliasList():ListrTask {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function buildEnvHubAliasList():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
   return {
     title:  'Building EnvHub Alias List...',
+    enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
     task:   (listrContext, thisTask) => {
-      this.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
+      this.sharedData.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      this.sharedData.envHubAliasChoices.push({name:'DevTest_ENV --- devtest@devtest-env.org', value:'DevTest_ENV', short:'DevTest_ENV'});
+      this.sharedData.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      thisTask.title += 'Done!';
+      return;
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    buildPkgOrgAliasList
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that takes a list of identified Packaging
+ *              Orgs and uses it to create an Inquirer-compatible "choice list". This function must
+ *              be executed using the call() method because it relies on the caller's "this" context
+ *              to properly function.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function buildPkgOrgAliasList():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  'Building PkgOrg Alias List...',
+    enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
+    task:   (listrContext, thisTask) => {
+      this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
+
+      // Add a separator and a "not specified" option
+      this.sharedData.pkgOrgAliasChoices.push({name:'DevTest_PKG --- devtest@devtest-pkg.org', value:'DevTest_PKG', short:'DevTest_PKG'});
+      this.sharedData.pkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.pkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
       return;
     }
@@ -168,21 +214,27 @@ export function gitRuntimeCheck():ListrTask {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubs():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
   return {
     title:  'Identifying DevHub Orgs...',
+    enabled:() => Array.isArray(this.sharedData.devHubAliasChoices),
     task:   (listrContext, thisTask) => {
 
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
       // Take raw org list and identify Dev Hub Orgs.
-      this.devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.rawSfdxOrgList);
+      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.rawSfdxOrgList);
 
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, this.devHubOrgInfos, `this.devHubOrgInfos: `);
+      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, devHubOrgInfos, `devHubOrgInfos: `);
  
       // Make sure there is at least one active Dev Hub.
-      if (this.devHubOrgInfos.length < 1) {
+      if (devHubOrgInfos.length < 1) {
         thisTask.title += 'No Dev Hubs Found';
         throw new SfdxFalconError( `No Dev Hubs found. You must have at least one active Dev Hub to continue. `
                                  + `Please run force:auth:web:login to connect to your Dev Hub.`
@@ -191,7 +243,7 @@ export function identifyDevHubs():ListrTask {
       }
  
       // Give the Listr Context variable access to this.devHubOrgInfos
-      listrContext.devHubOrgInfos = this.devHubOrgInfos;
+      listrContext.devHubOrgInfos = devHubOrgInfos;
  
       // Update the Task Title
       thisTask.title += 'Done!';
@@ -210,25 +262,75 @@ export function identifyDevHubs():ListrTask {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyEnvHubs():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
   return {
     title:  'Identifying EnvHub Orgs...',
+    enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
     task:   (listrContext, thisTask) => {
 
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
       // Take raw org list and identify Environment Hub Orgs.
-      this.envHubOrgInfos = sfdxHelper.identifyEnvHubOrgs(listrContext.rawSfdxOrgList);
+      const envHubOrgInfos = sfdxHelper.identifyEnvHubOrgs(listrContext.rawSfdxOrgList);
 
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:`, this.envHubOrgInfos, `this.envHubOrgInfos: `);
+      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:`, envHubOrgInfos, `envHubOrgInfos: `);
 
       // Give the Listr Context variable access to this.envHubOrgInfos
-      listrContext.envHubOrgInfos = this.envHubOrgInfos;
+      listrContext.envHubOrgInfos = envHubOrgInfos;
 
       // Update the task title based on the number of EnvHub Org Infos
-      if (this.envHubOrgInfos.length < 1) {
+      if (envHubOrgInfos.length < 1) {
         thisTask.title += 'No Environment Hubs Found';
+      }
+      else {
+        thisTask.title += 'Done!';
+      }
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    identifyPkgOrgs
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that takes a list of raw SFDX Org Infos
+ *              and searches them to identify any Packaging Orgs.  This function must be invoked
+ *              using the call() method because it relies on the caller's "this" context to function.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function identifyPkgOrgs():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  'Identifying Packaging Orgs...',
+    enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
+    task:   (listrContext, thisTask) => {
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
+
+      // Take raw org list and identify Environment Hub Orgs.
+      const pkgOrgInfos = sfdxHelper.identifyPkgOrgs(listrContext.rawSfdxOrgList);
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, pkgOrgInfos, `pkgOrgInfos: `);
+
+      // Give the Listr Context variable access to this.envHubOrgInfos
+      listrContext.pkgOrgInfos = pkgOrgInfos;
+
+      // Update the task title based on the number of EnvHub Org Infos
+      if (pkgOrgInfos.length < 1) {
+        thisTask.title += 'No Packaging Orgs Found';
       }
       else {
         thisTask.title += 'Done!';
@@ -308,8 +410,10 @@ export function sfdxInitTasks() {
               scanConnectedOrgs.call(this),
               identifyDevHubs.call(this),
               identifyEnvHubs.call(this),
+              identifyPkgOrgs.call(this),
               buildDevHubAliasList.call(this),
-              buildEnvHubAliasList.call(this)
+              buildEnvHubAliasList.call(this),
+              buildPkgOrgAliasList.call(this)
             ],
             // SUBTASK OPTIONS: (SFDX Config Tasks)
             {
@@ -326,6 +430,24 @@ export function sfdxInitTasks() {
       collapse:false
     }
   );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validateSharedData
+ * @returns     {void}
+ * @description Ensures that the calling scope has the special "sharedData" variable.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validateSharedData():void {
+  if (typeof this.sharedData !== 'object') {
+    throw new SfdxFalconError( `Expected this.sharedData to be an object available in the calling scope. Got type '${typeof this.sharedData}' instead. `
+                             + `You must execute listr-tasks functions using the syntax: functionName.call(this). `
+                             + `You must also ensure that the calling scope has defined an object named 'context'.`
+                             , `InvalidCallScope`
+                             , `${dbgNs}validateSharedData`);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

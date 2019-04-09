@@ -17,14 +17,16 @@ import {Questions}        from  'yeoman-generator';
 // Import Internal Modules
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';           // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}          from  '../sfdx-falcon-error';           // Class. Specialized Error object. Wraps SfdxError.
+import {SfdxFalconInterview}      from  '../sfdx-falcon-interview';       // Class. ???
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
+import {ConfirmationAnswers}      from  '../sfdx-falcon-types';           // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 import * as gitHelper             from  '../sfdx-falcon-util/git';        // Library. Git Helper functions specific to SFDX-Falcon.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
-import {ConfirmationAnswers}      from  '../sfdx-falcon-util/yeoman';     // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Class. Status tracking object for use with Yeoman Generators.
 import {doNotProceed}             from  '../sfdx-falcon-util/yeoman';     // Function. useful helper for testing whether Yeoman should show a particular question or not, based on a previous "proceed" val.
 import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Interface. Specifies options used when spinning up an SFDX-Falcon Yeoman environment.
+//import { JsonMap } from '@salesforce/ts-types';
 
 // Requires
 const chalk     = require('chalk');                 // Utility for creating colorful console output.
@@ -46,7 +48,7 @@ const dbgNs = 'GENERATOR:sfdx-falcon-yeoman-generator:';
  * @public @abstract
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
+export abstract class SfdxFalconYeomanGenerator<T extends object> extends Generator {
 
   // Define class members.
   protected cliCommandName:         string;                     // Name of the CLI command that kicked off this generator.
@@ -60,12 +62,14 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
   protected generatorType:          string;                     // Tracks the name (type) of generator being run, eg. 'clone-appx-package-project'.
   protected installComplete:        boolean;                    // Indicates that the install() function completed successfully.
   protected falconTable:            SfdxFalconKeyValueTable;    // Falcon Table from ux-helper.
+  protected userInterview:          SfdxFalconInterview<T>;     // Why?
   protected userAnswers:            T;                          // Why?
   protected defaultAnswers:         T;                          // Why?
   protected finalAnswers:           T;                          // Why?
   protected metaAnswers:            T;                          // Provides a means to send meta values (usually template tags) to EJS templates.
   protected confirmationQuestion:   string;                     // Why?
   protected confirmationAnswers:    ConfirmationAnswers;        // Why?
+  protected sharedData:             object;                     // Why?
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -102,6 +106,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
     this.finalAnswers         = {} as T;                        // Set of final answers, ie. merging of User and Default answers in case user did not supply some answers.
     this.metaAnswers          = {} as T;                        // Special set of answers that can be used by special file copy templates.
     this.confirmationAnswers  = {} as ConfirmationAnswers;      // Set of "proceed/abort/retry" answers, used as part of control flow during interviews.
+    this.sharedData           = {} as object;                   // ???
 
     // Set defaults for the success, failure, and warning messages.
     this.successMessage   = `${this.cliCommandName} completed successfully`;
@@ -137,6 +142,7 @@ export abstract class SfdxFalconYeomanGenerator<T> extends Generator {
   }
 
   // Define abstract methods.
+//  protected abstract        _buildInterview():SfdxFalconInterview<T>;             // Builds a complete Interview, which may include zero or more confirmation groupings.
   protected abstract async  _executeInitializationTasks():Promise<void>;          // Performs any setup/initialization tasks prior to starting the interview.
   protected abstract        _getInterviewQuestions():Questions;                   // Creates the interview questions used by the "prompting" phase.
   protected abstract        _getInterviewAnswersTableData():SfdxFalconTableData;  // Creates the Interview Answers data table so the user can confirm their choices.

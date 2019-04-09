@@ -17,6 +17,7 @@ import {SfdxFalconDebug}      from '../../modules/sfdx-falcon-debug';     // Cla
 import {SfdxFalconError}      from  '../sfdx-falcon-error';               // Class. Specialized Error object. Wraps SfdxError.
 
 // Import Utility Functions/Types
+import {YeomanChoice}         from '../../modules/sfdx-falcon-types';     // Interface. Represents a Yeoman/Inquirer choice object.
 import {SfdxOrgInfo}          from '../../modules/sfdx-falcon-util/sfdx'; // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
 import {StatusMessage}        from '../../modules/sfdx-falcon-util/ux';   // Interface. Standard SFDX-Falcon Status Message type.
 import {printStatusMessages}  from '../../modules/sfdx-falcon-util/ux';   // Function. Prints an array of Status Messages.
@@ -27,62 +28,6 @@ const pad = require('pad');   // Provides consistent spacing when trying to alig
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:yeoman:';
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   YeomanAnswerHash
- * @description Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface YeomanAnswerHash {
-  [key:string]: any;  // tslint:disable-line: no-any
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   ConfirmationAnswers
- * @description Represents what an answers hash should look like during Yeoman/Inquirer interactions
- *              where the user is being asked to proceed/retry/abort something.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface ConfirmationAnswers {
-  proceed:  boolean;
-  restart:  boolean;
-  abort:    boolean;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   YeomanChoice
- * @description Represents a Yeoman/Inquirer choice object.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface YeomanChoice {
-  name:       string;
-  value:      string;
-  short:      string;
-  type?:      string;
-  line?:      string;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   YeomanCheckboxChoice
- * @description Represents a "checkbox choice" in Yeoman/Inquirer.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface YeomanCheckboxChoice extends YeomanChoice {
-  key?:       string;
-  checked?:   boolean;
-  disabled?:  boolean|string|YeomanChoiceDisabledFunction;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @type        YeomanChoiceDisabledFunction
- * @description Represents the function signature for a "Disabled" function.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export type YeomanChoiceDisabledFunction = (answers:any) => boolean|string; // tslint:disable-line: no-any
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**

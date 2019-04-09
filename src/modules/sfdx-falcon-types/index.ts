@@ -13,6 +13,9 @@
 import {AnyJson}      from  '@salesforce/ts-types';
 import * as inquirer  from  'inquirer';
 import {Observable}   from  'rx';
+import {Questions}    from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
+//import {Answers}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
+import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
 /**
  * Represents the local config options for an AppX Demo project.
@@ -180,6 +183,11 @@ export interface FalconSequenceContext {
   logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
   sequenceObserver:   any;  // tslint:disable-line: no-any
 }//*/
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Listr related interfaces and types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
 /**
  * Represents a Listr Task object that can be executed by a Listr Task Runner.
  */
@@ -215,11 +223,114 @@ export interface ListrExecutionOptions {
 /**
  * Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
  */
-export type ListrContext    = any;  // tslint:disable-line: no-any
+export type ListrContext = any; // tslint:disable-line: no-any
 /**
  * Represents an Observable for use with Listr.
  */
 export type ListrObservable = any;  // tslint:disable-line: no-any
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+/**
+ * Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
+ */
+export interface YeomanAnswerHash {
+  [key:string]: any;  // tslint:disable-line: no-any
+}
+/**
+ * Represents a Yeoman/Inquirer choice object.
+ */
+export interface YeomanChoice {
+  name:       string;
+  value:      string;
+  short:      string;
+  type?:      string;
+  line?:      string;
+}
+/**
+ * Represents a "checkbox choice" in Yeoman/Inquirer.
+ */
+export interface YeomanCheckboxChoice extends YeomanChoice {
+  key?:       string;
+  checked?:   boolean;
+  disabled?:  boolean|string|YeomanChoiceDisabledFunction;
+}
+/**
+ * Represents the function signature for a "Disabled" function.
+ */
+export type YeomanChoiceDisabledFunction = (answers:any) => boolean|string; // tslint:disable-line: no-any
+/**
+ * Represents what an answers hash should look like during Yeoman/Inquirer interactions
+ * where the user is being asked to proceed/retry/abort something.
+ */
+export interface ConfirmationAnswers {
+  proceed:  boolean;
+  restart:  boolean;
+  abort:    boolean;
+}
+/**
+ * Type. Defines a function that displays answers to a user.
+ */
+export type AnswersDisplay<T extends object> = (userAnswers?:T) => Promise<void | SfdxFalconTableData>;
+
+/**
+ * Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
+ */
+export interface InterviewOptions<T extends object> {
+  defaultAnswers: T;                        // Required. Default answers to the Questions.
+  context?:       object;                   // Optional. ???
+  sharedData?:    object;                   // Optional. ???
+}
+
+/**
+ * Interface. Represents a group of prompts within a particular interview.
+ */
+export interface InterviewGroupOptions<T extends object> {
+  questions:            Questions | QuestionsBuilder;
+  confirmation?:        Questions | QuestionsBuilder;
+  invertConfirmation?:  boolean;
+  display?:             AnswersDisplay<T>;
+  when?:                ShowInterviewGroup;
+  abort?:               AbortInterview;
+}
+/**
+ * Interface. Represents a set of status indicators for an SfdxFalconInterview.
+ */
+export interface InterviewStatus {
+  aborted?:   boolean;
+  completed?: boolean;
+  reason?:    string;
+}
+
+/**
+ * Type alias defining a function that checks whether an Interview should be aborted.
+ */
+export type AbortInterview = (groupAnswers:InquirerAnswers, userAnswers?:InquirerAnswers) => boolean | string;
+
+/**
+ * Type alias defining a function that can be used to determine boolean control-flow inside an Interview.
+ */
+export type InterviewControlFunction = (userAnswers:InquirerAnswers, sharedData?:object) => boolean | Promise<boolean>;
+
+/**
+ * Type alias defining a function or simple boolean that checks whether an Interview Group should be shown.
+ */
+export type ShowInterviewGroup = boolean | InterviewControlFunction;
+/**
+ * Function type alias defining a function that returns Inquirer Questions.
+ */
+export type QuestionsBuilder = () => Questions;
+/**
+ * Alias to the Questions type from the yeoman-generator module. This is the "official" type for SFDX-Falcon.
+ */
+export type Questions = Questions;
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Miscellaneous interfaces and types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
 /**
  * Enum that stores the various CLI log level flag values.
  */

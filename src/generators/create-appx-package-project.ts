@@ -20,16 +20,21 @@ import {Questions}      from  'yeoman-generator'; // Interface. Represents an ar
 // Import Internal Modules
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                       // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 //import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
-import * as inquirerQuestions           from  '../modules/sfdx-falcon-util/inquirer-questions';            // Library of Listr Helper functions specific to SFDX-Falcon.
+import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';    // ???
 import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';            // Library of Listr Helper functions specific to SFDX-Falcon.
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                     // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                     // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
-import {ConfirmationAnswers}            from  '../modules/sfdx-falcon-util/yeoman';                 // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
-import {YeomanChoice}                   from  '../modules/sfdx-falcon-util/yeoman';                 // Interface. Represents a single "choice" from Yeoman's perspective.
 //import {filterLocalPath}                from  '../modules/sfdx-falcon-util/yeoman';                 // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 import * as yoValidate                  from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-command';              // Interface. Represents options used by SFDX-Falcon Yeoman generators.
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';            // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
+
+
+import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';       // Class. ???
+//import {SfdxFalconPrompt}               from  '../modules/sfdx-falcon-prompt';            // Class. ???
+
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';              // Interface. Represents a Yeoman/Inquirer choice object.
+//import {ConfirmationAnswers}            from  '../modules/sfdx-falcon-types';              // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -45,11 +50,14 @@ const dbgNs = 'GENERATOR:create-appx-package:';
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface InterviewAnswers {
+  pkgProjectType:           '1GP:managed' | '1GP:unmanaged' | '2GP:managed' | '2GP:unlocked';
+  pkgOrgExists:             boolean;
+
   producerName:             string;
   producerAlias:            string;
   projectName:              string;
   projectAlias:             string;
-  projectType:              'appx:managed1gp' | 'appx:managed2gp' | 'appx:unmanaged';
+  projectType:              '1GP:managed' | '1GP:unmanaged' | '2GP:managed' | '2GP:unlocked';
   defaultRecipe:            string;
 
   gitRemoteUri:             string;
@@ -61,7 +69,7 @@ interface InterviewAnswers {
   pluginVersion:            string;
   sfdcApiVersion:           string;
 
-  hasGitRemoteRepository:   boolean;
+  hasGitRemote:             boolean;
   ackGitRemoteUnreachable:  boolean;
   isGitRemoteReachable:     boolean;
 
@@ -120,13 +128,19 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.envHubAliasChoices = new Array<YeomanChoice>();
     this.pkgOrgAliasChoices = new Array<YeomanChoice>();
 
+
+    this.sharedData['devHubAliasChoices'] = this.devHubAliasChoices;
+    this.sharedData['envHubAliasChoices'] = this.envHubAliasChoices;
+    this.sharedData['pkgOrgAliasChoices'] = this.pkgOrgAliasChoices;
+
+
     // Initialize DEFAULT Interview Answers.
     this.defaultAnswers.targetDirectory             = path.resolve(opts.outputDir as string);
     this.defaultAnswers.producerName                = 'Universal Containers';
     this.defaultAnswers.producerAlias               = 'univ-ctrs';
     this.defaultAnswers.projectName                 = 'Universal Containers Packaged App';
     this.defaultAnswers.projectAlias                = 'uc-pkgd-app';
-    this.defaultAnswers.projectType                 = 'appx:managed1gp';
+    this.defaultAnswers.projectType                 = '1GP:managed';
     this.defaultAnswers.defaultRecipe               = 'build-scratch-org.json';
 
     this.defaultAnswers.gitRemoteUri                = 'https://github.com/my-org/my-repo.git';
@@ -137,7 +151,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.defaultAnswers.sfdcApiVersion              = '45.0';
     this.defaultAnswers.pluginVersion               = this.pluginVersion;
 
-    this.defaultAnswers.hasGitRemoteRepository      = true;
+    this.defaultAnswers.hasGitRemote                = true;
     this.defaultAnswers.ackGitRemoteUnreachable     = false;
     this.defaultAnswers.isGitRemoteReachable        = false;
 
@@ -193,6 +207,89 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
   }
 
+
+
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _buildInterview
+   * @returns     {SfdxFalconInterview<InterviewAnswers>} Returns a fully fleshed
+   *              SfdxFalconInterview object with zero or more prompts that the
+   *              user will answer in an interview once this is run.
+   * @description Allows the developer to build a complex, multi-step interview
+   *              that Yeoman will execute during the "prompting" phase.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _buildInterview():SfdxFalconInterview<InterviewAnswers> {
+
+    // Initialize the Interview object.
+    const interview = new SfdxFalconInterview<InterviewAnswers>({
+      defaultAnswers: this.defaultAnswers,
+      context:        this,
+      sharedData:     this.sharedData
+    });
+
+    // Group 1: Select packaging project type.
+    interview.createGroup({
+      questions:    iq.choosePkgProjectType,
+      confirmation: iq.confirmNoPkgOrg,
+      abort:  groupAnswers => {
+        if (String(groupAnswers.pkgProjectType).startsWith('1GP:')
+            && groupAnswers.pkgOrgExists === false) {
+          return 'This is my FIRST abort message!';
+        }
+        else {
+          return false;
+        }
+      }
+    });
+    // Group 2: Choose a packaging org connection.
+    interview.createGroup({
+      questions:    iq.choosePkgOrg,
+      confirmation: iq.confirmNoPkgOrgConnection,
+      when:   userAnswers => {
+        return String(userAnswers.pkgProjectType).startsWith('1GP:');
+      },
+      abort:  groupAnswers => {
+        if (groupAnswers.pkgOrgAlias === 'NOT_SPECIFIED') {
+          return 'A connection to your packaging org is required for 1GP package projects.';
+        }
+        else {
+          return false;
+        }
+      }
+    });
+    // Group 3: Choose a Developer Hub.
+    interview.createGroup({
+      questions:    iq.chooseDevHub,
+      confirmation: iq.confirmNoDevHub,
+      abort:  groupAnswers => {
+        if (groupAnswers.devHubAlias === 'NOT_SPECIFIED') {
+          return 'A connection to your DevHub is required to continue.';
+        }
+        else {
+          return false;
+        }
+      }
+    });
+    // Group 4: Provide a Git Remote
+    interview.createGroup({
+      questions:          iq.provideGitRemote,
+      confirmation:       iq.confirmNoGitHubRepo,
+      invertConfirmation: true
+    });
+
+//    need to start building prompt groups next
+
+
+    return interview;
+
+  }
+
+
+
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      _getInterviewQuestions
@@ -229,9 +326,9 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     const interviewQuestionGroups = new Array<Questions>();
 
     // Build Inquirer Questions for the three primary groups used by "Create" Generators.
-    interviewQuestionGroups.push(inquirerQuestions.buildGroupZeroQuestionsForCreateGenerators.call(this));
-    interviewQuestionGroups.push(inquirerQuestions.buildGroupOneQuestionsForCreateGenerators.call(this));
-    interviewQuestionGroups.push(inquirerQuestions.buildGroupTwoQuestionsForCreateGenerators.call(this));
+    interviewQuestionGroups.push(iq.buildGroupZeroQuestionsForCreateGenerators.call(this));
+//    interviewQuestionGroups.push(iq.buildGroupOneQuestionsForCreateGenerators.call(this));
+    interviewQuestionGroups.push(iq.buildGroupTwoQuestionsForCreateGenerators.call(this));
 
     //─────────────────────────────────────────────────────────────────────────┐
     // Define Group Three
@@ -301,9 +398,9 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
         type:     'confirm',
         name:     'hasGitRemoteRepository',
         message:  'Have you created a Git Remote (eg. GitHub/BitBucket repo) for this project?',
-        default:  ( typeof this.userAnswers.hasGitRemoteRepository !== 'undefined' )
-                  ? this.userAnswers.hasGitRemoteRepository         // Current Value
-                  : this.defaultAnswers.hasGitRemoteRepository,     // Default Value
+        default:  ( typeof this.userAnswers.hasGitRemote !== 'undefined' )
+                  ? this.userAnswers.hasGitRemote         // Current Value
+                  : this.defaultAnswers.hasGitRemote,     // Default Value
         when:     answerHash => answerHash.isInitializingGit
       },
       {
@@ -344,7 +441,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     tableData.push({option:'Env Hub Alias:',          value:`${this.userAnswers.envHubAlias}`});
 
     // Group ONE options (sometimes visible)
-    if (this.userAnswers.hasGitRemoteRepository) {
+    if (this.userAnswers.hasGitRemote) {
       //tableData.push({option:'Has Git Remote:', value:`${this.userAnswers.hasGitRemoteRepository}`});
       tableData.push({option:'Git Remote URI:',       value:`${this.userAnswers.gitRemoteUri}`});
       if (this.userAnswers.isGitRemoteReachable) {
@@ -377,7 +474,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Git init and remote options (sometimes visible).
     if (this.userAnswers.isInitializingGit) {
-      tableData.push({option:'Has Git Remote:', value:`${this.userAnswers.hasGitRemoteRepository}`});
+      tableData.push({option:'Has Git Remote:', value:`${this.userAnswers.hasGitRemote}`});
       if (this.userAnswers.gitRemoteUri) {
         tableData.push({option:'Git Remote URI:', value:`${this.userAnswers.gitRemoteUri}`});
       }
@@ -419,9 +516,50 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
       return;
     }
 
+    // Build the User Interview.
+    this.userInterview = this._buildInterview();
+
+    this.finalAnswers = await this.userInterview.start();
+
+    console.log('testAnswers: %O', this.finalAnswers);
+
+    if (this.userInterview.status.aborted) {
+      this.generatorStatus.abort({
+        type:     'error',
+        title:    'Command Aborted-XXXXXXXXXXX',
+        message:  `${this.cliCommandName} canceled by user. ${this.userInterview.status.reason}`
+      });
+      return;
+    }
+
+
+    this.generatorStatus.abort({
+      type:     'error',
+      title:    'Command STOPPED for DEVTEST purposes',
+      message:  `${this.cliCommandName} command stopped for DEVTEST`
+    });
+    return;
+
+
+
+//    function testFunc():Questions {
+//      return inquirerQuestions.buildConfirmNoGitHubRepoQuestions.call(this) as Questions;
+//    }
+
+
+
+    this.generatorStatus.abort({
+      type:     'error',
+      title:    'Command Aborted',
+      message:  `${this.cliCommandName} command canceled by user`
+    });
+//    return;
+
+
     // Start the interview loop.  This will ask the user questions until they
     // verify they want to take action based on the info they provided, or
     // they deciede to cancel the whole process.
+    /*
     do {
 
       // Initialize interview questions.
@@ -457,7 +595,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
         }
         else {
           // Initialize "No DevHub" confirmation questions.
-          const confirmNoDevHubQuestions = inquirerQuestions.buildConfirmNoDevHubQuestions.call(this) as Questions;
+          const confirmNoDevHubQuestions = iq.buildConfirmNoDevHubQuestions.call(this) as Questions;
 
           // Prompt the user for confirmation of No DevHub
           this.confirmationAnswers = await this.prompt(confirmNoDevHubQuestions) as ConfirmationAnswers;
@@ -518,7 +656,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
           this.confirmationAnswers.restart = true;
 
           // Initialize "No GitHub Repository" confirmation questions.
-          const confirmNoGitHubRepoQuestions = inquirerQuestions.buildConfirmNoGitHubRepoQuestions.call(this) as Questions;
+          const confirmNoGitHubRepoQuestions = iq.buildConfirmNoGitHubRepoQuestions.call(this) as Questions;
 
           // Prompt the user for confirmation of No DevHub
           this.confirmationAnswers = await this.prompt(confirmNoGitHubRepoQuestions) as ConfirmationAnswers;
@@ -568,6 +706,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
         message:  `${this.cliCommandName} command canceled by user`
       });
     }
+    //*/
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -617,12 +756,12 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     if (this.userAnswers.isCreatingManagedPackage === true) {
       // Managed package, so use the namespace prefix.
       this.userAnswers.packageDirectory  = this.userAnswers.namespacePrefix;
-      this.userAnswers.projectType       = 'appx:managed1gp';
+      this.userAnswers.projectType       = '1GP:managed';
     }
     else {
       // NOT a managed package, so use the default value.
       this.userAnswers.packageDirectory = this.defaultAnswers.packageDirectory;
-      this.userAnswers.projectType       = 'appx:unmanaged';
+      this.userAnswers.projectType       = '1GP:unmanaged';
     }
     
     // Tell the user that we are preparing to create their project.

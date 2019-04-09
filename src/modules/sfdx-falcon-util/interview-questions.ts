@@ -14,10 +14,10 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
 //import * as path        from  'path';             // Helps resolve local paths at runtime.
-import {Questions}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
+import {Questions, Question}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
 
 // Import Internal Modules
-//import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 //import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
 //import * as sfdxHelper      from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
@@ -27,75 +27,302 @@ import * as gitHelper       from  './git';                      // Library of Gi
 import {filterLocalPath}                from  '../sfdx-falcon-util/yeoman';                 // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 import * as yoValidate                  from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 
+import {YeomanChoice}         from '../sfdx-falcon-types';     // Interface. Represents a Yeoman/Inquirer choice object.
+
+
+//import {SfdxFalconPrompt}     from  '../sfdx-falcon-prompt';  // Class. ???
+
 // Requires
 //const listr = require('listr'); // Provides asynchronous list with status of task completion.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:inquirer-questions:';
 
+// Set file-global defaults
+const PKG_PROJECT_TYPE_CHOICES = [
+  {
+    name:   'Managed Package (1GP)',
+    value:  '1GP:managed',
+    short:  'Managed Package (1GP)'
+  },
+  {
+    name:   'Unmanaged Package (1GP)',
+    value:  '1GP:unmanaged',
+    short:  'Unmanaged Package (1GP)'
+  },
+  /*{
+    name:   'Managed Package (2GP)',
+    value:  '2GP:managed',
+    short:  'Managed Package (2GP)'
+  },//*/
+  {
+    name:   'Unlocked Package (2GP)',
+    value:  '2GP:unlocked',
+    short:  'Unlocked Package (2GP)'
+  }
+];
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildConfirmNoDevHubQuestions
- * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Returns an array of Inquirer Questions that prompt the user to confirm that they
- *              do not want to use a Dev Hub.  This function must be executed using the call()
- *              method because it relies on the caller's "this" context to properly function.
+ * @function    chooseDevHub
+ * @param       {YeomanChoice[]}  [devHubChoices]  Optional. Array of Dev Hub choices.
+ * @returns     {Question}  A single Inquirer Question.
+ * @description Prompts the user to select a Dev Hub from the list provided by devHubChoices.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildConfirmNoDevHubQuestions():Questions {
+export function chooseDevHub(devHubChoices?:YeomanChoice[]):Question {
+
+  // Debug arguments.
+  SfdxFalconDebug.obj(`${dbgNs}chooseDevHub:`, arguments, `arguments: `);
+
+  // If the caller didn't supply DevHub Choices, try to grab them from Shared Data.
+  if (typeof devHubChoices === 'undefined') {
+    validateInterviewScope.call(this);
+    devHubChoices = this.sharedData['devHubAliasChoices'];
+  }
+
+  // By now devHubChoices should be an Array.
+  if (Array.isArray(devHubChoices) !== true) {
+    throw new SfdxFalconError( `Expected devHubChoices to be an Array. Got type '${typeof devHubChoices}' instead. `
+                             , `TypeError`
+                             , `${dbgNs}chooseDevHub`);
+  }
+
+  // Build and return the Question.
+  return {
+    type:     'list',
+    name:     'devHubAlias',
+    message:  'Which DevHub do you want to use for this project?',
+    choices:  devHubChoices,
+    when:     devHubChoices.length > 0
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    chooseEnvHub
+ * @param       {YeomanChoice[]}  [envHubChoices]  Optional. Array of Environment Hub choices.
+ * @returns     {Question}  A single Inquirer Question.
+ * @description Prompts the user to select an Environment Hub from the list in envHubChoices.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function chooseEnvHub(envHubChoices?:YeomanChoice[]):Question {
+
+  // Debug arguments.
+  SfdxFalconDebug.obj(`${dbgNs}chooseEnvHub:`, arguments, `arguments: `);
+
+  // If the caller didn't supply DevHub Choices, try to grab them from Shared Data.
+  if (typeof envHubChoices === 'undefined') {
+    validateInterviewScope.call(this);
+    envHubChoices = this.sharedData['envHubAliasChoices'];
+  }
+
+  // Validate arguments.
+  if (Array.isArray(envHubChoices) !== true) {
+    throw new SfdxFalconError( `Expected envHubChoices to be an Array. Got type '${typeof envHubChoices}' instead. `
+                             , `TypeError`
+                             , `${dbgNs}chooseEnvHub`);
+  }
+
+  // Build and return the Question.
+  return {
+    type:     'list',
+    name:     'envHubAlias',
+    message:  'Which Environment Hub do you want to use for this project?',
+    choices:  envHubChoices,
+    when:     envHubChoices.length > 0
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    choosePkgOrg
+ * @param       {YeomanChoice[]}  [pkgOrgChoices]  Optional. Array of Packaging Org choices.
+ * @returns     {Question}  A single Inquirer Question.
+ * @description Prompts the user to select a Packaging Org from the list in pkgOrgChoices.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function choosePkgOrg(pkgOrgChoices?:YeomanChoice[]):Question {
+
+  // Debug arguments.
+  SfdxFalconDebug.obj(`${dbgNs}choosePkgOrg:`, arguments, `arguments: `);
+
+  // If the caller didn't supply Packaging Org Choices, try to grab them from Shared Data.
+  if (typeof pkgOrgChoices === 'undefined') {
+    validateInterviewScope.call(this);
+    pkgOrgChoices = this.sharedData['pkgOrgAliasChoices'];
+  }
+
+  // Validate arguments.
+  if (Array.isArray(pkgOrgChoices) !== true) {
+    throw new SfdxFalconError( `Expected pkgOrgChoices to be an Array. Got type '${typeof pkgOrgChoices}' instead. `
+                             , `TypeError`
+                             , `${dbgNs}choosePkgOrg`);
+  }
+
+  // Build and return the Question.
+  return {
+    type:     'list',
+    name:     'pkgOrgAlias',
+    message:  'Which Packaging Org do you want to use for this project?',
+    choices:  pkgOrgChoices,
+    when:     pkgOrgChoices.length > 0
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    choosePkgProjectType
+ * @param       {YeomanChoice[]}  [pkgProjectTypeChoices]  Optional. Array of Project Type choices.
+ * @returns     {Questions}  A group of Inquirer Questions.
+ * @description Prompts the user to select a Packaging Project Type from the list provided.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function choosePkgProjectType(pkgProjectTypeChoices:YeomanChoice[]=PKG_PROJECT_TYPE_CHOICES):Questions {
+
+  // Debug arguments.
+  SfdxFalconDebug.obj(`${dbgNs}chooseEnvHub:`, arguments, `arguments: `);
+
+  // Validate arguments.
+  if (Array.isArray(pkgProjectTypeChoices) !== true) {
+    throw new SfdxFalconError( `Expected pkgProjectTypeChoices argument to be an Array. Got type '${typeof pkgProjectTypeChoices}' instead. `
+                             , `InvalidCallScope`
+                             , `${dbgNs}choosePkgProjectType`);
+  }
+
+  // Build and return the Questions.
+  return [
+    {
+      type:     'list',
+      name:     'pkgProjectType',
+      message:  'What type of packaging project will this be?',
+      choices:  pkgProjectTypeChoices,
+      when:     pkgProjectTypeChoices.length > 0
+    },
+    {
+      type:     'confirm',
+      name:     'pkgOrgExists',
+      message:  'Have you created a packaging org?',
+      default:  false,
+      when:     answerHash => String(answerHash.pkgProjectType).startsWith('1GP:')
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    confirmNoDevHub
+ * @returns     {Questions}  An array of Inquirer Question objects.
+ * @description Warns the user that a Developer Hub must be selected if they want to continue.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function confirmNoDevHub():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateCreateCallScope.call(this);
+  validateInterviewScope.call(this);
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Define the Interview Prompts.
-  // 1.   Selecting a DevHub is required. Would you like to see the choices again?  (y/n)
-  //───────────────────────────────────────────────────────────────────────────┘
+  // Build and return the Questions.
   return [
     {
       type:     'confirm',
       name:     'restart',
       message:  'Selecting a DevHub is required. Would you like to see the choices again?',
-      default:  this.confirmationAnswers.restart,
-      when:     true
+      default:  true,
+      when:     this.userAnswers.devHubAlias === 'NOT_SPECIFIED'
     }
   ];
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildConfirmNoGitHubRepoQuestions
+ * @function    confirmNoGitHubRepo
  * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Returns an array of Inquirer Questions that prompt the user to confirm that they
- *              really do not want to specify a GitHub Remote. This function must be executed
- *              using the call() method because it relies on the caller's "this" context to
- *              properly function.
+ * @description Warns the user that specifying a Git Remote is strongly recommended.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildConfirmNoGitHubRepoQuestions():Questions {
+export function confirmNoGitHubRepo():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateCreateCallScope.call(this);
+  validateInterviewScope.call(this);
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Define the Interview Prompts.
-  // 1. Specifying a GitHub Remote is strongly recommended. Skip anyway?      (y/n)
-  //───────────────────────────────────────────────────────────────────────────┘
+  // Build and return the Questions.
   return [
     {
       type:     'confirm',
       name:     'restart',
+      message:  'The Git Remote you specified does not exist or is unreachable. Continue anyway?',
+      default:  false,
+      when:     requestAckGitRemoteUnreachable(this.userAnswers)
+    },
+    {
+      type:     'confirm',
+      name:     'restart',
       message:  'Specifying a GitHub Remote is strongly recommended. Skip anyway?',
-      default:  (! this.confirmationAnswers.restart),
-      when:     true
+      default:  false, //(! this.confirmationAnswers.restart),
+      when:     userInput => (typeof userInput.restart === 'undefined' && this.userAnswers.hasGitRemote !== true)
     }
   ];
 }
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    confirmNoPkgOrg
+ * @returns     {Questions} A group of Inquirer Questions.
+ * @description Warns the user that a Packaging Org must exist if they want to continue.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function confirmNoPkgOrg():Questions {
 
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Build and return the Questions.
+  return [
+    {
+      type:     'confirm',
+      name:     'restart',
+      message:  'A Packaging Org is required for 1GP projects. Would you like to modify your selection?',
+      default:  true,
+      when:     () => String(this.userAnswers.pkgProjectType).startsWith('1GP:')
+                            && this.userAnswers.pkgOrgExists !== true
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    confirmNoPkgOrgConnection
+ * @returns     {Questions} A group of Inquirer Questions.
+ * @description Warns the user that they must choose a Packaging Org that is connected to their CLI.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function confirmNoPkgOrgConnection():Questions {
+
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Debug
+  SfdxFalconDebug.obj(`${dbgNs}confirmNoPkgOrgConnection:`, this.context.userAnswers, `this.context.userAnswers: `);
+
+  // Build and return the Questions.
+  return [
+    {
+      type:     'confirm',
+      name:     'restart',
+      message:  'A connection to your Packaging Org is required to continue. Would you like to modify your selection?',
+      default:  true,
+      when:     () => this.userAnswers.pkgOrgAlias === 'NOT_SPECIFIED'
+    }
+  ];
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -111,7 +338,32 @@ export function buildConfirmNoGitHubRepoQuestions():Questions {
 export function buildGroupZeroQuestionsForCreateGenerators():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateCreateCallScope.call(this);
+  validateInterviewScope.call(this);
+
+  return [
+    //chooseDevHub.call(this, [this.context['devHubAliasChoices']])
+    chooseDevHub(this.sharedData['devHubAliasChoices']),
+    chooseEnvHub(this.sharedData['envHubAliasChoices']),
+    choosePkgOrg(this.sharedData['pkgOrgAliasChoices'])
+  ];
+
+
+  if (Array.isArray(this.context['devHubAliasChoices']) !== true) {
+    throw new SfdxFalconError( `Expected this.context['devHubAliasChoices'] to be an Array available in the calling scope. Got type '${typeof this.context['devHubAliasChoices']}' instead. `
+                             + `Please execute this function using the syntax: functionName.call(this)`
+                             , `InvalidCallScope`
+                             , `${dbgNs}validateInterviewScope`);
+  }
+  /*
+  if (Array.isArray(this.context.envHubAliasChoices) !== true) {
+    throw new SfdxFalconError( `Expected this.envHubAliasChoices to be an Array available in the calling scope. Got type '${typeof this.context.envHubAliasChoices}' instead. `
+                             + `Please execute this function using the syntax: functionName.call(this)`
+                             , `InvalidCallScope`
+                             , `${dbgNs}validateInterviewScope`);
+  }//*/
+
+
+
 
   //─────────────────────────────────────────────────────────────────────────┐
   // Define Group Zero
@@ -136,15 +388,25 @@ export function buildGroupZeroQuestionsForCreateGenerators():Questions {
       type:     'list',
       name:     'devHubAlias',
       message:  'Which DevHub Alias do you want to use for this project?',
-      choices:  this.devHubAliasChoices,
-      when:     true
+      choices:  this.context['devHubAliasChoices'],
+//      when:     true
+      when:     () => typeof this.context['devHubAliasChoices'] !== 'undefined'
     },
     {
       type:     'list',
       name:     'envHubAlias',
       message:  'Which Environment Hub Alias do you want to use for this project?',
-      choices:  this.envHubAliasChoices,
-      when:     true
+      choices:  this.context['envHubAliasChoices'],
+//      when:     true
+      when:     () => typeof this.context['envHubAliasChoices'] !== 'undefined'
+    },
+    {
+      type:     'list',
+      name:     'pkgOrgAlias',
+      message:  'Which Packaging Org do you want to use with this project?',
+      choices:  this.context['pkgOrgAliasChoices2'],
+//      when:     true
+      when:     () => typeof this.context['pkgOrgAliasChoices2'] !== 'undefined'
     }
   ];
 }
@@ -160,10 +422,10 @@ export function buildGroupZeroQuestionsForCreateGenerators():Questions {
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildGroupOneQuestionsForCreateGenerators():Questions {
+export function DELETE_ME_buildGroupOneQuestionsForCreateGenerators_DELETE_ME():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateCreateCallScope.call(this);
+  validateInterviewScope.call(this);
 
   //───────────────────────────────────────────────────────────────────────────┐
   // Define Group One
@@ -218,7 +480,7 @@ export function buildGroupOneQuestionsForCreateGenerators():Questions {
 export function buildGroupTwoQuestionsForCreateGenerators():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateCreateCallScope.call(this);
+  validateInterviewScope.call(this);
 
   //─────────────────────────────────────────────────────────────────────────┐
   // Define Group Two
@@ -274,6 +536,43 @@ export function buildGroupTwoQuestionsForCreateGenerators():Questions {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    provideGitRemote
+ * @returns     {Questions}  An array of Inquirer Question objects.
+ * @description Asks the user if they have a Git remote and to provide the URI if they do.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function provideGitRemote():Questions {
+
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Build and return the Question.
+  return [
+    {
+      type:     'confirm',
+      name:     'hasGitRemote',
+      message:  'Have you created a Remote Git Repository for your project?',
+      default:  ( typeof this.userAnswers.hasGitRemote !== 'undefined' )
+                ? this.userAnswers.hasGitRemote         // Current Value
+                : this.defaultAnswers.hasGitRemote,     // Default Value
+      when:     true
+    },
+    {
+      type:     'input',
+      name:     'gitRemoteUri',
+      message:  'What is the URI of your Git Remote?',
+      default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
+                ? this.userAnswers.gitRemoteUri                   // Current Value
+                : this.defaultAnswers.gitRemoteUri,               // Default Value
+      validate: yoValidate.gitRemoteUri,
+      when:     answerHash => answerHash.hasGitRemote
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    requestAckGitRemoteUnreachable
  * @param       {any} answerHash  Required. An Inquirer-based answer hash.
  * @returns     {boolean}  Returns TRUE if the user acknoledges they are OK with using an
@@ -285,8 +584,8 @@ export function buildGroupTwoQuestionsForCreateGenerators():Questions {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function requestAckGitRemoteUnreachable(answerHash):boolean {
 
-  // Don't bother asking if there is no Remote Repository anyway
-  if (answerHash.hasGitRemoteRepository === false) {
+  // Don't bother asking if the user doesn't want a Git Remote or doesn't provide a Git Remote URI.
+  if (answerHash.hasGitRemote === false || typeof answerHash.gitRemoteUri === 'undefined') {
     return false;
   }
   else {
@@ -299,41 +598,42 @@ function requestAckGitRemoteUnreachable(answerHash):boolean {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    validateCreateCallScope
+ * @function    validateInterviewScope
  * @returns     {void}
- * @description Common validation checks to ensure that the calling scope has expected variables.
+ * @description Ensures that the calling scope has certain variables that are required the various
+ *              Question Builder functions in this file.
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function validateCreateCallScope():void {
+function validateInterviewScope():void {
   if (typeof this.userAnswers !== 'object') {
     throw new SfdxFalconError( `Expected this.userAnswers to be an object available in the calling scope. Got type '${typeof this.userAnswers}' instead. `
                              + `Please execute this function using the syntax: functionName.call(this)`
                              , `InvalidCallScope`
-                             , `${dbgNs}validateCreateCallScope`);
+                             , `${dbgNs}validateInterviewScope`);
   }
   if (typeof this.defaultAnswers !== 'object') {
     throw new SfdxFalconError( `Expected this.defaultAnswers to be an object available in the calling scope. Got type '${typeof this.defaultAnswers}' instead. `
                              + `Please execute this function using the syntax: functionName.call(this)`
                              , `InvalidCallScope`
-                             , `${dbgNs}validateCreateCallScope`);
+                             , `${dbgNs}validateInterviewScope`);
   }
   if (typeof this.confirmationAnswers !== 'object') {
     throw new SfdxFalconError( `Expected this.confirmationAnswers to be an object available in the calling scope. Got type '${typeof this.confirmationAnswers}' instead. `
                              + `Please execute this function using the syntax: functionName.call(this)`
                              , `InvalidCallScope`
-                             , `${dbgNs}validateCreateCallScope`);
+                             , `${dbgNs}validateInterviewScope`);
   }
-  if (Array.isArray(this.devHubAliasChoices) !== true) {
-    throw new SfdxFalconError( `Expected this.devHubAliasChoices to be an Array available in the calling scope. Got type '${typeof this.devHubAliasChoices}' instead. `
+  if (typeof this.context !== 'object') {
+    throw new SfdxFalconError( `Expected this.context to be an object available in the calling scope. Got type '${typeof this.context}' instead. `
                              + `Please execute this function using the syntax: functionName.call(this)`
                              , `InvalidCallScope`
-                             , `${dbgNs}validateCreateCallScope`);
+                             , `${dbgNs}validateInterviewScope`);
   }
-  if (Array.isArray(this.envHubAliasChoices) !== true) {
-    throw new SfdxFalconError( `Expected this.envHubAliasChoices to be an Array available in the calling scope. Got type '${typeof this.envHubAliasChoices}' instead. `
+  if (typeof this.sharedData !== 'object') {
+    throw new SfdxFalconError( `Expected this.sharedData to be an object available in the calling scope. Got type '${typeof this.sharedData}' instead. `
                              + `Please execute this function using the syntax: functionName.call(this)`
                              , `InvalidCallScope`
-                             , `${dbgNs}validateCreateCallScope`);
+                             , `${dbgNs}validateInterviewScope`);
   }
 }

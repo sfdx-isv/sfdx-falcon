@@ -20,12 +20,12 @@ import {Questions}        from  'yeoman-generator'; // Interface. Represents an 
 
 // Import Internal Modules
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                       // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                       // Interface. Represents a Yeoman/Inquirer choice object.
 import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';            // Library of Listr Helper functions specific to SFDX-Falcon.
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                     // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                     // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {printStatusMessage}             from  '../modules/sfdx-falcon-util/ux';                     // Function. Prints a styled status message to stdout.
-import {YeomanChoice}                   from  '../modules/sfdx-falcon-util/yeoman';                 // Interface. Represents a single "choice" from Yeoman's perspective.
 import {filterLocalPath}                from  '../modules/sfdx-falcon-util/yeoman';                 // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 import * as yoValidate                  from  '../modules/sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-command';              // Interface. Represents options used by SFDX-Falcon Yeoman generators.
