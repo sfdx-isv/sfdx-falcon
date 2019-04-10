@@ -4,24 +4,24 @@
  * @copyright     Vivek M. Chawla - 2019
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Exports SfdxFalconPrompt which provides user interaction via the console.
- * @description   Helps developers quickly build Inquirer based interviews. Can export Questions to
- *                external consumers (like Yeoman), or directly run Inquirer-based interactions.
+ * @description   Helps developers quickly build Inquirer based interviews. Prompts created this
+ *                way can be executed alone or as part of an SfdxFalconInterview group.
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-//import {JsonMap}              from  '@salesforce/ts-types'; // ???
 
 // Import Internal Modules
-import {SfdxFalconDebug}      from  '../sfdx-falcon-debug';   // Specialized debug provider for SFDX-Falcon code.
-//import {SfdxFalconError}      from  '../sfdx-falcon-error';   // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';   // Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux'; // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
+
+// Import Falcon Types
 import {AnswersDisplay}       from  '../sfdx-falcon-types';   // Type. Defines a function that displays answers to a user.
 import {ConfirmationAnswers}  from  '../sfdx-falcon-types';   // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
-import {QuestionsBuilder}     from  '../sfdx-falcon-types';   // Type. Funcion type alias defining a function that returns Inquirer Questions.
+import {PromptOptions}        from  '../sfdx-falcon-types';   // Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
 import {Questions}            from  '../sfdx-falcon-types';   // Type. Alias to the Questions type from the yeoman-generator module.
-import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
-
+import {QuestionsBuilder}     from  '../sfdx-falcon-types';   // Type. Funcion type alias defining a function that returns Inquirer Questions.
 
 // Requires
 const inquirer = require('inquirer');  // A collection of common interactive command line user interfaces.
@@ -30,44 +30,30 @@ const inquirer = require('inquirer');  // A collection of common interactive com
 const dbgNs = 'MODULE:sfdx-falcon-prompt:';
 
 
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   PromptOptions
- * @description Represents the options that can be set by the SfdxFalconPrompt constructor.
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface PromptOptions<T extends object> {
-  questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
-  defaultAnswers:       T;                                        // Required. Default answers to the Questions.
-  confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
-  invertConfirmation?:  boolean;                                  // Optional. Treats
-  display?:             AnswersDisplay<T>;                        // ???
-  context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
-  data?:                object;                                   // Optional. ???
-}
-
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconPrompt
- * @summary     ???
- * @description ???
+ * @summary     Collection of one or more Inquirer Questions that can be used to gather user input.
+ * @description Allows easy creation of Inquirer prompts that have a "confirmation" question that
+ *              can be used to restart collection of the information.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconPrompt<T extends object> {
 
+  // Public members
   public readonly defaultAnswers:       T;                            // ???
   public userAnswers:                   T;                            // ???
   public confirmationAnswers:           ConfirmationAnswers;          // ???
   public context:                       object;                       // ???
-
+  
+  // Private members
   private readonly _questions:          Questions | QuestionsBuilder; // ???
   private readonly _confirmation:       Questions | QuestionsBuilder; // ???
   private readonly _display:            AnswersDisplay<T>;            // ???
   private readonly _invertConfirmation: boolean;                      // ???
 
-  // Property accessors.
+  // Public Accessors
   public get confirmation():Questions {
     if (typeof this._confirmation === 'function') {
       return this._confirmation.call(this);
@@ -120,7 +106,8 @@ export class SfdxFalconPrompt<T extends object> {
   /**
    * @method      prompt
    * @returns     {Promise<T>}  Returns the answers provided by the user.
-   * @description ???
+   * @description Uses an Inquirer prompt() function to show the questions defined
+   *              in this SfdxFalconPrompt to the user and returns their input.
    * @public @async
    */
   //─────────────────────────────────────────────────────────────────────────────┘
@@ -185,9 +172,6 @@ export class SfdxFalconPrompt<T extends object> {
 
     // XOR the values of "invert" and "restart" numbers to get the correct boolean.
     return ((invertConfirmation ^ restart) === 0) ? false : true;
-
-    // Return the value of the "restart" answer.
-    return this.confirmationAnswers.restart;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

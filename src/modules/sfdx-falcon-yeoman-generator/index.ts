@@ -11,22 +11,22 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as Generator     from  'yeoman-generator';     // Generator class must extend this.
-import {Questions}        from  'yeoman-generator';
+import * as Generator from  'yeoman-generator'; // Generator class must extend this.
 
 // Import Internal Modules
+import * as gitHelper             from  '../sfdx-falcon-util/git';        // Library. Git Helper functions specific to SFDX-Falcon.
+
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';           // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}          from  '../sfdx-falcon-error';           // Class. Specialized Error object. Wraps SfdxError.
 import {SfdxFalconInterview}      from  '../sfdx-falcon-interview';       // Class. ???
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
-import {ConfirmationAnswers}      from  '../sfdx-falcon-types';           // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
-import * as gitHelper             from  '../sfdx-falcon-util/git';        // Library. Git Helper functions specific to SFDX-Falcon.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Class. Status tracking object for use with Yeoman Generators.
-import {doNotProceed}             from  '../sfdx-falcon-util/yeoman';     // Function. useful helper for testing whether Yeoman should show a particular question or not, based on a previous "proceed" val.
 import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Interface. Specifies options used when spinning up an SFDX-Falcon Yeoman environment.
-//import { JsonMap } from '@salesforce/ts-types';
+
+// Import Falcon Types
+import {ConfirmationAnswers}      from  '../sfdx-falcon-types';           // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 
 // Requires
 const chalk     = require('chalk');                 // Utility for creating colorful console output.
@@ -142,88 +142,12 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   }
 
   // Define abstract methods.
-//  protected abstract        _buildInterview():SfdxFalconInterview<T>;             // Builds a complete Interview, which may include zero or more confirmation groupings.
   protected abstract async  _executeInitializationTasks():Promise<void>;          // Performs any setup/initialization tasks prior to starting the interview.
-  protected abstract        _getInterviewQuestions():Questions;                   // Creates the interview questions used by the "prompting" phase.
-  protected abstract        _getInterviewAnswersTableData():SfdxFalconTableData;  // Creates the Interview Answers data table so the user can confirm their choices.
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      _displayInterviewAnswers
-   * @returns     {void}
-   * @description Display the current set of Interview Answers in a Falcon Table.
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected _displayInterviewAnswers():void {
-    this.log('');
-    this.falconTable.render(this._getInterviewAnswersTableData());
-    this.log('');
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      _initializeConfirmProceedAbort
-   * @returns     {Questions}
-   * @description Returns a "confirm, proceed, abort" set of questions.
-   * @protected
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected _initializeConfirmProceedAbort():Questions {
-
-    // Interview Prompts:
-    // 1. Would you like to proceed based on the above settings?  (y/n)
-    // 2. Would you like to start again and enter new values?     (y/n)
-    return [
-      {
-        type:     'confirm',
-        name:     'proceed',
-        message:  this.confirmationQuestion,
-        default:  this.confirmationAnswers.proceed,
-        when:     true
-      },
-      {
-        type:     'confirm',
-        name:     'restart',
-        message:  'Would you like to start again and enter new values?',
-        default:  this.confirmationAnswers.restart,
-        when:     doNotProceed
-      }
-    ];
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      _promptConfirmProceedAbort
-   * @returns     {Promise<boolean>}
-   * @description Prompts the user with questions that ask if they want to
-   *              proceed, restart, or abort. Returns true if the user wants
-   *              to restart, false if otherwise.
-   * @protected @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected async _promptProceedAbortRestart():Promise<boolean> {
-
-    // Set appropriate "confirmation answers" defaults before prompting the user.
-    this.confirmationAnswers.proceed  = false;
-    this.confirmationAnswers.restart  = true;
-    this.confirmationAnswers.abort    = false;
-
-    // Initialize confirmation questions.
-    const confirmationQuestions = this._initializeConfirmProceedAbort();
-
-    // Tell Yeoman to prompt the user for confirmation of installation.
-    this.confirmationAnswers = await this.prompt(confirmationQuestions) as ConfirmationAnswers;
-
-    // Separate confirmation from next action in UX with a blank line.
-    this.log('');
-
-    // DEBUG
-    SfdxFalconDebug.obj(`${dbgNs}_promptConfirmProceedAbort:`, this.confirmationAnswers, `this.confirmationAnswers (POST-PROMPT): `);
-
-    // Return the value of the "restart" answer.
-    return this.confirmationAnswers.restart;
-  }
+//  protected abstract async  _executeFinalizationTasks():Promise<void>;          // Performs any finalization tasks, typically run after the "writing" or "installing" phases.
+  protected abstract        _buildInterview():SfdxFalconInterview<T>;             // Builds a complete Interview, which may include zero or more confirmation groupings.
+//  protected abstract        _getInterviewQuestions():Questions;                   // Creates the interview questions used by the "prompting" phase.
+  protected abstract async  _buildInterviewAnswersTableData(userAnswers:T):Promise<SfdxFalconTableData>; // Creates Interview Answers table data. Can be used to render a Falcon Table.
+//  protected abstract async  _displayInterviewAnswersTable(userAnswers:T):Promise<void>; // Displays an Interview Answers table directly to the user.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -288,7 +212,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
       SfdxFalconDebug.msg(`${dbgNs}prompting:`, `generatorStatus.aborted found as TRUE inside prompting()`);
       return;
     }
-
+/*
     // Start the interview loop.  This will ask the user questions until they
     // verify they want to take action based on the info they provided, or
     // they deciede to cancel the whole process.
@@ -304,7 +228,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
       this._displayInterviewAnswers();
       
     } while (await this._promptProceedAbortRestart() === true);
-
+//*/
     // Check if the user decided to proceed with the install.  If not, abort.
     if (this.confirmationAnswers.proceed !== true) {
       this.generatorStatus.abort({

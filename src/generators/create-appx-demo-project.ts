@@ -19,7 +19,8 @@ import {Questions}      from  'yeoman-generator'; // Interface. Represents an ar
 
 // Import Internal Modules
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                       // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
-import {ConfirmationAnswers}            from  '../modules/sfdx-falcon-types';                       // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
+import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';       // Class. ???
+//import {ConfirmationAnswers}            from  '../modules/sfdx-falcon-types';                       // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                       // Interface. Represents a Yeoman/Inquirer choice object.
 import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';            // Library of Listr Helper functions specific to SFDX-Falcon.
@@ -168,6 +169,14 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:`, sfdxInitResults, `sfdxInitResults: `);
 
   }
+
+
+
+  protected _buildInterview():SfdxFalconInterview<InterviewAnswers> { return null }
+  protected async _buildInterviewAnswersTableData(interviewAnswers:InterviewAnswers):Promise<SfdxFalconTableData> {return null}
+
+
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -486,6 +495,8 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     // Start the interview loop.  This will ask the user questions until they
     // verify they want to take action based on the info they provided, or
     // they deciede to cancel the whole process.
+    
+    /*
     do {
 
       // Initialize interview questions.
@@ -608,7 +619,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
       SfdxFalconDebug.obj(`${dbgNs}prompting:`, this.userAnswers, `this.userAnswers - PRE-PROMPT (GROUP TWO): `);
 
       // Display ALL of the answers provided during the interview
-      this._displayInterviewAnswers();
+      //this._displayInterviewAnswers();
 
       /*
       // Set appropriate "confirmation answers" defaults for this FINAL confirmation.
@@ -627,8 +638,9 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
 
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}prompting:`, this.confirmationAnswers, `${clsDbgNs}prompting:this.confirmationAnswers (POST-PROMPT): `);
-      //*/
     } while (await this._promptProceedAbortRestart() === true);
+    //*/
+
 
     // Check if the user decided to proceed with the install.  If not, abort.
     if (this.confirmationAnswers.proceed !== true) {

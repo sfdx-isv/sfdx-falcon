@@ -19,6 +19,7 @@ import {Questions}        from  'yeoman-generator'; // Interface. Represents an 
 
 // Import Internal Modules
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                       // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
+import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';       // Class. ???
 import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                       // Interface. Represents a Yeoman/Inquirer choice object.
 import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                    // Library of Git Helper functions specific to SFDX-Falcon.
 import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';            // Library of Listr Helper functions specific to SFDX-Falcon.
@@ -134,6 +135,16 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
     SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:`, sfdxInitResults, `sfdxInitResults: `);
 
   }
+
+
+
+
+  protected _buildInterview():SfdxFalconInterview<InterviewAnswers> { return null }
+  protected async _buildInterviewAnswersTableData(interviewAnswers:InterviewAnswers):Promise<SfdxFalconTableData> {return null}
+
+
+
+
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**

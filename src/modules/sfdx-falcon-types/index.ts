@@ -14,6 +14,7 @@ import {AnyJson}      from  '@salesforce/ts-types';
 import * as inquirer  from  'inquirer';
 import {Observable}   from  'rx';
 import {Questions}    from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
+import {Question}     from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
 //import {Answers}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
@@ -278,14 +279,30 @@ export type AnswersDisplay<T extends object> = (userAnswers?:T) => Promise<void 
 /**
  * Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
  */
-export interface InterviewOptions<T extends object> {
-  defaultAnswers: T;                        // Required. Default answers to the Questions.
-  context?:       object;                   // Optional. ???
-  sharedData?:    object;                   // Optional. ???
+export interface PromptOptions<T extends object> {
+  questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
+  defaultAnswers:       T;                                        // Required. Default answers to the Questions.
+  confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
+  invertConfirmation?:  boolean;                                  // Optional. Treats
+  display?:             AnswersDisplay<T>;                        // ???
+  context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
+  data?:                object;                                   // Optional. ???
 }
 
 /**
- * Interface. Represents a group of prompts within a particular interview.
+ * Interface. Represents the options that can be set by the SfdxFalconInterview constructor.
+ */
+export interface InterviewOptions<T extends object> {
+  defaultAnswers:       T;                            // Required. Default answers to the Questions.
+  confirmation?:        Questions | QuestionsBuilder; // Optional. Confirmation Questions.
+  invertConfirmation?:  boolean;                      // Optional. Inverts the relevant Confirmation Answers before considering their value.
+  display?:             AnswersDisplay<T>;            // Optional. ???
+  context?:             object;                       // Optional. ???
+  sharedData?:          object;                       // Optional. ???
+}
+
+/**
+ * Interface. Represents the options that can be set by the InterviewGroup constructor.
  */
 export interface InterviewGroupOptions<T extends object> {
   questions:            Questions | QuestionsBuilder;
@@ -323,9 +340,13 @@ export type ShowInterviewGroup = boolean | InterviewControlFunction;
  */
 export type QuestionsBuilder = () => Questions;
 /**
- * Alias to the Questions type from the yeoman-generator module. This is the "official" type for SFDX-Falcon.
+ * Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Questions = Questions;
+/**
+ * Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ */
+export type Question = Question;
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Miscellaneous interfaces and types.

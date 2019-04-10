@@ -12,25 +12,22 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-//import {JsonMap}    from  '@salesforce/ts-types';
 
 // Import Internal Modules
-import {SfdxFalconDebug}      from  '../sfdx-falcon-debug';     // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconPrompt}     from  '../sfdx-falcon-prompt';    // ???
-//import {SfdxFalconError}      from  '../sfdx-falcon-error';     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-//import {ConfirmationAnswers}  from  '../sfdx-falcon-types';     // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
-//import {PromptEngine}         from  '../sfdx-falcon-types';     // Type. Funcion type alias defining a Yeoman or Inquirer prompt() function.
-import {AbortInterview}         from  '../sfdx-falcon-types';     // Type. Alias defining a function that checks whether an Interview should be aborted.
-import {InterviewGroupOptions}  from  '../sfdx-falcon-types';     // Interface. Represents a group of prompts within a particular interview.
-import {InterviewOptions}       from  '../sfdx-falcon-types';     // Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
-import {InterviewStatus}        from  '../sfdx-falcon-types';     // Interface. Represents a set of status indicators for an SfdxFalconInterview.
-import {ShowInterviewGroup}     from  '../sfdx-falcon-types';     // Type. Alias defining a function that checks whether an Interview Group should be shown.
+import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';     // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconPrompt}         from  '../sfdx-falcon-prompt';    // Class. Wraps user prompting/interaction functionality provided by Inquirer.
+import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';   // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 
-//import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
-
-
-// Requires
-//const inquirer = require('inquirer'); // A collection of common interactive command line user interfaces.
+// Import Falcon Types
+import {AbortInterview}           from  '../sfdx-falcon-types';     // Type. Alias defining a function that checks whether an Interview should be aborted.
+import {AnswersDisplay}           from  '../sfdx-falcon-types';     // Type. Defines a function that displays answers to a user.
+import {ConfirmationAnswers}      from  '../sfdx-falcon-types';     // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
+import {InterviewGroupOptions}    from  '../sfdx-falcon-types';     // Interface. Represents the options that can be set by the InterviewGroup constructor.
+import {InterviewOptions}         from  '../sfdx-falcon-types';     // Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
+import {InterviewStatus}          from  '../sfdx-falcon-types';     // Interface. Represents a set of status indicators for an SfdxFalconInterview.
+import {Questions}                from  '../sfdx-falcon-types';     // Type. Alias to the Questions type from the yeoman-generator module.
+import {QuestionsBuilder}         from  '../sfdx-falcon-types';     // Type. Function type alias defining a function that returns Inquirer Questions.
+import {ShowInterviewGroup}       from  '../sfdx-falcon-types';     // Type. Alias defining a function that checks whether an Interview Group should be shown.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'MODULE:sfdx-falcon-interview:';
@@ -42,7 +39,7 @@ const dbgNs = 'MODULE:sfdx-falcon-interview:';
  * @summary     Represents the combination of an SFDX-Falcon Prompt with an "abort check" function.
  * @description Objects created from this class are able to be run through an Interview, one at a
  *              time, and have their "abort check" function executed once the user indicates they
- *              are ready to proceed.  This way, if the user provided data that is invalid, the 
+ *              are ready to proceed.  This way, if the user provided data that is invalid, the
  *              entire interview can be aborted.
  * @public
  */
@@ -56,14 +53,31 @@ export class InterviewGroup<T extends object> {
   // Private members.
   private readonly falconPrompt:  SfdxFalconPrompt<T>;
 
-  // Constructor
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  InterviewGroup
+   * @param       {SfdxFalconPrompt<T>} falconPrompt Required.
+   * @param       {AbortInterview}  [abort] Optional.
+   * @param       {ShowInterviewGroup}  [when] Optional.
+   * @description Constructs an InterviewGroup object.
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   constructor(falconPrompt:SfdxFalconPrompt<T>, abort?:AbortInterview, when?:ShowInterviewGroup) {
     this.falconPrompt = falconPrompt;
     this.abort        = abort;
     this.when         = when;
   }
 
-  // Public methods.
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      prompt
+   * @returns     {Promise<T>}  Returns the results of inquirer.prompt()
+   * @description Executes the Inquirer prompt() function that lives inside of
+   *              this SfdxFalconPrompt object.
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
   public async prompt():Promise<T> {
     return this.falconPrompt.prompt();
   }
@@ -72,24 +86,29 @@ export class InterviewGroup<T extends object> {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxFalconInterview
- * @summary     ???
- * @description ???
+ * @summary     Provides a standard way of building a multi-group Interview to collect user input.
+ * @description Uses Inquirer to prompt the user in the terminal using a flexible, multi-group set
+ *              of prompts.  Each group can have it's own set of "abort" questions, and may be shown
+ *              or hidden independently. The Interview ends with a final "proceed/restart/abort"
+ *              question for the user.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconInterview<T extends object> {
 
   // Public members
-  public readonly   context:        object;               // ???
-  public readonly   sharedData:     object;               // ???
-  public readonly   defaultAnswers: T;                    // ???
-  public            status:         InterviewStatus;      // ???
-  public            userAnswers:    T;                    // ???
-  public            when:           ShowInterviewGroup;   // ???
+  public readonly   context:        object;                             // ???
+  public readonly   sharedData:     object;                             // ???
+  public readonly   defaultAnswers: T;                                  // ???
+  public            status:         InterviewStatus;                    // ???
+  public            userAnswers:    T;                                  // ???
+  public            when:           ShowInterviewGroup;                 // ???
 
   // Private members
-  private readonly  interviewGroups: Array<InterviewGroup<T>>;     // ???
-  private           finalGroup:      InterviewGroup<T>;          // ???
+  private readonly  _interviewGroups:     Array<InterviewGroup<T>>;     // ???
+  private readonly  _confirmation:        Questions | QuestionsBuilder; // ???
+  private readonly  _display:             AnswersDisplay<T>;            // ???
+  private readonly  _invertConfirmation:  boolean;                      // ???
 
   // Public Accessors
   public get finalAnswers():T {
@@ -112,45 +131,14 @@ export class SfdxFalconInterview<T extends object> {
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(opts:InterviewOptions<T>) {
     this.defaultAnswers       = opts.defaultAnswers as T;
+    this._confirmation        = opts.confirmation;
+    this._display             = opts.display;
+    this._invertConfirmation  = opts.invertConfirmation || false;
     this.context              = opts.context || {} as object;
     this.sharedData           = opts.sharedData || {} as object;
     this.userAnswers          = {} as T;
-    this.interviewGroups      = new Array<InterviewGroup<T>>();
+    this._interviewGroups     = new Array<InterviewGroup<T>>();
     this.status               = {aborted: false, completed: false};
-  }
-
-  //─────────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      createFinalGroup
-   * @param       {InterviewGroupOptions} opts  Required.
-   * @returns     {void}
-   * @description Given valid Interview Group Options, creates an SFDX-Falcon
-   *              Prompt and saves it as a special FINAL group to show the user
-   *              at the end of the Interview. The intent is to provide a way for
-   *              the user to restart the ENTIRE interview process if they want.
-   * @public
-   */
-  //─────────────────────────────────────────────────────────────────────────────┘
-  public createFinalGroup(opts:InterviewGroupOptions<T>):void {
-
-    // Debug
-    SfdxFalconDebug.obj(`${dbgNs}createFinalGroup:`, arguments, `arguments: `);
-
-    // Create a new SFDX Falcon Prompt based on the incoming options.
-    const finalPrompt = new SfdxFalconPrompt<T>({
-      questions:          opts.questions,
-      confirmation:       opts.confirmation,
-      invertConfirmation: opts.invertConfirmation,
-      display:            opts.display,
-      defaultAnswers:     this.defaultAnswers,
-      context:            this
-    });
-
-    // Create an Interview Group for the Final Prompt
-    this.finalGroup = new InterviewGroup<T>(finalPrompt, opts.abort);
-
-    // Debug
-    SfdxFalconDebug.obj(`${dbgNs}createFinalGroup:`, this.finalGroup, `this.finalGroup: `);
   }
 
   //─────────────────────────────────────────────────────────────────────────────┐
@@ -167,7 +155,7 @@ export class SfdxFalconInterview<T extends object> {
   //─────────────────────────────────────────────────────────────────────────────┘
   public createGroup(opts:InterviewGroupOptions<T>):void {
 
-    // Debug
+    // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}createGroup:`, arguments, `arguments: `);
 
     // Create a new SFDX Falcon Prompt based on the incoming options.
@@ -182,14 +170,13 @@ export class SfdxFalconInterview<T extends object> {
     // Create a new Interview Group using the Prompt we just created.
     const interviewGroup = new InterviewGroup<T>(falconPrompt, opts.abort, opts.when);
 
-    // Debug
+    // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}createGroup:`, interviewGroup, `interviewGroup: `);
 
     // Add the new Interview Group to the Interview Groups Array.
-    this.interviewGroups.push(interviewGroup);
-
+    this._interviewGroups.push(interviewGroup);
   }
-
+  
   //─────────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      start
@@ -201,11 +188,11 @@ export class SfdxFalconInterview<T extends object> {
   //─────────────────────────────────────────────────────────────────────────────┘
   public async start():Promise<T> {
 
-    // Debug
+    // DEBUG - Don't typically need this level of detail, so keep commented out for now.
     //SfdxFalconDebug.obj(`${dbgNs}start:`, this.interviewGroups, `this.interviewGroups: `);
 
     // Iterate over each Interview Group
-    for (const interviewGroup of this.interviewGroups) {
+    for (const interviewGroup of this._interviewGroups) {
 
       // Determine if this Interview Group should be skipped.
       if (await this.skipInterviewGroup(interviewGroup)) {
@@ -213,11 +200,14 @@ export class SfdxFalconInterview<T extends object> {
         continue;
       }
 
-      // Debug
-      SfdxFalconDebug.obj(`${dbgNs}start:`, this.userAnswers, `this.userAnswers: `);
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}start:this.userAnswers:`, this.userAnswers, `this.userAnswers (PRE-PROMPT): `);
 
       // Prompt the user with questions from the current Interview Group.
       const groupAnswers = await interviewGroup.prompt();
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}start:groupAnswers:`, groupAnswers, `groupAnswers (POST-PROMPT): `);
       
       // Blend the answers just provided with those from the Interview as a whole.
       this.userAnswers = {
@@ -234,12 +224,8 @@ export class SfdxFalconInterview<T extends object> {
       }
     }
 
-    // Debug
-    SfdxFalconDebug.obj(`${dbgNs}start:`, this.finalAnswers, `this.finalAnswers: `);
-
     // Return the FINAL (Default merged with User) answers to the caller.
-    return this.finalAnswers;
-
+    return await this.proceedRestartAbort();
   }
 
   //─────────────────────────────────────────────────────────────────────────────┐
@@ -260,12 +246,113 @@ export class SfdxFalconInterview<T extends object> {
     return this.finalAnswers;
   }
 
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      displayAnswers
+   * @returns     {Promise<void>}
+   * @description Uses the Display function (if present) to display the User
+   *              Answers from the prompt to the user. If the Display function
+   *              returns void, it means that it rendered output to the user.
+   *              If it returns an Array, it means that we need to manually
+   *              render the returned data in a FalconTable.
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private async displayAnswers():Promise<void> {
+
+    // If there's a Display Function, use that to build/display the output.
+    if (typeof this._display === 'function') {
+
+      // The display function *might* render something on its own. If it does, it will return void.
+      const displayResults = await this._display(this.userAnswers);
+
+      // If the display function returned an Array, then we'll show it to the user with a Falcon Table.
+      if (Array.isArray(displayResults)) {
+        const falconTable = new SfdxFalconKeyValueTable();
+        console.log('');
+        falconTable.render(displayResults);
+        console.log('');
+      }
+    }
+  }
+
+  //─────────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      proceedRestartAbort
+   * @returns     {Promise{T}}
+   * @description Propmts the user with a special "final" prompt that needs to
+   *              return a Confirmation Answers (proceed, restart) structure.
+   *              If the user indicates a desire to "proceed", this function will
+   *              return the Final Answers. If they want to "restart", this
+   *              function will recursively call this.start(). If they don't want
+   *              to proceed and they don't want to restart, the interview will
+   *              be aborted.
+   * @private @async
+   */
+  //─────────────────────────────────────────────────────────────────────────────┘
+  private async proceedRestartAbort():Promise<T> {
+
+    // Debug
+    SfdxFalconDebug.obj(`${dbgNs}proceedRestartAbort:`, this.finalAnswers, `this.finalAnswers: `);
+
+    // PROCEED if this Interview does NOT have confirmation questions.
+    if (typeof this._confirmation === 'undefined') {
+      SfdxFalconDebug.msg(`${dbgNs}proceedRestartAbort:`, `No Confirmation Questions Found. PROCEED by default. `);
+      return this.finalAnswers;
+    }
+
+    // If there is anything to display, displayAnswers() will take care of it.
+    await this.displayAnswers();
+
+    // Create a Confirmation Answers structure to hold what we get back from the prompt.
+    const confirmationDefaults = {
+      proceed:  false,
+      restart:  false
+    } as ConfirmationAnswers;
+
+    // Create a new SFDX Falcon Prompt based on the incoming options.
+    const confirmationPrompt = new SfdxFalconPrompt<ConfirmationAnswers>({
+      questions:          this._confirmation,
+      defaultAnswers:     confirmationDefaults,
+      context:            this
+    });
+
+    // Prompt the user for confirmation.
+    const confirmationAnswers = await confirmationPrompt.prompt();
+
+    // Process the Confirmation Answers and invert them if required.
+    const invertConfirmation  = this._invertConfirmation ? 1 : 0;
+    const proceed             = (invertConfirmation ^ (confirmationAnswers.proceed ? 1 : 0)) === 1 ? true : false;
+    const restart             = (invertConfirmation ^ (confirmationAnswers.restart ? 1 : 0)) === 1 ? true : false;
+
+    // ABORT
+    if (proceed !== true && restart !== true) {
+      SfdxFalconDebug.obj(`${dbgNs}proceedRestartAbort:`, {confirmationAnswers: confirmationAnswers, invertConfirmation: invertConfirmation, proceed: proceed, restart: restart}, `ABORT DETECTED. Relevant Variables: `);
+      return this.abortInterview('Command Aborted');
+    }
+
+    // PROCEED
+    if (proceed === true) {
+      SfdxFalconDebug.obj(`${dbgNs}proceedRestartAbort:`, {confirmationAnswers: confirmationAnswers, invertConfirmation: invertConfirmation, proceed: proceed, restart: restart}, `PROCEED DETECTED. Relevant Variables: `);
+      return this.finalAnswers;
+    }
+
+    // RESTART
+    SfdxFalconDebug.obj(`${dbgNs}proceedRestartAbort:`, {confirmationAnswers: confirmationAnswers, invertConfirmation: invertConfirmation, proceed: proceed, restart: restart}, `RESTART DETECTED. Relevant Variables: `);
+    return this.start();
+  }
+
   //─────────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      skipInterviewGroup
-   * @param       {InterviewGroup}  interviewGroup  Required.
+   * @param       {InterviewGroup<T>} interviewGroup  Required.
    * @returns     {Promise<boolean>}
-   * @description ???
+   * @description Given an Interview Group, determines if that group should be
+   *              skipped based on the result of the "when" member of the group.
+   *              If the "when" member is a function, it's executed with the
+   *              expectation of getting back a boolean. If it's a simple boolean,
+   *              that value is returned. If there is no "when" member, the value
+   *              returned defaults to FALSE, ensuring the group isn't skipped.
    * @private @async
    */
   //─────────────────────────────────────────────────────────────────────────────┘

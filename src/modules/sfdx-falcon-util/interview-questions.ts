@@ -13,27 +13,19 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-//import * as path        from  'path';             // Helps resolve local paths at runtime.
-import {Questions, Question}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
 
 // Import Internal Modules
+import * as yoValidate      from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as gitHelper       from  './git';                                      // Library of Git Helper functions specific to SFDX-Falcon.
+
 import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-//import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
-//import * as sfdxHelper      from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
-//import * as yoHelper        from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import * as gitHelper       from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+import {filterLocalPath}    from  '../sfdx-falcon-util/yeoman'; // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 
-import {filterLocalPath}                from  '../sfdx-falcon-util/yeoman';                 // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
-import * as yoValidate                  from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-
-import {YeomanChoice}         from '../sfdx-falcon-types';     // Interface. Represents a Yeoman/Inquirer choice object.
-
-
-//import {SfdxFalconPrompt}     from  '../sfdx-falcon-prompt';  // Class. ???
-
-// Requires
-//const listr = require('listr'); // Provides asynchronous list with status of task completion.
+// Import Falcon Types
+import {Question}           from  '../sfdx-falcon-types';       // Interface. Represents an Inquirer Question.
+import {Questions}          from  '../sfdx-falcon-types';       // Interface. Represents mulitple Inquirer Questions.
+import {YeomanChoice}       from  '../sfdx-falcon-types';       // Interface. Represents a Yeoman/Inquirer choice object.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:inquirer-questions:';
@@ -61,6 +53,7 @@ const PKG_PROJECT_TYPE_CHOICES = [
     short:  'Unlocked Package (2GP)'
   }
 ];
+
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -326,123 +319,128 @@ export function confirmNoPkgOrgConnection():Questions {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildGroupZeroQuestionsForCreateGenerators
- * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Returns an array of Inquirer Questions objects that define the "Group Zero" part of
- *              an SFDX-Falcon "create" command (eg. falcon:adk:create or falcon:apk:create). This
- *              function must be executed using the call() method because it relies on the caller's
- *              "this" context to properly function.
+ * @function    confirmProceedRestart
+ * @returns     {Questions} A group of Inquirer Questions.
+ * @description Asks the user to confirm that they want to proceed with an operation based on the
+ *              values that they have previously provided during an Interview.  If they say "no",
+ *              they will be asked if they want to restart.  If they choose not to restart, they
+ *              are effectively aborting the operation.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildGroupZeroQuestionsForCreateGenerators():Questions {
+export function confirmProceedRestart():Questions {
 
   // Make sure the calling scope has the variables we expect.
   validateInterviewScope.call(this);
 
-  return [
-    //chooseDevHub.call(this, [this.context['devHubAliasChoices']])
-    chooseDevHub(this.sharedData['devHubAliasChoices']),
-    chooseEnvHub(this.sharedData['envHubAliasChoices']),
-    choosePkgOrg(this.sharedData['pkgOrgAliasChoices'])
-  ];
+  // Initialize a "Confirmation Question" string.
+  let confirmationQuestion  = 'Would you like to proceed based on the above settings?';
 
-
-  if (Array.isArray(this.context['devHubAliasChoices']) !== true) {
-    throw new SfdxFalconError( `Expected this.context['devHubAliasChoices'] to be an Array available in the calling scope. Got type '${typeof this.context['devHubAliasChoices']}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
+  // See if the parent scope has defined a Confirmation Question.
+  if (typeof this.context.confirmationQuestion === 'string') {
+    confirmationQuestion  = this.context.confirmationQuestion;
+    SfdxFalconDebug.msg(`${dbgNs}confirmProceedRestartAbort:`, `Parent Confirmation Question Found. `);
   }
-  /*
-  if (Array.isArray(this.context.envHubAliasChoices) !== true) {
-    throw new SfdxFalconError( `Expected this.envHubAliasChoices to be an Array available in the calling scope. Got type '${typeof this.context.envHubAliasChoices}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }//*/
 
+  // See if the grandparent scope has defined a Confirmation Question.
+  if (this.context.context && typeof this.context.context.confirmationQuestion === 'string') {
+    confirmationQuestion  = this.context.context.confirmationQuestion;
+    SfdxFalconDebug.msg(`${dbgNs}confirmProceedRestartAbort:`, `Grandparent Confirmation Question Found. `);
+  }
 
+  // Debug
+  SfdxFalconDebug.str(`${dbgNs}confirmProceedRestartAbort:`, confirmationQuestion, `confirmationQuestion: `);
 
-
-  //─────────────────────────────────────────────────────────────────────────┐
-  // Define Group Zero
-  // 1.  What is the target directory for this project?                        (string)
-  // 2.  Which DevHub Alias do you want to use for this project?               (options)
-  // 3.  Which Environment Hub Alias do you want to use for this project?      (options)
-  // -- Possible Exit --
-  //─────────────────────────────────────────────────────────────────────────┘
+  // Build and return the Questions.
   return [
     {
-      type:     'input',
-      name:     'targetDirectory',
-      message:  'What is the target directory for this project?',
-      default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
-                ? this.userAnswers.targetDirectory                  // Current Value
-                : this.defaultAnswers.targetDirectory,              // Default Value
-      validate: yoValidate.targetPath,                              // Check targetPath for illegal chars
-      filter:   filterLocalPath,                                    // Returns a Resolved path
+      type:     'confirm',
+      name:     'proceed',
+      message:  confirmationQuestion,
+      default:  false,
       when:     true
     },
     {
-      type:     'list',
-      name:     'devHubAlias',
-      message:  'Which DevHub Alias do you want to use for this project?',
-      choices:  this.context['devHubAliasChoices'],
-//      when:     true
-      when:     () => typeof this.context['devHubAliasChoices'] !== 'undefined'
-    },
-    {
-      type:     'list',
-      name:     'envHubAlias',
-      message:  'Which Environment Hub Alias do you want to use for this project?',
-      choices:  this.context['envHubAliasChoices'],
-//      when:     true
-      when:     () => typeof this.context['envHubAliasChoices'] !== 'undefined'
-    },
-    {
-      type:     'list',
-      name:     'pkgOrgAlias',
-      message:  'Which Packaging Org do you want to use with this project?',
-      choices:  this.context['pkgOrgAliasChoices2'],
-//      when:     true
-      when:     () => typeof this.context['pkgOrgAliasChoices2'] !== 'undefined'
+      type:     'confirm',
+      name:     'restart',
+      message:  'Would you like to start again and enter new values?',
+      default:  true,
+      when:     answerHash => ! answerHash.proceed
     }
   ];
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildGroupOneQuestionsForCreateGenerators
+ * @function    provideDeveloperInfo
  * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Returns an array of Inquirer Questions objects that define the "Group One" part of
- *              an SFDX-Falcon "create" command (eg. falcon:adk:create or falcon:apk:create). This
- *              function must be executed using the call() method because it relies on the caller's
- *              "this" context to properly function.
+ * @description Asks the user to provide information about the company or individual developer who
+ *              owns the project.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function DELETE_ME_buildGroupOneQuestionsForCreateGenerators_DELETE_ME():Questions {
+export function provideDeveloperInfo():Questions {
 
   // Make sure the calling scope has the variables we expect.
   validateInterviewScope.call(this);
 
-  //───────────────────────────────────────────────────────────────────────────┐
-  // Define Group One
-  // 4. Have you created a Remote Repository on GitHub for your project?      (y/n)
-  // -- Possible Exit --
-  // 5. What is the URI of your GitHub Remote (https only)?                   (string)
-  // -- Possible Exit --
-  //───────────────────────────────────────────────────────────────────────────┘
+  // Build and return the Question.
+  return [
+    {
+      type:     'input',
+      name:     'developerName',
+      message:  'What is your Company\'s Name (or your name if individual developer)?',
+      default:  ( typeof this.userAnswers.developerName !== 'undefined' )
+                ? this.userAnswers.developerName                    // Current Value
+                : this.defaultAnswers.developerName,                // Default Value
+      validate: yoValidate.standardName,
+      when:     true
+    },
+    {
+      type:     'input',
+      name:     'developerAlias',
+      message:  'Provide an alias for the above (1-15 chars: a-Z, 0-9, -, and _ only)',
+      default:  ( typeof this.userAnswers.developerAlias !== 'undefined' )
+                ? this.userAnswers.developerAlias                    // Current Value
+                : this.defaultAnswers.developerAlias,                // Default Value
+      validate: yoValidate.standardAlias,
+      when:     true
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    provideGitRemote
+ * @returns     {Questions}  An array of Inquirer Question objects.
+ * @description Asks the user if they have a Git remote and to provide the URI if they do.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function provideGitRemote():Questions {
+
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Build and return the Question.
   return [
     {
       type:     'confirm',
-      name:     'hasGitRemoteRepository',
-      message:  'Have you created a Remote Repository on GitHub for your project?',
-      default:  ( typeof this.userAnswers.hasGitRemoteRepository !== 'undefined' )
-                ? this.userAnswers.hasGitRemoteRepository         // Current Value
-                : this.defaultAnswers.hasGitRemoteRepository,     // Default Value
+      name:     'isInitializingGit',
+      message:  'Would you like to initialize Git for this project? (RECOMMENDED)',
+      default:  ( typeof this.userAnswers.isInitializingGit !== 'undefined' )
+                ? this.userAnswers.isInitializingGit              // Current Value
+                : this.defaultAnswers.isInitializingGit,          // Default Value
       when:     true
+    },
+    {
+      type:     'confirm',
+      name:     'hasGitRemote',
+      message:  'Have you created a Remote Git Repository for your project?',
+      default:  ( typeof this.userAnswers.hasGitRemote !== 'undefined' )
+                ? this.userAnswers.hasGitRemote         // Current Value
+                : this.defaultAnswers.hasGitRemote,     // Default Value
+      when:     answerHash => answerHash.isInitializingGit
     },
     {
       type:     'input',
@@ -452,65 +450,83 @@ export function DELETE_ME_buildGroupOneQuestionsForCreateGenerators_DELETE_ME():
                 ? this.userAnswers.gitRemoteUri                   // Current Value
                 : this.defaultAnswers.gitRemoteUri,               // Default Value
       validate: yoValidate.gitRemoteUri,
-      when:     answerHash => answerHash.hasGitRemoteRepository
-    },
-    {
-      type:     'confirm',
-      name:     'ackGitRemoteUnreachable',
-      message:  'The Git Remote you specified does not exist or is unreachable. Continue anyway?',
-      default:  ( typeof this.userAnswers.ackGitRemoteUnreachable !== 'undefined' )
-                ? this.userAnswers.ackGitRemoteUnreachable         // Current Value
-                : this.defaultAnswers.ackGitRemoteUnreachable,     // Default Value
-      when:     requestAckGitRemoteUnreachable
+      when:     answerHash => answerHash.hasGitRemote
     }
   ];
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildGroupTwoQuestionsForCreateGenerators
+ * @function    provideManaged1GPInfo
  * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Returns an array of Inquirer Questions objects that define the "Group One" part of
- *              an SFDX-Falcon "create" command (eg. falcon:adk:create or falcon:apk:create). This
- *              function must be executed using the call() method because it relies on the caller's
- *              "this" context to properly function.
+ * @description Asks the user several questions about their first-gen managed package.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildGroupTwoQuestionsForCreateGenerators():Questions {
+export function provideManaged1GPInfo():Questions {
 
   // Make sure the calling scope has the variables we expect.
   validateInterviewScope.call(this);
 
-  //─────────────────────────────────────────────────────────────────────────┐
-  // Define Group Two
-  // 6. What is your Company's Name (or your name if individual developer)?   (string)
-  // 7. Provide an alias for the above (1-15 chars: a-Z, 0-9, -, and _ only)  (string)
-  // 8. What is the name of your project?                                     (string)
-  // 9. Provide an alias for the above (1-15 chars: a-Z, 0-9, -, and _ only)  (string)
-  // -- End of Interview --
-  //─────────────────────────────────────────────────────────────────────────┘
+  // Build and return the Question.
   return [
     {
       type:     'input',
-      name:     'producerName',
-      message:  'What is your Company\'s Name (or your name if individual developer)?',
-      default:  ( typeof this.userAnswers.producerName !== 'undefined' )
-                ? this.userAnswers.producerName                    // Current Value
-                : this.defaultAnswers.producerName,                // Default Value
-      validate: yoValidate.standardName,
-      when:     true
+      name:     'namespacePrefix',
+      message:  'What is the namespace prefix for your 1GP managed package?',
+      default:  ( typeof this.userAnswers.namespacePrefix !== 'undefined' )
+                ? this.userAnswers.namespacePrefix                // Current Value
+                : this.defaultAnswers.namespacePrefix,            // Default Value
+      validate: yoValidate.namespacePrefix,
+      when:     true // answerHash => answerHash.isCreatingManagedPackage
     },
     {
       type:     'input',
-      name:     'producerAlias',
-      message:  'Provide an alias for the above (1-15 chars: a-Z, 0-9, -, and _ only)',
-      default:  ( typeof this.userAnswers.producerAlias !== 'undefined' )
-                ? this.userAnswers.producerAlias                    // Current Value
-                : this.defaultAnswers.producerAlias,                // Default Value
-      validate: yoValidate.standardAlias,
-      when:     true
+      name:     'packageName',
+      message:  'What is the name of your package?',
+      default:  ( typeof this.userAnswers.packageName !== 'undefined' )
+                ? this.userAnswers.packageName                    // Current Value
+                : this.defaultAnswers.packageName,                // Default Value
+      when:     true // answerHash => answerHash.isCreatingManagedPackage
     },
+    {
+      type:     'input',
+      name:     'metadataPackageId',
+      message:  'What is the Metadata Package ID (033) of your package?',
+      default:  ( typeof this.userAnswers.metadataPackageId !== 'undefined' )
+                ? this.userAnswers.metadataPackageId              // Current Value
+                : this.defaultAnswers.metadataPackageId,          // Default Value
+      validate: yoValidate.metadataPackageId,
+      when:     true // answerHash => answerHash.isCreatingManagedPackage
+    },
+    {
+      type:     'input',
+      name:     'packageVersionId',
+      message:  'What is the Package Version ID (04t) of your most recent release?',
+      default:  ( typeof this.userAnswers.packageVersionIdRelease !== 'undefined' )
+                ? this.userAnswers.packageVersionIdRelease        // Current Value
+                : this.defaultAnswers.packageVersionIdRelease,    // Default Value
+      validate: yoValidate.packageVersionId,
+      when:     true // answerHash => answerHash.isCreatingManagedPackage
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    provideProjectInfo
+ * @returns     {Questions}  An array of Inquirer Question objects.
+ * @description Asks the user to provide information about the project being created.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function provideProjectInfo():Questions {
+
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Build and return the Question.
+  return [
     {
       type:     'input',
       name:     'projectName',
@@ -536,13 +552,13 @@ export function buildGroupTwoQuestionsForCreateGenerators():Questions {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    provideGitRemote
+ * @function    provideTargetDirectory
  * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Asks the user if they have a Git remote and to provide the URI if they do.
+ * @description Asks the user to provide a target directory for a project being cloned or created.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function provideGitRemote():Questions {
+export function provideTargetDirectory():Questions {
 
   // Make sure the calling scope has the variables we expect.
   validateInterviewScope.call(this);
@@ -550,23 +566,15 @@ export function provideGitRemote():Questions {
   // Build and return the Question.
   return [
     {
-      type:     'confirm',
-      name:     'hasGitRemote',
-      message:  'Have you created a Remote Git Repository for your project?',
-      default:  ( typeof this.userAnswers.hasGitRemote !== 'undefined' )
-                ? this.userAnswers.hasGitRemote         // Current Value
-                : this.defaultAnswers.hasGitRemote,     // Default Value
-      when:     true
-    },
-    {
       type:     'input',
-      name:     'gitRemoteUri',
-      message:  'What is the URI of your Git Remote?',
-      default:  ( typeof this.userAnswers.gitRemoteUri !== 'undefined' )
-                ? this.userAnswers.gitRemoteUri                   // Current Value
-                : this.defaultAnswers.gitRemoteUri,               // Default Value
-      validate: yoValidate.gitRemoteUri,
-      when:     answerHash => answerHash.hasGitRemote
+      name:     'targetDirectory',
+      message:  'What is the target directory for this project?',
+      default:  ( typeof this.userAnswers.targetDirectory !== 'undefined' )
+                ? this.userAnswers.targetDirectory        // Current Value
+                : this.defaultAnswers.targetDirectory,    // Default Value
+      validate: yoValidate.targetPath,                    // Check targetPath for illegal chars
+      filter:   filterLocalPath,                          // Returns a Resolved path
+      when:     true
     }
   ];
 }
