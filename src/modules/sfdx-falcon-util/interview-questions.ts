@@ -191,7 +191,7 @@ export function choosePkgProjectType(pkgProjectTypeChoices:YeomanChoice[]=PKG_PR
   return [
     {
       type:     'list',
-      name:     'pkgProjectType',
+      name:     'projectType',
       message:  'What type of packaging project will this be?',
       choices:  pkgProjectTypeChoices,
       when:     pkgProjectTypeChoices.length > 0
@@ -201,7 +201,7 @@ export function choosePkgProjectType(pkgProjectTypeChoices:YeomanChoice[]=PKG_PR
       name:     'pkgOrgExists',
       message:  'Have you created a packaging org?',
       default:  false,
-      when:     answerHash => String(answerHash.pkgProjectType).startsWith('1GP:')
+      when:     answerHash => String(answerHash.projectType).startsWith('1GP:')
     }
   ];
 }
@@ -283,7 +283,7 @@ export function confirmNoPkgOrg():Questions {
       name:     'restart',
       message:  'A Packaging Org is required for 1GP projects. Would you like to modify your selection?',
       default:  true,
-      when:     () => String(this.userAnswers.pkgProjectType).startsWith('1GP:')
+      when:     () => String(this.userAnswers.projectType).startsWith('1GP:')
                             && this.userAnswers.pkgOrgExists !== true
     }
   ];
@@ -478,7 +478,7 @@ export function provideManaged1GPInfo():Questions {
                 ? this.userAnswers.namespacePrefix                // Current Value
                 : this.defaultAnswers.namespacePrefix,            // Default Value
       validate: yoValidate.namespacePrefix,
-      when:     true // answerHash => answerHash.isCreatingManagedPackage
+      when:     true
     },
     {
       type:     'input',
@@ -487,7 +487,7 @@ export function provideManaged1GPInfo():Questions {
       default:  ( typeof this.userAnswers.packageName !== 'undefined' )
                 ? this.userAnswers.packageName                    // Current Value
                 : this.defaultAnswers.packageName,                // Default Value
-      when:     true // answerHash => answerHash.isCreatingManagedPackage
+      when:     true
     },
     {
       type:     'input',
@@ -497,7 +497,7 @@ export function provideManaged1GPInfo():Questions {
                 ? this.userAnswers.metadataPackageId              // Current Value
                 : this.defaultAnswers.metadataPackageId,          // Default Value
       validate: yoValidate.metadataPackageId,
-      when:     true // answerHash => answerHash.isCreatingManagedPackage
+      when:     true
     },
     {
       type:     'input',
@@ -507,7 +507,7 @@ export function provideManaged1GPInfo():Questions {
                 ? this.userAnswers.packageVersionIdRelease        // Current Value
                 : this.defaultAnswers.packageVersionIdRelease,    // Default Value
       validate: yoValidate.packageVersionId,
-      when:     true // answerHash => answerHash.isCreatingManagedPackage
+      when:     true
     }
   ];
 }

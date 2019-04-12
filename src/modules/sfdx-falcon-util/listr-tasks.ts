@@ -83,7 +83,7 @@ export function buildEnvHubAliasList():ListrTask {
       this.sharedData.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.sharedData.envHubAliasChoices.push({name:'DevTest_ENV --- devtest@devtest-env.org', value:'DevTest_ENV', short:'DevTest_ENV'});
+      this.sharedData.envHubAliasChoices.push({name:'DevTest_ENV --- devtest@devtest-env.org', value:'DevTest_ENV', short:'DevTest_ENV'}); //DEVTEST
       this.sharedData.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
@@ -116,7 +116,7 @@ export function buildPkgOrgAliasList():ListrTask {
       this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.sharedData.pkgOrgAliasChoices.push({name:'DevTest_PKG --- devtest@devtest-pkg.org', value:'DevTest_PKG', short:'DevTest_PKG'});
+      this.sharedData.pkgOrgAliasChoices.push({name:'DevTest_PKG --- devtest@devtest-pkg.org', value:'DevTest_PKG', short:'DevTest_PKG'}); //DEVTEST
       this.sharedData.pkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.pkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
@@ -138,9 +138,16 @@ export function buildPkgOrgAliasList():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function gitInitTasks() {
 
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Grab the Command Name and Git Remote URI out of Shared Data.
+  const cliCommandName  = this.sharedData.cliCommandName;
+  const gitRemoteUri    = this.sharedData.gitRemoteUri;
+
   // Check for the presence of key variables in the calling scope.
-  if (typeof this.cliCommandName !== 'string' || this.cliCommandName === '') {
-    throw new SfdxFalconError( `Expected this.cliCommandName to be a non-empty string but got type '${typeof this.cliCommmandName}' instead.`
+  if (typeof cliCommandName !== 'string' || cliCommandName === '') {
+    throw new SfdxFalconError( `Expected cliCommandName to be a non-empty string but got type '${typeof cliCommandName}' instead.`
                              , `TypeError`
                              , `${dbgNs}gitInitTasks`);
   }
@@ -150,13 +157,13 @@ export function gitInitTasks() {
     [
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  `Initializing ${this.cliCommandName}`,
+        title:  `Initializing ${cliCommandName}`,
         task:   listrContext => {
           return new listr(
             [
               // SUBTASKS: Check for Git executable and for valid Git Remote URI.
               gitRuntimeCheck.call(this),
-              validateGitRemote(this.gitRemoteUri)
+              validateGitRemote(gitRemoteUri)
             ],
             {
               // SUBTASK OPTIONS: (Git Init Tasks)
@@ -215,7 +222,7 @@ export function gitRuntimeCheck():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyDevHubs():ListrTask {
 
-  // Make sure the calling scope has a valid context variable.
+  // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
   // Build and return a Listr Task.
@@ -263,7 +270,7 @@ export function identifyDevHubs():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyEnvHubs():ListrTask {
 
-  // Make sure the calling scope has a valid context variable.
+  // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
   // Build and return a Listr Task.
@@ -307,7 +314,7 @@ export function identifyEnvHubs():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function identifyPkgOrgs():ListrTask {
 
-  // Make sure the calling scope has a valid context variable.
+  // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
   // Build and return a Listr Task.
@@ -360,21 +367,21 @@ export function scanConnectedOrgs():ListrTask {
 
           // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
           const utilityResultDetail = utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail;
-          this.rawSfdxOrgList = utilityResultDetail.stdOutParsed.result.nonScratchOrgs;
+          const rawSfdxOrgList      = utilityResultDetail.stdOutParsed.result.nonScratchOrgs;
 
           // Make sure that there is at least ONE connnected org
-          if (Array.isArray(this.rawSfdxOrgList) === false || this.rawSfdxOrgList.length < 1) {
+          if (Array.isArray(rawSfdxOrgList) === false || rawSfdxOrgList.length < 1) {
             throw new SfdxFalconError( `No orgs have been authenticated to the Salesforce CLI. `
                                      + `Please run force:auth:web:login to connect to an org.`
                                      , `NoConnectedOrgs`
                                      , `${dbgNs}scanConnectedOrgs`);
           }
           else {
-            // Change the title of the task
+            // Change the title of the task.
             thisTask.title += 'Done!';
           }
-          // Give the Listr Context variable access to the class member
-          listrContext.rawSfdxOrgList = this.rawSfdxOrgList;
+          // Put the raw SFDX Org List into the Listr Context variable.
+          listrContext.rawSfdxOrgList = rawSfdxOrgList;
         })
         .catch(utilityResult => {
 
@@ -386,7 +393,6 @@ export function scanConnectedOrgs():ListrTask {
     }
   } as ListrTask;
 }
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -434,24 +440,6 @@ export function sfdxInitTasks() {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    validateSharedData
- * @returns     {void}
- * @description Ensures that the calling scope has the special "sharedData" variable.
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function validateSharedData():void {
-  if (typeof this.sharedData !== 'object') {
-    throw new SfdxFalconError( `Expected this.sharedData to be an object available in the calling scope. Got type '${typeof this.sharedData}' instead. `
-                             + `You must execute listr-tasks functions using the syntax: functionName.call(this). `
-                             + `You must also ensure that the calling scope has defined an object named 'context'.`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateSharedData`);
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
  * @function    validateGitRemote
  * @param       {string}  gitRemoteUri  Required. URI of the remote Git repository being validated.
  * @returns     {ListrTask}  A Listr-compatible Task Object
@@ -495,4 +483,22 @@ export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
         });
     }
   } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validateSharedData
+ * @returns     {void}
+ * @description Ensures that the calling scope has the special "sharedData" object.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validateSharedData():void {
+  if (typeof this.sharedData !== 'object') {
+    throw new SfdxFalconError( `Expected this.sharedData to be an object available in the calling scope. Got type '${typeof this.sharedData}' instead. `
+                             + `You must execute listr-tasks functions using the syntax: functionName.call(this). `
+                             + `You must also ensure that the calling scope has defined an object named 'sharedData'.`
+                             , `InvalidSharedData`
+                             , `${dbgNs}validateSharedData`);
+  }
 }
