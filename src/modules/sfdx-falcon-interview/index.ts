@@ -188,7 +188,7 @@ export class SfdxFalconInterview<T extends object> {
   //─────────────────────────────────────────────────────────────────────────────┘
   public async start():Promise<T> {
 
-    // DEBUG - Don't typically need this level of detail, so keep commented out for now.
+    // DEBUG - Don't typically need this level of detail, so keep commented out.
     //SfdxFalconDebug.obj(`${dbgNs}start:`, this.interviewGroups, `this.interviewGroups: `);
 
     // Iterate over each Interview Group
@@ -201,20 +201,23 @@ export class SfdxFalconInterview<T extends object> {
       }
 
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}start:this.userAnswers:`, this.userAnswers, `this.userAnswers (PRE-PROMPT): `);
+      SfdxFalconDebug.obj(`${dbgNs}start:userAnswers:`, this.userAnswers, `this.userAnswers (PRE-PROMPT): `);
 
       // Prompt the user with questions from the current Interview Group.
       const groupAnswers = await interviewGroup.prompt();
 
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}start:groupAnswers:`, groupAnswers, `groupAnswers (POST-PROMPT): `);
+      SfdxFalconDebug.obj(`${dbgNs}start:groupAnswers:`, groupAnswers, `groupAnswers: `);
       
       // Blend the answers just provided with those from the Interview as a whole.
       this.userAnswers = {
       ...this.userAnswers as object,
       ...groupAnswers as object
       } as T;
-      
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}start:userAnswers:`, this.userAnswers, `this.userAnswers (POST-PROMPT): `);
+
       // Check if this group has an "abort" function. If so, check the abort conditions.
       if (typeof interviewGroup.abort === 'function') {
         const abort = interviewGroup.abort(groupAnswers, this.userAnswers);

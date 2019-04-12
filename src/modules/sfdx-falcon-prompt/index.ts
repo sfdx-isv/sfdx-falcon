@@ -128,8 +128,8 @@ export class SfdxFalconPrompt<T extends object> {
 
     } while (await this.confirmRestart());
 
-    // Send back a combination of the default answers and the user's answers.
-    return this.finalAnswers;
+    // Send back the user's answers.
+    return this.userAnswers;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
