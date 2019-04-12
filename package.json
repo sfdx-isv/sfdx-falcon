@@ -20,7 +20,7 @@
     "request-promise-native": "1.0.5",
     "rxjs": "6.4.0",
     "sfdx-falcon-appx-demo-kit": "0.0.9",
-    "sfdx-falcon-appx-package-kit": "0.0.3",
+    "sfdx-falcon-appx-package-kit": "0.0.4",
     "shelljs": "0.8.3",
     "uuid": "3.3.2",
     "yeoman-environment": "2.3.4",
