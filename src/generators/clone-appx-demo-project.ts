@@ -208,7 +208,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected async initializing():Promise<void> {
 
     // Call the default initializing() function. Replace with custom behavior if desired.
-    return super._default_initializing();
+    return this._default_initializing();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -223,7 +223,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected async prompting():Promise<void> {
 
     // Call the default prompting() function. Replace with custom behavior if desired.
-    return super._default_prompting();
+    return this._default_prompting();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -238,7 +238,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected configuring():void {
 
     // Call the default configuring() function. Replace with custom behavior if desired.
-    return super._default_configuring();
+    return this._default_configuring();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -320,31 +320,6 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
 
     // Finalize the cloning of the AppX Package Project.
     return this._finalizeProjectCloning();
-
-    /*
-    // Check if we need to abort the Yeoman interview/installation process.
-    if (this.generatorStatus.aborted) {
-      SfdxFalconDebug.msg(`${dbgNs}install:`, `generatorStatus.aborted found as TRUE inside install()`);
-      return;
-    }
-
-    // If we get here, it means that the writing() step completed successfully.
-    this.generatorStatus.addMessage({
-      type:     'success',
-      title:    `Local Config Created`,
-      message:  `.sfdx-falcon/sfdx-falcon-config.json created and customized successfully`
-    });
-  
-    // Show in-process Success Message explaining that we just created the project files.
-    printStatusMessage({
-      type:     'success',
-      title:    `\nSuccess`,
-      message:  `Project files customized at ${this.destinationRoot()}\n`
-    });
-
-    // If we get here, it means that the install() step completed successfully.
-    this.installComplete = true;
-    //*/
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -360,6 +335,6 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected end():void {
 
     // Call the default end() function. Replace with custom behavior if desired.
-    return super._default_end();
+    return this._default_end();
   }
 }

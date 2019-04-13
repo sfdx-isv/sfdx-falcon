@@ -10,13 +10,14 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules/Types
-import {AnyJson}      from  '@salesforce/ts-types';
-import * as inquirer  from  'inquirer';
-import {Observable}   from  'rx';
-import {Questions}    from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
-import {Question}     from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
-//import {Answers}      from  'yeoman-generator'; // Interface. Represents an array of Inquirer "question" objects.
-import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
+import {AnyJson}              from  '@salesforce/ts-types';
+import * as inquirer          from  'inquirer';
+import {Observable}           from  'rxjs';
+
+// Import Internal Modules/Types
+import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
+import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
+import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
 /**
  * Represents the local config options for an AppX Demo project.

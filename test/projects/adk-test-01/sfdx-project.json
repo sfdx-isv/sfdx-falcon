@@ -6,8 +6,8 @@
   "sourceApiVersion": "44.0",
   "plugins": {
     "sfdxFalcon": {
-      "producerAlias"   : "sfdc",
-      "producerName"    : "Salesforce",
+      "developerAlias"  : "sfdc",
+      "developerName"   : "Salesforce",
       "projectAlias"    : "adk-testbed",
       "projectName"     : "ADK Testbed",
       "projectType"     : "appx:single-demo",

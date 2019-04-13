@@ -58,6 +58,11 @@ interface InterviewAnswers {
   // SFDX Org Aliases
   devHubAlias:              string;
   envHubAlias:              string;
+  pkgOrgAlias:              string;
+
+  // Scratch Org Settings
+  scratchDefOrgName:        string;
+  scratchDefDescription:    string;
 
   // Git Settings
   isInitializingGit:        boolean;
@@ -130,6 +135,11 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     // SFDX Org Aliases
     this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
+    this.defaultAnswers.pkgOrgAlias                 = 'NOT_SPECIFIED';
+
+    // Scratch Org Settings
+    this.defaultAnswers.scratchDefOrgName           = 'ADK Demo Org';
+    this.defaultAnswers.scratchDefDescription       = 'ADK Demo Org';
 
     // Git Settings
     this.defaultAnswers.isInitializingGit           = true;
@@ -154,36 +164,6 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     this.sharedData['cliCommandName']     = this.cliCommandName;
   }
   
-  //─────────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      _executeInitializationTasks
-   * @returns     {Promise<void>}  No return value, but may throw Errros.
-   * @description Runs a series of initialization tasks using the Listr UX/Task
-   *              Runner module.  Listr provides a framework for executing tasks
-   *              while also providing an attractive, realtime display of task
-   *              status (running, successful, failed, etc.).
-   * @protected @async
-   */
-  //─────────────────────────────────────────────────────────────────────────────┘
-  /*
-  protected async _executeInitializationTasks():Promise<void> {
-
-    // Define the first group of tasks (Git Initialization).
-    const gitInitTasks = listrTasks.gitInitTasks.call(this);
-
-    // Define the second group of tasks (SFDX Initialization).
-    const sfdxInitTasks = listrTasks.sfdxInitTasks.call(this);
-
-    // Run the Git Init Tasks. Make sure to use await since Listr will run asynchronously.
-    const gitInitResults = await gitInitTasks.run();
-    SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:gitInitResults`, gitInitResults, `gitInitResults: `);
-
-    // Followed by the SFDX Init Tasks.
-    const sfdxInitResults = await sfdxInitTasks.run();
-    SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:sfdxInitResults`, sfdxInitResults, `sfdxInitResults: `);
-
-  }//*/
-
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      _buildInterview
@@ -301,7 +281,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
   protected async initializing():Promise<void> {
 
     // Call the default initializing() function. Replace with custom behavior if desired.
-    return super._default_initializing();
+    return this._default_initializing();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -316,7 +296,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
   protected async prompting():Promise<void> {
 
     // Call the default prompting() function. Replace with custom behavior if desired.
-    return super._default_prompting();
+    return this._default_prompting();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -331,7 +311,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
   protected configuring() {
 
     // Call the default configuring() function. Replace with custom behavior if desired.
-    return super._default_configuring();
+    return this._default_configuring();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -350,6 +330,10 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
       SfdxFalconDebug.msg(`${dbgNs}writing:`, `generatorStatus.aborted found as TRUE inside writing()`);
       return;
     }
+
+    // Compose an Org Name and Org Description that are relevant to this project.
+    this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.developerName} Demo Org`;
+    this.finalAnswers.scratchDefDescription = `ADK Sample Demo Org`;
 
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
     this.sourceRoot(path.dirname(this.sourceDirectory));
@@ -484,6 +468,6 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
   protected end() {
 
     // Call the default end() function. Replace with custom behavior if desired.
-    return super._default_end();
+    return this._default_end();
   }
 }

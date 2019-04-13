@@ -61,6 +61,10 @@ interface InterviewAnswers {
   envHubAlias:              string;
   pkgOrgAlias:              string;
 
+  // Scratch Org Settings
+  scratchDefOrgName:        string;
+  scratchDefDescription:    string;
+
   // Git Settings
   isInitializingGit:        boolean;
   hasGitRemote:             boolean;
@@ -147,6 +151,10 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.pkgOrgAlias                 = 'NOT_SPECIFIED';
+
+    // Scratch Org Settings
+    this.defaultAnswers.scratchDefOrgName           = 'APK Build Org';
+    this.defaultAnswers.scratchDefDescription       = 'APK Build Org';
 
     // Git Settings
     this.defaultAnswers.isInitializingGit           = true;
@@ -413,6 +421,10 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
       SfdxFalconDebug.msg(`${dbgNs}writing:`, `generatorStatus.aborted found as TRUE inside writing()`);
       return;
     }
+
+    // Compose an Org Name and Org Description that are relevant to this project.
+    this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.projectName} - Developer Build`;
+    this.finalAnswers.scratchDefDescription = `API Developer Build Org`;
 
     // Tell Yeoman the path to the SOURCE directory
     this.sourceRoot(path.dirname(this.sourceDirectory));

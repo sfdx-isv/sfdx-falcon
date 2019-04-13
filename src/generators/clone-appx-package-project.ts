@@ -216,7 +216,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
   protected async initializing():Promise<void> {
 
     // Call the default initializing() function. Replace with custom behavior if desired.
-    return super._default_initializing();
+    return this._default_initializing();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -231,7 +231,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
   protected async prompting():Promise<void> {
 
     // Call the default prompting() function. Replace with custom behavior if desired.
-    return super._default_prompting();
+    return this._default_prompting();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -246,7 +246,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
   protected configuring() {
 
     // Call the default configuring() function. Replace with custom behavior if desired.
-    return super._default_configuring();
+    return this._default_configuring();
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -348,6 +348,6 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
   protected end():void {
 
     // Call the default end() function. Replace with custom behavior if desired.
-    return super._default_end();
+    return this._default_end();
   }
 }
