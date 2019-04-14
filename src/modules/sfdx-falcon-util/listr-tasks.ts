@@ -13,12 +13,16 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import Internal Modules
-import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
 import * as sfdxHelper      from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
 import * as yoHelper        from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as gitHelper       from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+
+// Import Falcon Types
+import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
+import {RawSfdxOrgInfo}     from  '../sfdx-falcon-types';       // Interface. Represents the data returned by the sfdx force:org:list command.
+
 
 // Requires
 const listr = require('listr'); // Provides asynchronous list with status of task completion.
@@ -48,6 +52,11 @@ export function buildDevHubAliasList():ListrTask {
     title:  'Building DevHub Alias List...',
     enabled:() => Array.isArray(this.sharedData.devHubAliasChoices),
     task:   (listrContext, thisTask) => {
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}buildDevHubAliasList:listrContext.devHubOrgInfos:`, listrContext.devHubOrgInfos, `listrContext.devHubOrgInfos: `);
+
+      // Build a list of Choices based on the DevHub org infos.
       this.sharedData.devHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.devHubOrgInfos);
 
       // Add a separator and a "not specified" option
@@ -80,10 +89,14 @@ export function buildEnvHubAliasList():ListrTask {
     title:  'Building EnvHub Alias List...',
     enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
     task:   (listrContext, thisTask) => {
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}buildEnvHubAliasList:listrContext.envHubOrgInfos:`, listrContext.envHubOrgInfos, `listrContext.envHubOrgInfos: `);
+      
+      // Build a list of Choices based on the Env Hub org infos.
       this.sharedData.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.sharedData.envHubAliasChoices.push({name:'DevTest_ENV --- devtest@devtest-env.org', value:'DevTest_ENV', short:'DevTest_ENV'}); //DEVTEST
       this.sharedData.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
@@ -113,10 +126,14 @@ export function buildPkgOrgAliasList():ListrTask {
     title:  'Building PkgOrg Alias List...',
     enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
     task:   (listrContext, thisTask) => {
-      this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}buildPkgOrgAliasList:listrContext.pkgOrgInfos:`, listrContext.pkgOrgInfos, `listrContext.pkgOrgInfos: `);
+      
+      // Build a list of Choices based on the Env Hub org infos.
+      this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.pkgOrgInfos);
 
       // Add a separator and a "not specified" option
-      this.sharedData.pkgOrgAliasChoices.push({name:'DevTest_PKG --- devtest@devtest-pkg.org', value:'DevTest_PKG', short:'DevTest_PKG'}); //DEVTEST
       this.sharedData.pkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.pkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
@@ -234,8 +251,8 @@ export function identifyDevHubs():ListrTask {
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
-      // Take raw org list and identify Dev Hub Orgs.
-      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.rawSfdxOrgList);
+      // Search the SFDX Org Infos list for any DevHub orgs.
+      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[]);
 
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, devHubOrgInfos, `devHubOrgInfos: `);
@@ -278,26 +295,32 @@ export function identifyEnvHubs():ListrTask {
     title:  'Identifying EnvHub Orgs...',
     enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
     task:   (listrContext, thisTask) => {
-
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
+      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
-      // Take raw org list and identify Environment Hub Orgs.
-      const envHubOrgInfos = sfdxHelper.identifyEnvHubOrgs(listrContext.rawSfdxOrgList);
+      // Search the SFDX Org Infos list for any Environment Hub orgs.
+      return sfdxHelper.identifyEnvHubOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[])
+        .then(envHubOrgInfos => {
+          // DEBUG
+          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:envHubOrgInfos:`, envHubOrgInfos, `envHubOrgInfos: `);
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:`, envHubOrgInfos, `envHubOrgInfos: `);
+          // Give the Listr Context variable access to the Packaging Org Infos just returned.
+          listrContext.envHubOrgInfos = envHubOrgInfos;
 
-      // Give the Listr Context variable access to this.envHubOrgInfos
-      listrContext.envHubOrgInfos = envHubOrgInfos;
-
-      // Update the task title based on the number of EnvHub Org Infos
-      if (envHubOrgInfos.length < 1) {
-        thisTask.title += 'No Environment Hubs Found';
-      }
-      else {
-        thisTask.title += 'Done!';
-      }
+          // Update the task title based on the number of EnvHub Org Infos
+          if (envHubOrgInfos.length < 1) {
+            thisTask.title += 'No Environment Hubs Found';
+          }
+          else {
+            thisTask.title += 'Done!';
+          }
+        })
+        .catch(error => {
+          // We normally should NOT get here.
+          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:error`, error, `error: `);
+          thisTask.title += 'Unexpected error while identifying Environment Hub Orgs';
+          throw error;
+        });
     }
   } as ListrTask;
 }
@@ -322,26 +345,32 @@ export function identifyPkgOrgs():ListrTask {
     title:  'Identifying Packaging Orgs...',
     enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
     task:   (listrContext, thisTask) => {
-
       // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
+      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: (BEFORE ASYNC CALL)`);
 
-      // Take raw org list and identify Environment Hub Orgs.
-      const pkgOrgInfos = sfdxHelper.identifyPkgOrgs(listrContext.rawSfdxOrgList);
+      // Search the SFDX Org Infos list for any Packaging orgs.
+      return sfdxHelper.identifyPkgOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[])
+        .then(pkgOrgInfos => {
+          // DEBUG
+          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos:`, pkgOrgInfos, `pkgOrgInfos: `);
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, pkgOrgInfos, `pkgOrgInfos: `);
+          // Give the Listr Context variable access to the Packaging Org Infos just returned.
+          listrContext.pkgOrgInfos = pkgOrgInfos;
 
-      // Give the Listr Context variable access to this.envHubOrgInfos
-      listrContext.pkgOrgInfos = pkgOrgInfos;
-
-      // Update the task title based on the number of EnvHub Org Infos
-      if (pkgOrgInfos.length < 1) {
-        thisTask.title += 'No Packaging Orgs Found';
-      }
-      else {
-        thisTask.title += 'Done!';
-      }
+          // Update the task title based on the number of EnvHub Org Infos
+          if (pkgOrgInfos.length < 1) {
+            thisTask.title += 'No Packaging Orgs Found';
+          }
+          else {
+            thisTask.title += 'Done!';
+          }
+        })
+        .catch(error => {
+          // We normally should NOT get here.
+          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:error`, error, `error: `);
+          thisTask.title += 'Unexpected error while identifying Packaging Orgs';
+          throw error;
+        });
     }
   } as ListrTask;
 }
@@ -376,12 +405,15 @@ export function scanConnectedOrgs():ListrTask {
                                      , `NoConnectedOrgs`
                                      , `${dbgNs}scanConnectedOrgs`);
           }
-          else {
-            // Change the title of the task.
-            thisTask.title += 'Done!';
-          }
+
           // Put the raw SFDX Org List into the Listr Context variable.
           listrContext.rawSfdxOrgList = rawSfdxOrgList;
+
+          // Build a baseline list of SFDX Org Info objects based on thie raw list.
+          listrContext.sfdxOrgInfos   = sfdxHelper.buildSfdxOrgInfos(rawSfdxOrgList as RawSfdxOrgInfo[]);
+
+          // Change the title of the task.
+          thisTask.title += 'Done!';
         })
         .catch(utilityResult => {
 

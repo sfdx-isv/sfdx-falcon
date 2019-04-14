@@ -10,13 +10,16 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules/Types
+import {Connection}           from  '@salesforce/core';
 import {AnyJson}              from  '@salesforce/ts-types';
 import * as inquirer          from  'inquirer';
+import {QueryResult}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';
-
-// Import Internal Modules/Types
 import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
+
+
+// Import Internal Modules/Types
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
 /**
@@ -158,11 +161,6 @@ export interface FalconCommandSequenceStep {
   };
 }//*/
 
-export type InquirerChoice    = inquirer.objects.Choice;
-export type InquirerChoices   = inquirer.objects.Choices;
-export type InquirerQuestion  = inquirer.Question;
-export type InquirerQuestions = inquirer.Questions;
-export type InquirerAnswers   = inquirer.Answers;
 /**
  * Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
  */
@@ -170,25 +168,42 @@ export interface SfdxFalconJsonResponse {
   falconStatus: number;
   falconResult: AnyJson;
 }
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Packaging-related types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
 /**
- * Delete this if left unused.
+ * Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
  */
-/*
-export interface FalconSequenceContext {
-  devHubAlias:        string;
-  targetOrgAlias:     string;
-  targetIsScratchOrg: boolean;
-  projectPath:        string;
-  configPath:         string;
-  mdapiSourcePath:    string;
-  dataPath:           string;
-  logLevel:           'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
-  sequenceObserver:   any;  // tslint:disable-line: no-any
-}//*/
+export interface MetadataPackage {
+  Id:                       string;
+  Name:                     string;
+  NamespacePrefix:          string;
+  MetadataPackageVersions:  MetadataPackageVersion[];
+}
+
+/**
+ * Interface. Represents a Metadata Package Version (04t).
+ */
+export interface MetadataPackageVersion {
+  Id:                 string;
+  Name:               string;
+  MetadataPackageId:  string;
+  MajorVersion:       number;
+  MinorVersion:       number;
+  PatchVersion:       number;
+  BuildNumber:        number;
+  ReleaseState:       string;
+}
+
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Listr related interfaces and types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
 
 /**
  * Represents a Listr Task object that can be executed by a Listr Task Runner.
@@ -199,21 +214,25 @@ export interface ListrTask {
   skip?:    boolean|ListrSkipFunction;
   enabled?: boolean|ListrEnabledFunction;
 }
+
 /**
  * Represents an "enabled" function for use in a Listr Task.
  */
 export type ListrEnabledFunction =
   (context?:any)=> boolean; // tslint:disable-line: no-any
+
 /**
  * Represents a "skip" function for use in a Listr Task.
  */
 export type ListrSkipFunction =
   (context?:any) => boolean|string|Promise<boolean|string>;  // tslint:disable-line: no-any
+
 /**
  * Represents a "task" function for use in a Listr Task.
  */
 export type ListrTaskFunction =
   (context?:ListrContext, task?:ListrTask) => void|Promise<void>|Observable<any>; // tslint:disable-line: no-any
+
 /**
  * Represents the set of "execution options" related to the use of Listr.
  */
@@ -222,18 +241,28 @@ export interface ListrExecutionOptions {
   listrTask:    any;  // tslint:disable-line: no-any
   observer:     any;  // tslint:disable-line: no-any
 }
+
 /**
  * Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
  */
 export type ListrContext = any; // tslint:disable-line: no-any
+
 /**
  * Represents an Observable for use with Listr.
  */
 export type ListrObservable = any;  // tslint:disable-line: no-any
 
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+export type InquirerChoice    = inquirer.objects.Choice;
+export type InquirerChoices   = inquirer.objects.Choices;
+export type InquirerQuestion  = inquirer.Question;
+export type InquirerQuestions = inquirer.Questions;
+export type InquirerAnswers   = inquirer.Answers;
 
 /**
  * Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
@@ -350,11 +379,53 @@ export type Questions = Questions;
 export type Question = Question;
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
-// Miscellaneous interfaces and types.
+// Salesforce DX / JSForce related types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+
 /**
- * Enum that stores the various CLI log level flag values.
+ * Type. Represents either an Org Alias or a JSForce Connection.
+ */
+export type AliasOrConnection = string | Connection;
+
+/**
+ * Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
+ */
+export interface ResolvedConnection {
+  connection:       Connection;
+  orgIdentifier:    string;
+}
+
+/**
+ * Type. Alias to the JSForce definition of QueryResult.
+ */
+export type QueryResult<T> = QueryResult<T>;
+
+/**
+ * Interface. Represents the data returned by the sfdx force:org:list command.
+ */
+export interface RawSfdxOrgInfo {
+  alias:                    string;                       // Why?
+  username:                 string;                       // Why?
+  orgId:                    string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  isDevHub:                 boolean;                      // Why?
+}
+
+/**
+ * Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
+ */
+export interface SfdxOrgInfoSetup {
+  alias:                    string;                       // Why?
+  username:                 string;                       // Why?
+  orgId:                    string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  isDevHub:                 boolean;                      // Why?
+  metadataPackageResults?:  QueryResult<MetadataPackage>; // Why?
+}
+
+/**
+ * Enum. Represents the various CLI log level flag values.
  */
 export enum SfdxCliLogLevel {
   TRACE = 'trace',
@@ -364,3 +435,5 @@ export enum SfdxCliLogLevel {
   ERROR = 'error',
   FATAL = 'fatal'
 }
+
+

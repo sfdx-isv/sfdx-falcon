@@ -10,18 +10,27 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
+import {Connection}         from '@salesforce/core';                    // Why?
 import * as jsf             from 'jsforce';                             // Why?
-import {Connection}         from '@salesforce/core'                     // Why?
 
 // Import Internal Modules
-import {SfdxFalconDebug}    from '../sfdx-falcon-debug';                // Why?
+import {SfdxFalconDebug}        from '../sfdx-falcon-debug';                // Why?
 
 // Import Utility Functions
-import {resolveConnection}  from './sfdx';                              // Function. Takes either an alias or a connection and gives back a connection.
+import {resolveConnection}      from './sfdx';                              // Function. Takes either an alias or a connection and gives back a connection.
+
+// Import Falcon Types
+import {AliasOrConnection}      from '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
+import {MetadataPackage}        from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {QueryResult}            from '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
+
+//import {MetadataPackageVersion} from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
+
+
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:jsforce:';
-const clsDbgNs  = '';
+//const clsDbgNs  = '';
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -55,7 +64,7 @@ type User = {};
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface RestApiRequestDefinition {
   aliasOrConnection:  string|Connection;
-  request:            jsf.RequestInfo,
+  request:            jsf.RequestInfo;
   options?:           {any};
 }
 
@@ -121,11 +130,10 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   // Try to create the new connection using the username and password.
   const userInfo = await newConnection.login(username, password)
     .catch(error => {
-      SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, error, `${clsDbgNs}error: `);
-
+      SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:error:`, error, `error: `);
       throw error;
     });
-  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, userInfo, `${clsDbgNs}userInfo: `);
+  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:userInfo`, userInfo, `userInfo: `);
 
   // Create the Org Config data structure.
   const orgSaveData = {} as any;
@@ -135,7 +143,7 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   orgSaveData.instanceUrl = newConnection.instanceUrl;
   orgSaveData.username    = username;
   orgSaveData.loginUrl    = rc.connection.instanceUrl +`/secur/frontdoor.jsp?sid=${newConnection.accessToken}`;
-  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:`, orgSaveData, `${clsDbgNs}orgSaveData: `);
+  SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:orgSaveData:`, orgSaveData, `orgSaveData: `);
 
   // Save the Org Config
   // TODO: Not sure how to proceed here.  Looks like we can't persist 
@@ -160,25 +168,62 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
 export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
  
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:arguments:`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Ids of all Permsets assigned to the user.
   const queryResult = await rc.connection.query(`SELECT PermissionSetId FROM PermissionSetAssignment WHERE AssigneeId='${userId}'`) as jsf.QueryResult<jsf.Record<PermissionSetAssignment>>;
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, queryResult.records, `${clsDbgNs}queryResult.records: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:queryResult.records:`, queryResult.records, `queryResult.records: `);
 
   // Parse the result and extract the Permset IDs (if found).
-  let assignedPermsets = new Array<string>();
-  for (let record of queryResult.records) {
+  const assignedPermsets = new Array<string>();
+  for (const record of queryResult.records) {
     assignedPermsets.push(record.PermissionSetId);
   }
-  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:`, assignedPermsets, `${clsDbgNs}assignedPermsets: `);
+  SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:assignedPermsets:`, assignedPermsets, `assignedPermsets: `);
 
   // Done
   return assignedPermsets;
 }
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getPackages
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @returns     {Promise<MetadataPackage[]>}  Resolves with an array of MetadataPackage objects,
+ *              one for each package (managed and unmanaged) that are developed in that org.
+ * @description Given an Org Alias or a JSForce Connection, queries the related org and returns an
+ *              array of MetadataPackage objects, detailing all of the packages (managed and
+ *              unmanaged) that are developed in that org.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getPackages(aliasOrConnection:AliasOrConnection):Promise<MetadataPackage[]> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}getPackages:arguments:`, arguments, `arguments: `);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+//  const rc = await resolveConnection(aliasOrConnection);
+
+//  const managedPackageQuery = 'SELECT Id, Name, NamespacePrefix FROM MetadataPackage';
+
+  // Build the first Tooling API request.
+//  const managedPackages = rc.connection.tooling.query('managedPackageQuery').execute();
+
+  // Execute the command. Note that this is a synchronous request.
+//  const restResult = await rc.connection.request(restRequestDef.request);
+
+
+  //Connection.
+
+  return null;
+}
+
+
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -197,14 +242,14 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
 export async function getProfileId(aliasOrConnection:any, profileName:string):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getProfileId:`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getProfileId:arguments:`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named Profile
   const queryResult = await rc.connection.query(`SELECT Id FROM Profile WHERE Name='${profileName}'`) as jsf.QueryResult<jsf.Record<Profile>>;
-  SfdxFalconDebug.obj(`${dbgNs}getProfileId:`, queryResult.records[0], `${clsDbgNs}queryResult.records[0]: `);
+  SfdxFalconDebug.obj(`${dbgNs}getProfileId:queryResult.records[0]`, queryResult.records[0], `queryResult.records[0]: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -232,14 +277,14 @@ export async function getProfileId(aliasOrConnection:any, profileName:string):Pr
 export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<string> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getUserId:`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getUserId:arguments:`, arguments, `arguments: `);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
 
   // Query the connected org for the Id of the named User
   const queryResult = await rc.connection.query(`SELECT Id FROM User WHERE Username='${username}'`) as jsf.QueryResult<jsf.Record<User>>;
-  SfdxFalconDebug.obj(`${dbgNs}getUserId:`, queryResult.records[0], `${clsDbgNs}queryResult: `);
+  SfdxFalconDebug.obj(`${dbgNs}getUserId:queryResult.records[0]:`, queryResult.records[0], `queryResult.records[0]: `);
 
   // Make sure we got a result.  If not, throw error.
   if (typeof queryResult.records[0] === 'undefined') {
@@ -269,11 +314,45 @@ export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Pr
   const restResult = await rc.connection.request(restRequestDef.request);
 
   // Debug
-  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:`, restResult, `${clsDbgNs}restResult: `);
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:restResult:`, restResult, `restResult: `);
 
   // Process the results in a standard way
   // TODO: Not sure if there is anything to actually do here...
 
   // Resolve to caller
   return restResult;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    toolingApiQuery
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  query  Required. Tooling API query to be executed.
+ * @returns     {Promise<any>}  Result of a Tooling API SObject query to Salesforce.
+ * @description Given an Org Alias or JSForce Connection, makes a REST call to the target org's
+ *              tooling API to query about a particular Tooling object.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function toolingApiQuery<T>(aliasOrConnection:AliasOrConnection, query:string):Promise<QueryResult<T>> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:arguments:`, arguments, `arguments: `);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(aliasOrConnection);
+
+  // Wrap the JSForce logic in a Promise.
+  return new Promise((resolve, reject) => {
+    rc.connection.tooling.query<T>(query, {}, (err, records) => {
+      if (err) {
+        SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:err:`,     err,      `Callback returned with the following Error: `);
+        SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:records:`, records,  `Records returned as part of Query Error: `);
+        reject(err);
+      }
+      SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:records:`, records,  `Records successfully returned: `);
+      resolve(records);
+    });
+  });
 }

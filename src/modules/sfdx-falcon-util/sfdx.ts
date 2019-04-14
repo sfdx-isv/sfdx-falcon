@@ -10,58 +10,42 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Aliases}              from '@salesforce/core';      // Why?
-import {AuthInfo}             from '@salesforce/core';      // Why?
-import {Connection}           from '@salesforce/core';      // Why?
+import {Aliases}                from '@salesforce/core';      // Why?
+import {AuthInfo}               from '@salesforce/core';      // Why?
+import {Connection}             from '@salesforce/core';      // Why?
 
 // Import Internal Modules
-import {SfdxFalconDebug}      from '../sfdx-falcon-debug';  // Why?
-import {SfdxFalconResult}     from '../sfdx-falcon-result'; // Why?
-import {SfdxFalconResultType} from '../sfdx-falcon-result'; // Why?
-import {SfdxCliError}         from '../sfdx-falcon-error';  // Why?
-import {ShellError}           from '../sfdx-falcon-error';  // Why?
+import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}        from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxCliError}           from  '../sfdx-falcon-error';       // Class. Extends SfdxFalconError to provide specialized error handling of error results returned from CLI commands run via shell exec.
+import {ShellError}             from '../sfdx-falcon-error';        // Class. Extends SfdxFalconError to provide specialized error handling of error results returned by failed shell commands
+import {SfdxFalconResult}       from '../sfdx-falcon-result';       // Why?
+import {SfdxFalconResultType}   from '../sfdx-falcon-result';       // Why?
 
 // Import Utility Functions
-import {safeParse}            from '../sfdx-falcon-util';  // Why?
+import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
+import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
 
-// Requies
+// Import Falcon Types
+import {AliasOrConnection}      from '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
+import {MetadataPackage}        from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {MetadataPackageVersion} from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
+import {ResolvedConnection}     from '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
+import {QueryResult}            from '../sfdx-falcon-types';  // ???
+import {RawSfdxOrgInfo}         from '../sfdx-falcon-types';  // ???
+import {SfdxOrgInfoSetup}       from '../sfdx-falcon-types';  // ???
+
+// Requires
 const shell = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:sfdx:';
-const clsDbgNs  = '';
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   ResolvedConnection
- * @description Represents a resolved (active) JSForce connection to a Salesforce Org.
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface ResolvedConnection {
-  connection:       Connection;
-  orgIdentifier:    string;
-}
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   SfdxOrgInfo
- * @description Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface SfdxOrgInfo {
-  alias:            string;         // Why?
-  username:         string;         // Why?
-  orgId:            string;         // Why?
-  isDevHub:         boolean;        // Why?
-  connectedStatus:  string;         // Why?
-}
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @interface   SfdxUtilityResultDetail
- * @description Represents the expected possible input and output of a generic Salesforce CLI call.
+ * Interface. Represents the expected possible input and output of a generic Salesforce CLI call.
  */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface SfdxUtilityResultDetail {
   sfdxCommandString:  string;
   stdOutParsed:       any;
@@ -70,10 +54,259 @@ export interface SfdxUtilityResultDetail {
   error:              Error;
 }
 
+
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       SfdxOrgInfo
+ * @summary     Stores information about orgs that are connected to the local Salesforce CLI.
+ * @description ???
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class SfdxOrgInfo {
+
+  // Public members
+  public readonly   alias:                    string;                       // Why?
+  public readonly   username:                 string;                       // Why?
+  public readonly   orgId:                    string;                       // Why?
+  public readonly   connectedStatus:          string;                       // Why?
+
+  // Private members
+  private           _isDevHub:                boolean;                      // Why?
+  private           _isPkgOrg:                boolean;                      // Why?
+  private           _isEnvHub:                boolean;                      // Why?
+  private           _nsPrefix:                string;                       // Why?
+  private           _packages:                MetadataPackage[];            // Why?
+  private           _metadataPackageResults:  QueryResult<MetadataPackage>; // Why?
+  private           _latestReleasePkg:        MetadataPackageVersion;       // Why?
+  private           _latestBetaPkg:           MetadataPackageVersion;       // Why?
+
+  // Accessors
+  public get isDevHub():boolean {
+    return this._isDevHub ? true : false;
+  }
+  public get isEnvHub():boolean {
+    return this._isEnvHub ? true : false;
+  }
+  public get isPkgOrg():boolean {
+    return this._isPkgOrg ? true : false;
+  }
+  public get latestReleasePkg():MetadataPackageVersion {
+    return this._latestReleasePkg;
+  }
+  public get latestBetaPkg():MetadataPackageVersion {
+    return this._latestBetaPkg;
+  }
+  public get nsPrefix():string {
+    return this._nsPrefix || '';
+  }
+  public get packages():MetadataPackage[] {
+    return this._packages;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  SfdxOrgInfo
+   * @param       {SfdxOrgInfoSetup}  opts Required. Sets initial values.
+   * @description Constructs a SfdxOrgInfo object.
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  constructor(opts:SfdxOrgInfoSetup) {
+
+    // Initialize core class members.
+    this.alias              = opts.alias;
+    this.username           = opts.username;
+    this.orgId              = opts.orgId;
+    this.connectedStatus    = opts.connectedStatus;
+
+    // Initialize org identifcation members.
+    this._isDevHub          = opts.isDevHub ? true : false;
+    this._isPkgOrg          = false;
+    this._isEnvHub          = false;
+
+    // Initialize package-related class members.
+    this._metadataPackageResults  = opts.metadataPackageResults;
+    this._packages                = this.extractPackages(this._metadataPackageResults);
+
+    // If there is at least one member in the packages array, mark this as a Packaging Org.
+    this._isPkgOrg = (this._packages.length > 0);
+
+    // If no alias was set, copy the username over as the alias.
+    if (typeof this.alias !== 'string' || this.alias.length < 1) {
+      this.alias = this.username;
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      determineEnvHubStatus
+   * @returns     {Promise<boolean}
+   * @description Performs a query against this object's related org to find out
+   *              if it's an Environment Hub or not.
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async determineEnvHubStatus():Promise<boolean> {
+
+    return this._isEnvHub = false;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      determinePkgOrgStatus
+   * @returns     {Promise<boolean}
+   * @description Performs a query against this object's related org to find out
+   *              if it's a Packaging Org or not.
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async determinePkgOrgStatus():Promise<boolean> {
+
+    // Don't do anything if we already know this is a packaging org.
+    if (this._packages.length > 0) {
+      return this._isPkgOrg = true;
+    }
+
+    // Define the "package check" Tooling API query. This will get all packages and package versions from an org.
+    const packageCheckQuery =
+      'SELECT Id, Name, NamespacePrefix, '
+    + '( '
+    + '  SELECT '
+    + '    Id, Name, BuildNumber, MetadataPackageId, MajorVersion, '
+    + '    MinorVersion, PatchVersion, ReleaseState '
+    + '  FROM MetadataPackageVersions'
+    + ') '
+    + 'FROM MetadataPackage';
+
+    // Run Tooling API query.
+    this._metadataPackageResults = await toolingApiQuery<MetadataPackage>(this.alias, packageCheckQuery);
+
+    // DEBUG
+    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._metadataPackageResults, `this._metadataPackageResults: `);
+
+    // Extract any packages from the results we just got.
+    this._packages = this.extractPackages(this._metadataPackageResults);
+
+    // Search the packages for a namespace.
+    for (const packageObj of this._packages) {
+      if (packageObj.NamespacePrefix) {
+        this._nsPrefix = packageObj.NamespacePrefix;
+      }
+    }
+
+    // If there is at least one member in the packages array, mark this as a Packaging Org.
+    return this._isPkgOrg = (this._packages.length > 0);
+    
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      extractPackages
+   * @param       {QueryResult<MetadataPackage>} metadataPackages  Required. The
+   *              output of a JSForce Tooling API query.
+   * @returns     {MetadataPackage[]}
+   * @description Given the results of a JSForce Tooling API query that fetches
+   *              the package info from an org, extract the package and package
+   *              version records and create a simplified MetadataPackage array.
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private extractPackages(metadataPackages:QueryResult<MetadataPackage>):MetadataPackage[] {
+
+    // Debug incoming arguments
+    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:extractPackages:arguments:`, arguments, `arguments: `);
+
+    // If there isn't a Metadata Package Query Result, return an empty array.
+    if (typeof metadataPackages === 'undefined' || Array.isArray(metadataPackages.records) !== true) {
+      return [];
+    }
+
+    // Initialize a Metadata Package array.
+    const packages = new Array<MetadataPackage>();
+
+    // Copy over core information, then extract any Metadata Package Version records.
+    for (const metadataPackageRecord of metadataPackages.records) {
+      const metadataPackage = {
+        Id:                       metadataPackageRecord.Id,
+        Name:                     metadataPackageRecord.Name,
+        NamespacePrefix:          metadataPackageRecord.NamespacePrefix,
+        MetadataPackageVersions:  metadataPackageRecord.MetadataPackageVersions
+                                    ?
+                                    metadataPackageRecord.MetadataPackageVersions['records'] as MetadataPackageVersion[]
+                                    :
+                                    [] as MetadataPackageVersion[]
+      };
+
+      // Add this to the Packages array.
+      packages.push(metadataPackage);
+    }
+
+    // All done.
+    return packages;
+  }
+}
+
+
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    buildSfdxOrgInfos
+ * @param       {any[]}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
+ *              in the result of a call to force:org:list.
+ * @returns     {SfdxOrgInfo[]} Array containing SfdxOrgInfo objects for EVERY org that was part of
+ *              the raw SFDX org list.
+ * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
+ *              creates an SfdxOrgInfo object for each one.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function buildSfdxOrgInfos(rawSfdxOrgList:RawSfdxOrgInfo[]):SfdxOrgInfo[] {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfos:arguments:`, arguments, `arguments: `);
+
+  // Make sure that the caller passed us an Array.
+  if (Array.isArray(rawSfdxOrgList) !== true) {
+    throw new SfdxFalconError( `Expected rawSfdxOrgList to an Array but got type '${typeof rawSfdxOrgList}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}buildSfdxOrgInfos`);
+  }
+
+  // Initalize an array to hold the SfdxOrgInfo objects we're going to create.
+  const sfdxOrgInfos = new Array<SfdxOrgInfo>();
+
+  // Iterate over the raw list of orgs to create SfdxOrgInfo objects.
+  for (const rawOrgInfo of rawSfdxOrgList) {
+
+    // Only work with orgs that have a CONNECTED status.
+    if (rawOrgInfo.connectedStatus === 'Connected') {
+      sfdxOrgInfos.push(new SfdxOrgInfo({
+        alias:            rawOrgInfo.alias,
+        username:         rawOrgInfo.username,
+        orgId:            rawOrgInfo.orgId,
+        connectedStatus:  rawOrgInfo.connectedStatus,
+        isDevHub:         rawOrgInfo.isDevHub,
+      }));
+    }
+    else {
+      SfdxFalconDebug.str(`${dbgNs}buildSfdxOrgInfos:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ORG NOT CONNECTED!`);
+    }
+  }
+
+  // DEBUG
+  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfos:sfdxOrgInfos:`, sfdxOrgInfos, `sfdxOrgInfos: `);
+
+  // Return the SFDX Org Infos to the caller. Let them worry about putting it into Shared Data.
+  return sfdxOrgInfos;
+}
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    detectSalesforceCliError
- * @param       {unknown} thingToCheck  Required. Either a string buffer containing an 
+ * @param       {unknown} thingToCheck  Required. Either a string buffer containing an
  *              stderr CLI response or a safeParse() JSON object that (hopefully) came from a
  *              Salesforce CLI command.
  * @returns     {boolean} Returns TRUE if the stdOutBuffer contains something that might be
@@ -81,19 +314,18 @@ export interface SfdxUtilityResultDetail {
  * @description Given a string buffer containing an stdout response, determines if that response
  *              should be considered a Salesforce CLI error. Please note that there could still be
  *              something wrong with the result even if this function returns FALSE.  It just means
- *              that stdOutBuffer did not contain something that could be interpreted as a 
+ *              that stdOutBuffer did not contain something that could be interpreted as a
  *              Salesforce CLI Error.
- * @version     1.0.0
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, arguments, `detectSalesforceCliError:arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:arguments:`, arguments, `arguments: `);
 
   // Parse thingToCheck if it's a string, assign it directly if not.
-  let possibleCliError:any; 
+  let possibleCliError:any;
   if (typeof thingToCheck === 'string') {
     possibleCliError  = safeParse(thingToCheck);
   }
@@ -102,7 +334,7 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
   }
 
   // Debug
-  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:`, possibleCliError, `detectSalesforceCliError:possibleCliError: `);
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:possibleCliError:`, possibleCliError, `possibleCliError: `);
 
   // If the Possible CLI Error "status" property is present AND has a non-zero value, then IT IS a Salesforce CLI Error.
   if (possibleCliError.status && possibleCliError.status !== 0) {
@@ -116,181 +348,138 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyDevHubOrgs
- * @param       {Array<any>}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
- *              in the result of a call to force:org:list.
- * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
+ * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
+ *              objects previously created by a call to buildSfdxOrgInfos().
+ * @returns     {SfdxOrgInfo[]} Array containing only SfdxOrgInfo objects that point to
  *              Dev Hub orgs.
- * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
- *              finds all the org connections that point to Dev Hubs and returns them as an array
- *              of SfdxOrgInfo objects.
- * @version     1.0.0
+ * @description Given a list of SFDX Org Info objects previously created by a call to
+ *              buildSfdxOrgInfos(), finds all the org connections that point to DevHub Orgs and
+ *              returns them as an array of SfdxOrgInfo objects.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function identifyDevHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
+export function identifyDevHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):SfdxOrgInfo[] {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:arguments:`, arguments, `arguments: `);
 
   // Make sure that the caller passed us an Array.
-  if ((rawSfdxOrgList instanceof Array) === false) {
-    throw new Error(`ERROR_INVALID_TYPE: Expected an Array but got type '${typeof rawSfdxOrgList}'`);
+  if (Array.isArray(sfdxOrgInfos) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}identifyDevHubOrgs`);
   }
 
   // Array of SfdxOrgInfo objects that will hold Dev Hubs.
-  let devHubOrgInfos = new Array<SfdxOrgInfo>();
+  const devHubOrgInfos = new Array<SfdxOrgInfo>();
 
-  // Iterate over rawSfdxOrgList to find orgs where isDevHub is TRUE.
-  // When found, move a subset of values for that org into an 
-  // SfdxOrgInfo that will be added to the devHubOrgInfos array.
-  for (let rawOrgInfo of rawSfdxOrgList) {
-    if (rawOrgInfo.isDevHub && rawOrgInfo.connectedStatus === 'Connected') {
-      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE DEVHUB: Alias(Username)`);
-      devHubOrgInfos.push({
-        alias:            rawOrgInfo.alias || rawOrgInfo.username,
-        username:         rawOrgInfo.username,
-        orgId:            rawOrgInfo.orgId,
-        isDevHub:         rawOrgInfo.isDevHub,
-        connectedStatus:  rawOrgInfo.connectedStatus
-      });
+  // Iterate over the Org Info list and identify Developer Hub Orgs.
+  for (const orgInfo of sfdxOrgInfos) {
+    if (orgInfo.isDevHub) {
+      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `DEVELOPER HUB FOUND: `);
+      devHubOrgInfos.push(orgInfo);
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE DEVHUB: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `NOT A DEVELOPER HUB: `);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:`, devHubOrgInfos, `${clsDbgNs}devHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:devHubOrgInfos`, devHubOrgInfos, `devHubOrgInfos: `);
 
-  // Return the list of Dev Hubs to the caller
+  // Return the list of Packaging Orgs to the caller
   return devHubOrgInfos;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyEnvHubOrgs
- * @param       {Array<any>}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
- *              in the result of a call to force:org:list.
- * @returns     {Array<SfdxOrgInfo>}  Array containing only SfdxOrgInfo objects that point to 
- *              Environment Hub orgs.
- * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
- *              finds all the org connections that point to Environment Hub orgs and returns them as
- *              an array of SfdxOrgInfo objects.
- * @version     1.0.0
- * @public
+ * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
+ *              objects previously created by a call to buildSfdxOrgInfos().
+ * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
+ *              that point to Environment Hub Orgs.
+ * @description Given a list of SFDX Org Info objects previously created by a call to
+ *              buildSfdxOrgInfos(), finds all the org connections that point to Environment Hub
+ *              Orgs and returns them as an array of SfdxOrgInfo objects.
+ * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function identifyEnvHubOrgs(rawSfdxOrgList:Array<any>):Array<SfdxOrgInfo> {
+export async function identifyEnvHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOrgInfo[]> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:`, arguments, `${clsDbgNs}arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:arguments:`, arguments, `arguments: `);
 
   // Make sure that the caller passed us an Array.
-  if ((rawSfdxOrgList instanceof Array) === false) {
-    throw new Error(`ERROR_INVALID_TYPE: Expected an Array but got type '${typeof rawSfdxOrgList}'`);
+  if (Array.isArray(sfdxOrgInfos) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}identifyEnvHubOrgs`);
   }
 
   // Array of SfdxOrgInfo objects that will hold Dev Hubs.
-  let envHubOrgInfos = new Array<SfdxOrgInfo>();
+  const envHubOrgInfos = new Array<SfdxOrgInfo>();
 
-
-
-  // DEVTEST - for now, just return the empty org infos list
-  // TODO: Implement the check for EnvHub orgs
-  return envHubOrgInfos;
-
-
-
-  // Iterate over rawSfdxOrgList to find orgs where connectedStatus is TRUE.
-  // Then, for each one, make a connection and try to touch objects that
-  // would ONLY be present in an Environment Hub org (eg. SignupRequest Object).
-  for (let rawOrgInfo of rawSfdxOrgList) {
-    if (rawOrgInfo.connectedStatus === 'Connected') {
-
-      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}ACTIVE ORG: Alias(Username)`);
-
-      // TODO: Implement some kind of "Environment Hub Check" logic
-
-      envHubOrgInfos.push({
-        alias:            rawOrgInfo.alias || rawOrgInfo.username,
-        username:         rawOrgInfo.username,
-        orgId:            rawOrgInfo.orgId,
-        isDevHub:         rawOrgInfo.isDevHub,
-        connectedStatus:  rawOrgInfo.connectedStatus
-      });
+  // Iterate over the Org Info list and identify Environment Hub Orgs.
+  for (const orgInfo of sfdxOrgInfos) {
+    if (await orgInfo.determineEnvHubStatus()) {
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `ENVIRONMENT HUB FOUND: `);
+      envHubOrgInfos.push(orgInfo);
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `${clsDbgNs}NOT AN ACTIVE ORG: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `NOT AN ENVIRONMENT HUB: `);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:`, envHubOrgInfos, `${clsDbgNs}envHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:envHubOrgInfos`, envHubOrgInfos, `envHubOrgInfos: `);
 
-  // Return the list of Dev Hubs to the caller
+  // Return the list of Packaging Orgs to the caller
   return envHubOrgInfos;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyPkgOrgs
- * @param       {Array<any>}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
- *              in the result of a call to force:org:list.
- * @returns     {SfdxOrgInfo[]}  Array containing only SfdxOrgInfo objects that point to Packaging Orgs.
- * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
- *              finds all the org connections that point to Packaging Orgs and returns them as
- *              an array of SfdxOrgInfo objects.
- * @public
+ * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
+ *              objects previously created by a call to buildSfdxOrgInfos().
+ * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
+ *              that point to Packaging Orgs.
+ * @description Given a list of SFDX Org Info objects previously created by a call to
+ *              buildSfdxOrgInfos(), finds all the org connections that point to Packaging Orgs and
+ *              returns them as an array of SfdxOrgInfo objects.
+ * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function identifyPkgOrgs(rawSfdxOrgList:Array<any>):SfdxOrgInfo[] {
+export async function identifyPkgOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOrgInfo[]> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:arguments:`, arguments, `arguments: `);
 
   // Make sure that the caller passed us an Array.
-  if ((rawSfdxOrgList instanceof Array) === false) {
-    throw new Error(`ERROR_INVALID_TYPE: Expected an Array but got type '${typeof rawSfdxOrgList}'`);
+  if (Array.isArray(sfdxOrgInfos) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}identifyPkgOrgs`);
   }
 
-  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
+  // Array of SfdxOrgInfo objects that will hold Packaging Org info.
   const pkgOrgInfos = new Array<SfdxOrgInfo>();
 
-
-
-  // DEVTEST - for now, just return the empty org infos list
-  // TODO: Implement the check for EnvHub orgs
-  return pkgOrgInfos;
-
-
-
-  // Iterate over rawSfdxOrgList to find orgs where connectedStatus is TRUE.
-  // Then, for each one, make a connection and try to touch objects that
-  // would ONLY be present in an Environment Hub org (eg. SignupRequest Object).
-  for (const rawOrgInfo of rawSfdxOrgList) {
-    if (rawOrgInfo.connectedStatus === 'Connected') {
-
-      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ACTIVE ORG: Alias(Username)`);
-
-      // TODO: Implement some kind of "Environment Hub Check" logic
-
-      pkgOrgInfos.push({
-        alias:            rawOrgInfo.alias || rawOrgInfo.username,
-        username:         rawOrgInfo.username,
-        orgId:            rawOrgInfo.orgId,
-        isDevHub:         rawOrgInfo.isDevHub,
-        connectedStatus:  rawOrgInfo.connectedStatus
-      });
+  // Iterate over the Org Info list and identify Packaging Orgs.
+  for (const orgInfo of sfdxOrgInfos) {
+    if (await orgInfo.determinePkgOrgStatus()) {
+      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `PACKAGING ORG FOUND: `);
+      pkgOrgInfos.push(orgInfo);
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `NOT AN ACTIVE ORG: Alias(Username)`);
+      SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `NOT A PACKAGING ORG: `);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:`, pkgOrgInfos, `pkgOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos`, pkgOrgInfos, `pkgOrgInfos: `);
 
-  // Return the list of Dev Hubs to the caller
+  // Return the list of Packaging Orgs to the caller
   return pkgOrgInfos;
 }
 
@@ -305,19 +494,23 @@ export function identifyPkgOrgs(rawSfdxOrgList:Array<any>):SfdxOrgInfo[] {
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getConnection(orgAlias:string, apiVersion?:string):Promise<Connection> {
+export async function getConnection(aliasOrUsername:string, apiVersion?:string):Promise<Connection> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}getConnection:arguments:`, arguments, `arguments: `);
 
   // Fetch the username associated with this alias.
-  SfdxFalconDebug.str(`${dbgNs}getConnection:`, orgAlias, `${clsDbgNs}orgAlias: `);
-  const username:string = await getUsernameFromAlias(orgAlias);
-  SfdxFalconDebug.str(`${dbgNs}getConnection:`, username, `${clsDbgNs}username: `);
+  let username:string = await getUsernameFromAlias(aliasOrUsername);
 
-  // Make sure a value was returned for the alias
+  // If the alias didn't result in a username, assume that aliasOrUsername held a username, not a alias.
   if (typeof username === 'undefined') {
-    throw new Error(`ERROR_UNKNOWN_ALIAS: The alias '${orgAlias}' is not associated with an org in this environment`);
+    username = aliasOrUsername;
   }
 
-  // Create an AuthInfo object for the username we got from the alias.
+  // DEBUG
+  SfdxFalconDebug.str(`${dbgNs}getConnection:username:`, username, `username: `);
+
+  // Create an AuthInfo object for the username we have.
   const authInfo = await AuthInfo.create({username: username});
 
   // Create and return a connection to the org attached to the username.
@@ -325,7 +518,7 @@ export async function getConnection(orgAlias:string, apiVersion?:string):Promise
 
   // Set the API version (if specified by the caller).
   if (typeof apiVersion !== 'undefined') {
-    SfdxFalconDebug.str(`${dbgNs}getConnection:`, apiVersion, `${clsDbgNs}apiVersion: `);
+    SfdxFalconDebug.str(`${dbgNs}getConnection:apiVersion:`, apiVersion, `apiVersion: `);
     connection.setApiVersion(apiVersion);
   }
 
@@ -350,30 +543,33 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<string> {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    resolveConnection
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @returns     {Promise<ResolvedConnection>}  Resolves with an authenticated JSForce Connection.
  * @description Given a Profile Name, returns the xx-character record ID of the named profile.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedConnection> {
+export async function resolveConnection(aliasOrConnection:AliasOrConnection):Promise<ResolvedConnection> {
 
   // Input validation
-  if (typeof aliasOrConnection !== 'string' && typeof aliasOrConnection !== 'object') {
-    throw new TypeError(`ERROR_INVALID_TYPE: Expected 'string' or 'object' but got '${typeof aliasOrConnection}'`);
+  if (typeof aliasOrConnection !== 'string'
+      && (typeof aliasOrConnection === 'object'
+          && ((aliasOrConnection as object) instanceof Connection) !== true))  {
+    throw new SfdxFalconError( `Expected aliasOrConnection to be a string or Connection Object. Got '${typeof aliasOrConnection}' instead. `
+                             , `TypeError`
+                             , `${dbgNs}resolveConnection`);
   }
   
   let connection:Connection;
   let orgIdentifier:string;
 
-  // Either get a new connection based on an alias or use one provided to us.  
+  // Either get a new connection based on an alias or use one provided to us.
   if (typeof aliasOrConnection === 'string') {
     orgIdentifier = aliasOrConnection;
     connection    = await getConnection(aliasOrConnection);
   }
-  else { 
+  else {
     connection    = aliasOrConnection;
     orgIdentifier = connection.getUsername();
   }
@@ -382,7 +578,7 @@ export async function resolveConnection(aliasOrConnection:any):Promise<ResolvedC
   return {
     connection: connection,
     orgIdentifier: orgIdentifier
-  }
+  };
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

@@ -10,13 +10,13 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as jsf             from 'jsforce';                                 // Why?
-import {Connection}         from '@salesforce/core'                         // Why?
+import {Connection}         from '@salesforce/core';  // Why?
+import * as jsf             from 'jsforce';           // Why?
 
 // Import Internal Modules
 import {SfdxFalconDebug}      from  '../../../modules/sfdx-falcon-debug';   // Why?
 
-// Import Local Types
+// Import Falcon Types
 
 // Import Utility Functions
 import {resolveConnection}    from  '../../sfdx-falcon-util/sfdx';          // Why?

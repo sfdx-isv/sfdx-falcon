@@ -29,7 +29,6 @@ import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Cla
 import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Interface. Specifies options used when spinning up an SFDX-Falcon Yeoman environment.
 
 // Import Falcon Types
-//import {ConfirmationAnswers}      from  '../sfdx-falcon-types';           // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
 
 // Requires
 const chalk             = require('chalk');                 // Utility for creating colorful console output.

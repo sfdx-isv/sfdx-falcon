@@ -13,14 +13,16 @@
 import * as path    from 'path';  // Node's path library.
 
 // Import Local Modules
-import {SfdxFalconDebug}      from '../../modules/sfdx-falcon-debug';     // Class. Provides a system for sending debug info to the console.
-import {SfdxFalconError}      from  '../sfdx-falcon-error';               // Class. Specialized Error object. Wraps SfdxError.
+import {SfdxFalconDebug}      from  '../../modules/sfdx-falcon-debug';      // Class. Provides a system for sending debug info to the console.
+import {SfdxFalconError}      from  '../../modules/sfdx-falcon-error';      // Class. Specialized Error object. Wraps SfdxError.
 
 // Import Utility Functions/Types
-import {YeomanChoice}         from '../../modules/sfdx-falcon-types';     // Interface. Represents a Yeoman/Inquirer choice object.
-import {SfdxOrgInfo}          from '../../modules/sfdx-falcon-util/sfdx'; // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
-import {StatusMessage}        from '../../modules/sfdx-falcon-util/ux';   // Interface. Standard SFDX-Falcon Status Message type.
-import {printStatusMessages}  from '../../modules/sfdx-falcon-util/ux';   // Function. Prints an array of Status Messages.
+import {SfdxOrgInfo}          from  '../../modules/sfdx-falcon-util/sfdx';  // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
+import {StatusMessage}        from  '../../modules/sfdx-falcon-util/ux';    // Interface. Standard SFDX-Falcon Status Message type.
+import {printStatusMessages}  from  '../../modules/sfdx-falcon-util/ux';    // Function. Prints an array of Status Messages.
+
+// Import Falcon Types
+import {YeomanChoice}         from  '../../modules/sfdx-falcon-types';      // Interface. Represents a Yeoman/Inquirer choice object.
 
 // Requires
 const pad = require('pad');   // Provides consistent spacing when trying to align console output.
@@ -263,30 +265,30 @@ export function abortInterview(yeomanAnswerHash) {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    createOrgAliasChoice
- * @param       {string}  alias Required.
- * @param       {string}  username  Required.
- * @param       {number}  padLength Required.
+ * @param       {SfdxOrgInfo}  alias  Required.
+ * @param       {number}  longestAlias  Required.
+ * @param       {number}  longestUsername Required.
  * @returns     {YeomanChoice}
- * @description Given an SFDX org alias and a Salesforce username, returns a Yeoman Choice that will
- *              be formatted with appropriate padding to make multiple choices look aligned when
- *              shown to the user.
+ * @description Given an SFDX Org Info object, the length of the longest-expected Alias and the
+ *              longest-expected username, returns a Yeoman Choice that will be formatted with
+ *              appropriate padding to make multiple choices look aligned when shown to the user.
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function createOrgAliasChoice(alias:string, username:string, padLength:number):YeomanChoice {
+function createOrgAliasChoice(orgInfo:SfdxOrgInfo, longestAlias:number, longestUsername:number):YeomanChoice {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}createOrgAliasChoice:`, arguments, `arguments: `);
 
   // Build an OrgAliasChoice as a YeomanChoice data structure.
   return {
-    name:   `${pad(alias, padLength)} -- ${username}`,
-    value:  (typeof alias !== 'undefined' && alias !== '')
-            ? alias                     // Use the Alias as value for this Choice
-            : username,                 // Use the Username as value for this Choice
-    short:  (typeof alias !== 'undefined' && alias !== '')
-            ? `${alias} (${username})`  // Use Alias (Username)
-            : username                  // Just use Username
+    name:   `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`,
+    value:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
+            ? orgInfo.alias                     // Use the Alias as value for this Choice
+            : orgInfo.username,                 // Use the Username as value for this Choice
+    short:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
+            ? `${orgInfo.alias} (${orgInfo.username})${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`  // Use Alias (Username)
+            : orgInfo.username + (orgInfo.nsPrefix ? '['+orgInfo.nsPrefix+']' : '')                         // Just use Username
   };
 }
 
@@ -319,11 +321,21 @@ export function buildOrgAliasChoices(sfdxOrgInfos:SfdxOrgInfo[]):YeomanChoice[] 
     }
   }
 
+  // Calculate the length of the longest Username.
+  let longestUsername = 0;
+  for (const orgInfo of sfdxOrgInfos) {
+    if (typeof orgInfo.username !== 'undefined') {
+      longestUsername = Math.max(orgInfo.username.length, longestUsername);
+    }
+  }
+
   // Iterate over the array of sfdxOrgInfos and then call createOrgAliasChoice
   // and push each one onto the orgAliasChoices array.
   for (const orgInfo of sfdxOrgInfos) {
-    orgAliasChoices.push(createOrgAliasChoice(orgInfo.alias, orgInfo.username, longestAlias));
+    orgAliasChoices.push(createOrgAliasChoice(orgInfo, longestAlias, longestUsername));
   }
+
+  // DEBUG
   SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:`, orgAliasChoices, `orgAliasChoices: `);
 
   // All done.
