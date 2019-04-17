@@ -530,7 +530,7 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
         if (detectSalesforceCliError(stdOutBuffer)) {
 
           // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
-          utilityResultDetail.error = new SfdxCliError(stdOutBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand`);
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand`);
         }
         else {
           // We have a shell Error. Prepare ERROR detail using ShellError.
@@ -562,7 +562,7 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
 
         // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
         if (detectSalesforceCliError(parsedCliResponse)) {
-          utilityResultDetail.error = new SfdxCliError(stdOutJsonResponse, `${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutJsonResponse, `${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
           utilityResult.error(utilityResultDetail.error);
           utilityResult.debugResult(`${mixedMessage}`, `${dbgNs}executeSfdxCommand:`);
           reject(utilityResult);
@@ -605,7 +605,8 @@ export async function fetchMetadataPackages(aliasOrUsername:string, packageNames
     `sfdx force:mdapi:retrieve `
   + ` --targetusername ${aliasOrUsername}`
   + ` --packagenames "${packageNames.join('","')}"`
-  + ` --singlepackage ${packageNames.length === 1 ? 'true' : 'false'}`
+  + ` --singlepackage ${packageNames.length === 1 ? '\"true\"' : '\"false\"'}`
+//  + (packageNames.length === 1 ? ' --singlepackage' : '')
   + ` --retrievetargetdir ${retrieveTargetDir}`
   + ` --wait 10`
   + ` --loglevel debug`

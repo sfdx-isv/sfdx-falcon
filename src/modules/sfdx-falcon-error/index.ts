@@ -29,6 +29,7 @@ const util  = require('util');  // Provides access to the "inspect" function to 
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface CliErrorDetail {
+  command:    string;
   status:     number;
   result:     unknown;
   name?:      string;
@@ -227,6 +228,9 @@ export class SfdxFalconError extends SfdxError {
   //───────────────────────────────────────────────────────────────────────────┘
   private static renderSfdxCliErrorDetail(errorToRender:SfdxCliError, options:SfdxFalconErrorRenderOptions):string {
     let renderOutput  = '';
+    if (isEmpty(errorToRender.cliError.command) === false) {
+      renderOutput += chalk`\n{${options.errorLabelColor} CLI Command:}       ${errorToRender.cliError.command}`;
+    }
     if (isEmpty(errorToRender.cliError.name) === false) {
       renderOutput += chalk`\n{${options.errorLabelColor} CLI Error Name:}    ${errorToRender.cliError.name}`;
     }
@@ -538,6 +542,7 @@ export class SfdxCliError extends SfdxFalconError {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  SfdxCliError
+   * @param       {string}  cliCommandString  Command string that was executed.
    * @param       {string}  cliResponseBuffer  Required. Response from a failed
    *              CLI command. Typically a string containing parseable JSON, but
    *              may be an unparseable string response.
@@ -549,7 +554,7 @@ export class SfdxCliError extends SfdxFalconError {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public constructor(cliResponseBuffer:string, message:string='Unknown CLI Error', source:string='') {
+  public constructor(sfdxCommandString:string, cliResponseBuffer:string, message:string='Unknown CLI Error', source:string='') {
 
     // Initialize the cliError member var and helper vars.
     const cliError  = {} as CliErrorDetail;
@@ -558,9 +563,10 @@ export class SfdxCliError extends SfdxFalconError {
     // Try to parse cliResponseBuffer into an object, then try to copy over the standard SFDX CLI error details
     try {
       const parsedError = JSON.parse(cliResponseBuffer);
-      cliError.name      = parsedError.name      || `UnknownCliError`;
-      cliError.message   = parsedError.message   || `Unknown CLI Error (see 'cliError.result.rawResult' for original CLI response)`;
-      cliError.status    = (isNaN(parsedError.status)) ?  1 : parsedError.status;
+      cliError.command  = sfdxCommandString     || `Command String Not Provided`;
+      cliError.name     = parsedError.name      || `UnknownCliError`;
+      cliError.message  = parsedError.message   || `Unknown CLI Error (see 'cliError.result.rawResult' for original CLI response)`;
+      cliError.status   = (isNaN(parsedError.status)) ?  1 : parsedError.status;
       // Figuring out "actions" is a little complicated because it may be "actions" or "action"
       // (or not even there) in the JSON retured from the CLI. Try to handle all possibilities.
       if (Array.isArray(parsedError.actions)) {
@@ -586,13 +592,14 @@ export class SfdxCliError extends SfdxFalconError {
       }
     }
     catch (parsingError) {
-      cliError.name      = `UnparseableCliError`;
-      cliError.message   = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
-      cliError.status    = 999;
-      cliError.actions   = [];
-      cliError.warnings  = [];
-      cliError.stack     = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
-      cliError.result    = {rawResult: cliResponseBuffer};
+      cliError.command  = sfdxCommandString || `Command String Not Provided`;
+      cliError.name     = `UnparseableCliError`;
+      cliError.message  = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
+      cliError.status   = 999;
+      cliError.actions  = [];
+      cliError.warnings = [];
+      cliError.stack    = `Unparseable CLI Error (see 'cliError.result.rawResult' for raw error)`;
+      cliError.result   = {rawResult: cliResponseBuffer};
     }
 
     // Call the parent constructor to get our baseline SfdxFalconError object.
