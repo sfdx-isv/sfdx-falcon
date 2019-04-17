@@ -216,54 +216,6 @@ export class GeneratorStatus {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    doNotProceed
- * @param       {YeomanAnswerHash}  yeomanAnswerHash Provided automatically when Yeoman calls the
- *              function specified by the "when" property in a Question object.
- * @returns     {boolean} Returns TRUE if an answer named "proceed" in the answer hash is FALSE.
- * @description This is a useful helper for testing whether Yeoman should show a particular question
- *              or not, based on a previous "proceed" value.
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function doNotProceed(yeomanAnswerHash) {
-
-  // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}doNotProceed:`, arguments, `arguments: `);
-
-  if (typeof yeomanAnswerHash.proceed !== 'boolean') {
-    throw new SfdxFalconError( `Expected boolean for yeomanAnswerHash.proceed but got '${typeof yeomanAnswerHash.proceed}'`
-                             , `TypeError`
-                             , `${dbgNs}doNotProceed`);
-}
-  return ! yeomanAnswerHash.proceed;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    abortInterview
- * @param       {YeomanAnswerHash}  yeomanAnswerHash Provided automatically when Yeoman calls the
- *              function specified by the "when" property in a Question object.
- * @returns     {boolean} Returns TRUE if an answer named "abort" in the answer hash is TRUE.
- * @description Checks if the "abort" flag is set to TRUE either before or during the Interview.
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function abortInterview(yeomanAnswerHash) {
-
-  // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}abortInterview:`, arguments, `arguments: `);
-
-  // Tests if the interview should be aborted.
-  if (typeof yeomanAnswerHash.abort !== 'boolean') {
-    throw new SfdxFalconError( `Expected boolean for yeomanAnswerHash.abort but got '${typeof yeomanAnswerHash.abort}'`
-                             , `TypeError`
-                             , `${dbgNs}abortInterview`);
-  }
-  return yeomanAnswerHash.abort;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
  * @function    createOrgAliasChoice
  * @param       {SfdxOrgInfo}  alias  Required.
  * @param       {number}  longestAlias  Required.
@@ -283,9 +235,7 @@ function createOrgAliasChoice(orgInfo:SfdxOrgInfo, longestAlias:number, longestU
   // Build an OrgAliasChoice as a YeomanChoice data structure.
   return {
     name:   `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`,
-    value:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
-            ? orgInfo.alias                     // Use the Alias as value for this Choice
-            : orgInfo.username,                 // Use the Username as value for this Choice
+    value:  orgInfo.username,
     short:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
             ? `${orgInfo.alias} (${orgInfo.username})${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`  // Use Alias (Username)
             : orgInfo.username + (orgInfo.nsPrefix ? '['+orgInfo.nsPrefix+']' : '')                         // Just use Username

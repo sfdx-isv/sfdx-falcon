@@ -18,9 +18,10 @@ import {Observable}           from  'rxjs';
 import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 
-
 // Import Internal Modules/Types
+import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about orgs that are connected to the local Salesforce CLI.
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
+
 
 /**
  * Represents the local config options for an AppX Demo project.
@@ -397,6 +398,11 @@ export interface ResolvedConnection {
 }
 
 /**
+ * Type. Alias to a Map with string keys and MetadataPackageVersion values.
+ */
+export type PackageVersionMap = Map<string, MetadataPackageVersion[]>;
+
+/**
  * Type. Alias to the JSForce definition of QueryResult.
  */
 export type QueryResult<T> = QueryResult<T>;
@@ -411,6 +417,11 @@ export interface RawSfdxOrgInfo {
   connectedStatus:          string;                       // Why?
   isDevHub:                 boolean;                      // Why?
 }
+
+/**
+ * Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+ */
+export type SfdxOrgInfoMap = Map<string, SfdxOrgInfo>;
 
 /**
  * Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.

@@ -22,7 +22,7 @@ import * as gitHelper       from  './git';                      // Library of Gi
 // Import Falcon Types
 import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
 import {RawSfdxOrgInfo}     from  '../sfdx-falcon-types';       // Interface. Represents the data returned by the sfdx force:org:list command.
-
+import {SfdxOrgInfoMap}     from  '../sfdx-falcon-types';       // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Requires
 const listr = require('listr'); // Provides asynchronous list with status of task completion.
@@ -252,7 +252,7 @@ export function identifyDevHubs():ListrTask {
       SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
       // Search the SFDX Org Infos list for any DevHub orgs.
-      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[]);
+      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap);
 
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, devHubOrgInfos, `devHubOrgInfos: `);
@@ -299,7 +299,7 @@ export function identifyEnvHubs():ListrTask {
       SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
       // Search the SFDX Org Infos list for any Environment Hub orgs.
-      return sfdxHelper.identifyEnvHubOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[])
+      return sfdxHelper.identifyEnvHubOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap)
         .then(envHubOrgInfos => {
           // DEBUG
           SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:envHubOrgInfos:`, envHubOrgInfos, `envHubOrgInfos: `);
@@ -349,7 +349,7 @@ export function identifyPkgOrgs():ListrTask {
       SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: (BEFORE ASYNC CALL)`);
 
       // Search the SFDX Org Infos list for any Packaging orgs.
-      return sfdxHelper.identifyPkgOrgs(listrContext.sfdxOrgInfos as sfdxHelper.SfdxOrgInfo[])
+      return sfdxHelper.identifyPkgOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap)
         .then(pkgOrgInfos => {
           // DEBUG
           SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos:`, pkgOrgInfos, `pkgOrgInfos: `);
@@ -386,6 +386,11 @@ export function identifyPkgOrgs():ListrTask {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function scanConnectedOrgs():ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
   return {
     title:  'Scanning Connected Orgs...',
     task:   (listrContext, thisTask) => {
@@ -395,8 +400,12 @@ export function scanConnectedOrgs():ListrTask {
           SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:`, utilityResult, `then:utilityResult: `);
 
           // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-          const utilityResultDetail = utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail;
-          const rawSfdxOrgList      = utilityResultDetail.stdOutParsed.result.nonScratchOrgs;
+          let rawSfdxOrgList;
+          if (utilityResult.detail && typeof utilityResult.detail === 'object') {
+            if ((utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
+              rawSfdxOrgList = (utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
+            }
+          }
 
           // Make sure that there is at least ONE connnected org
           if (Array.isArray(rawSfdxOrgList) === false || rawSfdxOrgList.length < 1) {
@@ -407,10 +416,10 @@ export function scanConnectedOrgs():ListrTask {
           }
 
           // Put the raw SFDX Org List into the Listr Context variable.
-          listrContext.rawSfdxOrgList = rawSfdxOrgList;
+          this.sharedData.rawSfdxOrgList  = rawSfdxOrgList;
 
           // Build a baseline list of SFDX Org Info objects based on thie raw list.
-          listrContext.sfdxOrgInfos   = sfdxHelper.buildSfdxOrgInfos(rawSfdxOrgList as RawSfdxOrgInfo[]);
+          this.sharedData.sfdxOrgInfoMap  = sfdxHelper.buildSfdxOrgInfoMap(rawSfdxOrgList as RawSfdxOrgInfo[]);
 
           // Change the title of the task.
           thisTask.title += 'Done!';

@@ -10,50 +10,50 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Aliases}                from '@salesforce/core';      // Why?
-import {AuthInfo}               from '@salesforce/core';      // Why?
-import {Connection}             from '@salesforce/core';      // Why?
+import {Aliases}                from  '@salesforce/core';       // Why?
+import {AuthInfo}               from  '@salesforce/core';       // Why?
+import {Connection}             from  '@salesforce/core';       // Why?
+import {AnyJson}                from  '@salesforce/ts-types';   // Why?
 
 // Import Internal Modules
-import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}        from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-import {SfdxCliError}           from  '../sfdx-falcon-error';       // Class. Extends SfdxFalconError to provide specialized error handling of error results returned from CLI commands run via shell exec.
-import {ShellError}             from '../sfdx-falcon-error';        // Class. Extends SfdxFalconError to provide specialized error handling of error results returned by failed shell commands
-import {SfdxFalconResult}       from '../sfdx-falcon-result';       // Why?
-import {SfdxFalconResultType}   from '../sfdx-falcon-result';       // Why?
+import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}        from  '../sfdx-falcon-error';         // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxCliError}           from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned from CLI commands run via shell exec.
+import {ShellError}             from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned by failed shell commands
+import {SfdxFalconResult}       from  '../sfdx-falcon-result';        // Why?
+import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
 
 // Import Utility Functions
 import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
 import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
 
 // Import Falcon Types
-import {AliasOrConnection}      from '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
-import {MetadataPackage}        from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
-import {MetadataPackageVersion} from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
-import {ResolvedConnection}     from '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
-import {QueryResult}            from '../sfdx-falcon-types';  // ???
-import {RawSfdxOrgInfo}         from '../sfdx-falcon-types';  // ???
-import {SfdxOrgInfoSetup}       from '../sfdx-falcon-types';  // ???
+import {AliasOrConnection}      from  '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
+import {MetadataPackage}        from  '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {MetadataPackageVersion} from  '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
+import {PackageVersionMap}      from  '../sfdx-falcon-types';  // Type. Alias to a Map with string keys and MetadataPackageVersion values.
+import {QueryResult}            from  '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
+import {RawSfdxOrgInfo}         from  '../sfdx-falcon-types';  // Interface. Represents the data returned by the sfdx force:org:list command.
+import {ResolvedConnection}     from  '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
+import {SfdxOrgInfoMap}         from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {SfdxOrgInfoSetup}       from  '../sfdx-falcon-types';  // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
 
 // Requires
-const shell = require('shelljs');                         // Cross-platform shell access - use for setting up Git repo.
+const shell = require('shelljs'); // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'UTILITY:sfdx:';
-
-
+const dbgNs = 'UTILITY:sfdx:';
 
 /**
  * Interface. Represents the expected possible input and output of a generic Salesforce CLI call.
  */
 export interface SfdxUtilityResultDetail {
   sfdxCommandString:  string;
-  stdOutParsed:       any;
+  stdOutParsed:       AnyJson;
   stdOutBuffer:       string;
   stdErrBuffer:       string;
   error:              Error;
 }
-
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -78,9 +78,8 @@ export class SfdxOrgInfo {
   private           _isEnvHub:                boolean;                      // Why?
   private           _nsPrefix:                string;                       // Why?
   private           _packages:                MetadataPackage[];            // Why?
+  private           _pkgVersionMap:           PackageVersionMap;            // Why?
   private           _metadataPackageResults:  QueryResult<MetadataPackage>; // Why?
-  private           _latestReleasePkg:        MetadataPackageVersion;       // Why?
-  private           _latestBetaPkg:           MetadataPackageVersion;       // Why?
 
   // Accessors
   public get isDevHub():boolean {
@@ -92,11 +91,27 @@ export class SfdxOrgInfo {
   public get isPkgOrg():boolean {
     return this._isPkgOrg ? true : false;
   }
-  public get latestReleasePkg():MetadataPackageVersion {
-    return this._latestReleasePkg;
+  public get latestManagedBetaPkgVersion():MetadataPackageVersion {
+    return this.getLatestPackageVersion(this.managedPkgId, 'Beta');
   }
-  public get latestBetaPkg():MetadataPackageVersion {
-    return this._latestBetaPkg;
+  public get latestManagedReleasedPkgVersion():MetadataPackageVersion {
+    return this.getLatestPackageVersion(this.managedPkgId, 'Released');
+  }
+  public get managedPkgId():string {
+    for (const packageObj of this._packages) {
+      if (packageObj.NamespacePrefix) {
+        return packageObj.Id;
+      }
+    }
+    return '';
+  }
+  public get managedPkgName():string {
+    for (const packageObj of this._packages) {
+      if (packageObj.NamespacePrefix) {
+        return packageObj.Name;
+      }
+    }
+    return '';
   }
   public get nsPrefix():string {
     return this._nsPrefix || '';
@@ -129,6 +144,7 @@ export class SfdxOrgInfo {
     // Initialize package-related class members.
     this._metadataPackageResults  = opts.metadataPackageResults;
     this._packages                = this.extractPackages(this._metadataPackageResults);
+    this._pkgVersionMap           = this.mapPackageVersions(this._packages);
 
     // If there is at least one member in the packages array, mark this as a Packaging Org.
     this._isPkgOrg = (this._packages.length > 0);
@@ -182,23 +198,69 @@ export class SfdxOrgInfo {
 
     // Run Tooling API query.
     this._metadataPackageResults = await toolingApiQuery<MetadataPackage>(this.alias, packageCheckQuery);
-
-    // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._metadataPackageResults, `this._metadataPackageResults: `);
 
     // Extract any packages from the results we just got.
     this._packages = this.extractPackages(this._metadataPackageResults);
+    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._packages, `this._packages: `);
+
+    // Create a Package Version Map.
+    this._pkgVersionMap = this.mapPackageVersions(this._packages);
+    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._pkgVersionMap, `this._pkgVersionMap: `);
 
     // Search the packages for a namespace.
     for (const packageObj of this._packages) {
       if (packageObj.NamespacePrefix) {
         this._nsPrefix = packageObj.NamespacePrefix;
+        break;
       }
     }
 
     // If there is at least one member in the packages array, mark this as a Packaging Org.
     return this._isPkgOrg = (this._packages.length > 0);
-    
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      getLatestPackageVersion
+   * @param       {string}  metadataPackageId  Required. The Metadata Package ID
+   *              (033) that the caller wants the latest package version for.
+   * @param       {string}  [releaseState]  Optional. The "Release State" (eg.
+   *              "Released" or "Beta") that the caller is interested in.
+   * @returns     {MetadataPackageVersion}
+   * @description Given a Metadata Package ID (033), returns the associated
+   *              Metadata Package Version that was most recently uploaded. If
+   *              the caller provides a target "Release State", ensure the chosen
+   *              package version matches.
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public getLatestPackageVersion(metadataPackageId:string, releaseState=''):MetadataPackageVersion {
+
+    // Try to find an array of Package Versions for the provided Metadata Package ID.
+    const metadataPackageVersions = this._pkgVersionMap.get(metadataPackageId);
+
+    // If no Metadata Package Versions were found, return NULL.
+    if (Array.isArray(metadataPackageVersions) !== true || metadataPackageVersions.length < 1) {
+      return null;
+    }
+
+    // If the caller didn't specify a Release State to look for, return the first Package Version.
+    // The Package Versions should ALREADY be sorted by major, minor, and patch version number
+    // in DESCENDING order. The first element in the array is the LAST version uploaded.
+    if (! releaseState) {
+      return metadataPackageVersions.values[0];
+    }
+
+    // Iterate over the Metadata Package Versions till we find one with the RELEASED state.
+    for (const metadataPackageVersion of metadataPackageVersions) {
+      if (metadataPackageVersion.ReleaseState === releaseState) {
+        return metadataPackageVersion;
+      }
+    }
+
+    // We couldn't find a Package Version matching the caller's criteria. Return NULL.
+    return null;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -246,61 +308,130 @@ export class SfdxOrgInfo {
     // All done.
     return packages;
   }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      mapPackageVersions
+   * @param       {MetadataPackage[]} packageObjs Required. Array of Metadata
+   *              Package objects.
+   * @returns     {PackageVersionMap}
+   * @description Given an array of MetadataPackage objects, extracts the
+   *              Metadata Package Versions from each one and returns a map
+   *              whose keys are Metadata Package IDs and whose values are arrays
+   *              of MetadataPackageVersion objects sorted by major, minor, and
+   *              patch version.
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private mapPackageVersions(packageObjs:MetadataPackage[]):PackageVersionMap {
+
+    // Initialize the Package Version Map.
+    const pkgVersionMap = new Map<string, MetadataPackageVersion[]>();
+
+    // Iterate over the array of Metadata Package objects.
+    for (const packageObj of packageObjs) {
+
+      // If this Package Object does NOT have any Metadata Package Versions, put an empty array and continue.
+      if (Array.isArray(packageObj.MetadataPackageVersions) !== true || packageObj.MetadataPackageVersions.length < 1) {
+        pkgVersionMap.set(packageObj.Id, [] as MetadataPackageVersion[]);
+        continue;
+      }
+
+      // Sort the Metadata Package Versions array by version (major, minor, patch - DESC).
+      packageObj.MetadataPackageVersions.sort((a, b) => {
+
+        // Make sure we deal only with Numbers.
+        const aMajorVersion = Number.isNaN(a.MajorVersion) ? 0 : Number(a.MajorVersion);
+        const bMajorVersion = Number.isNaN(b.MajorVersion) ? 0 : Number(b.MajorVersion);
+
+        const aMinorVersion = Number.isNaN(a.MinorVersion) ? 0 : Number(a.MinorVersion);
+        const bMinorVersion = Number.isNaN(b.MinorVersion) ? 0 : Number(b.MinorVersion);
+
+        const aPatchVersion = Number.isNaN(a.PatchVersion) ? 0 : Number(a.PatchVersion);
+        const bPatchVersion = Number.isNaN(b.PatchVersion) ? 0 : Number(b.PatchVersion);
+
+        // Sorting Result Rules: a<b: return -1; a==b: return 0; a>b: return 1
+
+        // Compare Major Version.
+        if (aMajorVersion < bMajorVersion) return -1;
+        if (aMajorVersion > bMajorVersion) return 1;
+
+        // Major Versions are equal. Compare Minor Versions.
+        if (aMinorVersion < bMinorVersion) return -1;
+        if (aMinorVersion > bMinorVersion) return 1;
+
+        // Minor Versions are equal. Compare Patch Versions.
+        if (aPatchVersion < bPatchVersion) return -1;
+        if (aPatchVersion > bPatchVersion) return 1;
+
+        // Major, Minor, and Patch Versions are all equal.
+        return 0;
+      });
+
+      // Reverse the array so we get a DESCENDING sort order.
+      packageObj.MetadataPackageVersions.reverse();
+
+      // Place the sorted array in the Package Version Map.
+      pkgVersionMap.set(packageObj.Id, packageObj.MetadataPackageVersions);
+    }
+
+    return pkgVersionMap;
+  }
 }
-
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildSfdxOrgInfos
- * @param       {any[]}  rawSfdxOrgList  This should be the raw list of SFDX orgs that comes
- *              in the result of a call to force:org:list.
- * @returns     {SfdxOrgInfo[]} Array containing SfdxOrgInfo objects for EVERY org that was part of
- *              the raw SFDX org list.
+ * @function    buildSfdxOrgInfoMap
+ * @param       {RawSfdxOrgInfo[]}  rawSfdxOrgList  This should be the raw list of SFDX orgs that
+ *              comes in the result of a call to force:org:list.
+ * @returns     {SfdxOrgInfoMap} Map containing SfdxOrgInfo objects for EVERY org that
+ *              was part of the raw SFDX org list. The Org Info's "username" value will be used
+ *              as the key for this map.
  * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
  *              creates an SfdxOrgInfo object for each one.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildSfdxOrgInfos(rawSfdxOrgList:RawSfdxOrgInfo[]):SfdxOrgInfo[] {
+export function buildSfdxOrgInfoMap(rawSfdxOrgList:RawSfdxOrgInfo[]):SfdxOrgInfoMap {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfos:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfoMap:arguments:`, arguments, `arguments: `);
 
   // Make sure that the caller passed us an Array.
   if (Array.isArray(rawSfdxOrgList) !== true) {
     throw new SfdxFalconError( `Expected rawSfdxOrgList to an Array but got type '${typeof rawSfdxOrgList}' instead.`
                              , `TypeError`
-                             , `${dbgNs}buildSfdxOrgInfos`);
+                             , `${dbgNs}buildSfdxOrgInfoMap`);
   }
 
   // Initalize an array to hold the SfdxOrgInfo objects we're going to create.
-  const sfdxOrgInfos = new Array<SfdxOrgInfo>();
+  const sfdxOrgInfoMap = new Map<string, SfdxOrgInfo>();
 
   // Iterate over the raw list of orgs to create SfdxOrgInfo objects.
   for (const rawOrgInfo of rawSfdxOrgList) {
 
     // Only work with orgs that have a CONNECTED status.
     if (rawOrgInfo.connectedStatus === 'Connected') {
-      sfdxOrgInfos.push(new SfdxOrgInfo({
+
+      // Create a new SfdxOrgInfo object and add it to the Map using the Username as the key.
+      sfdxOrgInfoMap.set(rawOrgInfo.username, new SfdxOrgInfo({
         alias:            rawOrgInfo.alias,
         username:         rawOrgInfo.username,
         orgId:            rawOrgInfo.orgId,
         connectedStatus:  rawOrgInfo.connectedStatus,
-        isDevHub:         rawOrgInfo.isDevHub,
+        isDevHub:         rawOrgInfo.isDevHub
       }));
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}buildSfdxOrgInfos:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ORG NOT CONNECTED!`);
+      SfdxFalconDebug.str(`${dbgNs}buildSfdxOrgInfoMap:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ORG NOT CONNECTED!`);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfos:sfdxOrgInfos:`, sfdxOrgInfos, `sfdxOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfoMap:sfdxOrgInfoMap:`, sfdxOrgInfoMap, `sfdxOrgInfoMap: `);
 
   // Return the SFDX Org Infos to the caller. Let them worry about putting it into Shared Data.
-  return sfdxOrgInfos;
+  return sfdxOrgInfoMap;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -325,19 +456,19 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
   SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:arguments:`, arguments, `arguments: `);
 
   // Parse thingToCheck if it's a string, assign it directly if not.
-  let possibleCliError:any;
+  let possibleCliError:object;
   if (typeof thingToCheck === 'string') {
     possibleCliError  = safeParse(thingToCheck);
   }
   else {
-    possibleCliError  = thingToCheck;
+    possibleCliError  = thingToCheck as object;
   }
 
   // Debug
   SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:possibleCliError:`, possibleCliError, `possibleCliError: `);
 
   // If the Possible CLI Error "status" property is present AND has a non-zero value, then IT IS a Salesforce CLI Error.
-  if (possibleCliError.status && possibleCliError.status !== 0) {
+  if (possibleCliError['status'] && possibleCliError['status'] !== 0) {
     return true;  // This is definitely a Salesforce CLI Error
   }
   else {
@@ -348,24 +479,24 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyDevHubOrgs
- * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
- *              objects previously created by a call to buildSfdxOrgInfos().
+ * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
+ *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
  * @returns     {SfdxOrgInfo[]} Array containing only SfdxOrgInfo objects that point to
  *              Dev Hub orgs.
  * @description Given a list of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfos(), finds all the org connections that point to DevHub Orgs and
+ *              buildSfdxOrgInfoMap(), finds all the org connections that point to DevHub Orgs and
  *              returns them as an array of SfdxOrgInfo objects.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function identifyDevHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):SfdxOrgInfo[] {
+export function identifyDevHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):SfdxOrgInfo[] {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:arguments:`, arguments, `arguments: `);
 
-  // Make sure that the caller passed us an Array.
-  if (Array.isArray(sfdxOrgInfos) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+  // Make sure that the caller passed us a Map.
+  if ((sfdxOrgInfoMap instanceof Map) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
                              , `TypeError`
                              , `${dbgNs}identifyDevHubOrgs`);
   }
@@ -374,7 +505,7 @@ export function identifyDevHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):SfdxOrgInfo[] {
   const devHubOrgInfos = new Array<SfdxOrgInfo>();
 
   // Iterate over the Org Info list and identify Developer Hub Orgs.
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of sfdxOrgInfoMap.values()) {
     if (orgInfo.isDevHub) {
       SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `DEVELOPER HUB FOUND: `);
       devHubOrgInfos.push(orgInfo);
@@ -394,24 +525,24 @@ export function identifyDevHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):SfdxOrgInfo[] {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyEnvHubOrgs
- * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
- *              objects previously created by a call to buildSfdxOrgInfos().
+ * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
+ *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
  * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
  *              that point to Environment Hub Orgs.
  * @description Given a list of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfos(), finds all the org connections that point to Environment Hub
+ *              buildSfdxOrgInfoMap(), finds all the org connections that point to Environment Hub
  *              Orgs and returns them as an array of SfdxOrgInfo objects.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function identifyEnvHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOrgInfo[]> {
+export async function identifyEnvHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<SfdxOrgInfo[]> {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:arguments:`, arguments, `arguments: `);
 
-  // Make sure that the caller passed us an Array.
-  if (Array.isArray(sfdxOrgInfos) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+  // Make sure that the caller passed us a Map.
+  if ((sfdxOrgInfoMap instanceof Map) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
                              , `TypeError`
                              , `${dbgNs}identifyEnvHubOrgs`);
   }
@@ -420,7 +551,7 @@ export async function identifyEnvHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<Sfd
   const envHubOrgInfos = new Array<SfdxOrgInfo>();
 
   // Iterate over the Org Info list and identify Environment Hub Orgs.
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of sfdxOrgInfoMap.values()) {
     if (await orgInfo.determineEnvHubStatus()) {
       SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `ENVIRONMENT HUB FOUND: `);
       envHubOrgInfos.push(orgInfo);
@@ -440,24 +571,24 @@ export async function identifyEnvHubOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<Sfd
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyPkgOrgs
- * @param       {SfdxOrgInfo[]} sfdxOrgInfos  This should be the baseline list of SFDX Org Info
- *              objects previously created by a call to buildSfdxOrgInfos().
+ * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
+ *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
  * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
  *              that point to Packaging Orgs.
- * @description Given a list of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfos(), finds all the org connections that point to Packaging Orgs and
+ * @description Given a map of SFDX Org Info objects previously created by a call to
+ *              buildSfdxOrgInfoMap(), finds all the org connections that point to Packaging Orgs and
  *              returns them as an array of SfdxOrgInfo objects.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function identifyPkgOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOrgInfo[]> {
+export async function identifyPkgOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<SfdxOrgInfo[]> {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:arguments:`, arguments, `arguments: `);
 
-  // Make sure that the caller passed us an Array.
-  if (Array.isArray(sfdxOrgInfos) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfos to an Array but got type '${typeof sfdxOrgInfos}' instead.`
+  // Make sure that the caller passed us a Map.
+  if ((sfdxOrgInfoMap instanceof Map) !== true) {
+    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
                              , `TypeError`
                              , `${dbgNs}identifyPkgOrgs`);
   }
@@ -466,7 +597,7 @@ export async function identifyPkgOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOr
   const pkgOrgInfos = new Array<SfdxOrgInfo>();
 
   // Iterate over the Org Info list and identify Packaging Orgs.
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of sfdxOrgInfoMap.values()) {
     if (await orgInfo.determinePkgOrgStatus()) {
       SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `PACKAGING ORG FOUND: `);
       pkgOrgInfos.push(orgInfo);
@@ -486,11 +617,10 @@ export async function identifyPkgOrgs(sfdxOrgInfos:SfdxOrgInfo[]):Promise<SfdxOr
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    getConnection
- * @param       {string} orgAlias   Required. The alias of the org to create a connection to.
- * @param       {string} apiVersion Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
+ * @param       {string}  orgAlias  Required. The alias of the org to create a connection to.
+ * @param       {string}  [apiVersion]  Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
  * @returns     {Promise<any>}  Resolves with an authenticated JSForce Connection object.
  * @description Given an SFDX alias, resolves with an authenticated JSForce Connection object
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -525,6 +655,7 @@ export async function getConnection(aliasOrUsername:string, apiVersion?:string):
   // The connection is ready for use.
   return connection;
 }
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    getUsernameFromAlias
@@ -532,7 +663,6 @@ export async function getConnection(aliasOrUsername:string, apiVersion?:string):
  * @returns     {Promise<string>}   Resolves to the username if the alias was found, NULL if not.
  * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
  *              in the local environment the CLI is running in.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -540,13 +670,14 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<string> {
   const username = await Aliases.fetch(sfdxAlias);
   return username;
 }
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    resolveConnection
  * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @returns     {Promise<ResolvedConnection>}  Resolves with an authenticated JSForce Connection.
- * @description Given a Profile Name, returns the xx-character record ID of the named profile.
+ * @description Given an Alias/Username or a JSForce Connection, returns a valid JSForce Connection.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -584,28 +715,27 @@ export async function resolveConnection(aliasOrConnection:AliasOrConnection):Pro
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    scanConnectedOrgs
- * @returns     {Promise<any>}  Uses an SfdxShellResult to return data to the caller for both
- *                              RESOLVE and REJECT.
- * @description Calls force:org:list via an async shell command, then creates an array of 
- *              SfdxOrgInfo objects by parsing the JSON response returned by the CLI command.  
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Calls force:org:list via an async shell command, then creates an array of
+ *              SfdxOrgInfo objects by parsing the JSON response returned by the CLI command.
  *              Sends results back to caller as an SfdxShellResult.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
   // Set the SFDX Command String to be used by this function.
-  let sfdxCommandString = `sfdx force:org:list --json`;
+  const sfdxCommandString = `sfdx force:org:list --json`;
 
   // Initialize an UTILITY Result for this function.
-  let utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
-  let utilityResultDetail = {
+  const utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
     sfdxCommandString:  sfdxCommandString,
     stdOutParsed:       null,
     stdOutBuffer:       null,
     stdErrBuffer:       null,
-    error:              null,
+    error:              null
   } as SfdxUtilityResultDetail;
   utilityResult.detail = utilityResultDetail;
   utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs:`);
@@ -617,7 +747,7 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
     let stdOutBuffer:string = '';
     let stdErrBuffer:string = '';
 
-    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.  
+    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
     // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
     shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
 
@@ -671,11 +801,11 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
         //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
 
         // Make sure we got back a valid JSON Response
-        let stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
-        let parsedCliResponse   = safeParse(stdOutJsonResponse) as any;
+        const stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+        const parsedCliResponse   = safeParse(stdOutJsonResponse) as AnyJson;
 
         // Unparseable responses from the CLI are SHELL ERRORS and should be rejected.
-        if (parsedCliResponse.unparsed) {
+        if (parsedCliResponse['unparsed']) {
           utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}scanConnectedOrgs`);
           utilityResult.error(utilityResultDetail.error);
           reject(utilityResult);
