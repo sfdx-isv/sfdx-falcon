@@ -381,6 +381,104 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      _finalizeGitActions
+   * @returns     {void}
+   * @description Intended to run after _finalizeProjectCreation() during the
+   *              Yeoman "writing" phase.  Initializes local Git repo, and will
+   *              even try to attach a Git remote if specified by the user.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _finalizeGitActions():void {
+
+    // If Git is NOT installed, store a WARNING message, mark the install as INCOMPLETE, then exit.
+    if (gitHelper.isGitInstalled() === false) {
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Initializing Git`,
+        message:  `Warning - git executable not found in your environment - no Git operations attempted`
+      });
+
+      // Mark installComplete as FALSE to ensure the user sees the WARNING in the closing status.
+      this.installComplete = false;
+      return;
+    }
+
+    // Start with the assumption that all Git tasks will be successful.
+    let allGitTasksSuccessful = true;
+
+    // Extract key vars from User Answers. Use bracket notation because the generic type T
+    // does not let us know for sure that these properties exist on the userAnswers object.
+    const projectAlias            = this.finalAnswers['projectAlias']            as string;
+    const gitRemoteUri            = this.finalAnswers['gitRemoteUri']            as string;
+    const hasGitRemoteRepository  = this.finalAnswers['hasGitRemoteRepository']  as boolean;
+
+    // Tell the user that we are adding their project to Git
+    this.log(chalk`{blue Adding project to Git...}\n`);
+
+    // Run git init to initialize the repo (no ill effects for reinitializing)
+    gitHelper.gitInit(this.destinationRoot());
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `Git Initialization`,
+      message:  `Success - Repository created successfully (${projectAlias})`
+    });
+
+    // Stage (add) all project files and make the initial commit.
+    try {
+      gitHelper.gitAddAndCommit(this.destinationRoot(), `Initial commit after running ${this.cliCommandName}`);
+      this.generatorStatus.addMessage({
+        type:     'success',
+        title:    `Git Commit`,
+        message:  `Success - Staged all project files and executed the initial commit`
+      });
+    }
+    catch (gitCommitError) {
+      SfdxFalconDebug.obj(`${dbgNs}_finalizeGitActions:gitCommitError:`, gitCommitError, `gitCommitError: `);
+      this.generatorStatus.addMessage({
+        type:     'warning',
+        title:    `Git Commit`,
+        message:  `Warning - Attempt to stage and commit project files failed - Nothing to commit`
+      });
+
+      // Note that a Git Task failed
+      allGitTasksSuccessful = false;
+    }
+
+    // If the user specified a Git Remote, add it as "origin".
+    if (hasGitRemoteRepository) {
+      try {
+        gitHelper.gitRemoteAddOrigin(this.destinationRoot(), `${gitRemoteUri}`);
+        this.generatorStatus.addMessage({
+          type:     'success',
+          title:    `Git Remote`,
+          message:  `Success - Remote repository ${gitRemoteUri} added as "origin"`
+        });
+      } catch (gitRemoteError) {
+        SfdxFalconDebug.obj(`${dbgNs}_finalizeGitActions:gitRemoteError:`, gitRemoteError, `gitRemoteError: `);
+        this.generatorStatus.addMessage({
+          type:     'warning',
+          title:    `Git Remote`,
+          message:  `Warning - Could not add Git Remote - A remote named "origin" already exists`
+        });
+
+        // Note that a Git Task failed
+        allGitTasksSuccessful = false;
+      }
+    }
+
+    // Done with install(). Mark installComplete TRUE if all Git tasks were successful.
+    this.installComplete = allGitTasksSuccessful;
+
+    // Tell the user that we are adding their project to Git
+    this.log(chalk`{blue Git tasks complete}\n`);
+
+    // All done.
+    return;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      _finalizeProjectCloning
    * @returns     {void}
    * @description Intended to run after the Yeoman "writing" phase.  Has logic
@@ -428,7 +526,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      _finalizeProjectCreation
-   * @returns     {void}
+   * @returns     {boolean} Returns FALSE if the project was aborted.
    * @description Intended to run after the Yeoman "writing" phase.  Has logic
    *              that ensures the Generator wasn't aborted, and then carries
    *              out finalization tasks that are specific to "creation"
@@ -436,18 +534,18 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected _finalizeProjectCreation():void {
+  protected _finalizeProjectCreation():boolean {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
       SfdxFalconDebug.msg(`${dbgNs}_finalizeProjectCreation:`, `generatorStatus.aborted found as TRUE inside install()`);
-      return;
+      return false;
     }
 
     // Make sure that a Destination Root was set.
     if (!this.destinationRoot()) {
       SfdxFalconDebug.msg(`${dbgNs}_finalizeProjectCreation:`, `No value returned by this.destinationRoot(). Skipping finalization tasks.`);
-      return;
+      return false;
     }
 
     // Add a "project creation" success message to Generator Status.
@@ -460,89 +558,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     // Show an in-process Success Message telling the user that we just created their project files.
     this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
 
-    // If Git is NOT installed, store a WARNING message, mark the install as INCOMPLETE, then exit.
-    if (gitHelper.isGitInstalled() === false) {
-      this.generatorStatus.addMessage({
-        type:     'warning',
-        title:    `Initializing Git`,
-        message:  `Warning - git executable not found in your environment - no Git operations attempted`
-      });
-
-      // Mark installComplete as FALSE to ensure the user sees the WARNING in the closing status.
-      this.installComplete = false;
-      return;
-    }
-
-    // Start with the assumption that all Git tasks will be successful.
-    let allGitTasksSuccessful = true;
-
-    // Extract key vars from User Answers. Use bracket notation because the generic type T
-    // does not let us know for sure that these properties exist on the userAnswers object.
-    const projectAlias            = this.finalAnswers['projectAlias']            as string;
-    const gitRemoteUri            = this.finalAnswers['gitRemoteUri']            as string;
-    const hasGitRemoteRepository  = this.finalAnswers['hasGitRemoteRepository']  as boolean;
-
-    // Tell the user that we are adding their project to Git
-    this.log(chalk`{blue Adding project to Git...}\n`);
-
-    // Run git init to initialize the repo (no ill effects for reinitializing)
-    gitHelper.gitInit(this.destinationRoot());
-    this.generatorStatus.addMessage({
-      type:     'success',
-      title:    `Git Initialization`,
-      message:  `Success - Repository created successfully (${projectAlias})`
-    });
-
-    // Stage (add) all project files and make the initial commit.
-    try {
-      gitHelper.gitAddAndCommit(this.destinationRoot(), `Initial commit after running ${this.cliCommandName}`);
-      this.generatorStatus.addMessage({
-        type:     'success',
-        title:    `Git Commit`,
-        message:  `Success - Staged all project files and executed the initial commit`
-      });
-    }
-    catch (gitError) {
-      SfdxFalconDebug.obj(`${dbgNs}_finalizeProjectCreation:`, gitError, `gitError: `);
-      this.generatorStatus.addMessage({
-        type:     'warning',
-        title:    `Git Commit`,
-        message:  `Warning - Attempt to stage and commit project files failed - Nothing to commit`
-      });
-
-      // Note that a Git Task failed
-      allGitTasksSuccessful = false;
-    }
-
-    // If the user specified a Git Remote, add it as "origin".
-    if (hasGitRemoteRepository) {
-      try {
-        gitHelper.gitRemoteAddOrigin(this.destinationRoot(), `${gitRemoteUri}`);
-        this.generatorStatus.addMessage({
-          type:     'success',
-          title:    `Git Remote`,
-          message:  `Success - Remote repository ${gitRemoteUri} added as "origin"`
-        });
-      } catch (gitError) {
-        SfdxFalconDebug.obj(`${dbgNs}install:`, gitError, `gitError: `);
-        this.generatorStatus.addMessage({
-          type:     'warning',
-          title:    `Git Remote`,
-          message:  `Warning - Could not add Git Remote - A remote named "origin" already exists`
-        });
-
-        // Note that a Git Task failed
-        allGitTasksSuccessful = false;
-      }
-    }
-
-    // Done with install(). Mark installComplete TRUE if all Git tasks were successful.
-    this.installComplete = allGitTasksSuccessful;
-
-    // Tell the user that we are adding their project to Git
-    this.log(chalk`{blue Git tasks complete}\n`);
-
-    // All done.
-    return;
+    // If we get this far, return TRUE so additional finalization code knows it should run.
+    return true;
   }
 }

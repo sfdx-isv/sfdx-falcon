@@ -18,6 +18,7 @@ import * as path  from  'path'; // Helps resolve local paths at runtime.
 
 // Import Internal Modules
 import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';  // Library. Helper functions that create Interview Questions.
+//import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';          // Library. Helper functions that make using Listr with SFDX-Falcon easier.
 
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                     // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
@@ -28,7 +29,8 @@ import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-com
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';          // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
 
 // Import Falcon Types
-import {YeomanChoice} from  '../modules/sfdx-falcon-types'; // Interface. Represents a Yeoman/Inquirer choice object.
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types'; // Interface. Represents a Yeoman/Inquirer choice object.
+import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types'; // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -60,6 +62,11 @@ interface InterviewAnswers {
   devHubAlias:              string;
   envHubAlias:              string;
   pkgOrgAlias:              string;
+
+  // SFDX Org Usernames
+  devHubUsername:           string;
+  envHubUsername:           string;
+  pkgOrgUsername:           string;
 
   // Scratch Org Settings
   scratchDefOrgName:        string;
@@ -151,6 +158,11 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.pkgOrgAlias                 = 'NOT_SPECIFIED';
+
+    // SFDX Org Usernames
+    this.defaultAnswers.devHubUsername              = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubUsername              = 'NOT_SPECIFIED';
+    this.defaultAnswers.pkgOrgUsername              = 'NOT_SPECIFIED';
 
     // Scratch Org Settings
     this.defaultAnswers.scratchDefOrgName           = 'APK Build Org';
@@ -294,50 +306,47 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Declare an array of Falcon Table Data Rows
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
 
     // Project related answers
     tableData.push({option:'Target Directory:',       value:`${interviewAnswers.targetDirectory}`});
     tableData.push({option:'Project Type:',           value:`${interviewAnswers.projectType}`});
 
     // Package related answers
-    if (interviewAnswers.projectType === '1GP:managed') {
-      tableData.push({option:'Namespace Prefix:',       value:`${interviewAnswers.namespacePrefix}`});
-      tableData.push({option:'Package Name:',           value:`${interviewAnswers.packageName}`});
-      tableData.push({option:'Metadata Package ID:',    value:`${interviewAnswers.metadataPackageId}`});
-      tableData.push({option:'Package Version ID:',     value:`${interviewAnswers.packageVersionIdRelease}`});
-    }
-
-    // Package related answers
     switch (interviewAnswers.projectType) {
       case '1GP:managed':
-        tableData.push({option:'Namespace Prefix:',       value:`${interviewAnswers.namespacePrefix}`});
-        tableData.push({option:'Package Name:',           value:`${interviewAnswers.packageName}`});
-        tableData.push({option:'Metadata Package ID:',    value:`${interviewAnswers.metadataPackageId}`});
-        tableData.push({option:'Package Version ID:',     value:`${interviewAnswers.packageVersionIdRelease}`});
+        tableData.push({option:'Namespace Prefix:',       value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).nsPrefix}`});
+        tableData.push({option:'Package Name:',           value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).managedPkgName}`});
+        tableData.push({option:'Metadata Package ID:',    value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).managedPkgId}`});
+        tableData.push({option:'Latest Release Pkg ID:',  value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedReleasedPkgVersion.Id}`});
+        tableData.push({option:'Latest Beta Pkg ID:',     value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedBetaPkgVersion.Id}`});
         break;
       case '1GP:unmanaged':
-        tableData.push({option:'Package Name:',           value:`${interviewAnswers.packageName}`});
-        tableData.push({option:'Metadata Package ID:',    value:`${interviewAnswers.metadataPackageId}`});
-        tableData.push({option:'Package Version ID:',     value:`${interviewAnswers.packageVersionIdRelease}`});
+        tableData.push({option:'Package Name:',           value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Metadata Package ID:',    value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Package Version ID:',     value:`NOT_IMPLEMENTED`});
         break;
       case '2GP:managed':
-        tableData.push({option:'Namespace Prefix:',       value:`${interviewAnswers.namespacePrefix}`});
-        tableData.push({option:'Package Name:',           value:`${interviewAnswers.packageName}`});
-        tableData.push({option:'Metadata Package ID:',    value:`${interviewAnswers.metadataPackageId}`});
-        tableData.push({option:'Package Version ID:',     value:`${interviewAnswers.packageVersionIdRelease}`});
+        tableData.push({option:'Namespace Prefix:',       value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Package Name:',           value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Metadata Package ID:',    value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Package Version ID:',     value:`NOT_IMPLEMENTED`});
         break;
       case '2GP:unlocked':
-        tableData.push({option:'Namespace Prefix:',       value:`${interviewAnswers.namespacePrefix}`});
-        tableData.push({option:'Package Name:',           value:`${interviewAnswers.packageName}`});
-        tableData.push({option:'Metadata Package ID:',    value:`${interviewAnswers.metadataPackageId}`});
-        tableData.push({option:'Package Version ID:',     value:`${interviewAnswers.packageVersionIdRelease}`});
+        tableData.push({option:'Namespace Prefix:',       value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Package Name:',           value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Metadata Package ID:',    value:`NOT_IMPLEMENTED`});
+        tableData.push({option:'Package Version ID:',     value:`NOT_IMPLEMENTED`});
         break;
     }
 
     // Org alias related answers
-    tableData.push({option:'Pkg Org Alias:',          value:`${interviewAnswers.pkgOrgAlias}`});
-    tableData.push({option:'Dev Hub Alias:',          value:`${interviewAnswers.devHubAlias}`});
-    tableData.push({option:'Env Hub Alias:',          value:`${interviewAnswers.envHubAlias}`});
+    const pkgOrgAlias = sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername) ? sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Pkg Org Alias:',          value:`${pkgOrgAlias}`});
+    const devHubAlias = sfdxOrgInfoMap.get(interviewAnswers.devHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Dev Hub Alias:',          value:`${devHubAlias}`});
+    const envHubAlias = sfdxOrgInfoMap.get(interviewAnswers.envHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Env Hub Alias:',          value:`${envHubAlias}`});
 
     // Developer related answers
     tableData.push({option:'Developer Name:',         value:`${interviewAnswers.developerName}`});
@@ -358,6 +367,24 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Return the Falcon Table Data.
     return tableData;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _fetchPackagedMetadata
+   * @returns     {Promise<boolean|string>}
+   * @description Uses information from the User's "Final Answers" to do a
+   *              MDAPI retrieve of a single package of Metadata source from a
+   *              the Packaging Org indicated by the Final Answers.
+   * @private @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async _fetchPackagedMetadata():Promise<boolean|string> {
+
+    // Define tasks for fetching the packaged metadata.
+    //const pkgMetadataFetchTasks = listrTasks.packagedMetadataFetch.call(this)
+
+    return false;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -422,25 +449,28 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
       return;
     }
 
-    // Compose an Org Name and Org Description that are relevant to this project.
+    // Extract the SFDX Org Info Map from Shared Data.
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const selectedPackage = sfdxOrgInfoMap.get(this.finalAnswers.pkgOrgUsername);
+
+    // Compose a FINAL Org Name and FINAL Org Description that are relevant to this project.
     this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.projectName} - Developer Build`;
     this.finalAnswers.scratchDefDescription = `API Developer Build Org`;
 
-    // Tell Yeoman the path to the SOURCE directory
-    this.sourceRoot(path.dirname(this.sourceDirectory));
+    // Set the FINAL Org Aliases.
+    this.finalAnswers.devHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    this.finalAnswers.envHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+    this.finalAnswers.pkgOrgAlias = sfdxOrgInfoMap.get(this.finalAnswers.pkgOrgUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.pkgOrgUsername).alias : 'NOT_SPECIFIED';
 
-    // Tell Yeoman the path to DESTINATION (join of targetDir and project name)
-    this.destinationRoot(path.resolve(this.finalAnswers.targetDirectory,
-                                      this.finalAnswers.projectAlias));
-
-    // DEBUG
-    SfdxFalconDebug.str(`${dbgNs}writing:`, this.sourceRoot(),      `this.sourceRoot(): `);
-    SfdxFalconDebug.str(`${dbgNs}writing:`, this.destinationRoot(), `this.destinationRoot(): `);
-
-    // Determine the name to use for the default Package Directory.
+    // Set the appropriate FINAL information that's package related.
     switch (this.finalAnswers.projectType) {
       case '1GP:managed':
-        this.finalAnswers.packageDirectory  = this.finalAnswers.namespacePrefix;
+        this.finalAnswers.namespacePrefix         = selectedPackage.nsPrefix;
+        this.finalAnswers.packageName             = selectedPackage.managedPkgName;
+        this.finalAnswers.metadataPackageId       = selectedPackage.managedPkgId;
+        this.finalAnswers.packageVersionIdRelease = selectedPackage.latestManagedReleasedPkgVersion.Id;
+        this.finalAnswers.packageVersionIdBeta    = selectedPackage.latestManagedBetaPkgVersion.Id;
+        this.finalAnswers.packageDirectory        = this.finalAnswers.namespacePrefix;
         break;
       case '1GP:unmanaged':
         this.finalAnswers.packageDirectory  = this.defaultAnswers.packageDirectory;
@@ -459,6 +489,17 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
                                   , `${dbgNs}writing`);
     }
     
+    // Tell Yeoman the path to the SOURCE directory
+    this.sourceRoot(path.dirname(this.sourceDirectory));
+
+    // Tell Yeoman the path to DESTINATION (join of targetDir and project name)
+    this.destinationRoot(path.resolve(this.finalAnswers.targetDirectory,
+                                      this.finalAnswers.projectAlias));
+
+    // DEBUG
+    SfdxFalconDebug.str(`${dbgNs}writing:`, this.sourceRoot(),      `this.sourceRoot(): `);
+    SfdxFalconDebug.str(`${dbgNs}writing:`, this.destinationRoot(), `this.destinationRoot(): `);
+
     // Tell the user that we are preparing to create their project.
     this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`);
 
@@ -543,9 +584,6 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.fs.copyTpl(this.templatePath(`${ignoreFile}`),
                     this.destinationPath('.gitignore'),
                     this);
-    this.fs.copyTpl(this.templatePath(`config/${ignoreFile}`),
-                    this.destinationPath('config/.gitignore'),
-                    this);
     this.fs.copyTpl(this.templatePath(`tools/${ignoreFile}`),
                     this.destinationPath('tools/.gitignore'),
                     this);
@@ -584,14 +622,11 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
                     this);
 
     // Update "meta answers" before copying .sfdx-falcon-config.json to the developer's local project
-    // After refactoring, use these commented-out lines instead of the ones below
     this.metaAnswers.devHubAlias = this.finalAnswers.devHubAlias;
     this.metaAnswers.envHubAlias = this.finalAnswers.envHubAlias;
     this.metaAnswers.pkgOrgAlias = this.finalAnswers.pkgOrgAlias;
-//    this.metaAnswers.devHubAlias = this.defaultAnswers.devHubAlias;
-//    this.metaAnswers.envHubAlias = this.defaultAnswers.envHubAlias;
-//    this.metaAnswers.pkgOrgAlias = this.defaultAnswers.pkgOrgAlias;
 
+    // Make copies of template files so the person creating this project can also use it.
     this.fs.copyTpl(this.templatePath('.templates/sfdx-falcon-config.json.ejs'),
                     this.destinationPath('.sfdx-falcon/sfdx-falcon-config.json'),
                     this);
@@ -615,10 +650,19 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected install() {
+  protected async install() {
 
     // Finalize the creation of the AppX Package Project.
-    return this._finalizeProjectCreation();
+    this._finalizeProjectCreation();
+    
+    this._fetchPackagedMetadata();
+
+//    this._convertMdapiSource();
+
+//    this._testMdapiDeploy();
+
+    this._finalizeGitActions();
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

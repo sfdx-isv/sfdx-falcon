@@ -25,7 +25,8 @@ import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
 
 // Import Utility Functions
 import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
-import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
+//import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
+import {getPackages}            from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
 
 // Import Falcon Types
 import {AliasOrConnection}      from  '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
@@ -185,19 +186,8 @@ export class SfdxOrgInfo {
       return this._isPkgOrg = true;
     }
 
-    // Define the "package check" Tooling API query. This will get all packages and package versions from an org.
-    const packageCheckQuery =
-      'SELECT Id, Name, NamespacePrefix, '
-    + '( '
-    + '  SELECT '
-    + '    Id, Name, BuildNumber, MetadataPackageId, MajorVersion, '
-    + '    MinorVersion, PatchVersion, ReleaseState '
-    + '  FROM MetadataPackageVersions'
-    + ') '
-    + 'FROM MetadataPackage';
-
     // Run Tooling API query.
-    this._metadataPackageResults = await toolingApiQuery<MetadataPackage>(this.alias, packageCheckQuery);
+    this._metadataPackageResults = await getPackages(this.alias);
     SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._metadataPackageResults, `this._metadataPackageResults: `);
 
     // Extract any packages from the results we just got.
@@ -478,6 +468,231 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    executeSfdxCommand
+ * @param       {string}  sfdxCommandString Required. String containing an "sfdx force" command.
+ * @param       {SfdxFalconResult}  utilityResult Required. Falcon Result used to track actions here.
+ * @param       {object}  [messages]  Optional. Success, failure, and "mixed" messages.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI to execute the "sfdx force" command provided by the caller.
+ *              All data returned from the CLI command execution is wrapped up in an SfdxFalconResult
+ *              object, with stdout and stderr contained within the RESULT's details object.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function executeSfdxCommand(sfdxCommandString:string, utilityResult:SfdxFalconResult, messages:object={}):Promise<SfdxFalconResult> {
+
+  // Extract the Detail object from the Utility Result.
+  const utilityResultDetail = utilityResult.detail as SfdxUtilityResultDetail;
+
+  // Override default messages if provided by the caller.
+  const failureMessage  = messages['failureMessage']  ||  'Salesforce CLI Command Failed';
+  const successMessage  = messages['successMessage']  ||  'Salesforce CLI Command Succeeded';
+  const mixedMessage    = messages['mixedMessage']    ||  'Salesforce CLI Command failed but returned a Success Response';
+
+  return new Promise((resolve, reject) => {
+
+    // Declare a function-local string buffer to hold the stdio stream.
+    let stdOutBuffer:string = '';
+    let stdErrBuffer:string = '';
+
+    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
+    // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
+    shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
+
+    // Set the SFDX_AUTOUPDATE_DISABLE environment variable to TRUE.
+    // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
+    shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
+
+    // Run force:org:list asynchronously inside a child process.
+    const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
+
+    // Capture stdout datastream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
+    childProcess.stdout.on('data', (stdOutDataStream:string) => {
+      stdOutBuffer += stdOutDataStream;
+    });
+
+    // Capture the stderr datastream. Values should only come here if there was a shell error.
+    // CLI warnings used to be sent to stderr as well, but as of CLI v45 all output should be going to stdout.
+    childProcess.stderr.on('data', (stdErrDataStream:string) => {
+      stdErrBuffer += stdErrDataStream;
+    });
+
+    // Handle Child Process "close". Fires only once the contents of stdout and stderr are read.
+    childProcess.on('close', (code:number, signal:string) => {
+
+      // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
+      utilityResultDetail.stdOutBuffer = stdOutBuffer;
+      utilityResultDetail.stdErrBuffer = stdErrBuffer;
+
+      // Determine if the command succeded or failed.
+      if (code !== 0) {
+        if (detectSalesforceCliError(stdOutBuffer)) {
+
+          // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
+          utilityResultDetail.error = new SfdxCliError(stdOutBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand`);
+        }
+        else {
+          // We have a shell Error. Prepare ERROR detail using ShellError.
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`);
+        }
+
+        // Process this as an ERROR result.
+        utilityResult.error(utilityResultDetail.error);
+        utilityResult.debugResult(`${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
+
+        // Process this as an ERROR result.
+        reject(utilityResult);
+      }
+      else {
+
+        //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
+        //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
+
+        // Make sure we got back a valid JSON Response
+        const stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+        const parsedCliResponse   = safeParse(stdOutJsonResponse) as AnyJson;
+
+        // Unparseable responses from the CLI are SHELL ERRORS and should be rejected.
+        if (parsedCliResponse['unparsed']) {
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`);
+          utilityResult.error(utilityResultDetail.error);
+          reject(utilityResult);
+        }
+
+        // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
+        if (detectSalesforceCliError(parsedCliResponse)) {
+          utilityResultDetail.error = new SfdxCliError(stdOutJsonResponse, `${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
+          utilityResult.error(utilityResultDetail.error);
+          utilityResult.debugResult(`${mixedMessage}`, `${dbgNs}executeSfdxCommand:`);
+          reject(utilityResult);
+        }
+
+        // If we get here, the call was successful. Prepare the SUCCESS detail for this function's Result.
+        utilityResultDetail.stdOutParsed = parsedCliResponse;
+
+        // Regiser a SUCCESS result
+        utilityResult.success();
+        utilityResult.debugResult(`${successMessage}`, `${dbgNs}executeSfdxCommand:`);
+
+        // Resolve with the successful SFDX-Falcon Result.
+        resolve(utilityResult);
+      }
+    });
+  }) as Promise<SfdxFalconResult>;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    fetchMetadataPackages
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string[]}  packageNames  Required. String array containing the names of all
+ *              packages that should be retrieved.
+ * @param       {string}  retrieveTargetDir Required. The root of the directory structure where
+ *              the retrieved .zip or metadata files are put.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI's force:mdapi:retrieve command to retrieve one or more
+ *              metadata packages from the target org.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function fetchMetadataPackages(aliasOrUsername:string, packageNames:string[], retrieveTargetDir:string):Promise<SfdxFalconResult> {
+
+  // Set the SFDX Command String to be used by this function.
+  const sfdxCommandString =
+    `sfdx force:mdapi:retrieve `
+  + ` --targetusername ${aliasOrUsername}`
+  + ` --packagenames "${packageNames.join('","')}"`
+  + ` --singlepackage ${packageNames.length === 1 ? 'true' : 'false'}`
+  + ` --retrievetargetdir ${retrieveTargetDir}`
+  + ` --wait 10`
+  + ` --loglevel debug`
+  + ` --json`;
+
+  // Initialize an UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}fetchMetadataPackages:`);
+
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'Package Retrieval Failed',
+    successMessage: 'Package Retrieval Succeeded',
+    mixedMessage:   'Package retrieval failed but the CLI returned a Success Response'
+  };
+
+  // Execute the Salesforce CLI Command.
+  return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getConnection
+ * @param       {string}  orgAlias  Required. The alias of the org to create a connection to.
+ * @param       {string}  [apiVersion]  Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
+ * @returns     {Promise<Connection>} Resolves with an authenticated JSForce Connection object.
+ * @description Given an SFDX alias, resolves with an authenticated JSForce Connection object
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getConnection(aliasOrUsername:string, apiVersion?:string):Promise<Connection> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}getConnection:arguments:`, arguments, `arguments: `);
+
+  // Fetch the username associated with this alias.
+  let username:string = await getUsernameFromAlias(aliasOrUsername);
+
+  // If the alias didn't result in a username, assume that aliasOrUsername held a username, not a alias.
+  if (typeof username === 'undefined') {
+    username = aliasOrUsername;
+  }
+
+  // DEBUG
+  SfdxFalconDebug.str(`${dbgNs}getConnection:username:`, username, `username: `);
+
+  // Create an AuthInfo object for the username we have.
+  const authInfo = await AuthInfo.create({username: username});
+
+  // Create and return a connection to the org attached to the username.
+  const connection = await Connection.create({authInfo: authInfo});
+
+  // Set the API version (if specified by the caller).
+  if (typeof apiVersion !== 'undefined') {
+    SfdxFalconDebug.str(`${dbgNs}getConnection:apiVersion:`, apiVersion, `apiVersion: `);
+    connection.setApiVersion(apiVersion);
+  }
+
+  // The connection is ready for use.
+  return connection;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    getUsernameFromAlias
+ * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
+ * @returns     {Promise<string>}   Resolves to the username if the alias was found, NULL if not.
+ * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
+ *              in the local environment the CLI is running in.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function getUsernameFromAlias(sfdxAlias:string):Promise<string> {
+  const username = await Aliases.fetch(sfdxAlias);
+  return username;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    identifyDevHubOrgs
  * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
  *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
@@ -616,63 +831,6 @@ export async function identifyPkgOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<Sfd
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    getConnection
- * @param       {string}  orgAlias  Required. The alias of the org to create a connection to.
- * @param       {string}  [apiVersion]  Optional. Expects format "[1-9][0-9].0", i.e. 42.0.
- * @returns     {Promise<any>}  Resolves with an authenticated JSForce Connection object.
- * @description Given an SFDX alias, resolves with an authenticated JSForce Connection object
- * @public @async
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getConnection(aliasOrUsername:string, apiVersion?:string):Promise<Connection> {
-
-  // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}getConnection:arguments:`, arguments, `arguments: `);
-
-  // Fetch the username associated with this alias.
-  let username:string = await getUsernameFromAlias(aliasOrUsername);
-
-  // If the alias didn't result in a username, assume that aliasOrUsername held a username, not a alias.
-  if (typeof username === 'undefined') {
-    username = aliasOrUsername;
-  }
-
-  // DEBUG
-  SfdxFalconDebug.str(`${dbgNs}getConnection:username:`, username, `username: `);
-
-  // Create an AuthInfo object for the username we have.
-  const authInfo = await AuthInfo.create({username: username});
-
-  // Create and return a connection to the org attached to the username.
-  const connection = await Connection.create({authInfo: authInfo});
-
-  // Set the API version (if specified by the caller).
-  if (typeof apiVersion !== 'undefined') {
-    SfdxFalconDebug.str(`${dbgNs}getConnection:apiVersion:`, apiVersion, `apiVersion: `);
-    connection.setApiVersion(apiVersion);
-  }
-
-  // The connection is ready for use.
-  return connection;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    getUsernameFromAlias
- * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
- * @returns     {Promise<string>}   Resolves to the username if the alias was found, NULL if not.
- * @description Given an SFDX org alias, return the Salesforce Username associated with the alias
- *              in the local environment the CLI is running in.
- * @public @async
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getUsernameFromAlias(sfdxAlias:string):Promise<string> {
-  const username = await Aliases.fetch(sfdxAlias);
-  return username;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
  * @function    resolveConnection
  * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
@@ -715,11 +873,11 @@ export async function resolveConnection(aliasOrConnection:AliasOrConnection):Pro
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    scanConnectedOrgs
- * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxFalconResult to return data to the caller for
  *              both RESOLVE and REJECT.
  * @description Calls force:org:list via an async shell command, then creates an array of
  *              SfdxOrgInfo objects by parsing the JSON response returned by the CLI command.
- *              Sends results back to caller as an SfdxShellResult.
+ *              Sends results back to caller as an SfdxFalconResult.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -740,95 +898,13 @@ export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
   utilityResult.detail = utilityResultDetail;
   utilityResult.debugResult('Utility Result Initialized', `${dbgNs}scanConnectedOrgs:`);
 
-  // Wrap the CLI command execution in a Promise to support Listr/Yeoman usage.
-  return new Promise((resolve, reject) => {
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'Unable to scan Connected Orgs',
+    successMessage: 'Scan Connected Orgs Succeeded',
+    mixedMessage:   'Scan Connected Orgs Failed but the CLI Returned a Success Response'
+  };
 
-    // Declare a function-local string buffer to hold the stdio stream.
-    let stdOutBuffer:string = '';
-    let stdErrBuffer:string = '';
-
-    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
-    // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
-    shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
-
-    // Set the SFDX_AUTOUPDATE_DISABLE environment variable to TRUE.
-    // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
-    shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
-
-    // Run force:org:list asynchronously inside a child process.
-    const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
-
-    // Capture stdout datastream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
-    childProcess.stdout.on('data', (stdOutDataStream:string) => {
-      stdOutBuffer += stdOutDataStream;
-    });
-
-    // Capture the stderr datastream. Values should only come here if there was a shell error.
-    // CLI warnings used to be sent to stderr as well, but as of CLI v45 all output should be going to stdout.
-    childProcess.stderr.on('data', (stdErrDataStream:string) => {
-      stdErrBuffer += stdErrDataStream;
-    });
-
-    // Handle Child Process "close". Fires only once the contents of stdout and stderr are read.
-    childProcess.on('close', (code:number, signal:string) => {
-
-      // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
-      utilityResultDetail.stdOutBuffer = stdOutBuffer;
-      utilityResultDetail.stdErrBuffer = stdErrBuffer;
-
-      // Determine if the command succeded or failed.
-      if (code !== 0) {
-        if (detectSalesforceCliError(stdOutBuffer)) {
-
-          // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
-          utilityResultDetail.error = new SfdxCliError(stdOutBuffer, `Unable to scan Connected Orgs`, `${dbgNs}scanConnectedOrgs`);
-        }
-        else {
-          // We have a shell Error. Prepare ERROR detail using ShellError.
-          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}scanConnectedOrgs`);
-        }
-
-        // Process this as an ERROR result.
-        utilityResult.error(utilityResultDetail.error);
-        utilityResult.debugResult('Scan Connected Orgs Failed', `${dbgNs}scanConnectedOrgs:`);
-
-        // Process this as an ERROR result.
-        reject(utilityResult);
-      }
-      else {
-
-        //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
-        //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
-
-        // Make sure we got back a valid JSON Response
-        const stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
-        const parsedCliResponse   = safeParse(stdOutJsonResponse) as AnyJson;
-
-        // Unparseable responses from the CLI are SHELL ERRORS and should be rejected.
-        if (parsedCliResponse['unparsed']) {
-          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}scanConnectedOrgs`);
-          utilityResult.error(utilityResultDetail.error);
-          reject(utilityResult);
-        }
-
-        // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
-        if (detectSalesforceCliError(parsedCliResponse)) {
-          utilityResultDetail.error = new SfdxCliError(stdOutJsonResponse, `Unable to scan Connected Orgs`, `${dbgNs}scanConnectedOrgs:`);
-          utilityResult.error(utilityResultDetail.error);
-          utilityResult.debugResult('Scan Connected Orgs Failed but the CLI Returned a Success Response', `${dbgNs}scanConnectedOrgs:`);
-          reject(utilityResult);
-        }
-
-        // If we get here, the call was successful. Prepare the SUCCESS detail for this function's Result.
-        utilityResultDetail.stdOutParsed = parsedCliResponse;
-
-        // Regiser a SUCCESS result
-        utilityResult.success();
-        utilityResult.debugResult('Scan Connected Orgs Succeeded', `${dbgNs}scanConnectedOrgs:`);
-
-        // Resolve with the successful SFDX-Falcon Result.
-        resolve(utilityResult);
-      }
-    });
-  }) as Promise<SfdxFalconResult>;
+  // Execute the Salesforce CLI Command.
+  return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
 }

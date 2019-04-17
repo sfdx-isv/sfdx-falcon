@@ -85,7 +85,7 @@ export function chooseDevHub(devHubChoices?:YeomanChoice[]):Question {
   // Build and return the Question.
   return {
     type:     'list',
-    name:     'devHubAlias',
+    name:     'devHubUsername',
     message:  'Which DevHub do you want to use for this project?',
     choices:  devHubChoices,
     when:     devHubChoices.length > 0
@@ -122,7 +122,7 @@ export function chooseEnvHub(envHubChoices?:YeomanChoice[]):Question {
   // Build and return the Question.
   return {
     type:     'list',
-    name:     'envHubAlias',
+    name:     'envHubUsername',
     message:  'Which Environment Hub do you want to use for this project?',
     choices:  envHubChoices,
     when:     envHubChoices.length > 0
@@ -159,7 +159,7 @@ export function choosePkgOrg(pkgOrgChoices?:YeomanChoice[]):Question {
   // Build and return the Question.
   return {
     type:     'list',
-    name:     'pkgOrgAlias',
+    name:     'pkgOrgUsername',
     message:  'Which Packaging Org do you want to use for this project?',
     choices:  pkgOrgChoices,
     when:     pkgOrgChoices.length > 0
@@ -226,7 +226,7 @@ export function confirmNoDevHub():Questions {
       name:     'restart',
       message:  'Selecting a DevHub is required. Would you like to see the choices again?',
       default:  true,
-      when:     this.userAnswers.devHubAlias === 'NOT_SPECIFIED'
+      when:     this.userAnswers.devHubUsername === 'NOT_SPECIFIED'
     }
   ];
 }
@@ -312,7 +312,7 @@ export function confirmNoPkgOrgConnection():Questions {
       name:     'restart',
       message:  'A connection to your Packaging Org is required to continue. Would you like to modify your selection?',
       default:  true,
-      when:     () => this.userAnswers.pkgOrgAlias === 'NOT_SPECIFIED'
+      when:     () => this.userAnswers.pkgOrgUsername === 'NOT_SPECIFIED'
     }
   ];
 }

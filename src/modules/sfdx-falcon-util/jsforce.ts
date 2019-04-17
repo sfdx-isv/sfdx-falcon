@@ -156,16 +156,15 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    getAssignedPermsets
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @param       {string}  userId  Required. Id of the user whose permsets we are getting.
  * @returns     {Promise<Array<string>>}  Resolves with an Array of Permset Ids assigned to the user.
  * @description Given a User ID, return an Array of Permset Ids that are assigned to that user.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<Array<string>> {
+export async function getAssignedPermsets(aliasOrConnection:string|Connection, userId:string):Promise<string[]> {
  
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}getAssignedPermsets:arguments:`, arguments, `arguments: `);
@@ -193,53 +192,53 @@ export async function getAssignedPermsets(aliasOrConnection:string|Connection, u
  * @function    getPackages
  * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
- * @returns     {Promise<MetadataPackage[]>}  Resolves with an array of MetadataPackage objects,
- *              one for each package (managed and unmanaged) that are developed in that org.
- * @description Given an Org Alias or a JSForce Connection, queries the related org and returns an
- *              array of MetadataPackage objects, detailing all of the packages (managed and
- *              unmanaged) that are developed in that org.
+ * @returns     {Promise<QueryResult<MetadataPackage>>}  Resolves with a Query Result containing
+ *              Metadata Package records for each package developed in the target org, Include the
+ *              related Metadata Package Version child records for each package.
+ * @description Given an Org Alias or a JSForce Connection, queries the related org and returns a
+ *              QueryResult containing the MetadataPackage objects and their child objects.  This has
+ *              the effect of detailing all of the packages (managed and unmanaged) that are
+ *              developed in that org.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getPackages(aliasOrConnection:AliasOrConnection):Promise<MetadataPackage[]> {
+export async function getPackages(aliasOrConnection:AliasOrConnection):Promise<QueryResult<MetadataPackage>> {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}getPackages:arguments:`, arguments, `arguments: `);
 
-  // Resolve our connection situation based on the incoming "alias or connection" param.
-//  const rc = await resolveConnection(aliasOrConnection);
+  // Define the "package check" Tooling API query. This will get all packages and package versions from an org.
+  const packageCheckQuery =
+    'SELECT Id, Name, NamespacePrefix, '
+  + '( '
+  + '  SELECT '
+  + '    Id, Name, BuildNumber, MetadataPackageId, MajorVersion, '
+  + '    MinorVersion, PatchVersion, ReleaseState '
+  + '  FROM MetadataPackageVersions'
+  + ') '
+  + 'FROM MetadataPackage';
 
-//  const managedPackageQuery = 'SELECT Id, Name, NamespacePrefix FROM MetadataPackage';
+  // Run Tooling API query.
+  const metadataPackageResults = await toolingApiQuery<MetadataPackage>(aliasOrConnection, packageCheckQuery);
+  SfdxFalconDebug.obj(`${dbgNs}getPackages:metadataPackageResults:`, metadataPackageResults, `metadataPackageResults: `);
 
-  // Build the first Tooling API request.
-//  const managedPackages = rc.connection.tooling.query('managedPackageQuery').execute();
-
-  // Execute the command. Note that this is a synchronous request.
-//  const restResult = await rc.connection.request(restRequestDef.request);
-
-
-  //Connection.
-
-  return null;
+  // Return the Query Results.
+  return metadataPackageResults;
 }
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    getProfileId
- * @param       {string}  aliasOrConnection  Required. Either a string containing the Alias of the
- *                        org being queried or an authenticated JSForce Connection object.
- * @param       {string}  profileName     Required. Name of the profile being searched for.
- * @param       {any}     [observer]      Optional. Reference to an Observable object.
- * @returns     {Promise<string>}  Resolves with a string containing the xx-character record ID of 
+ * @param       {AliasOrConnection} aliasOrConnection Required. Either a string containing the Alias
+ *              of the org being queried or an authenticated JSForce Connection object.
+ * @param       {string}  profileName Required. Name of the profile being searched for.
+ * @returns     {Promise<string>}  Resolves with a string containing the xx-character record ID of
  *              the named profile. Rejects if no matching profile can be found.
  * @description Given a Profile Name, returns the xx-character record ID of the named profile.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getProfileId(aliasOrConnection:any, profileName:string):Promise<string> {
+export async function getProfileId(aliasOrConnection:AliasOrConnection, profileName:string):Promise<string> {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}getProfileId:arguments:`, arguments, `arguments: `);
