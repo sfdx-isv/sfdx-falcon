@@ -3,75 +3,42 @@
  * @file          modules/sfdx-falcon-util/jsforce.ts
  * @copyright     Vivek M. Chawla - 2018
  * @author        Vivek M. Chawla <@VivekMChawla>
- * @summary       ???
- * @description   ???
+ * @summary       Utility Module - JSForce
+ * @description   Utility functions related to JSForce. Allows developer to work directly against
+ *                any Salesforce Org that is connected to the local CLI environment.
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import {Connection}         from '@salesforce/core';                    // Why?
-import * as jsf             from 'jsforce';                             // Why?
+import {Connection}               from  '@salesforce/core';     // Why?
+import {AnyJson}                  from  '@salesforce/ts-types'; // Why?
+import * as jsf                   from  'jsforce';              // Why?
 
 // Import Internal Modules
-import {SfdxFalconDebug}        from '../sfdx-falcon-debug';                // Why?
+import {SfdxFalconDebug}          from  '../sfdx-falcon-debug'; // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 
 // Import Utility Functions
-import {resolveConnection}      from './sfdx';                              // Function. Takes either an alias or a connection and gives back a connection.
+import {resolveConnection}        from  './sfdx';               // Function. Takes either an alias or a connection and gives back a connection.
 
 // Import Falcon Types
-import {AliasOrConnection}      from '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
-import {MetadataPackage}        from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
-import {QueryResult}            from '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
-
-//import {MetadataPackageVersion} from '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
-
-
+import {AliasOrConnection}        from  '../sfdx-falcon-types'; // Type. Represents either an Org Alias or a JSForce Connection.
+import {MetadataPackage}          from  '../sfdx-falcon-types'; // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {PermissionSetAssignment}  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce PermissionSetAssignment SObject.
+import {Profile}                  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce Profile SObject
+import {QueryResult}              from  '../sfdx-falcon-types'; // Type. Alias to the JSForce definition of QueryResult.
+import {RestApiRequestDefinition} from  '../sfdx-falcon-types'; // IInterface. Represents information needed to make a REST API request via a JSForce connection.
+import {User}                     from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce User SObject.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:jsforce:';
-//const clsDbgNs  = '';
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @type        PermissionSetAssignment
- * @description Represents the Salesforce PermissionSetAssignment SObject
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-type PermissionSetAssignment = {
-  PermissionSetId: string;
-};
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @type        Profile
- * @description Represents the Salesforce Profile SObject
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-type Profile = {};
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @type        User
- * @description Represents the Salesforce User SObject
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-type User = {};
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   RestApiRequestDefinition
- * @description Represents information needed to make a REST API request via a JSForce connection.
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface RestApiRequestDefinition {
-  aliasOrConnection:  string|Connection;
-  request:            jsf.RequestInfo;
-  options?:           {any};
-}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    changePassword
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing the 
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @param       {string}  userId Required. Id of the user whose password is being changed.
  * @param       {string}  newPassword Required. The new password.
@@ -81,7 +48,7 @@ export interface RestApiRequestDefinition {
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function changePassword(aliasOrConnection:any, userId:string, newPassword:string):Promise<void> {
+export async function changePassword(aliasOrConnection:AliasOrConnection, userId:string, newPassword:string):Promise<void> {
 
   // Validate arguments
   if (typeof userId !== 'string' || typeof newPassword !== 'string') {
@@ -99,13 +66,13 @@ export async function changePassword(aliasOrConnection:any, userId:string, newPa
       body: `{"NewPassword": "${newPassword}"}`
     },
     {options: {noContentResponse: 'SUCCESS_PASSWORD_CHANGED'}}
-  )
+  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    createSfdxOrgConfig
- * @param       {string|Connection} aliasOrConnection  Required. Either a string containing an Alias
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing an Alias
  *              to or an authenticated JSForce Connection object of the org the user is a part of.
  * @param       {string}  username  Required. Username we are creating an SFDX connection for.
  * @param       {string}  password  Required. Password of the user.
@@ -117,7 +84,7 @@ export async function changePassword(aliasOrConnection:any, userId:string, newPa
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, username:string, password:string, orgAlias:string):Promise<void> {
+export async function createSfdxOrgConfig(aliasOrConnection:AliasOrConnection, username:string, password:string, orgAlias:string):Promise<void> {
   
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
@@ -136,7 +103,7 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:userInfo`, userInfo, `userInfo: `);
 
   // Create the Org Config data structure.
-  const orgSaveData = {} as any;
+  const orgSaveData = {} as any;          // tslint:disable-line: no-any
 
   orgSaveData.orgId       = userInfo.organizationId;
   orgSaveData.accessToken = newConnection.accessToken;
@@ -146,8 +113,8 @@ export async function createSfdxOrgConfig(aliasOrConnection:string|Connection, u
   SfdxFalconDebug.obj(`${dbgNs}createSfdxOrgConfig:orgSaveData:`, orgSaveData, `orgSaveData: `);
 
   // Save the Org Config
-  // TODO: Not sure how to proceed here.  Looks like we can't persist 
-  // AuthInfos to disk that are created with Access Tokens.  Need to 
+  // TODO: Not sure how to proceed here.  Looks like we can't persist
+  // AuthInfos to disk that are created with Access Tokens.  Need to
   // figure out something else for making demo logins easy.
 
   return;
@@ -262,18 +229,16 @@ export async function getProfileId(aliasOrConnection:AliasOrConnection, profileN
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    getUserId
- * @param       {string}  aliasOrConnection  Required. Either a string containing the Alias of the
- *                        org being queried or an authenticated JSForce Connection object.
+ * @param       {AliasOrConnection} aliasOrConnection Required. Either a string containing the Alias
+ *              of the org being queried or an authenticated JSForce Connection object.
  * @param       {string}  username    Required. Name of the user being searched for.
- * @param       {any}     [observer]  Optional. Reference to an Observable object.
- * @returns     {Promise<string>}  Resolves with a string containing the xx-character record ID of 
+ * @returns     {Promise<string>}  Resolves with a string containing the xx-character record ID of
  *              the named user. Rejects if no matching user can be found.
  * @description Given a Username, returns the xx-character record ID of the named user.
- * @version     1.0.0
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function getUserId(aliasOrConnection:any, username:string, observer?:any):Promise<string> {
+export async function getUserId(aliasOrConnection:AliasOrConnection, username:string):Promise<string> {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}getUserId:arguments:`, arguments, `arguments: `);
@@ -304,7 +269,7 @@ export async function getUserId(aliasOrConnection:any, username:string, observer
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Promise<any> {
+export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Promise<AnyJson> {
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(restRequestDef.aliasOrConnection);

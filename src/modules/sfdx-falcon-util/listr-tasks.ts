@@ -12,15 +12,22 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules
+import * as path  from  'path'; // Helps resolve local paths at runtime.
+
 // Import Internal Modules
-import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import * as sfdxHelper      from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
 import * as yoHelper        from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
 import * as gitHelper       from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+import * as zipHelper       from  './zip';                      // Library of Zip Helper functions.
+
+
+import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 
 // Import Falcon Types
 import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
+import {ListrObject}        from  '../sfdx-falcon-types';       // Interface.
 import {RawSfdxOrgInfo}     from  '../sfdx-falcon-types';       // Interface. Represents the data returned by the sfdx force:org:list command.
 import {SfdxOrgInfoMap}     from  '../sfdx-falcon-types';       // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
@@ -144,16 +151,122 @@ export function buildPkgOrgAliasList():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    fetchAndConvertManagedPackage
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a
+ *              packaging org that the Salesforce CLI is currently connected to.
+ * @param       {string}  packageName Required. The name of the desired managed package.
+ * @param       {string}  projectDir  Required. The root of the Project Directory
+ * @param       {string}  packageDir  Required. Name of the default package directory, located
+ *              inside of "projectDir/sfdx-source/"
+ * @returns     {ListrObject}  A "runnable" Listr Object
+ * @description Returns a "runnable" Listr Object that attempts to retrieve, extract, and convert
+ *              the metadata for the specified package from the specified org. The converted
+ *              metadata source will be saved to the Package Directory specified by the caller.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function fetchAndConvertManagedPackage(aliasOrUsername:string, packageName:string, projectDir:string, packageDir:string):ListrObject {
+
+  // Validate incoming arguments.
+  validatePkgConversionArguments.apply(null, arguments);
+
+  // Determine various directory locations.
+  const retrieveTargetDir   = path.join(projectDir, 'temp');
+  const zipFile             = path.join(projectDir, 'temp', 'unpackaged.zip');
+  const zipExtractTarget    = path.join(projectDir, 'mdapi-source', 'original');
+  const mdapiSourceRootDir  = path.join(projectDir, 'mdapi-source', 'original');
+  const sfdxSourceOutputDir = path.join(projectDir, 'sfdx-source', packageDir);
+
+  // Build and return a Listr Task Object.
+  return new listr(
+    // TASK GROUP: SFDX Config Tasks
+    [
+      packagedMetadataFetch.call(this, aliasOrUsername, [packageName], retrieveTargetDir),
+      extractMdapiSource.call(this, zipFile, zipExtractTarget),
+      convertMetadataSource.call(this, mdapiSourceRootDir, sfdxSourceOutputDir)
+    ],
+    // TASK GROUP OPTIONS: SFDX Config Tasks
+    {
+      concurrent: false,
+      collapse:false
+    }
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    convertMetadataSource
+ * @param       {string}  mdapiSourceRootDir Required. ???
+ * @param       {string}  sfdxSourceOutputDir  Required. ???
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to...
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function convertMetadataSource(mdapiSourceRootDir:string, sfdxSourceOutputDir:string):ListrTask {
+  return {
+    title:  'Converting MDAPI Source...',
+    task:   (listrContext, thisTask) => {
+      return sfdxHelper.mdapiConvert(mdapiSourceRootDir, sfdxSourceOutputDir)
+        .then(utilityResult => {
+          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:then:utilityResult:`, utilityResult, `then:utilityResult: `);
+          thisTask.title += 'Done!';
+        })
+        .catch(utilityResult => {
+          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:catch:utilityResult:`, utilityResult, `catch:utilityResult: `);
+          thisTask.title += 'Failed';
+          throw utilityResult;
+        });
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    extractMdapiSource
+ * @param       {string}  zipFile Required. Path to a zip file produced by an MDAPI retrieve
+ *              operation, like "sfdx force:mdapi:retrieve".
+ * @param       {string}  zipExtractTarget  Required. Path of the directory where the MDAPI source
+ *              in the Zip File will be extracted to.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to extract the MDAPI source
+ *              from inside of a Zip File produced by an MDAPI retrieve operation.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function extractMdapiSource(zipFile:string, zipExtractTarget:string):ListrTask {
+  return {
+    title:  'Extracting MDAPI Source...',
+    task:   (listrContext, thisTask) => {
+      return zipHelper.extract(zipFile, zipExtractTarget)
+        .then(() => {
+          listrContext.sourceExtracted = true;
+          thisTask.title += 'Done!';
+        })
+        .catch(extractionError => {
+          listrContext.sourceExtracted = false;
+          thisTask.title += 'Failed';
+          throw new SfdxFalconError( `MDAPI source from ${zipFile} could not be extracted to ${zipExtractTarget}`
+                                   , `SourceExtractionError`
+                                   , `${dbgNs}:extractZipFile`
+                                   , extractionError);
+        });
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    gitInitTasks
  * @param       {string}  cliCommandName Required. Name of the command that's running these init tasks.
  * @param       {string}  gitRemoteUri  Required. URI of the remote Git repository being validated.
- * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @returns     {ListrObject}  A "runnable" Listr Object
  * @description Returns a Listr-compatible Task Object that verifies the presence of the Git
  *              executable in the local environment.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitInitTasks() {
+export function gitInitTasks():ListrObject {
 
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
@@ -169,12 +282,12 @@ export function gitInitTasks() {
                              , `${dbgNs}gitInitTasks`);
   }
 
-  // Build and return the Listr Tasks collection object.
+  // Build and return a Listr Object.
   return new listr(
     [
       {
         // PARENT_TASK: "Initialize" the Falcon command.
-        title:  `Initializing ${cliCommandName}`,
+        title:  `Inspecting Environment`,
         task:   listrContext => {
           return new listr(
             [
@@ -377,6 +490,54 @@ export function identifyPkgOrgs():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    packagedMetadataFetch
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string[]}  packageNames  Required. String array containing the names of all
+ *              packages that should be retrieved.
+ * @param       {string}  retrieveTargetDir Required. The root of the directory structure where
+ *              the retrieved .zip or metadata files are put.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to retrieve the metadata
+ *              for the specified package from the specified org. The metadata will be saved to
+ *              the local filesystem at the location specified by the caller.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function packagedMetadataFetch(aliasOrUsername:string, packageNames:string[], retrieveTargetDir:string):ListrTask {
+
+  // Validate incoming arguments.
+  validatePkgConversionArguments.apply(null, arguments);
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  'Fetching Metadata Packages...',
+    task:   (listrContext, thisTask) => {
+      return sfdxHelper.fetchMetadataPackages(aliasOrUsername, packageNames, retrieveTargetDir)
+        .then(utilityResult => {
+          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:then:utilityResult:`, utilityResult, `then:utilityResult: `);
+
+          // Save the UTILITY result to shared data and update the task title.
+          this.sharedData.pkgMetadataFetchResult = utilityResult;
+          thisTask.title += 'Done!';
+
+        })
+        .catch(utilityResult => {
+
+          // We get here if no connections were found.
+          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:catch:utilityResult:`, utilityResult, `catch:utilityResult: `);
+          thisTask.title += 'Failed';
+          throw utilityResult;
+        });
+      }
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    scanConnectedOrgs
  * @returns     {ListrTask}  A Listr-compatible Task Object
  * @description Returns a Listr-compatible Task Object that scans the orgs that are connected to
@@ -438,14 +599,16 @@ export function scanConnectedOrgs():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    sfdxInitTasks
- * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @returns     {ListrObject}  A "runnable" Listr Object
  * @description Returns a Listr-compatible Task Object that contains a number of sub-tasks which
  *              inspect the connected orgs in the local SFDX environment and build Inquirer "choice
  *              lists" with them.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function sfdxInitTasks() {
+export function sfdxInitTasks():ListrObject {
+
+  // Build and return a Listr Object.
   return new listr(
     [
       {
@@ -541,5 +704,35 @@ function validateSharedData():void {
                              + `You must also ensure that the calling scope has defined an object named 'sharedData'.`
                              , `InvalidSharedData`
                              , `${dbgNs}validateSharedData`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validatePkgConversionArguments
+ * @returns     {void}
+ * @description Ensures that the arguments provided match an expected, ordered set.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validatePkgConversionArguments():void {
+
+  // Validate "aliasOrUsername".
+  if (typeof arguments[0] !== 'string' || arguments[0] === '') {
+    throw new SfdxFalconError( `Expected aliasOrUsername to be a non-empty string but got type '${typeof arguments[0]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validatePkgConversionArguments`);
+  }
+  // Validate "packageNames" array.
+  if (Array.isArray(arguments[1]) !== true || arguments[1].length < 1) {
+    throw new SfdxFalconError( `Expected packageNames to be a non-empty array but got type '${typeof arguments[1]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validatePkgConversionArguments`);
+  }
+  // Validate "retrieveTargetDir".
+  if (typeof arguments[2] !== 'string' || arguments[2] === '') {
+    throw new SfdxFalconError( `Expected retrieveTargetDir to be a non-empty string but got type '${typeof arguments[2]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validatePkgConversionArguments`);
   }
 }

@@ -10,11 +10,12 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules/Types
-import {Connection}           from  '@salesforce/core';
-import {AnyJson}              from  '@salesforce/ts-types';
-import * as inquirer          from  'inquirer';
+import {Connection}           from  '@salesforce/core';         // Why?
+import {AnyJson}              from  '@salesforce/ts-types';     // Why?
+import * as inquirer          from  'inquirer';                 // Why?
 import {QueryResult}          from  'jsforce';                  // Why?
-import {Observable}           from  'rxjs';
+import {RequestInfo}          from  'jsforce';                  // Why?
+import {Observable}           from  'rxjs';                     // Why?
 import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 
@@ -385,6 +386,7 @@ export type Questions = Questions;
  */
 export type Question = Question;
 
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Salesforce DX / JSForce related types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -401,6 +403,15 @@ export type AliasOrConnection = string | Connection;
 export interface ResolvedConnection {
   connection:       Connection;
   orgIdentifier:    string;
+}
+
+/**
+ * Interface. Represents information needed to make a REST API request via a JSForce connection.
+ */
+export interface RestApiRequestDefinition {
+  aliasOrConnection:  string|Connection;
+  request:            RequestInfo;
+  options?:           {any};
 }
 
 /**
@@ -454,3 +465,34 @@ export enum SfdxCliLogLevel {
 }
 
 
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// SObject related types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+/**
+ * Interface. Represents a baseline SObject.
+ */
+export interface SObject {
+  id?:    string;
+  name?:  string;
+}
+
+/**
+ * Interface. Represents the Salesforce Profile SObject.
+ */
+export type Profile = SObject;
+
+/**
+ * Interface. Represents the Salesforce PermissionSetAssignment SObject.
+ */
+export interface PermissionSetAssignment extends SObject {
+  PermissionSetId: string;
+}
+
+/**
+ * Interface. Represents the Salesforce User SObject.
+ */
+export interface User extends SObject {
+  username?: string;
+}

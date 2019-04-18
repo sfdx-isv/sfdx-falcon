@@ -52,13 +52,13 @@ The AppExchange Package Kit (APK) builds on the [SFDX-Falcon Template](https://g
 ## Available Commands
 <!-- install -->
 <!-- commands -->
-* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
-* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-1)
-* [`sfdx-falcon <%= command.id %> [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory--f-string--x-string---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
-* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-2)
-* [`sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon--commandid---d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal-3)
+* [`sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon-falconadkclone--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon-falconadkcreate--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon-falconadkinstall--d-directory--f-string--x-string---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon-falconapkclone--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`](#sfdx-falcon-falconapkcreate--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfatal)
 
-## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
+## `sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Clones an AppExchange Demo Kit (ADK) project from a remote Git repository.
 
@@ -97,7 +97,7 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/clone.ts)_
 
-## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
+## `sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Creates an AppExchange Demo Kit (ADK) project
 
@@ -128,7 +128,7 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/create.ts)_
 
-## `sfdx-falcon <%= command.id %> [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
+## `sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Reads an AppExchange Demo Kit (ADK) Recipe and builds a customized org
 
@@ -170,7 +170,7 @@ EXAMPLES
 
 _See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/install.ts)_
 
-## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
+## `sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
@@ -207,7 +207,7 @@ EXAMPLES
 
 _See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/clone.ts)_
 
-## `sfdx-falcon <%= command.id %> [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
+## `sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal]`
 
 Creates an AppExchange Package Kit (APK) project
 

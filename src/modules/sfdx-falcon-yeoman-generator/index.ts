@@ -212,14 +212,9 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     // Show the Yeoman to announce that the generator is running.
     this.log(yosay(this.openingMessage));
 
-    // Execute the async Listr task runner for initialization.
+    // Execute the initialization tasks for this generator
     try {
-
-      // Execute the initialization tasks for this generator
       await this._executeInitializationTasks();
-
-      // Show an "Initialization Complete" message
-      this.log(chalk`\n{bold Initialization Complete}\n`);
     }
     catch (initializationError) {
 
@@ -238,6 +233,9 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
                                , `${dbgNs}default_initializing`
                                , SfdxFalconError.wrap(initializationError));
     }
+
+    // Add a line break to separate this section from the next in the console.
+    console.log('');
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -369,6 +367,9 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     // Define the second group of tasks (SFDX Initialization).
     const sfdxInitTasks = listrTasks.sfdxInitTasks.call(this);
 
+    // Show a message to the User letting them know we're going to initialize this command.
+    console.log(chalk`{yellow Initializing ${this.cliCommandName}...}`);
+
     // Run the Git Init Tasks. Make sure to use await since Listr will run asynchronously.
     const gitInitResults = await gitInitTasks.run();
     SfdxFalconDebug.obj(`${dbgNs}_executeInitializationTasks:`, gitInitResults, `gitInitResults: `);
@@ -414,7 +415,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     const hasGitRemoteRepository  = this.finalAnswers['hasGitRemoteRepository']  as boolean;
 
     // Tell the user that we are adding their project to Git
-    this.log(chalk`{blue Adding project to Git...}\n`);
+    this.log(chalk`{yellow Adding project to Git...}\n`);
 
     // Run git init to initialize the repo (no ill effects for reinitializing)
     gitHelper.gitInit(this.destinationRoot());

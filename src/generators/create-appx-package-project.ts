@@ -18,11 +18,12 @@ import * as path  from  'path'; // Helps resolve local paths at runtime.
 
 // Import Internal Modules
 import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';  // Library. Helper functions that create Interview Questions.
-//import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';          // Library. Helper functions that make using Listr with SFDX-Falcon easier.
+import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';          // Library. Helper functions that make using Listr with SFDX-Falcon easier.
 
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                     // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';                 // Class. Provides a standard way of building a multi-group Interview to collect user input.
+import {SfdxFalconResult}               from  '../modules/sfdx-falcon-result';                    // Class. Framework for creating results-driven, informational objects with a concept of heredity (child results).
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-command';            // Interface. Represents options used by SFDX-Falcon Yeoman generators.
@@ -371,20 +372,66 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @method      _fetchPackagedMetadata
-   * @returns     {Promise<boolean|string>}
+   * @method      _fetchAndConvertPackage
+   * @returns     {Promise<boolean>}
    * @description Uses information from the User's "Final Answers" to do a
    *              MDAPI retrieve of a single package of Metadata source from a
    *              the Packaging Org indicated by the Final Answers.
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async _fetchPackagedMetadata():Promise<boolean|string> {
+  protected async _fetchAndConvertManagedPackage():Promise<boolean> {
 
     // Define tasks for fetching the packaged metadata.
-    //const pkgMetadataFetchTasks = listrTasks.packagedMetadataFetch.call(this)
+    const fetchAndConvertManagedPackage =
+      listrTasks.fetchAndConvertManagedPackage.call(this,
+                                            this.finalAnswers.pkgOrgAlias,
+                                            new Array([this.finalAnswers.packageName]),
+                                            this.destinationRoot(),
+                                            this.finalAnswers.packageDirectory);
 
-    return false;
+    // Show a message to the User letting them know we're going to start these tasks.
+    console.log(chalk`{yellow Fetching managed package and converting LOCAL source to SFDX format...}`);
+    
+    // Run the "Fetch and Convert Package" tasks. Make sure to use await since Listr will run asynchronously.
+    const pkgConversionResults = await fetchAndConvertManagedPackage.run()
+      .catch(utilityResult => {
+
+        // DEBUG
+        SfdxFalconDebug.obj(`${dbgNs}_fetchPackagedMetadata:utilityResult:`, utilityResult, `utilityResult: `);
+
+        // If we get an Error, just throw it.
+        if (utilityResult instanceof Error) {
+          throw utilityResult;
+        }
+
+        // If we get an SfdxFalconResult, link its Error Object to a new SfdxFalconError and throw it.
+        if (utilityResult instanceof SfdxFalconResult) {
+          throw new SfdxFalconError( `Conversion of "classic" packaging project to SFDX packaging project failed.`
+                                   , `PackageConversionError`
+                                   , `${dbgNs}:_fetchPackagedMetadata`
+                                   , utilityResult.errObj);
+        }
+
+        // If we get here, who knows what we got. Wrap it as an SfdxFalconError and throw it.
+        throw SfdxFalconError.wrap(utilityResult);
+      });
+
+    // DEBUG
+    SfdxFalconDebug.obj(`${dbgNs}_fetchPackagedMetadata:pkgConversionResults:`, pkgConversionResults, `pkgConversionResults: `);
+
+    // Add a success message
+    this.generatorStatus.addMessage({
+      type:     'success',
+      title:    `DEVTEST - PKG_SUCCESS`,
+      message:  `Success - Package successfully retrieved from Salesforce`
+    });
+
+    // Add a line break to separate the output of this section from others
+    console.log('');
+
+    // All done
+    return true;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -412,6 +459,9 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async prompting():Promise<void> {
+
+    // Let the User know that the Interview is starting.
+    console.log(chalk`{yellow Starting APK project creation interview...}`);
 
     // Call the default prompting() function. Replace with custom behavior if desired.
     return this._default_prompting();
@@ -501,7 +551,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     SfdxFalconDebug.str(`${dbgNs}writing:`, this.destinationRoot(), `this.destinationRoot(): `);
 
     // Tell the user that we are preparing to create their project.
-    this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`);
+    this.log(chalk`{yellow Writing project files to ${this.destinationRoot()}...}\n`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -655,14 +705,42 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     // Finalize the creation of the AppX Package Project.
     this._finalizeProjectCreation();
     
-    this._fetchPackagedMetadata();
+    // Perform special install actions depending on Project Type.
+    switch (this.finalAnswers.projectType) {
+      case '1GP:managed':
+        if (await this._fetchAndConvertManagedPackage()) {
 
-//    this._convertMdapiSource();
+          // Fetch/convert succeeded. Just need to finalize any Git actions and we're done.
+          this._finalizeGitActions();
+        }
+        else {
 
-//    this._testMdapiDeploy();
-
-    this._finalizeGitActions();
-
+          // Fetch/convert failed. Mark the install as INCOMPLETE and add a warning message.
+          this.installComplete = false;
+          this.generatorStatus.addMessage({
+            type:     'warning',
+            title:    `Fetch/Convert Project`,
+            message:  `Warning - Could not fetch/convert your managed package`
+          });
+        }
+        return;
+      case '1GP:unmanaged':
+        console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
+        this._finalizeGitActions();
+        return;
+      case '2GP:managed':
+        console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
+        this._finalizeGitActions();
+        return;
+      case '2GP:unlocked':
+        console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
+        this._finalizeGitActions();
+        return;
+      default:
+        throw new SfdxFalconError ( `Invalid Project Type: '${this.finalAnswers.projectType}'. `
+                                  , `InvalidProjectType`
+                                  , `${dbgNs}install`);
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
