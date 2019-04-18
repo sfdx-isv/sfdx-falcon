@@ -151,50 +151,6 @@ export function buildPkgOrgAliasList():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    fetchAndConvertManagedPackage
- * @param       {string}  aliasOrUsername Required. The alias or username associated with a
- *              packaging org that the Salesforce CLI is currently connected to.
- * @param       {string}  packageName Required. The name of the desired managed package.
- * @param       {string}  projectDir  Required. The root of the Project Directory
- * @param       {string}  packageDir  Required. Name of the default package directory, located
- *              inside of "projectDir/sfdx-source/"
- * @returns     {ListrObject}  A "runnable" Listr Object
- * @description Returns a "runnable" Listr Object that attempts to retrieve, extract, and convert
- *              the metadata for the specified package from the specified org. The converted
- *              metadata source will be saved to the Package Directory specified by the caller.
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function fetchAndConvertManagedPackage(aliasOrUsername:string, packageName:string, projectDir:string, packageDir:string):ListrObject {
-
-  // Validate incoming arguments.
-  validatePkgConversionArguments.apply(null, arguments);
-
-  // Determine various directory locations.
-  const retrieveTargetDir   = path.join(projectDir, 'temp');
-  const zipFile             = path.join(projectDir, 'temp', 'unpackaged.zip');
-  const zipExtractTarget    = path.join(projectDir, 'mdapi-source', 'original');
-  const mdapiSourceRootDir  = path.join(projectDir, 'mdapi-source', 'original');
-  const sfdxSourceOutputDir = path.join(projectDir, 'sfdx-source', packageDir);
-
-  // Build and return a Listr Task Object.
-  return new listr(
-    // TASK GROUP: SFDX Config Tasks
-    [
-      packagedMetadataFetch.call(this, aliasOrUsername, [packageName], retrieveTargetDir),
-      extractMdapiSource.call(this, zipFile, zipExtractTarget),
-      convertMetadataSource.call(this, mdapiSourceRootDir, sfdxSourceOutputDir)
-    ],
-    // TASK GROUP OPTIONS: SFDX Config Tasks
-    {
-      concurrent: false,
-      collapse:false
-    }
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
  * @function    convertMetadataSource
  * @param       {string}  mdapiSourceRootDir Required. ???
  * @param       {string}  sfdxSourceOutputDir  Required. ???
@@ -253,6 +209,50 @@ function extractMdapiSource(zipFile:string, zipExtractTarget:string):ListrTask {
         });
     }
   } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    fetchAndConvertManagedPackage
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a
+ *              packaging org that the Salesforce CLI is currently connected to.
+ * @param       {string}  packageName Required. The name of the desired managed package.
+ * @param       {string}  projectDir  Required. The root of the Project Directory
+ * @param       {string}  packageDir  Required. Name of the default package directory, located
+ *              inside of "projectDir/sfdx-source/"
+ * @returns     {ListrObject}  A "runnable" Listr Object
+ * @description Returns a "runnable" Listr Object that attempts to retrieve, extract, and convert
+ *              the metadata for the specified package from the specified org. The converted
+ *              metadata source will be saved to the Package Directory specified by the caller.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function fetchAndConvertManagedPackage(aliasOrUsername:string, packageName:string, projectDir:string, packageDir:string):ListrObject {
+
+  // Validate incoming arguments.
+  validatePkgConversionArguments.apply(null, arguments);
+
+  // Determine various directory locations.
+  const retrieveTargetDir   = path.join(projectDir, 'temp');
+  const zipFile             = path.join(projectDir, 'temp', 'unpackaged.zip');
+  const zipExtractTarget    = path.join(projectDir, 'mdapi-source', 'original');
+  const mdapiSourceRootDir  = path.join(projectDir, 'mdapi-source', 'original');
+  const sfdxSourceOutputDir = path.join(projectDir, 'sfdx-source', packageDir);
+
+  // Build and return a Listr Task Object.
+  return new listr(
+    // TASK GROUP: SFDX Config Tasks
+    [
+      packagedMetadataFetch.call(this, aliasOrUsername, [packageName], retrieveTargetDir),
+      extractMdapiSource.call(this, zipFile, zipExtractTarget),
+      convertMetadataSource.call(this, mdapiSourceRootDir, sfdxSourceOutputDir)
+    ],
+    // TASK GROUP OPTIONS: SFDX Config Tasks
+    {
+      concurrent: false,
+      collapse:false
+    }
+  );
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
