@@ -605,15 +605,14 @@ export async function fetchMetadataPackages(aliasOrUsername:string, packageNames
     `sfdx force:mdapi:retrieve `
   + ` --targetusername ${aliasOrUsername}`
   + ` --packagenames "${packageNames.join('","')}"`
-  + ` --singlepackage ${packageNames.length === 1 ? '\"true\"' : '\"false\"'}`
-//  + (packageNames.length === 1 ? ' --singlepackage' : '')
+  + (packageNames.length === 1 ? ' --singlepackage' : '')
   + ` --retrievetargetdir ${retrieveTargetDir}`
   + ` --wait 10`
   + ` --loglevel debug`
   + ` --json`;
 
-  // Initialize an UTILITY Result for this function.
-  const utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
+  // Initialize a UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:fetchMetadataPackages`, SfdxFalconResultType.UTILITY);
   const utilityResultDetail = {
     sfdxCommandString:  sfdxCommandString,
     stdOutParsed:       null,
@@ -828,6 +827,51 @@ export async function identifyPkgOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<Sfd
 
   // Return the list of Packaging Orgs to the caller
   return pkgOrgInfos;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    mdapiConvert
+ * @param       {string}  mdapiSourceRootDir  Required. ???
+ * @param       {string}  sfdxSourceOutputDir Required. ???
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI's force:mdapi:convert command to convert MDAPI source to
+ *              SFDX source.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function mdapiConvert(mdapiSourceRootDir:string, sfdxSourceOutputDir:string):Promise<SfdxFalconResult> {
+
+  // Set the SFDX Command String to be used by this function.
+  const sfdxCommandString =
+    `sfdx force:mdapi:convert `
+  + ` --rootdir ${mdapiSourceRootDir}`
+  + ` --outputdir ${sfdxSourceOutputDir}`
+  + ` --loglevel debug`
+  + ` --json`;
+
+  // Initialize a UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:mdapiConvert`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}mdapiConvert:`);
+
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'MDAPI Source Conversion Failed',
+    successMessage: 'MDAPI Source Conversion Succeeded',
+    mixedMessage:   'MDAPI Source Conversion failed but the CLI returned a Success Response'
+  };
+
+  // Execute the Salesforce CLI Command.
+  return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
