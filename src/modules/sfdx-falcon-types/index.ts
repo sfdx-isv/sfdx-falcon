@@ -205,6 +205,12 @@ export interface MetadataPackageVersion {
 // Listr related interfaces and types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+/**
+ * Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
+ */
+export interface ListrObject extends Object {
+  run():Promise<any>; // tslint:disable-line: no-any
+}
 
 /**
  * Represents a Listr Task object that can be executed by a Listr Task Runner.
