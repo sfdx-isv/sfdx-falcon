@@ -557,7 +557,10 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     });
 
     // Show an in-process Success Message telling the user that we just created their project files.
-    this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
+    //this.log(chalk`\n{blue Project files created at ${this.destinationRoot()}}\n`);
+
+    // Add a line break to separate the end of the "writing" phase from any output in the "install" phase.
+    console.log('');
 
     // If we get this far, return TRUE so additional finalization code knows it should run.
     return true;
