@@ -16,6 +16,7 @@ import * as inquirer          from  'inquirer';                 // Why?
 import {QueryResult}          from  'jsforce';                  // Why?
 import {RequestInfo}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';                     // Why?
+import {Subscriber}           from  'rxjs';                     // Why?
 import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 
@@ -248,6 +249,7 @@ export interface ListrExecutionOptions {
   listrContext: any;  // tslint:disable-line: no-any
   listrTask:    any;  // tslint:disable-line: no-any
   observer:     any;  // tslint:disable-line: no-any
+  sharedData?:  object;
 }
 
 /**
@@ -256,10 +258,26 @@ export interface ListrExecutionOptions {
 export type ListrContext = any; // tslint:disable-line: no-any
 
 /**
+ * Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
+ */
+export interface ListrContextFinalizeGit {
+  gitInstalled:           boolean;
+  gitInitialized:         boolean;
+  projectFilesStaged:     boolean;
+  projectFilesCommitted:  boolean;
+  gitRemoteIsValid:       boolean;
+  gitRemoteAdded:         boolean;
+}
+
+/**
  * Represents an Observable for use with Listr.
  */
 export type ListrObservable = any;  // tslint:disable-line: no-any
 
+/**
+ * Type. Alias to an rxjs Subscriber<any> type.
+ */
+export type Subscriber = Subscriber<any>; // tslint:disable-line: no-any
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.

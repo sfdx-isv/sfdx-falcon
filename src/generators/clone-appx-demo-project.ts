@@ -318,8 +318,10 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   //───────────────────────────────────────────────────────────────────────────┘
   protected install():void {
 
-    // Finalize the cloning of the AppX Package Project.
-    return this._finalizeProjectCloning();
+    // Finalize the cloning of the AppX Demo Project. Skip further action unless this returns TRUE.
+    if (this._finalizeProjectCloning() !== true) {
+      return;
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

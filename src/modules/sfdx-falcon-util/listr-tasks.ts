@@ -12,31 +12,93 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import * as path  from  'path'; // Helps resolve local paths at runtime.
+// Import External Libraries & Modules
+import * as path                from  'path';                       // Helps resolve local paths at runtime.
+import {Observable}             from  'rxjs';                       // Class. Used to communicate status with Listr.
 
-// Import Internal Modules
-import * as sfdxHelper      from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
-import * as yoHelper        from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
-import * as gitHelper       from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
-import * as zipHelper       from  './zip';                      // Library of Zip Helper functions.
+// Import Internal Libraries
+import * as sfdxHelper          from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as yoHelper            from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as gitHelper           from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
+import * as zipHelper           from  './zip';                      // Library of Zip Helper functions.
 
-
-import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+// Import Internal Classes & Functions
+import {waitASecond}                  from  '../sfdx-falcon-async';         // Function. Simple helper that introduces a delay when called inside async functions using "await".
+import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}              from  '../sfdx-falcon-error';         // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {FalconProgressNotifications}  from  '../sfdx-falcon-notifications'; // Class. Manages progress notifications inside Falcon.
+import {SfdxFalconResult}             from  '../sfdx-falcon-result';        // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
+import {SfdxFalconResultType}         from  '../sfdx-falcon-result';        // Enum. Represents the different types of sources where Results might come from.
 
 // Import Falcon Types
-import {ListrTask}          from  '../sfdx-falcon-types';       // Interface. Represents a Listr Task.
-import {ListrObject}        from  '../sfdx-falcon-types';       // Interface.
-import {RawSfdxOrgInfo}     from  '../sfdx-falcon-types';       // Interface. Represents the data returned by the sfdx force:org:list command.
-import {SfdxOrgInfoMap}     from  '../sfdx-falcon-types';       // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
+import {ListrExecutionOptions}    from  '../sfdx-falcon-types';   // Interface. Represents the set of "execution options" related to the use of Listr.
+import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
+import {ListrTask}                from  '../sfdx-falcon-types';   // Interface. Represents a Listr Task.
+import {RawSfdxOrgInfo}           from  '../sfdx-falcon-types';   // Interface. Represents the data returned by the sfdx force:org:list command.
+import {SfdxOrgInfoMap}           from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {Subscriber}               from  '../sfdx-falcon-types';   // Type. Alias to an rxjs Subscriber<any> type.
 
 // Requires
-const listr = require('listr'); // Provides asynchronous list with status of task completion.
+const falconUpdateRenderer  = require('falcon-listr-update-renderer');  // Custom renderer for Listr
+const listr                 = require('listr');                         // Provides asynchronous list with status of task completion.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:listr-tasks:';
 
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    addGitRemote
+ * @param       {string}  targetDir Required. Location where the git command will be run
+ * @param       {string}  gitRemoteUri  Required. URI of the Git Remote to be added as origin.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that adds the provided Git Remote as the
+ *              origin remote.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function addGitRemote(targetDir:string, gitRemoteUri:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  `Adding the Git Remote...`,
+    enabled:() => (typeof targetDir === 'string' && targetDir !== '' && typeof gitRemoteUri === 'string' && gitRemoteUri !== ''),
+    task:   (listrContext, thisTask) => {
+      return new Observable(observer => {
+
+        // Initialize Listr Execution Options.
+        const otr = initObservableTaskResult(`${dbgNs}:addGitRemote:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Adding the Git Remote ${gitRemoteUri} to the local repository`);
+        
+        // Define the Task Logic to be executed.
+        const asyncTask = async () => {
+          const shellString = gitHelper.gitInit(targetDir);
+          SfdxFalconDebug.obj(`${dbgNs} addGitRemote:shellString:`, shellString, `shellString: `);
+          return shellString;
+        };
+
+        // Execute the Task Logic.
+        asyncTask()
+          .then(async result => {
+            await waitASecond(3);
+            thisTask.title += 'Done!';
+            listrContext.gitRemoteAdded = true;
+            finalizeObservableTaskResult(otr);
+          })
+          .catch(async error => {
+            await waitASecond(3);
+            thisTask.title += 'Failed';
+            listrContext.gitRemoteAdded = false;
+            finalizeObservableTaskResult(otr, error);
+          });
+      });
+    }
+  } as ListrTask;
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -179,6 +241,61 @@ function convertMetadataSource(mdapiSourceRootDir:string, sfdxSourceOutputDir:st
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    commitProjectFiles
+ * @param       {string}  targetDir Required.
+ * @param       {string}  commitMessage Required.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that commits whatever is in the Target
+ *              Directory, using the commitMessage parameter for the Commit Message.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function commitProjectFiles(targetDir:string, commitMessage:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  `Committing Files...`,
+    enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
+    task:   (listrContext, thisTask) => {
+      return new Observable(observer => {
+
+        // Initialize Listr Execution Options.
+        const otr = initObservableTaskResult(`${dbgNs}:commitProjectFiles:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Committing files with this message: '${commitMessage}'`);
+        
+        // Define the Task Logic to be executed.
+        const asyncTask = async () => {
+          const shellString = gitHelper.gitCommit(targetDir, commitMessage);
+          SfdxFalconDebug.obj(`${dbgNs}commitProjectFiles:shellString:`, shellString, `shellString: `);
+          return shellString;
+        };
+
+        // Execute the Task Logic.
+        asyncTask()
+          .then(async result => {
+            await waitASecond(3);
+            thisTask.title += 'Done!';
+            listrContext.projectFilesCommitted = true;
+            finalizeObservableTaskResult(otr);
+          })
+          .catch(async error => {
+            await waitASecond(3);
+            thisTask.title += 'Failed';
+            listrContext.projectFilesCommitted = false;
+            // NOTE: We are finalizing *without* passing the Error to force the observer to
+            // end with complete() instead of error().
+            finalizeObservableTaskResult(otr);
+          });
+      });
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    extractMdapiSource
  * @param       {string}  zipFile Required. Path to a zip file produced by an MDAPI retrieve
  *              operation, like "sfdx force:mdapi:retrieve".
@@ -250,16 +367,144 @@ export function fetchAndConvertManagedPackage(aliasOrUsername:string, packageNam
     // TASK GROUP OPTIONS: SFDX Config Tasks
     {
       concurrent: false,
-      collapse:false
+      collapse:   false,
+      renderer:   falconUpdateRenderer
     }
   );
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    finalizeGit
+ * @param       {string}  targetDirectory Required. Directory that will be initialized with Git.
+ * @param       {string}  [gitRemoteUri]  Optional. URI of the remote that should be associated
+ *              with the repository that we're going to initialize.
+ * @returns     {ListrObject}  A "runnable" Listr Object
+ * @description Returns a "runnable" Listr Object that initializes Git in the Target Directory, then
+ *              connects that repo to the remote specified by the Git Remote URI.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function finalizeGit(targetDir:string, gitRemoteUri:string=''):ListrObject {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}finalizeGit:arguments:`, arguments, `arguments: `);
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Make sure the caller provided a Target Directory.
+  if (typeof targetDir !== 'string' || targetDir === '') {
+    throw new SfdxFalconError( `Expected targetDir to be a non-empty string but got type '${typeof targetDir}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}finalizeGit`);
+  }
+
+  // Build and return a Listr Object.
+  return new listr(
+    [
+      // TASKS: Git Finalization Tasks
+      gitRuntimeCheck.call(this),
+      initializeGit.call(this, targetDir),
+      stageProjectFiles.call(this, targetDir),
+      commitProjectFiles.call(this, targetDir, 'Initial Commit'),
+      reValidateGitRemote.call(this, gitRemoteUri),
+      addGitRemote.call(this, targetDir, gitRemoteUri)
+    ],
+    {
+      // TASK OPTIONS: Git Finalization Tasks
+      concurrent: false,
+      collapse:   false,
+      renderer:   falconUpdateRenderer
+    }
+  ) as ListrObject;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    initObservableTaskResult
+ * @param       {SfdxFalconResult}  otr Required.
+ * @param       {SfdxFalconError} [error] Optional.
+ * @returns     {void}
+ * @description Given a LISTR Result, attempts to "finalize" it by performing a number of tasks.
+ *              These include finishing any progress notifications, marking the result as succeeded
+ *              (or errror if an SfdxFalconError is provided), attaching the result to its parent
+ *              result, and then completing (or error-ing) the observer.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function finalizeObservableTaskResult(otr:SfdxFalconResult, error?:SfdxFalconError):void {
+
+  // Validate incoming arguments.
+  if (typeof otr === 'undefined') {
+    throw new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got 'undefined' instead.`
+                             , `TypeError`
+                             , `${dbgNs}finalizeObservableTaskResult`);
+  }
+  if ((otr instanceof SfdxFalconResult) !== true) {
+    throw new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got '${(otr.constructor) ? otr.constructor.name : 'unknown'}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}finalizeObservableTaskResult`);
+  }
+  if (typeof otr.detail !== 'object') {
+    throw new SfdxFalconError( `Expected otr.detail to be an object but got '${typeof otr.detail}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}finalizeObservableTaskResult`);
+  }
+  if (typeof error !== 'undefined' && (error instanceof Error) !== true) {
+    throw new SfdxFalconError( `Expected error to be an instance of Error if provided but got '${(error.constructor) ? error.constructor.name : 'unknown'}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}finalizeObservableTaskResult`);
+  }
+
+  // Extract key objects from the OTR Detail.
+  const otrObserver           = otr.detail['observer']      || {} as Subscriber;
+  const parentResult          = otr.detail['parentResult']  || {} as SfdxFalconResult;
+  const progressNotification  = otr.detail['progressNotification'] as NodeJS.Timeout;
+
+  // Finish any Progress Notifications attached to this OTR (Observable Task Result).
+  FalconProgressNotifications.finish(progressNotification);
+
+  // Set the final state of the OTR (success or error).
+  if (typeof error === 'undefined') {
+    // Succeeded
+    otr.success();
+  }
+  else {
+    // Failed
+    otr.error(error);
+  }
+
+  // Add the OTR as a child of it's attached Parent Result (if present).
+  if (parentResult instanceof SfdxFalconResult) {
+    try {
+      parentResult.addChild(otr);
+    }
+    catch (bubbledError) {
+      // If we get here, it means the parent was set to Bubble Errors.
+      // We need to catch this so we can call error() on the OTR Observer.
+      if (typeof otrObserver.error === 'function') {
+        otrObserver.error(SfdxFalconError.wrap(error));
+      }
+    }
+  }
+
+  // Tell the Observable to "complete" or "error", depending on whether we got an Error object or not.
+  if (typeof error === 'undefined') {
+    if (typeof otrObserver.complete === 'function') {
+      otrObserver.complete();
+    }
+  }
+  else {
+    if (typeof otrObserver.error === 'function') {
+      otrObserver.error(SfdxFalconError.wrap(error));
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    gitInitTasks
- * @param       {string}  cliCommandName Required. Name of the command that's running these init tasks.
- * @param       {string}  gitRemoteUri  Required. URI of the remote Git repository being validated.
  * @returns     {ListrObject}  A "runnable" Listr Object
  * @description Returns a Listr-compatible Task Object that verifies the presence of the Git
  *              executable in the local environment.
@@ -297,7 +542,8 @@ export function gitInitTasks():ListrObject {
             ],
             {
               // SUBTASK OPTIONS: (Git Init Tasks)
-              concurrent:false
+              concurrent: false,
+              renderer:   falconUpdateRenderer
             }
           );
         }
@@ -305,8 +551,9 @@ export function gitInitTasks():ListrObject {
     ],
     {
       // PARENT_TASK OPTIONS: (Git Validation/Initialization)
-      concurrent:false,
-      collapse:false
+      concurrent: false,
+      collapse:   false,
+      renderer:   falconUpdateRenderer
     }
   );
 }
@@ -324,13 +571,13 @@ export function gitInitTasks():ListrObject {
 export function gitRuntimeCheck():ListrTask {
   return {
     title:  'Looking for Git...',
-    task:   (listrContext, thisTask) => {
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       if (gitHelper.isGitInstalled() === true) {
         thisTask.title += 'Found!';
-        listrContext.gitIsInstalled = true;
+        listrContext.gitInstalled = true;
       }
       else {
-        listrContext.gitIsInstalled = false;
+        listrContext.gitInstalled = false;
         thisTask.title += 'Not Found!';
         throw new SfdxFalconError( 'Git must be installed in your local environment.'
                                  , 'GitNotFound'
@@ -490,6 +737,120 @@ export function identifyPkgOrgs():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    initializeGit
+ * @param       {string}  targetDir
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that initializes Git in the target directory.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function initializeGit(targetDir:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  `Initializing Git in Target Directory...`,
+    enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
+      return new Observable(observer => {
+
+        // Initialize Listr Execution Options.
+        const otr = initObservableTaskResult(`${dbgNs}:initializeGit:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Running git init in ${targetDir}`);
+        
+        // Define the Task Logic to be executed.
+        const asyncTask = async () => {
+          const shellString = gitHelper.gitInit(targetDir);
+          SfdxFalconDebug.obj(`${dbgNs}initializeGit:shellString:`, shellString, `shellString: `);
+          return shellString;
+        };
+
+        // Execute the Task Logic.
+        asyncTask()
+          .then(async result => {
+            await waitASecond(3);
+            thisTask.title += 'Done!';
+            listrContext.gitInitialized = true;
+            finalizeObservableTaskResult(otr);
+          })
+          .catch(async error => {
+            await waitASecond(3);
+            thisTask.title += 'Failed';
+            listrContext.gitInitialized = false;
+            finalizeObservableTaskResult(otr, error);
+          });
+      });
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    initObservableTaskResult
+ * @param       {string}  extDbgNs  Required.
+ * @param       {object}  listrContext Required.
+ * @param       {object}  listrTask Required.
+ * @param       {object}  [observer]  Optional.
+ * @param       {object}  [sharedData]  Optional.
+ * @param       {string}  [message] Optional.
+ * @param       {SfdxFalconResult}  [parentResult]  Optional.
+ * @returns     {ListrExecutionOptions}
+ * @description Returns a ListrExecutionOptions structure, populated with the values provided by the
+ *              caller. Before returning, this function will perform DEBUG for the namespace that
+ *              the caller provides.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function initObservableTaskResult(extDbgNs:string, listrContext:object, listrTask:object, observer:Subscriber, sharedData:object, parentResult:SfdxFalconResult, message:string):SfdxFalconResult {
+
+  // Create a Listr "Execution Options" data structure.
+  const listrExecOpts:ListrExecutionOptions = {
+    listrContext: listrContext,
+    listrTask:    listrTask,
+    observer:     observer,
+    sharedData:   sharedData
+  };
+  SfdxFalconDebug.obj(`${extDbgNs}`, listrExecOpts, `listrExecOpts: `);
+
+  // Initialize an SFDX-Falcon Result object.
+  const observableTaskResult =
+    new SfdxFalconResult(extDbgNs, SfdxFalconResultType.LISTR,
+                        { startNow:       true,
+                          bubbleError:    false,    // Let the parent Result handle errors (no bubbling)
+                          bubbleFailure:  false});  // Let the parent Result handle failures (no bubbling)
+
+  // Set the initial Task Detail message.
+  if (typeof observer === 'object' && typeof observer.next === 'function' && typeof message === 'string') {
+    observer.next(`[0s] ${message}`);
+  }
+
+  // Set up Progress Notifications.
+  const progressNotification =
+    FalconProgressNotifications.start(message, 1000, observableTaskResult, observer);
+
+  // Initialize the Results Detail object for this LISTR observable task.
+  const observableTaskResultDetail = {
+    progressNotification: progressNotification,
+    parentResult:         parentResult,
+    listrExecOpts:        listrExecOpts,
+    listrContext:         listrContext,
+    listrTask:            listrTask,
+    observer:             observer,
+    sharedData:           sharedData,
+    message:              message
+  };
+
+  // Attach the Results Detail object to the LISTR result.
+  observableTaskResult.setDetail(observableTaskResultDetail);
+
+  // Return the Observable Task Result to the caller.
+  return observableTaskResult;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    packagedMetadataFetch
  * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
  *              Salesforce CLI connected org.
@@ -515,9 +876,9 @@ export function packagedMetadataFetch(aliasOrUsername:string, packageNames:strin
   // Build and return a Listr Task.
   return {
     title:  'Fetching Metadata Packages...',
-    task:   (listrContext, thisTask) => {
+    task:   (listrContext:unknown, thisTask:ListrTask) => {
       return sfdxHelper.fetchMetadataPackages(aliasOrUsername, packageNames, retrieveTargetDir)
-        .then(utilityResult => {
+        .then((utilityResult:SfdxFalconResult) => {
           SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:then:utilityResult:`, utilityResult, `then:utilityResult: `);
 
           // Save the UTILITY result to shared data and update the task title.
@@ -525,7 +886,7 @@ export function packagedMetadataFetch(aliasOrUsername:string, packageNames:strin
           thisTask.title += 'Done!';
 
         })
-        .catch(utilityResult => {
+        .catch((utilityResult:SfdxFalconResult|Error) => {
 
           // We get here if no connections were found.
           SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:catch:utilityResult:`, utilityResult, `catch:utilityResult: `);
@@ -534,6 +895,53 @@ export function packagedMetadataFetch(aliasOrUsername:string, packageNames:strin
         });
       }
   };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    reValidateGitRemote
+ * @param       {string}  gitRemoteUri
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to re-validate the presence of
+ *              a Git Remote at the Git Remote URI provided.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  `Validating Access to the Git Remote...`,
+    enabled:() => (typeof gitRemoteUri === 'string' && gitRemoteUri !== ''),
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
+      return new Observable(observer => {
+
+        // Initialize Listr Execution Options.
+        const otr = initObservableTaskResult(`${dbgNs}:reValidateGitRemote:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Attempting to reach ${gitRemoteUri}`);
+        
+        // Execute the Task Logic
+        gitHelper.isGitRemoteEmptyAsync(gitRemoteUri, 3)
+          .then(successResult => {
+            SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:successResult:`, successResult, `successResult: `);
+            listrContext.gitRemoteIsValid = true;
+            thisTask.title += successResult.message + '!';
+            finalizeObservableTaskResult(otr);
+          })
+          .catch(errorResult => {
+            SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:errorResult:`, errorResult, `errorResult: `);
+            listrContext.gitRemoteIsValid = false;
+            thisTask.title += 'ERROR';
+            // NOTE: We are finalizing *without* passing the Error to force the observer to
+            // end with complete() instead of error().
+            finalizeObservableTaskResult(otr);
+          });
+      });
+    }
+  } as ListrTask;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -628,7 +1036,8 @@ export function sfdxInitTasks():ListrObject {
             // SUBTASK OPTIONS: (SFDX Config Tasks)
             {
               concurrent: false,
-              collapse:false
+              collapse:   false,
+              renderer:   falconUpdateRenderer
             }
           );
         }
@@ -636,10 +1045,63 @@ export function sfdxInitTasks():ListrObject {
     ],
     {
       // PARENT_TASK OPTIONS: (Git Validation/Initialization)
-      concurrent:false,
-      collapse:false
+      concurrent: false,
+      collapse:   false,
+      renderer:   falconUpdateRenderer
     }
   );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    stageProjectFiles
+ * @param       {string}  targetDir
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that stages (git -A) ALL files in the target
+ *              directory.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function stageProjectFiles(targetDir:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  `Staging Files...`,
+    enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
+      return new Observable(observer => {
+
+        // Initialize Listr Execution Options.
+        const otr = initObservableTaskResult(`${dbgNs}:stageProjectFiles:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Staging all new and modified files (git -A) in ${targetDir}`);
+        
+        // Define the Task Logic to be executed.
+        const asyncTask = async () => {
+          const shellString = gitHelper.gitAdd(targetDir);
+          SfdxFalconDebug.obj(`${dbgNs}stageProjectFiles:shellString:`, shellString, `shellString: `);
+          return shellString;
+        };
+
+        // Execute the Task Logic.
+        asyncTask()
+          .then(async result => {
+            await waitASecond(3);
+            thisTask.title += 'Done!';
+            listrContext.projectFilesStaged = true;
+            finalizeObservableTaskResult(otr);
+          })
+          .catch(async error => {
+            await waitASecond(3);
+            thisTask.title += 'Failed';
+            listrContext.projectFilesStaged = false;
+            finalizeObservableTaskResult(otr, error);
+          });
+      });
+    }
+  } as ListrTask;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -664,7 +1126,7 @@ export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
   // Build and return the Listr task.
   return {
     title:  'Validating Git Remote...',
-    enabled: listrContext => (gitRemoteUri && listrContext.gitIsInstalled === true),
+    enabled: listrContext => (gitRemoteUri && listrContext.gitInstalled === true),
     task:   (listrContext, thisTask) => {
       return gitHelper.isGitRemoteEmptyAsync(gitRemoteUri, 3)
         .then(result => {

@@ -11,9 +11,14 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules
+
 // Import Local Modules
-import {SfdxFalconStatus} from  '../sfdx-falcon-status';      // Why?
 import {SfdxFalconResult} from  '../sfdx-falcon-result';      // Why?
+
+// Import Falcon Types
+import {Subscriber}       from  '../sfdx-falcon-types';      // Why?
+
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -25,23 +30,25 @@ import {SfdxFalconResult} from  '../sfdx-falcon-result';      // Why?
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class FalconProgressNotifications {
 
-  // Class members
-  static timeoutRefs: Array<any>;    // Holds a ref to every timeout obj we create.
-
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      start
-   * @param       {string}            message   ???
-   * @param       {number}            interval  ???
-   * @param       {SfdxFalconStatus}  status    ???
-   * @param       {any}               observer  ???
-   * @returns     {any} ???
-   * @description ???
-   * @version     1.0.0
+   * @param       {string}  message Required. The baseline message that will
+   *              be used for each interval-based push (ie. Observer.next()).
+   * @param       {number}  interval  Requiredl The interval in milliseconds.
+   *              Use 1000 if you want a per-second progress count.
+   * @param       {SfdxFalconResult}  result  Required. The SfdxFalconResult
+   *              that will be used to pull in the elapsed time used by the
+   *              Progress Notification function.
+   * @param       {Subscriber}  observer  Required. Subscriber to an Observable
+   *              object.
+   * @returns     {NodeJS.Timeout}  Result of a call to setTimeout().
+   * @description Starts a progress notification interval timeout that is able
+   *              to provide regular updates to an Observable object.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static start(message:string, interval:number, status:SfdxFalconStatus, observer:any):any {
+  public static start(message:string, interval:number, result:SfdxFalconResult, observer:Subscriber):NodeJS.Timeout {
 
     // Initialize the timeoutRefs array if this is the first time star() is called.
     if (typeof FalconProgressNotifications.timeoutRefs === 'undefined') {
@@ -49,22 +56,7 @@ export class FalconProgressNotifications {
     }
 
     // Set the interval and save a ref to it.
-    let timeoutRef = setInterval(progressNotification, interval, status, message, observer);
-    FalconProgressNotifications.timeoutRefs.push(timeoutRef);
-
-    // return the timeoutRef
-    return timeoutRef;
-  }
-  // REFACTOR_IN_PROGRESS
-  static start2(message:string, interval:number, result:SfdxFalconResult, observer:any):any {
-
-    // Initialize the timeoutRefs array if this is the first time star() is called.
-    if (typeof FalconProgressNotifications.timeoutRefs === 'undefined') {
-      FalconProgressNotifications.timeoutRefs = new Array();
-    }
-
-    // Set the interval and save a ref to it.
-    let timeoutRef = setInterval(progressNotification, interval, result, message, observer);
+    const timeoutRef = setInterval(progressNotification, interval, result, message, observer);
     FalconProgressNotifications.timeoutRefs.push(timeoutRef);
 
     // return the timeoutRef
@@ -74,66 +66,75 @@ export class FalconProgressNotifications {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      finish
-   * @param       {any}   timeoutObj  ???
-   * @returns     {void}  ???
-   * @description ???
-   * @version     1.0.0
+   * @param       {NodeJS.Timeout}  timeoutObj  Required. The timeout that will
+   *              be cleared.
+   * @returns     {void}
+   * @description Given a Timeout object (ie. the thing that's returned from a
+   *              call to setInterval() or setTimeout()), clears that timeout
+   *              so that it doesn't execute (or execute again).
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static finish(timeoutObj:any):void {
+  public static finish(timeoutObj:NodeJS.Timeout):void {
     // Set an interval for the progressNotification function and return to caller.
-    clearInterval(timeoutObj);
+    if (timeoutObj) {
+      clearInterval(timeoutObj);
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      killAll
-   * @returns     {void}  ???
-   * @description ???
-   * @version     1.0.0
+   * @returns     {void}
+   * @description Kills (calls clearInterval()) on ALL of the Timeout Refs that
+   *              have been created as part of the SFDX-Falcon notification
+   *              system.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  static killAll():void {
+  public static killAll():void {
     if (typeof FalconProgressNotifications.timeoutRefs !== 'undefined') {
-      for (let i=0; i < FalconProgressNotifications.timeoutRefs.length; i++) {
-        clearInterval(FalconProgressNotifications.timeoutRefs[i]);
-      }  
+      for (const timeoutRef of FalconProgressNotifications.timeoutRefs) {
+          clearInterval(timeoutRef);
+      }
     }
   }
+
+  // Private Members
+  /** Holds a reference to every timeout object created as part of the SFDX-Falcon notification process. */
+  private static timeoutRefs: NodeJS.Timeout[];
+
 } // End of FalconProgressNotifications class definition
 
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    progressNotification
- * @param       {SfdxFalconStatus}  status    Required. Helps determine current running time.
- * @param       {string}            message   Required. Displayed after the elapsed run time.
- * @param       {any}               observer  Required. Reference to an Observable object.
+ * @param       {SfdxFalconStatus}  status  Required. Helps determine current running time.
+ * @param       {string}  message Required. Displayed after the elapsed run time.
+ * @param       {Subscriber}  observer  Required. Subscriber to an Observable object.
  * @returns     {void}
- * @description Computes the current Run Time from a SfdxFalconStatus object and composes a 
+ * @description Computes the current Run Time from a SfdxFalconStatus object and composes a
  *              message that updateObserver() will handle.
- * @version     1.0.0
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function progressNotification(result:SfdxFalconResult, message:string, observer:any):void {
+function progressNotification(result:SfdxFalconResult, message:string, observer:Subscriber):void {
   updateObserver(observer, `[${result.durationString}] ${message}`);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    updateObserver
- * @param       {any}     observer  Required. Does nothing if typeof observer.next is undefined.
- * @param       {string}  message   Required. The message to be passed to observer.next().
+ * @param       {Subscriber}  observer  Required. Subscriber to an Observable object. Does nothing
+ *              if typeof observer.next is undefined.
+ * @param       {string}  message Required. The message to be passed to observer.next().
  * @returns     {void}
  * @description Posts the provided message to observer.next() ONLY if an Observer was provided.
- * @version     1.0.0
-] */
+ */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function updateObserver(observer:any, message:string):void {
-  if (typeof observer       !== 'object')   return;  
+export function updateObserver(observer:Subscriber, message:string):void {
+  if (typeof observer       !== 'object')   return;
   if (typeof observer.next  !== 'function') return;
   if (typeof message        !== 'string')   return;
   observer.next(message);

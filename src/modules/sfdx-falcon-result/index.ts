@@ -425,10 +425,10 @@ export class SfdxFalconResult {
   private _endTime:         number;
 
   // Property accessors
-  public get detail():unknown {
-    return this._detail;
+  public get detail():object {
+    return this._detail as object;
   }
-  public set detail(incomingDetail:unknown) {
+  public set detail(incomingDetail:object) {
     this.setDetail(incomingDetail);
   }
   public get duration():number {
@@ -591,8 +591,8 @@ export class SfdxFalconResult {
   /**
    * @method      success
    * @returns     {this}  Returns "this" instance to support method chaining.
-   * @description Sets the stop time to NOW, marks status as SUCCESS, and
-   *              stores the provided "success detail" as the result.
+   * @description Sets the stop time to NOW and marks the status of this Result
+   *              as SUCCESS.
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -627,8 +627,7 @@ export class SfdxFalconResult {
   /**
    * @method      warning
    * @returns     {this}  Returns "this" instance to support method chaining.
-   * @description Sets the stop time to NOW, marks status as WARNING, and stores
-   *              the provided "warning result" as the result.
+   * @description Sets the stop time to NOW and marks status as WARNING.
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -645,8 +644,7 @@ export class SfdxFalconResult {
   /**
    * @method      unknown
    * @returns     {this}  Returns "this" instance to support method chaining.
-   * @description Sets the stop time to NOW, marks status as UNKNOWN, and stores
-   *              the provided "unknown result" as the result.
+   * @description Sets the stop time to NOW and marks status as UNKNOWN.
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘

@@ -118,8 +118,8 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     updateObserver(sfdxCommandDef.observer, `[0.000s] Executing ${sfdxCommandDef.command}`);
 
     // Set up Progress Notifications.
-    const progressNotifications 
-      = FalconProgressNotifications.start2(sfdxCommandDef.progressMsg, 1000, executorResult, sfdxCommandDef.observer);
+    const progressNotifications
+      = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, executorResult, sfdxCommandDef.observer);
 
     // Capture the stdout datastream. This should end up being a valid JSON object.
     childProcess.stdout.on('data', (stdOutDataStream:string) => {

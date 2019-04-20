@@ -30,8 +30,8 @@ import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-com
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';          // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
 
 // Import Falcon Types
-import {YeomanChoice}                   from  '../modules/sfdx-falcon-types'; // Interface. Represents a Yeoman/Inquirer choice object.
-import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types'; // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
+import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -93,9 +93,6 @@ interface InterviewAnswers {
   metadataPackageId:        string;
   packageVersionIdBeta:     string;
   packageVersionIdRelease:  string;
-
-  // TODO: Delete this if not used.
-  isCreatingManagedPackage: boolean;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -189,7 +186,6 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.defaultAnswers.metadataPackageId           = '033000000000000';
     this.defaultAnswers.packageVersionIdBeta        = '04t000000000000';
     this.defaultAnswers.packageVersionIdRelease     = '04t000000000000';
-    this.defaultAnswers.isCreatingManagedPackage    = true;
 
     // Initialize META Answers
     this.metaAnswers.devHubAlias                    = `<%-finalAnswers.devHubAlias%>`;
@@ -523,7 +519,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
         this.finalAnswers.packageDirectory        = this.finalAnswers.namespacePrefix;
         break;
       case '1GP:unmanaged':
-        this.finalAnswers.packageDirectory  = this.defaultAnswers.packageDirectory;
+        this.finalAnswers.packageDirectory  = 'NOT_YET_IMPLENTED';
         break;
       case '2GP:managed':
         // TODO: Figure out what the Package Directory should be.
@@ -551,7 +547,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     SfdxFalconDebug.str(`${dbgNs}writing:`, this.destinationRoot(), `this.destinationRoot(): `);
 
     // Tell the user that we are preparing to create their project.
-    this.log(chalk`{yellow Writing project files to ${this.destinationRoot()}...}\n`);
+    this.log(chalk`{yellow Writing project files to ${this.destinationRoot()}...}`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -702,16 +698,20 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
   //───────────────────────────────────────────────────────────────────────────┘
   protected async install() {
 
-    // Finalize the creation of the AppX Package Project.
-    this._finalizeProjectCreation();
+    // Finalize the creation of the AppX Package Project. Skip further action unless this returns TRUE.
+    if (this._finalizeProjectCreation() !== true) {
+      return;
+    }
     
     // Perform special install actions depending on Project Type.
     switch (this.finalAnswers.projectType) {
       case '1GP:managed':
         if (await this._fetchAndConvertManagedPackage()) {
 
-          // Fetch/convert succeeded. Just need to finalize any Git actions and we're done.
-          this._finalizeGitActions();
+          // Fetch/convert succeeded. Try to finalize Git now.
+          await this._finalizeGitActions(this.destinationRoot(),
+                                         this.finalAnswers.gitRemoteUri,
+                                         this.finalAnswers.projectAlias);
         }
         else {
 
@@ -722,19 +722,21 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
             title:    `Fetch/Convert Project`,
             message:  `Warning - Could not fetch/convert your managed package`
           });
+          this.generatorStatus.addMessage({
+            type:     'warning',
+            title:    `Git Initialzation`,
+            message:  `Warning - Git initialization skipped since managed package was not fetched/converted`
+          });
         }
         return;
       case '1GP:unmanaged':
         console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
-        this._finalizeGitActions();
         return;
       case '2GP:managed':
         console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
-        this._finalizeGitActions();
         return;
       case '2GP:unlocked':
         console.log(`NOT_YET_IMPLENTED: ${this.finalAnswers.projectType}`);
-        this._finalizeGitActions();
         return;
       default:
         throw new SfdxFalconError ( `Invalid Project Type: '${this.finalAnswers.projectType}'. `

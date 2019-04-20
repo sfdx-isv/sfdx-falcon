@@ -10,7 +10,8 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path          from 'path';  // Node's path library.
+import * as path          from  'path';     // Node's path library.
+import {ShellString}      from  'shelljs';  // Contains information regarding the output of a shell.exec() command.
 
 // Import Internal Modules
 import {waitASecond}      from  '../../modules/sfdx-falcon-async';  // Function. Allows for a simple "wait" to execute.
@@ -150,20 +151,21 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.', repoDi
 /**
  * @function    gitInit
  * @param       {string}  targetDirectory Location where the git command will be run
- * @returns     {void}    No return value. Will throw Error if any problems.
+ * @returns     {ShellString} Returns a ShellString object, containing code, stdout, and stderr.
+ *              Will throw an Error if there are any problems prior to executing "git init".
  * @description Initializes Git at the location specified by targetDirectory.  Note that there are
  *              no adverse effects if gitInit is called on the same location more than once.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitInit(targetDirectory:string):void {
+export function gitInit(targetDirectory:string):ShellString {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}gitInit:`, arguments, `arguments: `);
 
   // Validate incoming arguments
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
-    throw new SfdxFalconError( `Expected non-empty string for targetDirectory but got '${typeof targetDirectory}'`
+    throw new SfdxFalconError( `Expected non-empty string for targetDirectory but got '${typeof targetDirectory}' instead`
                              , 'TypeError'
                              , `${dbgNs}gitInit`);
   }
@@ -172,10 +174,38 @@ export function gitInit(targetDirectory:string):void {
   shell.cd(targetDirectory);
 
   // Execute the git init command
-  shell.exec(`git init`, {silent: true});
+  return shell.exec(`git init`, {silent: true}) as ShellString;
+}
 
-  // Done
-  return;
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    gitAdd
+ * @param       {string}  targetDirectory Required. Location where the git command will be run
+ * @returns     {ShellString}
+ * @description Executes "git add -A" inside of the target directory.
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function gitAdd(targetDirectory:string):ShellString {
+
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}gitAdd:arguments:`, arguments, `arguments: `);
+
+  // Validate incoming arguments.
+  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
+    throw new SfdxFalconError( `Expected non-empty string for targetDirectory but got '${typeof targetDirectory}'`
+                             , 'TypeError'
+                             , `${dbgNs}gitAdd`);
+  }
+
+  // Set shelljs config to throw exceptions on fatal errors.
+  shell.config.fatal = true;
+
+  // Change the shell's directory to the target directory.
+  shell.cd(targetDirectory);
+
+  // Stage all new and modified files
+  return shell.exec(`git add -A`, {silent: true});
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -192,7 +222,7 @@ export function gitInit(targetDirectory:string):void {
 export function gitAddAndCommit(targetDirectory:string, commitMessage:string):void {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}gitAddAndCommit:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}gitAddAndCommit:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -224,19 +254,57 @@ export function gitAddAndCommit(targetDirectory:string, commitMessage:string):vo
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    gitAddAndCommit
+ * @param       {string}  targetDirectory Required. Location where the git command will be run
+ * @param       {string}  commitMessage   Required. String to be used as the commit message
+ * @returns     {ShellString}
+ * @description Executes "git commit" inside of the target directory.  For the commit, it adds the
+ *              message passed in via commitMessage.
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function gitCommit(targetDirectory:string, commitMessage:string):ShellString {
+
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}gitCommit:arguments:`, arguments, `arguments: `);
+
+  // Validate incoming arguments.
+  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
+    throw new SfdxFalconError( `Expected non-empty string for targetDirectory but got '${typeof targetDirectory}'`
+                             , 'TypeError'
+                             , `${dbgNs}gitCommit`);
+  }
+  if (typeof commitMessage !== 'string' || commitMessage === '') {
+    throw new SfdxFalconError( `Expected non-empty string for commitMessage but got '${typeof commitMessage}'`
+                             , 'TypeError'
+                             , `${dbgNs}gitCommit`);
+  }
+
+  // Set shelljs config to throw exceptions on fatal errors.
+  shell.config.fatal = true;
+
+  // Change the shell's directory to the target directory.
+  shell.cd(targetDirectory);
+
+  // Commit
+  return shell.exec(`git commit -m "${commitMessage}"`, {silent: true});
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    gitRemoteAddOrigin
- * @param       {string}  targetDirectory Location where the git command will be run
- * @param       {string}  gitRemoteUri  Required. URI of the Git Remote Repository to be checked.
- * @returns     {void}    No return value. Will throw Error if any problems.
+ * @param       {string}  targetDirectory Required. Location where the git command will be run
+ * @param       {string}  gitRemoteUri  Required. URI of the Git Remote to be added as origin.
+ * @returns     {ShellString} Result of a call to shell.exec().
  * @description Executes "git remote add origin" inside of the target directory, connecting the
  *              repo to the Remote specified by gitRemoteUri.
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):void {
+export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):ShellString {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -257,10 +325,7 @@ export function gitRemoteAddOrigin(targetDirectory:string, gitRemoteUri:string):
   shell.cd(targetDirectory);
 
   // Add the Git Remote
-  shell.exec(`git remote add origin ${gitRemoteUri}`, {silent: true});
-
-  // Done
-  return;
+  return shell.exec(`git remote add origin ${gitRemoteUri}`, {silent: true});
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐

@@ -269,7 +269,7 @@ export async function configureUser(username:string, userDefinition:any, targetO
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
-  const progressNotifications = FalconProgressNotifications.start2(executorMessages.progressMsg, 1000, executorResult, observer);
+  const progressNotifications = FalconProgressNotifications.start(executorMessages.progressMsg, 1000, executorResult, observer);
 
   // We will be making multiple API calls, so grab a connection.
   const connection = await getConnection(targetOrg.alias)
@@ -378,7 +378,7 @@ export async function createUser(uniqueUsername:string, password:string, userDef
 
   // Start sending Progress Notifications.
   updateObserver(observer, `[0s] ${executorMessages.progressMsg}`);
-  const progressNotifications = FalconProgressNotifications.start2(executorMessages.progressMsg, 1000, executorResult, observer);
+  const progressNotifications = FalconProgressNotifications.start(executorMessages.progressMsg, 1000, executorResult, observer);
 
   // We will be making multiple API calls, so grab a connection.
   const connection = await getConnection(targetOrg.alias)
