@@ -21,6 +21,7 @@ import {Questions}            from  'yeoman-generator';         // Interface. Re
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 
 // Import Internal Modules/Types
+import {SfdxFalconResult}     from  '../sfdx-falcon-result';    // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
 import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about orgs that are connected to the local Salesforce CLI.
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
@@ -331,6 +332,11 @@ export interface ConfirmationAnswers {
  * Type. Defines a function that displays answers to a user.
  */
 export type AnswersDisplay<T extends object> = (userAnswers?:T) => Promise<void | SfdxFalconTableData>;
+
+/**
+ * Type. Alias to a combination of Error or SfdxFalconResult.
+ */
+export type ErrorOrResult = Error | SfdxFalconResult;
 
 /**
  * Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.

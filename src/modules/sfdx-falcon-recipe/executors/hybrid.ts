@@ -17,11 +17,11 @@ import {Connection}           from '@salesforce/core';  // Why?
 import {RecordResult}         from 'jsforce';           // Wny?
 
 // Import Internal Modules
-import {waitASecond}                  from  '../../sfdx-falcon-async';          // Why?
 import {updateObserver}               from  '../../sfdx-falcon-notifications';  // Function. Updates the given Observer (if observer is defined)
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';  // Class. Provides services related to Listr-based progress notifications.
-import {SfdxFalconResult}             from  '../../sfdx-falcon-result';         // Why?
-import {SfdxFalconResultType}         from  '../../sfdx-falcon-result';         // Why?
+import {SfdxFalconResult}             from  '../../sfdx-falcon-result';         // Class. mplements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
+import {SfdxFalconResultType}         from  '../../sfdx-falcon-result';         // Enum. Represents the different types of sources where Results might come from.
+import {waitASecond}                  from  '../../sfdx-falcon-util/async';     // Function. Simple helper function that can be used to introduce a delay when called inside async.
 
 // Import Local Falcon Recipe Types
 import {TargetOrg}                    from  '../types'; // Interface. Represents an org that will be targeted by SFDX/JSForce code.

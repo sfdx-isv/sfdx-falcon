@@ -25,6 +25,7 @@ import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
 
 // Import Utility Functions
 import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
+import {waitASecond}            from  '../sfdx-falcon-util/async';    // Function. Can be used to introduce a delay when called inside async functions with the "await" keyword.
 //import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
 import {getPackages}            from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
 
@@ -610,6 +611,9 @@ export async function fetchMetadataPackages(aliasOrUsername:string, packageNames
   + ` --wait 10`
   + ` --loglevel debug`
   + ` --json`;
+
+  // Introduce a small delay in case this is being used by an Observable Listr Task.
+  await waitASecond(3);
 
   // Initialize a UTILITY Result for this function.
   const utilityResult = new SfdxFalconResult(`sfdx:fetchMetadataPackages`, SfdxFalconResultType.UTILITY);

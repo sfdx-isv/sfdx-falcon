@@ -14,9 +14,9 @@ import * as path          from  'path';     // Node's path library.
 import {ShellString}      from  'shelljs';  // Contains information regarding the output of a shell.exec() command.
 
 // Import Internal Modules
-import {waitASecond}      from  '../../modules/sfdx-falcon-async';  // Function. Allows for a simple "wait" to execute.
-import {SfdxFalconDebug}  from  '../../modules/sfdx-falcon-debug';  // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}  from  '../../modules/sfdx-falcon-error';  // Class. Specialized Error object. Wraps SfdxError.
+import {SfdxFalconDebug}  from  '../../modules/sfdx-falcon-debug';      // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}  from  '../../modules/sfdx-falcon-error';      // Class. Specialized Error object. Wraps SfdxError.
+import {waitASecond}      from  '../../modules/sfdx-falcon-util/async'; // Function. Allows for a simple "wait" to execute.
 
 // Requires
 const shell = require('shelljs'); // Cross-platform shell access - use for setting up Git repo.

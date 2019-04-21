@@ -33,7 +33,6 @@ import {CoreActionResultDetail}       from  '../../../modules/sfdx-falcon-recipe
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-install:';
-//const clsDbgNs  = 'FalconDemoInstall:';
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);

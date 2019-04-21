@@ -13,6 +13,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Libraries & Modules
+import {isEmpty}                from  'lodash';                     // Useful function for detecting empty objects.
 import * as path                from  'path';                       // Helps resolve local paths at runtime.
 import {Observable}             from  'rxjs';                       // Class. Used to communicate status with Listr.
 
@@ -23,14 +24,15 @@ import * as gitHelper           from  './git';                      // Library o
 import * as zipHelper           from  './zip';                      // Library of Zip Helper functions.
 
 // Import Internal Classes & Functions
-import {waitASecond}                  from  '../sfdx-falcon-async';         // Function. Simple helper that introduces a delay when called inside async functions using "await".
 import {SfdxFalconDebug}              from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}              from  '../sfdx-falcon-error';         // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {FalconProgressNotifications}  from  '../sfdx-falcon-notifications'; // Class. Manages progress notifications inside Falcon.
 import {SfdxFalconResult}             from  '../sfdx-falcon-result';        // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
 import {SfdxFalconResultType}         from  '../sfdx-falcon-result';        // Enum. Represents the different types of sources where Results might come from.
+import {waitASecond}                  from  '../sfdx-falcon-util/async';    // Function. Simple helper that introduces a delay when called inside async functions using "await".
 
 // Import Falcon Types
+import {ErrorOrResult}            from  '../sfdx-falcon-types';   // Type. Alias to a combination of Error or SfdxFalconResult.
 import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
 import {ListrExecutionOptions}    from  '../sfdx-falcon-types';   // Interface. Represents the set of "execution options" related to the use of Listr.
 import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
@@ -70,8 +72,8 @@ export function addGitRemote(targetDir:string, gitRemoteUri:string):ListrTask {
     task:   (listrContext, thisTask) => {
       return new Observable(observer => {
 
-        // Initialize Listr Execution Options.
-        const otr = initObservableTaskResult(`${dbgNs}:addGitRemote:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}addGitRemote`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
                     `Adding the Git Remote ${gitRemoteUri} to the local repository`);
         
         // Define the Task Logic to be executed.
@@ -262,8 +264,8 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
     task:   (listrContext, thisTask) => {
       return new Observable(observer => {
 
-        // Initialize Listr Execution Options.
-        const otr = initObservableTaskResult(`${dbgNs}:commitProjectFiles:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}commitProjectFiles`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
                     `Committing files with this message: '${commitMessage}'`);
         
         // Define the Task Logic to be executed.
@@ -321,7 +323,7 @@ function extractMdapiSource(zipFile:string, zipExtractTarget:string):ListrTask {
           thisTask.title += 'Failed';
           throw new SfdxFalconError( `MDAPI source from ${zipFile} could not be extracted to ${zipExtractTarget}`
                                    , `SourceExtractionError`
-                                   , `${dbgNs}:extractZipFile`
+                                   , `${dbgNs}extractZipFile`
                                    , extractionError);
         });
     }
@@ -422,9 +424,9 @@ export function finalizeGit(targetDir:string, gitRemoteUri:string=''):ListrObjec
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    initObservableTaskResult
- * @param       {SfdxFalconResult}  otr Required.
- * @param       {SfdxFalconError} [error] Optional.
+ * @function    finalizeObservableTaskResult
+ * @param       {SfdxFalconResult}  otr Required. An "Observable Task Result".
+ * @param       {ErrorOrResult} [errorOrResult] Optional. Might be an Error or an SfdxFalconResult.
  * @returns     {void}
  * @description Given a LISTR Result, attempts to "finalize" it by performing a number of tasks.
  *              These include finishing any progress notifications, marking the result as succeeded
@@ -433,28 +435,39 @@ export function finalizeGit(targetDir:string, gitRemoteUri:string=''):ListrObjec
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function finalizeObservableTaskResult(otr:SfdxFalconResult, error?:SfdxFalconError):void {
+function finalizeObservableTaskResult(otr:SfdxFalconResult, errorOrResult?:ErrorOrResult):void {
+
+  // Define a special "observer throw".
+  const observerThrow = (error:Error):void => {
+    try {
+      otr.detail['observer'].error(SfdxFalconError.wrap(error));
+    }
+    catch (noObserverError) {
+      SfdxFalconDebug.debugObject('WARNING! OBSERVER MISSING:', error);
+      throw SfdxFalconError.wrap(error);
+    }
+  };
 
   // Validate incoming arguments.
   if (typeof otr === 'undefined') {
-    throw new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got 'undefined' instead.`
-                             , `TypeError`
-                             , `${dbgNs}finalizeObservableTaskResult`);
+    return observerThrow(new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got 'undefined' instead.`
+                                            , `TypeError`
+                                            , `${dbgNs}finalizeObservableTaskResult`));
   }
   if ((otr instanceof SfdxFalconResult) !== true) {
-    throw new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got '${(otr.constructor) ? otr.constructor.name : 'unknown'}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}finalizeObservableTaskResult`);
+    return observerThrow(new SfdxFalconError( `Expected otr to be an SfdxFalconResult but got '${(otr.constructor) ? otr.constructor.name : 'unknown'}' instead.`
+                                            , `TypeError`
+                                            , `${dbgNs}finalizeObservableTaskResult`));
   }
   if (typeof otr.detail !== 'object') {
-    throw new SfdxFalconError( `Expected otr.detail to be an object but got '${typeof otr.detail}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}finalizeObservableTaskResult`);
+    return observerThrow(new SfdxFalconError( `Expected otr.detail to be an object but got '${typeof otr.detail}' instead.`
+                                            , `TypeError`
+                                            , `${dbgNs}finalizeObservableTaskResult`));
   }
-  if (typeof error !== 'undefined' && (error instanceof Error) !== true) {
-    throw new SfdxFalconError( `Expected error to be an instance of Error if provided but got '${(error.constructor) ? error.constructor.name : 'unknown'}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}finalizeObservableTaskResult`);
+  if (typeof errorOrResult !== 'undefined' && ((errorOrResult instanceof Error) !== true) && ((errorOrResult instanceof SfdxFalconResult) !== true)) {
+    return observerThrow(new SfdxFalconError( `Expected errorOrResult to be an instance of Error or SfdxFalconResult if provided but got '${(errorOrResult.constructor) ? errorOrResult.constructor.name : 'unknown'}' instead.`
+                                            , `TypeError`
+                                            , `${dbgNs}finalizeObservableTaskResult`));
   }
 
   // Extract key objects from the OTR Detail.
@@ -466,13 +479,24 @@ function finalizeObservableTaskResult(otr:SfdxFalconResult, error?:SfdxFalconErr
   FalconProgressNotifications.finish(progressNotification);
 
   // Set the final state of the OTR (success or error).
-  if (typeof error === 'undefined') {
+  if (typeof errorOrResult === 'undefined') {
     // Succeeded
     otr.success();
   }
   else {
     // Failed
-    otr.error(error);
+    if (errorOrResult instanceof Error) {
+      otr.error(errorOrResult);
+    }
+    if (errorOrResult instanceof SfdxFalconResult) {
+      try {
+        otr.addChild(errorOrResult);
+      }
+      catch {
+        // No need to do anything here. We are just suppressing any
+        // bubbled errors from the previous addChild() call.
+      }
+    }
   }
 
   // Add the OTR as a child of it's attached Parent Result (if present).
@@ -482,22 +506,28 @@ function finalizeObservableTaskResult(otr:SfdxFalconResult, error?:SfdxFalconErr
     }
     catch (bubbledError) {
       // If we get here, it means the parent was set to Bubble Errors.
-      // We need to catch this so we can call error() on the OTR Observer.
-      if (typeof otrObserver.error === 'function') {
-        otrObserver.error(SfdxFalconError.wrap(error));
-      }
+      // That means that bubbledError should be an SfdxFalconResult
+      return observerThrow(SfdxFalconError.wrap(bubbledError.errObj));
     }
   }
 
   // Tell the Observable to "complete" or "error", depending on whether we got an Error object or not.
-  if (typeof error === 'undefined') {
+  if (typeof errorOrResult === 'undefined') {
     if (typeof otrObserver.complete === 'function') {
-      otrObserver.complete();
+      return otrObserver.complete();
     }
   }
   else {
-    if (typeof otrObserver.error === 'function') {
-      otrObserver.error(SfdxFalconError.wrap(error));
+    if (errorOrResult instanceof Error) {
+      return observerThrow(SfdxFalconError.wrap(errorOrResult));
+    }
+    if (errorOrResult instanceof SfdxFalconResult) {
+      if (isEmpty(errorOrResult.errObj) !== true) {
+        return observerThrow(SfdxFalconError.wrap(errorOrResult.errObj));
+      }
+      else {
+        return observerThrow(new Error('OUCH!!!!!!'));
+      }
     }
   }
 }
@@ -677,7 +707,7 @@ export function identifyEnvHubs():ListrTask {
         })
         .catch(error => {
           // We normally should NOT get here.
-          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:error`, error, `error: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:error:`, error, `error: `);
           thisTask.title += 'Unexpected error while identifying Environment Hub Orgs';
           throw error;
         });
@@ -727,7 +757,7 @@ export function identifyPkgOrgs():ListrTask {
         })
         .catch(error => {
           // We normally should NOT get here.
-          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:error`, error, `error: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:error:`, error, `error: `);
           thisTask.title += 'Unexpected error while identifying Packaging Orgs';
           throw error;
         });
@@ -756,8 +786,8 @@ export function initializeGit(targetDir:string):ListrTask {
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
-        // Initialize Listr Execution Options.
-        const otr = initObservableTaskResult(`${dbgNs}:initializeGit:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}:initializeGit`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
                     `Running git init in ${targetDir}`);
         
         // Define the Task Logic to be executed.
@@ -876,24 +906,32 @@ export function packagedMetadataFetch(aliasOrUsername:string, packageNames:strin
   // Build and return a Listr Task.
   return {
     title:  'Fetching Metadata Packages...',
-    task:   (listrContext:unknown, thisTask:ListrTask) => {
-      return sfdxHelper.fetchMetadataPackages(aliasOrUsername, packageNames, retrieveTargetDir)
-        .then((utilityResult:SfdxFalconResult) => {
-          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:then:utilityResult:`, utilityResult, `then:utilityResult: `);
+    task:   (listrContext:object, thisTask:ListrTask) => {
+      return new Observable(observer => {
 
-          // Save the UTILITY result to shared data and update the task title.
-          this.sharedData.pkgMetadataFetchResult = utilityResult;
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}packagedMetadataFetch`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Retrieving '${packageNames}' from ${aliasOrUsername} (this might take a few minutes)`);
+
+        // Execute the Task Logic
+        sfdxHelper.fetchMetadataPackages(aliasOrUsername, packageNames, retrieveTargetDir)
+        .then((successResult:SfdxFalconResult) => {
+          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:successResult:`, successResult, `successResult: `);
+
+          // Save the UTILITY result to Shared Data and update the task title.
+          this.sharedData.pkgMetadataFetchResult = successResult;
           thisTask.title += 'Done!';
-
+          finalizeObservableTaskResult(otr);
         })
-        .catch((utilityResult:SfdxFalconResult|Error) => {
+        .catch((failureResult:SfdxFalconResult|Error) => {
+          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:failureResult:`, failureResult, `failureResult: `);
 
           // We get here if no connections were found.
-          SfdxFalconDebug.obj(`${dbgNs}packagedMetadataFetch:catch:utilityResult:`, utilityResult, `catch:utilityResult: `);
           thisTask.title += 'Failed';
-          throw utilityResult;
+          finalizeObservableTaskResult(otr, failureResult);
         });
-      }
+      });
+    }
   };
 }
 
@@ -919,8 +957,8 @@ export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
-        // Initialize Listr Execution Options.
-        const otr = initObservableTaskResult(`${dbgNs}:reValidateGitRemote:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}reValidateGitRemote`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
                     `Attempting to reach ${gitRemoteUri}`);
         
         // Execute the Task Logic
@@ -964,15 +1002,15 @@ export function scanConnectedOrgs():ListrTask {
     title:  'Scanning Connected Orgs...',
     task:   (listrContext, thisTask) => {
       return sfdxHelper.scanConnectedOrgs()
-        .then(utilityResult => {
+        .then(successResult => {
           // DEBUG
-          SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:`, utilityResult, `then:utilityResult: `);
+          SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:successResult:`, successResult, `successResult: `);
 
           // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
           let rawSfdxOrgList;
-          if (utilityResult.detail && typeof utilityResult.detail === 'object') {
-            if ((utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
-              rawSfdxOrgList = (utilityResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
+          if (successResult.detail && typeof successResult.detail === 'object') {
+            if ((successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
+              rawSfdxOrgList = (successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
             }
           }
 
@@ -993,12 +1031,12 @@ export function scanConnectedOrgs():ListrTask {
           // Change the title of the task.
           thisTask.title += 'Done!';
         })
-        .catch(utilityResult => {
+        .catch(failureResult => {
 
           // We get here if no connections were found.
-          SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:`, utilityResult, `catch:utilityResult: `);
+          SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:failureResult:`, failureResult, `failureResult: `);
           thisTask.title += 'No Connections Found';
-          throw utilityResult;
+          throw failureResult;
         });
     }
   } as ListrTask;
@@ -1074,8 +1112,8 @@ export function stageProjectFiles(targetDir:string):ListrTask {
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
-        // Initialize Listr Execution Options.
-        const otr = initObservableTaskResult(`${dbgNs}:stageProjectFiles:`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}stageProjectFiles`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
                     `Staging all new and modified files (git -A) in ${targetDir}`);
         
         // Define the Task Logic to be executed.

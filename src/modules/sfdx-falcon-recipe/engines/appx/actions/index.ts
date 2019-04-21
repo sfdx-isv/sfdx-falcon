@@ -10,20 +10,20 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import local modules
-import {waitASecond}                from  '../../../../sfdx-falcon-async';  // Why?
-import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';  // Why?
-import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Why?
-import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result'; // Why?
-import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result'; // Why?
-import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Why?
-import {SfdxFalconError}            from  '../../../../sfdx-falcon-error';  // Why?
+import {SfdxFalconDebug}            from  '../../../../sfdx-falcon-debug';      // Why?
+import {SfdxFalconError}            from  '../../../../sfdx-falcon-error';      // Why?
+import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result';     // Why?
+import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result';     // Why?
+import {SfdxFalconResultStatus}     from  '../../../../sfdx-falcon-result';     // Why?
+import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result';     // Why?
+import {waitASecond}                from  '../../../../sfdx-falcon-util/async'; // Why?
 
 // Executor Imports
 import {SfdxCommandDefinition}      from  '../../../executors/sfdx';  // Interface. Represents an SFDX "Command Definition" that can be compiled into a string that can be executed at the command line against the Salesforce CLI.
 
 // Engine/Action Imports
 import {AppxEngineActionContext}    from  '../../../engines/appx';  // Why?
-import {ExecutorMessages}           from  '../../../types/';        // Interface. Represents the standard messages that most Executors use for Observer notifications.
+import {ExecutorMessages}           from  '../../../types';         // Interface. Represents the standard messages that most Executors use for Observer notifications.
 import {SfdxFalconActionType}       from  '../../../types';         // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
