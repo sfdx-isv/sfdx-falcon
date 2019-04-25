@@ -271,6 +271,15 @@ export interface ListrContextFinalizeGit {
 }
 
 /**
+ * Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
+ */
+export interface ListrContextPkgRetExCon {
+  packagesRetrieved:  boolean;
+  sourceExtracted:    boolean;
+  sourceConverted:    boolean;
+}
+
+/**
  * Represents an Observable for use with Listr.
  */
 export type ListrObservable = any;  // tslint:disable-line: no-any

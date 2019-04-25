@@ -855,6 +855,9 @@ export async function mdapiConvert(mdapiSourceRootDir:string, sfdxSourceOutputDi
   + ` --loglevel debug`
   + ` --json`;
 
+  // Introduce a small delay in case this is being used by an Observable Listr Task.
+  await waitASecond(3);
+
   // Initialize a UTILITY Result for this function.
   const utilityResult = new SfdxFalconResult(`sfdx:mdapiConvert`, SfdxFalconResultType.UTILITY);
   const utilityResultDetail = {

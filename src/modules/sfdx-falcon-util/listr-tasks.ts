@@ -34,6 +34,7 @@ import {waitASecond}                  from  '../sfdx-falcon-util/async';    // F
 // Import Falcon Types
 import {ErrorOrResult}            from  '../sfdx-falcon-types';   // Type. Alias to a combination of Error or SfdxFalconResult.
 import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
+import {ListrContextPkgRetExCon}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
 import {ListrExecutionOptions}    from  '../sfdx-falcon-types';   // Interface. Represents the set of "execution options" related to the use of Listr.
 import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
 import {ListrTask}                from  '../sfdx-falcon-types';   // Interface. Represents a Listr Task.
@@ -215,34 +216,6 @@ export function buildPkgOrgAliasList():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    convertMetadataSource
- * @param       {string}  mdapiSourceRootDir Required. ???
- * @param       {string}  sfdxSourceOutputDir  Required. ???
- * @returns     {ListrTask}  A Listr-compatible Task Object
- * @description Returns a Listr-compatible Task Object that attempts to...
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function convertMetadataSource(mdapiSourceRootDir:string, sfdxSourceOutputDir:string):ListrTask {
-  return {
-    title:  'Converting MDAPI Source...',
-    task:   (listrContext, thisTask) => {
-      return sfdxHelper.mdapiConvert(mdapiSourceRootDir, sfdxSourceOutputDir)
-        .then(utilityResult => {
-          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:then:utilityResult:`, utilityResult, `then:utilityResult: `);
-          thisTask.title += 'Done!';
-        })
-        .catch(utilityResult => {
-          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:catch:utilityResult:`, utilityResult, `catch:utilityResult: `);
-          thisTask.title += 'Failed';
-          throw utilityResult;
-        });
-    }
-  } as ListrTask;
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
  * @function    commitProjectFiles
  * @param       {string}  targetDir Required.
  * @param       {string}  commitMessage Required.
@@ -298,6 +271,51 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    convertMetadataSource
+ * @param       {string}  mdapiSourceRootDir Required. Root directory that contains metadata that
+ *              was retrieved using Metadata API.
+ * @param       {string}  sfdxSourceOutputDir  Required. Directory to store the source files in
+ *              after they’ve been converted to the source format. Must be an abosulte path.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to convert source that was
+ *              retrieved via the Metadata API (MDAPI Source) into SFDX Source.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function convertMetadataSource(mdapiSourceRootDir:string, sfdxSourceOutputDir:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return an OTR (Observable Listr Task).
+  return {
+    title:  'Converting MDAPI Source...',
+    task:   (listrContext, thisTask) => {
+      return new Observable(observer => {
+
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}convertMetadataSource`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Converting MDAPI source from ${mdapiSourceRootDir}`);
+
+        // Execute the Task Logic
+        sfdxHelper.mdapiConvert(mdapiSourceRootDir, sfdxSourceOutputDir)
+        .then((successResult:SfdxFalconResult) => {
+          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:successResult:`, successResult, `successResult: `);
+          thisTask.title += 'Done!';
+          finalizeObservableTaskResult(otr);
+        })
+        .catch((failureResult:SfdxFalconResult|Error) => {
+          SfdxFalconDebug.obj(`${dbgNs}convertMetadataSource:failureResult:`, failureResult, `failureResult: `);
+          thisTask.title += 'Failed';
+          finalizeObservableTaskResult(otr, failureResult);
+        });
+      });
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    extractMdapiSource
  * @param       {string}  zipFile Required. Path to a zip file produced by an MDAPI retrieve
  *              operation, like "sfdx force:mdapi:retrieve".
@@ -310,22 +328,37 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function extractMdapiSource(zipFile:string, zipExtractTarget:string):ListrTask {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return an OTR (Observable Listr Task).
   return {
     title:  'Extracting MDAPI Source...',
-    task:   (listrContext, thisTask) => {
-      return zipHelper.extract(zipFile, zipExtractTarget)
+    task:   (listrContext:ListrContextPkgRetExCon, thisTask:ListrTask) => {
+      return new Observable(observer => {
+
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}extractMdapiSource`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Extracting source into ${zipExtractTarget}`);
+
+        // Execute the Task Logic
+        zipHelper.extract(zipFile, zipExtractTarget)
         .then(() => {
           listrContext.sourceExtracted = true;
           thisTask.title += 'Done!';
+          finalizeObservableTaskResult(otr);
         })
         .catch(extractionError => {
           listrContext.sourceExtracted = false;
           thisTask.title += 'Failed';
-          throw new SfdxFalconError( `MDAPI source from ${zipFile} could not be extracted to ${zipExtractTarget}`
-                                   , `SourceExtractionError`
-                                   , `${dbgNs}extractZipFile`
-                                   , extractionError);
+          finalizeObservableTaskResult(otr,
+            new SfdxFalconError( `MDAPI source from ${zipFile} could not be extracted to ${zipExtractTarget}`
+                               , `SourceExtractionError`
+                               , `${dbgNs}extractZipFile`
+                               , extractionError));
         });
+      });
     }
   } as ListrTask;
 }
@@ -903,7 +936,7 @@ export function packagedMetadataFetch(aliasOrUsername:string, packageNames:strin
   // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
-  // Build and return a Listr Task.
+  // Build and return an OTR (Observable Listr Task).
   return {
     title:  'Fetching Metadata Packages...',
     task:   (listrContext:object, thisTask:ListrTask) => {
