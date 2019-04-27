@@ -384,6 +384,10 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      _finalizeGitActions
+   * @param       {string}  destinationRoot Required.
+   * @param       {boolean} isInitializingGit Required.
+   * @param       {string}  gitRemoteUri  Required.
+   * @param       {string}  projectAlias  Required.
    * @returns     {Promise<void>}
    * @description Intended to run after _finalizeProjectCreation() during the
    *              Yeoman "writing" phase.  Initializes local Git repo, and will
@@ -391,7 +395,17 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async _finalizeGitActions(destinationRoot:string, gitRemoteUri:string, projectAlias:string):Promise<void> {
+  protected async _finalizeGitActions(destinationRoot:string, isInitializingGit:boolean, gitRemoteUri:string, projectAlias:string):Promise<void> {
+
+    // Make sure that the caller really WANTS to initialize Git.
+    if (isInitializingGit !== true) {
+      this.generatorStatus.addMessage({
+        type:     'success',
+        title:    `Git Initialization`,
+        message:  `Skipped - Git initialization skipped at user's request`
+      });
+      return;
+    }
 
     // Tell the user that we are adding their project to Git
     this.log(chalk`{yellow Adding project to Git...}`);

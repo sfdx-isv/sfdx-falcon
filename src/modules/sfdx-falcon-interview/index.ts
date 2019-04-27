@@ -47,6 +47,7 @@ const dbgNs = 'MODULE:sfdx-falcon-interview:';
 export class InterviewGroup<T extends object> {
 
   // Public members.
+  public  readonly  title:        string;
   public  readonly  abort:        AbortInterview;
   public            when:         ShowInterviewGroup;
 
@@ -63,10 +64,11 @@ export class InterviewGroup<T extends object> {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(falconPrompt:SfdxFalconPrompt<T>, abort?:AbortInterview, when?:ShowInterviewGroup) {
+  constructor(falconPrompt:SfdxFalconPrompt<T>, abort?:AbortInterview, when?:ShowInterviewGroup, title?:string) {
     this.falconPrompt = falconPrompt;
     this.abort        = abort;
     this.when         = when;
+    this.title        = title;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -79,6 +81,9 @@ export class InterviewGroup<T extends object> {
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public async prompt():Promise<T> {
+    if (this.title) {
+      console.log(this.title);
+    }
     return this.falconPrompt.prompt();
   }
 }
@@ -168,7 +173,7 @@ export class SfdxFalconInterview<T extends object> {
     });
 
     // Create a new Interview Group using the Prompt we just created.
-    const interviewGroup = new InterviewGroup<T>(falconPrompt, opts.abort, opts.when);
+    const interviewGroup = new InterviewGroup<T>(falconPrompt, opts.abort, opts.when, opts.title);
 
     // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}createGroup:`, interviewGroup, `interviewGroup: `);
@@ -242,7 +247,7 @@ export class SfdxFalconInterview<T extends object> {
    */
   //─────────────────────────────────────────────────────────────────────────────┘
   private abortInterview(message:string):T {
-    console.log(message);
+    console.log(`\n${message}`);
     this.status.aborted   = true;
     this.status.completed = false;
     this.status.reason    = message;
@@ -342,6 +347,7 @@ export class SfdxFalconInterview<T extends object> {
 
     // RESTART
     SfdxFalconDebug.obj(`${dbgNs}proceedRestartAbort:`, {confirmationAnswers: confirmationAnswers, invertConfirmation: invertConfirmation, proceed: proceed, restart: restart}, `RESTART DETECTED. Relevant Variables: `);
+    console.log(''); // Place a line break before the restart.
     return this.start();
   }
 

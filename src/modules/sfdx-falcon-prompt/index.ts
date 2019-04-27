@@ -160,9 +160,6 @@ export class SfdxFalconPrompt<T extends object> {
     // Tell Yeoman to prompt the user for confirmation of installation.
     this.confirmationAnswers = await inquirer.prompt(this.confirmation) as ConfirmationAnswers;
 
-    // Separate confirmation from next action in UX with a blank line.
-    console.log('');
-
     // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}confirmRestart:`, this.confirmationAnswers, `this.confirmationAnswers: `);
 
@@ -176,7 +173,13 @@ export class SfdxFalconPrompt<T extends object> {
     const restart             = this.confirmationAnswers.restart ? 1 : 0;
 
     // XOR the values of "invert" and "restart" numbers to get the correct boolean.
-    return ((invertConfirmation ^ restart) === 0) ? false : true;
+    if ((invertConfirmation ^ restart) === 0) {
+      return false; // Do not restart the prompts.
+    }
+    else {
+      console.log('');  // Separate confirmation question from restarted prompts with a blank line.
+      return true;      // Restart the prompts.
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

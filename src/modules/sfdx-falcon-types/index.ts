@@ -388,6 +388,7 @@ export interface InterviewGroupOptions<T extends object> {
   display?:             AnswersDisplay<T>;
   when?:                ShowInterviewGroup;
   abort?:               AbortInterview;
+  title?:               string;
 }
 /**
  * Interface. Represents a set of status indicators for an SfdxFalconInterview.

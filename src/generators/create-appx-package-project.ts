@@ -223,16 +223,18 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Group 0: Provide a target directory for this project.
     interview.createGroup({
+      title:        chalk.yellow('\nTarget Directory:'),
       questions:    iq.provideTargetDirectory
     });
     // Group 1: Select packaging project type.
     interview.createGroup({
+      title:        chalk.yellow('\nProject Type Selection:'),
       questions:    iq.choosePkgProjectType,
       confirmation: iq.confirmNoPkgOrg,
       abort:  groupAnswers => {
         if (String(groupAnswers.projectType).startsWith('1GP:')
             && groupAnswers.pkgOrgExists === false) {
-          return 'This is my FIRST abort message!';
+          return 'A Packaging Org is required for 1GP projects';
         }
         else {
           return false;
@@ -241,13 +243,14 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     });
     // Group 2: Choose a packaging org connection.
     interview.createGroup({
+      title:        chalk.yellow('\nPackaging Org Selection:'),
       questions:    iq.choosePkgOrg,
       confirmation: iq.confirmNoPkgOrgConnection,
       when:   userAnswers => {
         return String(userAnswers.projectType).startsWith('1GP:');
       },
       abort:  groupAnswers => {
-        if (groupAnswers.pkgOrgAlias === 'NOT_SPECIFIED') {
+        if (groupAnswers.pkgOrgUsername === 'NOT_SPECIFIED') {
           return 'A connection to your packaging org is required for 1GP package projects.';
         }
         else {
@@ -257,10 +260,11 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     });
     // Group 3: Choose a Developer Hub.
     interview.createGroup({
+      title:        chalk.yellow('\nDevHub Selection:'),
       questions:    iq.chooseDevHub,
       confirmation: iq.confirmNoDevHub,
       abort:  groupAnswers => {
-        if (groupAnswers.devHubAlias === 'NOT_SPECIFIED') {
+        if (groupAnswers.devHubUsername === 'NOT_SPECIFIED') {
           return 'A connection to your DevHub is required to continue.';
         }
         else {
@@ -270,14 +274,17 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     });
     // Group 4: Provide Developer Info
     interview.createGroup({
+      title:              chalk.yellow('\nDeveloper Info:'),
       questions:          iq.provideDeveloperInfo
     });
     // Group 5: Provide Project Info
     interview.createGroup({
+      title:              chalk.yellow('\nProject Info:'),
       questions:          iq.provideProjectInfo
     });
     // Group 6: Provide a Git Remote
     interview.createGroup({
+      title:              chalk.yellow('\nGit Configuration:'),
       questions:          iq.provideGitRemote,
       confirmation:       iq.confirmNoGitHubRepo,
       invertConfirmation: true
@@ -352,7 +359,8 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     tableData.push({option:'Project Alias:',          value:`${interviewAnswers.projectAlias}`});
 
     // Git related answers
-    if (interviewAnswers.hasGitRemote) {
+    tableData.push({option:'Initialize Git:',         value:`${interviewAnswers.isInitializingGit ? 'Yes' : 'No'}`});
+    if (interviewAnswers.hasGitRemote && interviewAnswers.isInitializingGit) {
       tableData.push({option:'Git Remote URI:',       value:`${interviewAnswers.gitRemoteUri}`});
       if (interviewAnswers.isGitRemoteReachable) {
         tableData.push({option:'Git Remote Status:',  value:`${chalk.blue('AVAILABLE')}`});
@@ -710,7 +718,8 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
           // Fetch/convert succeeded. Try to finalize Git now.
           await this._finalizeGitActions(this.destinationRoot(),
-                                         this.finalAnswers.gitRemoteUri,
+                                         this.finalAnswers.isInitializingGit,
+                                         this.finalAnswers.hasGitRemote ? this.finalAnswers.gitRemoteUri : '',
                                          this.finalAnswers.projectAlias);
         }
         else {
