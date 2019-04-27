@@ -166,6 +166,11 @@ export class SfdxFalconPrompt<T extends object> {
     // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}confirmRestart:`, this.confirmationAnswers, `this.confirmationAnswers: `);
 
+    // Check if the Confirmation Answer "proceed" was provided. If it's TRUE, do not restart.
+    if (this.confirmationAnswers.proceed === true) {
+      return false;
+    }
+
     // Convert the "invert confirmation" and "restart" booleans into numbers.
     const invertConfirmation  = this._invertConfirmation ? 1 : 0;
     const restart             = this.confirmationAnswers.restart ? 1 : 0;
