@@ -398,7 +398,16 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
 
     // Construct a Listr Task Object for the "Finalize Git" tasks.
     const finalizeGit     = listrTasks.finalizeGit.call(this, destinationRoot, gitRemoteUri);
-    const finalizeGitCtx  = await finalizeGit.run() as ListrContextFinalizeGit;
+
+    // Try to run the "Finalize Git" tasks. Catch any errors so we can exit the broader Falcon command gracefully.
+    let finalizeGitCtx = {} as ListrContextFinalizeGit;
+    try {
+      finalizeGitCtx = await finalizeGit.run() as ListrContextFinalizeGit;
+    }
+    catch (listrError) {
+      SfdxFalconDebug.obj(`${dbgNs}_finalizeGitActions:listrError:`, listrError, `listrError: `);
+      finalizeGitCtx = listrError.context;
+    }
 
     // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}_finalizeGitActions:finalizeGitCtx:`, finalizeGitCtx, `finalizeGitCtx: `);

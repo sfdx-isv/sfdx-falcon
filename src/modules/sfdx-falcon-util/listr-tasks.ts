@@ -37,9 +37,11 @@ import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';   // Interface. 
 import {ListrContextPkgRetExCon}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
 import {ListrExecutionOptions}    from  '../sfdx-falcon-types';   // Interface. Represents the set of "execution options" related to the use of Listr.
 import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
+import {ListrSkipCommand}         from  '../sfdx-falcon-types';   // Type. A built-in function of the "this task" Listr Task object that gets passed into executable task code.
 import {ListrTask}                from  '../sfdx-falcon-types';   // Interface. Represents a Listr Task.
 import {RawSfdxOrgInfo}           from  '../sfdx-falcon-types';   // Interface. Represents the data returned by the sfdx force:org:list command.
 import {SfdxOrgInfoMap}           from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {ShellExecResult}          from  '../sfdx-falcon-types';   // Interface. Represents the result of a call to shell.execL().
 import {Subscriber}               from  '../sfdx-falcon-types';   // Type. Alias to an rxjs Subscriber<any> type.
 
 // Requires
@@ -70,7 +72,15 @@ export function addGitRemote(targetDir:string, gitRemoteUri:string):ListrTask {
   return {
     title:  `Adding the Git Remote...`,
     enabled:() => (typeof targetDir === 'string' && targetDir !== '' && typeof gitRemoteUri === 'string' && gitRemoteUri !== ''),
-    task:   (listrContext, thisTask) => {
+    skip: (listrContext:ListrContextFinalizeGit) => {
+      if (listrContext.gitInstalled !== true) {
+        return true;
+      }
+      if (listrContext.gitRemoteIsValid !== true) {
+        return 'Git Remote is Invalid';
+      }
+    },
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
         // Initialize an OTR (Observable Task Result).
@@ -234,7 +244,12 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
   return {
     title:  `Committing Files...`,
     enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
-    task:   (listrContext, thisTask) => {
+    skip:   (listrContext:ListrContextFinalizeGit) => {
+      if (listrContext.gitInstalled !== true) {
+        return true;
+      }
+    },
+    task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
         // Initialize an OTR (Observable Task Result).
@@ -258,8 +273,8 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
           })
           .catch(async error => {
             await waitASecond(3);
-            thisTask.title += 'Failed';
             listrContext.projectFilesCommitted = false;
+            (thisTask.skip as ListrSkipCommand)('Nothing to Commit');
             // NOTE: We are finalizing *without* passing the Error to force the observer to
             // end with complete() instead of error().
             finalizeObservableTaskResult(otr);
@@ -420,7 +435,7 @@ export function fetchAndConvertManagedPackage(aliasOrUsername:string, packageNam
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function finalizeGit(targetDir:string, gitRemoteUri:string=''):ListrObject {
+export function finalizeGit(targetDir:string, gitRemoteUri:string='', gitCommitMsg:string='Initial Commit'):ListrObject {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}finalizeGit:arguments:`, arguments, `arguments: `);
@@ -442,15 +457,16 @@ export function finalizeGit(targetDir:string, gitRemoteUri:string=''):ListrObjec
       gitRuntimeCheck.call(this),
       initializeGit.call(this, targetDir),
       stageProjectFiles.call(this, targetDir),
-      commitProjectFiles.call(this, targetDir, 'Initial Commit'),
+      commitProjectFiles.call(this, targetDir, gitCommitMsg),
       reValidateGitRemote.call(this, gitRemoteUri),
       addGitRemote.call(this, targetDir, gitRemoteUri)
     ],
     {
       // TASK OPTIONS: Git Finalization Tasks
-      concurrent: false,
-      collapse:   false,
-      renderer:   falconUpdateRenderer
+      concurrent:   false,
+      collapse:     false,
+      exitOnError:  false,
+      renderer:     falconUpdateRenderer
     }
   ) as ListrObject;
 }
@@ -551,17 +567,27 @@ function finalizeObservableTaskResult(otr:SfdxFalconResult, errorOrResult?:Error
     }
   }
   else {
+    // Is it an Error object?
     if (errorOrResult instanceof Error) {
       return observerThrow(SfdxFalconError.wrap(errorOrResult));
     }
+    // Is it an SfdxFalconResult Object?
     if (errorOrResult instanceof SfdxFalconResult) {
       if (isEmpty(errorOrResult.errObj) !== true) {
         return observerThrow(SfdxFalconError.wrap(errorOrResult.errObj));
       }
       else {
-        return observerThrow(new Error('OUCH!!!!!!'));
+        return observerThrow(new SfdxFalconError( `finalizeObservableTaskResult() received an Error Result that did not contain an Error Object.`
+                                                , `MissingErrObj`
+                                                , `${dbgNs}finalizeObservableTaskResult`
+                                                , SfdxFalconError.wrap(errorOrResult)));
       }
     }
+    // It's not an Error OR an SfdxFalconResult. It's something invalid.
+    return observerThrow(new SfdxFalconError( `finalizeObservableTaskResult() received an invalid value for its errorOrResult parameter.`
+                                            , `InvalidErrorOrResult`
+                                            , `${dbgNs}finalizeObservableTaskResult`
+                                            , SfdxFalconError.wrap(errorOrResult)));
   }
 }
 
@@ -816,6 +842,11 @@ export function initializeGit(targetDir:string):ListrTask {
   return {
     title:  `Initializing Git in Target Directory...`,
     enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
+    skip:   (listrContext:ListrContextFinalizeGit) => {
+      if (listrContext.gitInstalled !== true) {
+        return true;
+      }
+    },
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
@@ -987,6 +1018,11 @@ export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
   return {
     title:  `Validating Access to the Git Remote...`,
     enabled:() => (typeof gitRemoteUri === 'string' && gitRemoteUri !== ''),
+    skip:   (listrContext:ListrContextFinalizeGit) => {
+      if (listrContext.gitInstalled !== true) {
+        return true;
+      }
+    },
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
@@ -995,20 +1031,21 @@ export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
                     `Attempting to reach ${gitRemoteUri}`);
         
         // Execute the Task Logic
-        gitHelper.isGitRemoteEmptyAsync(gitRemoteUri, 3)
-          .then(successResult => {
+        gitHelper.checkGitRemoteStatus(gitRemoteUri, 3)
+          .then((successResult:ShellExecResult) => {
             SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:successResult:`, successResult, `successResult: `);
             listrContext.gitRemoteIsValid = true;
             thisTask.title += successResult.message + '!';
             finalizeObservableTaskResult(otr);
           })
-          .catch(errorResult => {
+          .catch((errorResult:ShellExecResult) => {
             SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:errorResult:`, errorResult, `errorResult: `);
             listrContext.gitRemoteIsValid = false;
-            thisTask.title += 'ERROR';
-            // NOTE: We are finalizing *without* passing the Error to force the observer to
-            // end with complete() instead of error().
-            finalizeObservableTaskResult(otr);
+            thisTask.title += errorResult.message;
+            finalizeObservableTaskResult(otr,
+              new SfdxFalconError(`Git Remote is invalid. ${errorResult.message}. `
+                                 , `GitRemoteError`
+                                 , `${dbgNs}reValidateGitRemote`));
           });
       });
     }
@@ -1142,6 +1179,11 @@ export function stageProjectFiles(targetDir:string):ListrTask {
   return {
     title:  `Staging Files...`,
     enabled:() => (typeof targetDir === 'string' && targetDir !== ''),
+    skip:   (listrContext:ListrContextFinalizeGit) => {
+      if (listrContext.gitInstalled !== true) {
+        return true;
+      }
+    },
     task:   (listrContext:ListrContextFinalizeGit, thisTask:ListrTask) => {
       return new Observable(observer => {
 
@@ -1199,7 +1241,7 @@ export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
     title:  'Validating Git Remote...',
     enabled: listrContext => (gitRemoteUri && listrContext.gitInstalled === true),
     task:   (listrContext, thisTask) => {
-      return gitHelper.isGitRemoteEmptyAsync(gitRemoteUri, 3)
+      return gitHelper.checkGitRemoteStatus(gitRemoteUri, 3)
         .then(result => {
           thisTask.title += result.message + '!';
           listrContext.wizardInitialized = true;

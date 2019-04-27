@@ -15,17 +15,19 @@
 // Import External Modules
 
 // Import Internal Modules
-import * as yoValidate      from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
-import * as gitHelper       from  './git';                                      // Library of Git Helper functions specific to SFDX-Falcon.
+import * as yoValidate        from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
+import * as gitHelper         from  './git';                                      // Library of Git Helper functions specific to SFDX-Falcon.
 
-import {SfdxFalconDebug}    from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}    from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-import {filterLocalPath}    from  '../sfdx-falcon-util/yeoman'; // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
+import {SfdxFalconDebug}      from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}      from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {filterLocalPath}      from  '../sfdx-falcon-util/yeoman'; // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 
 // Import Falcon Types
-import {Question}           from  '../sfdx-falcon-types';       // Interface. Represents an Inquirer Question.
-import {Questions}          from  '../sfdx-falcon-types';       // Interface. Represents mulitple Inquirer Questions.
-import {YeomanChoice}       from  '../sfdx-falcon-types';       // Interface. Represents a Yeoman/Inquirer choice object.
+import {ConfirmationAnswers}  from  '../sfdx-falcon-types';       // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
+import {Question}             from  '../sfdx-falcon-types';       // Interface. Represents an Inquirer Question.
+import {Questions}            from  '../sfdx-falcon-types';       // Interface. Represents mulitple Inquirer Questions.
+import {ShellExecResult}      from  '../sfdx-falcon-types';       // Interface. Represents the result of a call to shell.execL().
+import {YeomanChoice}         from  '../sfdx-falcon-types';       // Interface. Represents a Yeoman/Inquirer choice object.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:inquirer-questions:';
@@ -251,13 +253,40 @@ export function confirmNoGitHubRepo():Questions {
       name:     'restart',
       message:  'The Git Remote you specified does not exist or is unreachable. Continue anyway?',
       default:  false,
-      when:     requestAckGitRemoteUnreachable(this.userAnswers)
+      when:     (confirmationAnswers:ConfirmationAnswers) => {
+        return new Promise((resolve, reject) => {
+
+          // Don't bother asking if the user doesn't want a Git Remote or doesn't provide a Git Remote URI.
+          if (this.userAnswers['hasGitRemote'] === false || typeof this.userAnswers['gitRemoteUri'] === 'undefined') {
+            confirmationAnswers.proceed = true;
+            resolve(false);
+          }
+          else {
+            return gitHelper.checkGitRemoteStatus(this.userAnswers['gitRemoteUri'])
+            .then((successResult:ShellExecResult) => {
+              this.userAnswers['isGitRemoteReachable'] = true;    // The Git Remote is valid.
+            })
+            .catch((errorResult:ShellExecResult) => {
+              if (errorResult.code === 2) {
+                this.userAnswers['isGitRemoteReachable'] = true;  // The Git Remote is valid, it just doesn't have any commits.
+              }
+              else {
+                this.userAnswers['isGitRemoteReachable'] = false; // The Git Remote is NOT valid. Show this question to give the user the chance to fix things.
+              }
+            })
+            .finally(() => {
+              confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
+              resolve(! this.userAnswers['isGitRemoteReachable']);
+            });
+          }
+        });
+      }
     },
     {
       type:     'confirm',
       name:     'restart',
       message:  'Specifying a GitHub Remote is strongly recommended. Skip anyway?',
-      default:  false, //(! this.confirmationAnswers.restart),
+      default:  false,
       when:     userInput => (typeof userInput.restart === 'undefined' && this.userAnswers.hasGitRemote !== true)
     }
   ];
@@ -577,31 +606,6 @@ export function provideTargetDirectory():Questions {
       when:     true
     }
   ];
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    requestAckGitRemoteUnreachable
- * @param       {any} answerHash  Required. An Inquirer-based answer hash.
- * @returns     {boolean}  Returns TRUE if the user acknoledges they are OK with using an
- *              unreachable Git Remote Repo.
- * @description Check if the specified Git Remote Repository is unreachable, and if it is return
- *              TRUE to ensure that the user is asked to confirm that they want to use it anyway.
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function requestAckGitRemoteUnreachable(answerHash):boolean {
-
-  // Don't bother asking if the user doesn't want a Git Remote or doesn't provide a Git Remote URI.
-  if (answerHash.hasGitRemote === false || typeof answerHash.gitRemoteUri === 'undefined') {
-    return false;
-  }
-  else {
-    answerHash.isGitRemoteReachable = gitHelper.isGitRemoteReadable(answerHash.gitRemoteUri);
-
-    // Return the inverse of isGitRemoteReachable to force appearance of the "Acknowledge Unreachable Git Remote" question.
-    return (! answerHash.isGitRemoteReachable);
-  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

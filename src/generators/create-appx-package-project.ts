@@ -419,8 +419,8 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     // Add a success message
     this.generatorStatus.addMessage({
       type:     'success',
-      title:    `DEVTEST - PKG_SUCCESS`,
-      message:  `Success - Package successfully retrieved from Salesforce`
+      title:    `Package Conversion`,
+      message:  `Success - Package successfully retrieved from Salesforce and converted`
     });
 
     // Add a line break to separate the output of this section from others
