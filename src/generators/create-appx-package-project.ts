@@ -272,17 +272,23 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
         }
       }
     });
-    // Group 4: Provide Developer Info
+    // Group 4: Choose an Environment Hub.
+    interview.createGroup({
+      title:        chalk.yellow('\nEnvironment Hub Selection:'),
+      questions:    iq.chooseEnvHub,
+      confirmation: iq.confirmNoEnvHub
+    });
+    // Group 5: Provide Developer Info
     interview.createGroup({
       title:              chalk.yellow('\nDeveloper Info:'),
       questions:          iq.provideDeveloperInfo
     });
-    // Group 5: Provide Project Info
+    // Group 6: Provide Project Info
     interview.createGroup({
       title:              chalk.yellow('\nProject Info:'),
       questions:          iq.provideProjectInfo
     });
-    // Group 6: Provide a Git Remote
+    // Group 7: Provide a Git Remote
     interview.createGroup({
       title:              chalk.yellow('\nGit Configuration:'),
       questions:          iq.provideGitRemote,

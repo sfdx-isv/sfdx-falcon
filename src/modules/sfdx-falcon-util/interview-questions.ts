@@ -108,7 +108,7 @@ export function chooseEnvHub(envHubChoices?:YeomanChoice[]):Question {
   // Debug arguments.
   SfdxFalconDebug.obj(`${dbgNs}chooseEnvHub:`, arguments, `arguments: `);
 
-  // If the caller didn't supply DevHub Choices, try to grab them from Shared Data.
+  // If the caller didn't supply EnvHub Choices, try to grab them from Shared Data.
   if (typeof envHubChoices === 'undefined') {
     validateInterviewScope.call(this);
     envHubChoices = this.sharedData['envHubAliasChoices'];
@@ -229,6 +229,33 @@ export function confirmNoDevHub():Questions {
       message:  'Selecting a DevHub is required. Would you like to see the choices again?',
       default:  true,
       when:     this.userAnswers.devHubUsername === 'NOT_SPECIFIED'
+    }
+  ];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    confirmNoEnvHub
+ * @returns     {Questions}  An array of Inquirer Question objects.
+ * @description Suggest to the user that an Environment Hub might be useful.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function confirmNoEnvHub():Questions {
+
+  // Make sure the calling scope has the variables we expect.
+  validateInterviewScope.call(this);
+
+  // Build and return the Questions.
+  return [
+    {
+      type:     'confirm',
+      name:     'restart',
+      message:  'Selecting an Environment Hub is recommended but NOT required. Would you like to see the choices again?',
+      default:  true,
+      when:     this.userAnswers.envHubUsername === 'NOT_SPECIFIED'
+                  &&
+                (Array.isArray(this.sharedData['envHubAliasChoices']) && this.sharedData['envHubAliasChoices'].length > 2)
     }
   ];
 }
@@ -488,63 +515,6 @@ export function provideGitRemote():Questions {
                 : this.defaultAnswers.gitRemoteUri,               // Default Value
       validate: yoValidate.gitRemoteUri,
       when:     answerHash => answerHash.hasGitRemote
-    }
-  ];
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    provideManaged1GPInfo
- * @returns     {Questions}  An array of Inquirer Question objects.
- * @description Asks the user several questions about their first-gen managed package.
- * @public
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function provideManaged1GPInfo():Questions {
-
-  // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
-
-  // Build and return the Question.
-  return [
-    {
-      type:     'input',
-      name:     'namespacePrefix',
-      message:  'What is the namespace prefix for your 1GP managed package?',
-      default:  ( typeof this.userAnswers.namespacePrefix !== 'undefined' )
-                ? this.userAnswers.namespacePrefix                // Current Value
-                : this.defaultAnswers.namespacePrefix,            // Default Value
-      validate: yoValidate.namespacePrefix,
-      when:     true
-    },
-    {
-      type:     'input',
-      name:     'packageName',
-      message:  'What is the name of your package?',
-      default:  ( typeof this.userAnswers.packageName !== 'undefined' )
-                ? this.userAnswers.packageName                    // Current Value
-                : this.defaultAnswers.packageName,                // Default Value
-      when:     true
-    },
-    {
-      type:     'input',
-      name:     'metadataPackageId',
-      message:  'What is the Metadata Package ID (033) of your package?',
-      default:  ( typeof this.userAnswers.metadataPackageId !== 'undefined' )
-                ? this.userAnswers.metadataPackageId              // Current Value
-                : this.defaultAnswers.metadataPackageId,          // Default Value
-      validate: yoValidate.metadataPackageId,
-      when:     true
-    },
-    {
-      type:     'input',
-      name:     'packageVersionId',
-      message:  'What is the Package Version ID (04t) of your most recent release?',
-      default:  ( typeof this.userAnswers.packageVersionIdRelease !== 'undefined' )
-                ? this.userAnswers.packageVersionIdRelease        // Current Value
-                : this.defaultAnswers.packageVersionIdRelease,    // Default Value
-      validate: yoValidate.packageVersionId,
-      when:     true
     }
   ];
 }
