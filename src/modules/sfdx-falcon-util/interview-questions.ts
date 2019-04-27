@@ -38,22 +38,22 @@ const PKG_PROJECT_TYPE_CHOICES = [
     name:   'Managed Package (1GP)',
     value:  '1GP:managed',
     short:  'Managed Package (1GP)'
-  },
+  }/*,
   {
-    name:   'Unmanaged Package (1GP)',
+    name:   'Unmanaged Package (1GP)',  // TODO: Add support for Unmanaged 1GP packages
     value:  '1GP:unmanaged',
     short:  'Unmanaged Package (1GP)'
   },
-  /*{
-    name:   'Managed Package (2GP)',
+  {
+    name:   'Managed Package (2GP)',    // TODO: Add support for Managed 2GP packages
     value:  '2GP:managed',
     short:  'Managed Package (2GP)'
-  },//*/
+  },
   {
-    name:   'Unlocked Package (2GP)',
+    name:   'Unlocked Package (2GP)',   // TODO: Add support for Unlocked packages
     value:  '2GP:unlocked',
     short:  'Unlocked Package (2GP)'
-  }
+  }//*/
 ];
 
 
@@ -287,7 +287,15 @@ export function confirmNoGitHubRepo():Questions {
       name:     'restart',
       message:  'Specifying a GitHub Remote is strongly recommended. Skip anyway?',
       default:  false,
-      when:     userInput => (typeof userInput.restart === 'undefined' && this.userAnswers.hasGitRemote !== true)
+      when:     userInput => {
+        if (typeof userInput.restart === 'undefined' && this.userAnswers.hasGitRemote !== true) {
+          userInput.proceed = false;  // Reset the "proceed" variable to FALSE.
+          return true;                // Show the prompt.
+        }
+        else {
+          return false;               // Hide the prompt.
+        }
+      }
     }
   ];
 }
