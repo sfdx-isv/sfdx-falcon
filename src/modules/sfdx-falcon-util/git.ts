@@ -18,6 +18,9 @@ import {SfdxFalconDebug}  from  '../../modules/sfdx-falcon-debug';      // Class
 import {SfdxFalconError}  from  '../../modules/sfdx-falcon-error';      // Class. Specialized Error object. Wraps SfdxError.
 import {waitASecond}      from  '../../modules/sfdx-falcon-util/async'; // Function. Allows for a simple "wait" to execute.
 
+// Import Falcon Types
+import {ShellExecResult}  from  '../../modules/sfdx-falcon-types';      // Interface. Represents the result of a call to shell.execL().
+
 // Requires
 const shell = require('shelljs'); // Cross-platform shell access - use for setting up Git repo.
 
@@ -36,19 +39,6 @@ const dbgNs     = 'UTILITY:git:';
 //─────────────────────────────────────────────────────────────────────────────┘
 shell.config.fatal = true;
 
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @interface   ShellExecResult
- * @description Represents the result of a call to shell exec.
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-interface ShellExecResult {
-  code?:     number;
-  stdout?:   string;
-  stderr?:   string;
-  message?:  string;
-  resolve?:  boolean;
-}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -433,7 +423,7 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    isGitRemoteEmptyAsync
+ * @function    checkGitRemoteStatus
  * @param       {string}  gitRemoteUri  Required. URI of the Git Remote Repository to be checked.
  * @param       {number}  [waitSecs=0]  Optional. Number of seconds of delay to add before the Git
  *              shell command is executed.
@@ -445,21 +435,21 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
  * @public @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:number=0):Promise<ShellExecResult> {
+export async function checkGitRemoteStatus(gitRemoteUri:string, waitSeconds:number=0):Promise<ShellExecResult> {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteEmptyAsync:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
     throw new SfdxFalconError( `Expected string for gitRemoteUri but got '${typeof gitRemoteUri}'`
                              , 'TypeError'
-                             , `${dbgNs}isGitRemoteEmptyAsync`);
+                             , `${dbgNs}checkGitRemoteStatus`);
   }
   if (isNaN(waitSeconds)) {
     throw new SfdxFalconError( `Expected number for waitSeconds but got '${typeof waitSeconds}'`
                              , 'TypeError'
-                             , `${dbgNs}isGitRemoteEmptyAsync`);
+                             , `${dbgNs}checkGitRemoteStatus`);
   }
 
   // If waitSeconds is > 0 then use waitASecond() to introduce a delay
@@ -472,7 +462,7 @@ export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:num
     shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true}, (code, stdout, stderr) => {
 
       // Create an object to store each of the streams returned by shell.exec.
-      const returnObject = {
+      const shellExecResult = {
         code: code,
         stdout: stdout,
         stderr: stderr,
@@ -484,31 +474,31 @@ export async function isGitRemoteEmptyAsync(gitRemoteUri:string, waitSeconds:num
       // message based on what we know about various return code values.
       switch (code) {
         case 0:
-          returnObject.message = 'Remote repository found';
-          returnObject.resolve = true;
+          shellExecResult.message = 'Remote repository found';
+          shellExecResult.resolve = true;
           break;
         case 2:
-          returnObject.message = 'Remote repository contains no commits';
-          returnObject.resolve = false;
+          shellExecResult.message = 'Remote repository contains no commits';
+          shellExecResult.resolve = false;
           break;
         case 128:
-          returnObject.message = 'Remote repository not found';
-          returnObject.resolve = false;
+          shellExecResult.message = 'Remote repository not found';
+          shellExecResult.resolve = false;
           break;
         default:
-          returnObject.message = 'Unexpected Error';
-          returnObject.resolve = false;
+          shellExecResult.message = 'Unexpected Error';
+          shellExecResult.resolve = false;
       }
 
       // Debug
-      SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, returnObject, `returnObject: `);
+      SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:`, shellExecResult, `shellExecResult: `);
 
       // Resolve or reject depending on what we got back.
-      if (returnObject.resolve) {
-        resolve(returnObject);
+      if (shellExecResult.resolve) {
+        resolve(shellExecResult);
       }
       else {
-        reject(returnObject);
+        reject(shellExecResult);
       }
     });
   });

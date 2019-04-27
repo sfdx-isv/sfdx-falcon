@@ -221,7 +221,7 @@ export interface ListrObject extends Object {
 export interface ListrTask {
   title:    string;
   task:     ListrTaskFunction;
-  skip?:    boolean|ListrSkipFunction;
+  skip?:    boolean|ListrSkipFunction|ListrSkipCommand;
   enabled?: boolean|ListrEnabledFunction;
 }
 
@@ -232,10 +232,16 @@ export type ListrEnabledFunction =
   (context?:any)=> boolean; // tslint:disable-line: no-any
 
 /**
- * Represents a "skip" function for use in a Listr Task.
+ * Type. Represents a "skip" function for use in a Listr Task.
  */
 export type ListrSkipFunction =
   (context?:any) => boolean|string|Promise<boolean|string>;  // tslint:disable-line: no-any
+
+/**
+ * Type. A built-in function of the "this task" Listr Task object that gets passed into executable task code.
+ */
+export type ListrSkipCommand =
+  (message?:string) => void;
 
 /**
  * Represents a "task" function for use in a Listr Task.
@@ -495,6 +501,17 @@ export enum SfdxCliLogLevel {
   WARN  = 'warn',
   ERROR = 'error',
   FATAL = 'fatal'
+}
+
+/**
+ * Interface. Represents the result of a call to shell.execL().
+ */
+export interface ShellExecResult {
+  code?:     number;
+  stdout?:   string;
+  stderr?:   string;
+  message?:  string;
+  resolve?:  boolean;
 }
 
 
