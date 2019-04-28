@@ -147,8 +147,32 @@ export function choosePkgOrg(pkgOrgChoices?:YeomanChoice[]):Question {
 
   // If the caller didn't supply Packaging Org Choices, try to grab them from Shared Data.
   if (typeof pkgOrgChoices === 'undefined') {
+
+    // Since caller didn't supply anything, make sure we have a valid Interview scope.
     validateInterviewScope.call(this);
-    pkgOrgChoices = this.sharedData['pkgOrgAliasChoices'];
+
+    // DEBUG
+    SfdxFalconDebug.obj(`${dbgNs}choosePkgOrg:context.userAnswers:`,            this.context.userAnswers, `this.context.userAnswers: `);
+    SfdxFalconDebug.obj(`${dbgNs}choosePkgOrg:sharedData.pkgOrgAliasChoices:`,  this.sharedData['pkgOrgAliasChoices'], `this.sharedData['pkgOrgAliasChoices']: `);
+  
+    // If we can see "User Answers" in the Interview Context, make Packaging Org choices based on Project Type.
+    if (typeof this.context.userAnswers === 'object') {
+      switch (this.context.userAnswers.projectType) {
+        case '1GP:managed':
+          pkgOrgChoices = this.sharedData['managedPkgOrgAliasChoices'];
+          break;
+        case '1GP:unmanaged':
+          pkgOrgChoices = this.sharedData['unmanagedPkgOrgAliasChoices'];
+          break;
+        default:
+          throw new SfdxFalconError ( `Invalid Project Type: '${this.finalAnswers.projectType}'. `
+                                    , `InvalidProjectType`
+                                    , `${dbgNs}choosePkgOrg`);
+      }
+    }
+    else {  // We can't see the User Answers, so just use ALL the Pkg Org Choices.
+      pkgOrgChoices = this.sharedData['pkgOrgAliasChoices'];
+    }
   }
 
   // Validate arguments.
@@ -458,6 +482,7 @@ export function provideDeveloperInfo():Questions {
                 ? this.userAnswers.developerName                    // Current Value
                 : this.defaultAnswers.developerName,                // Default Value
       validate: yoValidate.standardName,
+      filter:   (userInput:string) => userInput.trim(),
       when:     true
     },
     {
@@ -542,6 +567,7 @@ export function provideProjectInfo():Questions {
                 ? this.userAnswers.projectName                    // Current Value
                 : this.defaultAnswers.projectName,                // Default Value
       validate: yoValidate.standardName,
+      filter:   (userInput:string) => userInput.trim(),
       when:     true
     },
     {

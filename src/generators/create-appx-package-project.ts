@@ -109,10 +109,12 @@ interface InterviewAnswers {
 export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<InterviewAnswers> {
 
   // Define class members specific to this Generator.
-  protected devHubAliasChoices:     YeomanChoice[];   // Array of DevOrg aliases/usernames in the form of Yeoman choices.
-  protected envHubAliasChoices:     YeomanChoice[];   // Array of EnvHub aliases/usernames in the form of Yeoman choices.
-  protected pkgOrgAliasChoices:     YeomanChoice[];   // Array of Packaging Org aliases/usernames in the form of Yeoman choices.
-  protected sourceDirectory:        string;           // Location (relative to project files) of the project scaffolding template used by this command.
+  protected devHubAliasChoices:           YeomanChoice[];   // Array of DevOrg aliases/usernames in the form of Yeoman choices.
+  protected envHubAliasChoices:           YeomanChoice[];   // Array of EnvHub aliases/usernames in the form of Yeoman choices.
+  protected pkgOrgAliasChoices:           YeomanChoice[];   // Array of ALL Packaging Org aliases/usernames in the form of Yeoman choices.
+  protected managedPkgOrgAliasChoices:    YeomanChoice[];   // Array of MANAGED Packaging Org aliases/usernames in the form of Yeoman choices.
+  protected unmanagedPkgOrgAliasChoices:  YeomanChoice[];   // Array of UNMANAGED Packaging Org aliases/usernames in the form of Yeoman choices.
+  protected sourceDirectory:              string;           // Location (relative to project files) of the project scaffolding template used by this command.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -135,9 +137,11 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.sourceDirectory  = require.resolve('sfdx-falcon-appx-package-kit');
 
     // Initialize DevHub/EnvHub/PkgOrg "Alias Choices".
-    this.devHubAliasChoices = new Array<YeomanChoice>();
-    this.envHubAliasChoices = new Array<YeomanChoice>();
-    this.pkgOrgAliasChoices = new Array<YeomanChoice>();
+    this.devHubAliasChoices           = new Array<YeomanChoice>();
+    this.envHubAliasChoices           = new Array<YeomanChoice>();
+    this.pkgOrgAliasChoices           = new Array<YeomanChoice>();
+    this.managedPkgOrgAliasChoices    = new Array<YeomanChoice>();
+    this.unmanagedPkgOrgAliasChoices  = new Array<YeomanChoice>();
 
     // Initialize DEFAULT Interview Answers.
     // Project Settings
@@ -193,10 +197,12 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     this.metaAnswers.pkgOrgAlias                    = `<%-finalAnswers.pkgOrgAlias%>`;
 
     // Initialize Shared Data.
-    this.sharedData['devHubAliasChoices'] = this.devHubAliasChoices;
-    this.sharedData['envHubAliasChoices'] = this.envHubAliasChoices;
-    this.sharedData['pkgOrgAliasChoices'] = this.pkgOrgAliasChoices;
-    this.sharedData['cliCommandName']     = this.cliCommandName;
+    this.sharedData['devHubAliasChoices']           = this.devHubAliasChoices;
+    this.sharedData['envHubAliasChoices']           = this.envHubAliasChoices;
+    this.sharedData['pkgOrgAliasChoices']           = this.pkgOrgAliasChoices;
+    this.sharedData['managedPkgOrgAliasChoices']    = this.managedPkgOrgAliasChoices;
+    this.sharedData['unmanagedPkgOrgAliasChoices']  = this.unmanagedPkgOrgAliasChoices;
+    this.sharedData['cliCommandName']               = this.cliCommandName;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

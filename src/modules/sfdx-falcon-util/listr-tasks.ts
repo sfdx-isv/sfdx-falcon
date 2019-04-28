@@ -212,12 +212,34 @@ export function buildPkgOrgAliasList():ListrTask {
       // DEBUG
       SfdxFalconDebug.obj(`${dbgNs}buildPkgOrgAliasList:listrContext.pkgOrgInfos:`, listrContext.pkgOrgInfos, `listrContext.pkgOrgInfos: `);
       
-      // Build a list of Choices based on the Env Hub org infos.
+      // Build Choices based on ALL Packaging Org infos, followed by a separator and a "not specified" option.
       this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.pkgOrgInfos);
-
-      // Add a separator and a "not specified" option
       this.sharedData.pkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.pkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+
+      // Build Choices based on MANAGED Packaging Org infos, followed by a separator and a "not specified" option.
+      const managedPkgOrgInfos = new Array<sfdxHelper.SfdxOrgInfo>();
+      for (const orgInfo of listrContext.pkgOrgInfos as sfdxHelper.SfdxOrgInfo[]) {
+        if (orgInfo.nsPrefix) {
+          managedPkgOrgInfos.push(orgInfo);
+        }
+      }
+      this.sharedData.managedPkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(managedPkgOrgInfos);
+      this.sharedData.managedPkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.managedPkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+
+      // Build Choices based on UNMANAGED Packaging Org infos, followed by a separator and a "not specified" option.
+      const unmanagedPkgOrgInfos = new Array<sfdxHelper.SfdxOrgInfo>();
+      for (const orgInfo of listrContext.pkgOrgInfos as sfdxHelper.SfdxOrgInfo[]) {
+        if (! orgInfo.nsPrefix) {
+          unmanagedPkgOrgInfos.push(orgInfo);
+        }
+      }
+      this.sharedData.unmanagedPkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(unmanagedPkgOrgInfos);
+      this.sharedData.unmanagedPkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.unmanagedPkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+
+      // All done!
       thisTask.title += 'Done!';
       return;
     }
