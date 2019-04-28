@@ -27,6 +27,7 @@ import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
 import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
 import {waitASecond}            from  '../sfdx-falcon-util/async';    // Function. Can be used to introduce a delay when called inside async functions with the "await" keyword.
 //import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
+import {describeSignupRequest}  from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, tries to get an "Object Describe" back for the SignupRequest SObject.
 import {getPackages}            from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
 
 // Import Falcon Types
@@ -168,7 +169,21 @@ export class SfdxOrgInfo {
   //───────────────────────────────────────────────────────────────────────────┘
   public async determineEnvHubStatus():Promise<boolean> {
 
-    return this._isEnvHub = false;
+    // Check if the aliased user is able to get a describe of the SignupRequest object.
+    const signupRequestDescribe = await describeSignupRequest(this.alias);
+
+    SfdxFalconDebug.obj(`${dbgNs}determineEnvHubStatus:signupRequestDescribe:`, signupRequestDescribe, `signupRequestDescribe: `);
+
+    // Make sure that SignupRequest is CREATABLE. Anything else means NOT an EnvHub.
+    if (signupRequestDescribe.createable === true) {
+      this._isEnvHub = true;
+    }
+    else {
+      this._isEnvHub = false;
+    }
+
+    // Done! Let the caller know what the answer is.
+    return this._isEnvHub;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

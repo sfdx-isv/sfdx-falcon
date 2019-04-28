@@ -515,6 +515,35 @@ export interface ShellExecResult {
   resolve?:  boolean;
 }
 
+/**
+ * Interface. Represents the REST response provided for an Object Describe.
+ */
+export interface ObjectDescribe {
+  activateable?:        boolean;
+  createable?:          boolean;
+  custom?:              boolean;
+  customSetting?:       boolean;
+  deletable?:           boolean;
+  deprecatedAndHidden?: boolean;
+  feedEnabled?:         boolean;
+  hasSubtypes?:         boolean;
+  isSubtype?:           boolean;
+  keyPrefix?:           string;
+  label?:               string;
+  labelPlural?:         string;
+  layoutable?:          boolean;
+  mergeable?:           boolean;
+  mruEnabled?:          boolean;
+  name?:                string;
+  queryable?:           boolean;
+  replicateable?:       boolean;
+  retrieveable?:        boolean;
+  searchable?:          boolean;
+  triggerable?:         boolean;
+  undeletable?:         boolean;
+  updateable?:          boolean;
+  urls?:                any;      // tslint:disable-line: no-any
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // SObject related types.

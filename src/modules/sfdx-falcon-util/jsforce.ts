@@ -13,6 +13,7 @@
 // Import External Modules
 import {Connection}               from  '@salesforce/core';     // Why?
 import {AnyJson}                  from  '@salesforce/ts-types'; // Why?
+import {JsonMap}                  from  '@salesforce/ts-types'; // Why?
 import * as jsf                   from  'jsforce';              // Why?
 
 // Import Internal Modules
@@ -24,6 +25,7 @@ import {resolveConnection}        from  './sfdx';               // Function. Tak
 // Import Falcon Types
 import {AliasOrConnection}        from  '../sfdx-falcon-types'; // Type. Represents either an Org Alias or a JSForce Connection.
 import {MetadataPackage}          from  '../sfdx-falcon-types'; // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {ObjectDescribe}           from  '../sfdx-falcon-types'; // Interface. Represents the REST response provided for an Object Describe.
 import {PermissionSetAssignment}  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce PermissionSetAssignment SObject.
 import {Profile}                  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce Profile SObject
 import {QueryResult}              from  '../sfdx-falcon-types'; // Type. Alias to the JSForce definition of QueryResult.
@@ -118,6 +120,49 @@ export async function createSfdxOrgConfig(aliasOrConnection:AliasOrConnection, u
   // figure out something else for making demo logins easy.
 
   return;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    describeSignupRequest
+ * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
+ *              Alias of the org being queried or an authenticated JSForce Connection object.
+ * @returns     {Promise<ObjectDescribe>}  Resolves with an Object Describe REST result.
+ * @description Given an Org Alias or a JSForce Connection, tries to get an "Object Describe" back
+ *              for the SignupRequest SObject. This object should only be present and createable if
+ *              the connected org has the Signup Request API enabled.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function describeSignupRequest(aliasOrConnection:AliasOrConnection):Promise<ObjectDescribe> {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}describeSignupRequest:arguments:`, arguments, `arguments: `);
+
+  // Create a REST API Request object
+  const describeRequest:RestApiRequestDefinition = {
+    aliasOrConnection: aliasOrConnection,
+    request: {
+      method: 'get',
+      url:    `/sobjects/SignupRequest`
+    }
+  };
+
+  // Execute the REST request. If the request fails, JSForce will throw an exception.
+  const describeResponse = await restApiRequest(describeRequest)
+    .catch(error => {
+
+      // If we get here, the most likely reason is that the user doesn't have access to
+      // the SignupRequest object. Either it doesn't exist, or the user doesn't have the perms.
+      SfdxFalconDebug.obj(`${dbgNs}describeSignupRequest:error:`, error, `error: `);
+      return Promise.resolve({});
+    }) as JsonMap;
+  
+  // DEBUG
+  SfdxFalconDebug.obj(`${dbgNs}describeSignupRequest:describeResponse:`, describeResponse, `describeResponse: `);
+
+  // Return the Describe Response.
+  return (describeResponse.objectDescribe || {}) as ObjectDescribe;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
