@@ -21,6 +21,7 @@ import * as gitHelper         from  './git';                                    
 import {SfdxFalconDebug}      from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}      from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {filterLocalPath}      from  '../sfdx-falcon-util/yeoman'; // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
+import {YeomanSeparator}      from  '../sfdx-falcon-util/yeoman'; // Class. Separator object for use when creating Yeoman Lists.
 
 // Import Falcon Types
 import {ConfirmationAnswers}  from  '../sfdx-falcon-types';       // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
@@ -34,6 +35,7 @@ const dbgNs = 'UTILITY:inquirer-questions:';
 
 // Set file-global defaults
 const PKG_PROJECT_TYPE_CHOICES = [
+  new YeomanSeparator(),
   {
     name:   'Managed Package (1GP)',
     value:  '1GP:managed',
