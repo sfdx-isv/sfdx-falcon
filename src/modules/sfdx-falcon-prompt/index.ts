@@ -117,11 +117,14 @@ export class SfdxFalconPrompt<T extends object> {
     // continue until the user indicates that they want to continue.
     do {
 
-      // Debug
-      SfdxFalconDebug.obj(`${dbgNs}prompt:`, this.questions, `this.questions: `);
+      // Grab questions first. This lets us debug AND use them without questions being built twice.
+      const questions = this.questions;
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}prompt:questions:`, questions, `questions: `);
 
       // Prompt the user and store the answers.
-      this.userAnswers = await inquirer.prompt(this.questions) as T;
+      this.userAnswers = await inquirer.prompt(questions) as T;
   
       // If there is anything to display, displayAnswers() will take care of it.
       await this.displayAnswers();
