@@ -19,7 +19,7 @@ const dbgNs     = 'VALIDATOR:core:';
 
 // File Globals
 const standardAlias = /^[a-zA-Z0-9_-]+$/;
-const standardName  = /^[\w\-\s]+$/;
+const standardName  = /^[\w\-\_\'\s]+$/;
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
