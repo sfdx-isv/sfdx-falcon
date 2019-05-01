@@ -14,7 +14,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path  from  'path'; // Helps resolve local paths at runtime.
+import * as path  from  'path'; // Library. Helps resolve local paths at runtime.
 
 // Import Internal Modules
 import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';  // Library. Helper functions that create Interview Questions.
@@ -322,6 +322,8 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Declare an array of Falcon Table Data Rows
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
+
+    // Grab the SFDX Org Info Map out of Shared Data.
     const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
 
     // Project related answers
@@ -331,11 +333,16 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     // Package related answers
     switch (interviewAnswers.projectType) {
       case '1GP:managed':
+        const latestManagedReleasedPkgVersion   = sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedReleasedPkgVersion;
+        const latestManagedBetaPkgVersion       = sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedBetaPkgVersion;
+        const latestManagedReleasedPkgVersionId = latestManagedReleasedPkgVersion ? latestManagedReleasedPkgVersion.Id : 'UNAVAILABLE';
+        const latestManagedBetaPkgVersionId     = latestManagedBetaPkgVersion ? latestManagedBetaPkgVersion.Id : 'UNAVAILABLE';
+
         tableData.push({option:'Namespace Prefix:',       value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).nsPrefix}`});
         tableData.push({option:'Package Name:',           value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).managedPkgName}`});
         tableData.push({option:'Metadata Package ID:',    value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).managedPkgId}`});
-        tableData.push({option:'Latest Release Pkg ID:',  value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedReleasedPkgVersion.Id}`});
-        tableData.push({option:'Latest Beta Pkg ID:',     value:`${sfdxOrgInfoMap.get(interviewAnswers.pkgOrgUsername).latestManagedBetaPkgVersion.Id}`});
+        tableData.push({option:'Latest Release Pkg ID:',  value:`${latestManagedReleasedPkgVersionId}`});
+        tableData.push({option:'Latest Beta Pkg ID:',     value:`${latestManagedBetaPkgVersionId}`});
         break;
       case '1GP:unmanaged':
         tableData.push({option:'Package Name:',           value:`NOT_IMPLEMENTED`});
@@ -393,7 +400,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
    * @description Uses information from the User's "Final Answers" to do a
    *              MDAPI retrieve of a single package of Metadata source from a
    *              the Packaging Org indicated by the Final Answers.
-   * @private @async
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _fetchAndConvertManagedPackage():Promise<boolean> {
@@ -531,11 +538,14 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     // Set the appropriate FINAL information that's package related.
     switch (this.finalAnswers.projectType) {
       case '1GP:managed':
+        const latestManagedReleasedPkgVersionId = selectedPackage.latestManagedReleasedPkgVersion ? selectedPackage.latestManagedReleasedPkgVersion.Id  : 'UNAVAILABLE';
+        const latestManagedBetaPkgVersionId     = selectedPackage.latestManagedBetaPkgVersion     ? selectedPackage.latestManagedBetaPkgVersion.Id      : 'UNAVAILABLE';
+
         this.finalAnswers.namespacePrefix         = selectedPackage.nsPrefix;
         this.finalAnswers.packageName             = selectedPackage.managedPkgName;
         this.finalAnswers.metadataPackageId       = selectedPackage.managedPkgId;
-        this.finalAnswers.packageVersionIdRelease = selectedPackage.latestManagedReleasedPkgVersion.Id;
-        this.finalAnswers.packageVersionIdBeta    = selectedPackage.latestManagedBetaPkgVersion.Id;
+        this.finalAnswers.packageVersionIdRelease = latestManagedReleasedPkgVersionId;
+        this.finalAnswers.packageVersionIdBeta    = latestManagedBetaPkgVersionId;
         this.finalAnswers.packageDirectory        = this.finalAnswers.namespacePrefix;
         break;
       case '1GP:unmanaged':
