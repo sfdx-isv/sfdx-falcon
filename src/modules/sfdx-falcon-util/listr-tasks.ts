@@ -248,6 +248,78 @@ export function buildPkgOrgAliasList():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    cloneGitRemote
+ * @param       {string}  gitRemoteUri Required. ???
+ * @param       {string}  targetDirectory Required. ???
+ * @param       {string}  [gitCloneDirectory='']  Required. ???
+ * @returns     {ListrObject}  A "runnable" Listr Object
+ * @description Returns a "runnable" Listr Object that attempts to clone the Git Repository referred
+ *              to by the provided Git Remote URI.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function cloneGitRemote(gitRemoteUri:string, targetDirectory:string, gitCloneDirectory:string=''):ListrObject {
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Validate incoming arguments.
+  validateGitCloneArguments.apply(null, arguments);
+
+  // Build and return a Listr Task Object.
+  return new listr(
+    // TASK GROUP: Git Clone Tasks
+    [{
+      title:    `Cloning ${gitRemoteUri}...`,
+      enabled:  () => (gitRemoteUri && targetDirectory),
+      task:     (listrContext, thisTask:ListrTask) => {
+        return new Observable(observer => {
+          // Initialize an OTR (Observable Task Result).
+          const otr = initObservableTaskResult(`${dbgNs}cloneGitRemote`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                      `Cloning repository to ${path.join(targetDirectory, gitCloneDirectory)}`);
+
+          // Define the Task Logic to be executed.
+          const asyncTask = async () => {
+            await waitASecond(5);
+            SfdxFalconDebug.str(`${dbgNs}cloneGitRemote:gitRemoteUri:`,       gitRemoteUri,       `gitRemoteUri: `);
+            SfdxFalconDebug.str(`${dbgNs}cloneGitRemote:targetDirectory:`,    targetDirectory,    `targetDirectory: `);
+            SfdxFalconDebug.str(`${dbgNs}cloneGitRemote:gitCloneDirectory:`,  gitCloneDirectory,  `gitCloneDirectory: `);
+            return gitHelper.gitClone(gitRemoteUri, targetDirectory, gitCloneDirectory);
+            //return;
+          };
+
+          // Execute the Task Logic.
+          asyncTask()
+            .then(async (shellExecResult:ShellExecResult) => {
+              await waitASecond(3);
+              thisTask.title += 'Done!';
+              listrContext.gitRemoteCloned = true;
+              finalizeObservableTaskResult(otr);
+            })
+            .catch(async (shellExecError:ShellExecResult) => {
+              await waitASecond(3);
+              thisTask.title += 'Failed';
+              listrContext.gitRemoteCloned = false;
+              finalizeObservableTaskResult(otr,
+                new SfdxFalconError( `Could not clone repository: ${shellExecError.message}`
+                                   , `GitCloneFailure`
+                                   , `${dbgNs}cloneGitRemote`
+                                   , SfdxFalconError.wrap(shellExecError)));
+            });
+        });
+      }
+    }],
+    // TASK GROUP OPTIONS: Git Clone Tasks
+    {
+      concurrent: false,
+      collapse:   false,
+      renderer:   falconUpdateRenderer
+    }
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    commitProjectFiles
  * @param       {string}  targetDir Required.
  * @param       {string}  commitMessage Required.
@@ -1237,6 +1309,36 @@ export function stageProjectFiles(targetDir:string):ListrTask {
       });
     }
   } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validateGitCloneArguments
+ * @returns     {void}
+ * @description Ensures that the arguments provided match an expected, ordered set.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validateGitCloneArguments():void {
+
+  // Validate "gitRemoteUri".
+  if (typeof arguments[0] !== 'string' || arguments[0] === '') {
+    throw new SfdxFalconError( `Expected gitRemoteUri to be a non-empty string but got type '${typeof arguments[0]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateGitCloneArguments`);
+  }
+  // Validate "targetDirectory".
+  if (typeof arguments[1] !== 'string' || arguments[1] === '') {
+    throw new SfdxFalconError( `Expected targetDirectory to be a non-empty string but got type '${typeof arguments[1]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateGitCloneArguments`);
+  }
+  // Validate "gitCloneDirectory".
+  if (typeof arguments[2] !== 'string') {
+    throw new SfdxFalconError( `Expected gitCloneDirectory to be a string but got type '${typeof arguments[2]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateGitCloneArguments`);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐

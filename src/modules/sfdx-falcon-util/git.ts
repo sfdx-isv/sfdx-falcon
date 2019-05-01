@@ -53,19 +53,19 @@ shell.config.fatal = true;
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitClone(gitRemoteUri:string, targetDirectory:string='.', repoDirectory:string=''):void {
+export async function gitClone(gitRemoteUri:string, targetDirectory:string='.', repoDirectory:string=''):Promise<ShellExecResult> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}gitClone:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}gitClone:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
-    throw new SfdxFalconError( `Expected string for gitRemoteUri but got '${typeof gitRemoteUri}'`
+    throw new SfdxFalconError( `Expected string for gitRemoteUri but got '${typeof gitRemoteUri}' instead.`
                              , 'TypeError'
                              , `${dbgNs}gitClone`);
   }
   if (typeof targetDirectory !== 'string') {
-    throw new SfdxFalconError( `Expected string for targetDirectory but got '${typeof targetDirectory}'`
+    throw new SfdxFalconError( `Expected string for targetDirectory but got '${typeof targetDirectory}' instead.`
                              , 'TypeError'
                              , `${dbgNs}gitClone`);
   }
@@ -76,65 +76,99 @@ export function gitClone(gitRemoteUri:string, targetDirectory:string='.', repoDi
   }
 
   // Make sure we start with a resolved path.
-  SfdxFalconDebug.str(`${dbgNs}gitClone:`, targetDirectory,                 `targetDirectory (unresolved target directory): `);
-  SfdxFalconDebug.str(`${dbgNs}gitClone:`, path.normalize(targetDirectory), `targetDirectory (normalized target directory): `);
+  SfdxFalconDebug.str(`${dbgNs}gitClone:targetDirectory:`,      targetDirectory,                 `targetDirectory (unresolved target directory): `);
+  SfdxFalconDebug.str(`${dbgNs}gitClone:normalizedTargetDir:`,  path.normalize(targetDirectory), `targetDirectory (normalized target directory): `);
 
   // Normalize and Resolve the Target Directory.
   targetDirectory = path.resolve(path.normalize(targetDirectory));
 
-  SfdxFalconDebug.str(`${dbgNs}gitClone:`, targetDirectory, `targetDirectory (resolved target directory): `);
-  SfdxFalconDebug.obj(`${dbgNs}gitClone:`, path.parse(targetDirectory), `PARSED targetDirectory: `);
+  SfdxFalconDebug.str(`${dbgNs}gitClone:targetDirectory:`, targetDirectory, `targetDirectory (resolved target directory): `);
+  SfdxFalconDebug.obj(`${dbgNs}gitClone:parsedTargetDir:`, path.parse(targetDirectory), `PARSED targetDirectory: `);
 
-  // Change the shell's working directory to the target directory.
-  try {
-    shell.cd(targetDirectory);
-    shell.pwd();
-  }
-  catch (cdError) {
-    SfdxFalconDebug.obj(`${dbgNs}gitClone:`, cdError, `cdError: `);
+  return new Promise((resolve, reject) => {
 
-    // Target directory not found. Create it now.
-    try {
-      shell.mkdir('-p', targetDirectory);
-    }
-    catch (mkdirError) {
-      SfdxFalconDebug.obj(`${dbgNs}gitClone:`, mkdirError, `mkdirError: `);
-
-      // The target directory could not be created
-      throw new SfdxFalconError( `Could not create directory '${targetDirectory}'`
-                               , 'InvalidTargetDirectory'
-                               , `${dbgNs}gitClone`);
-    }
-
-    // Try again to shell.cd() into the targetDirectory
+    // Change the shell's working directory to the target directory.
     try {
       shell.cd(targetDirectory);
+      shell.pwd();
     }
-    catch (cdError2) {
-      SfdxFalconDebug.obj(`${dbgNs}gitClone:`, cdError2, `cdError2: `);
+    catch (cdError) {
+      SfdxFalconDebug.obj(`${dbgNs}gitClone:cdError:`, cdError, `cdError: `);
 
-      // Target directory was created, but can't be navigated to.
-      throw new SfdxFalconError( `Target directory '${targetDirectory}' not found or is not accessible`
-                               , 'NoTargetDirectory'
-                               , `${dbgNs}gitClone`);
+      // Target directory not found. Create it now.
+      try {
+        shell.mkdir('-p', targetDirectory);
+      }
+      catch (mkdirError) {
+        SfdxFalconDebug.obj(`${dbgNs}gitClone:mkdirError:`, mkdirError, `mkdirError: `);
+
+        // The target directory could not be created
+        throw new SfdxFalconError( `Could not create directory '${targetDirectory}'`
+                                , 'InvalidTargetDirectory'
+                                , `${dbgNs}gitClone`
+                                , mkdirError);
+      }
+
+      // Try again to shell.cd() into the targetDirectory
+      try {
+        shell.cd(targetDirectory);
+      }
+      catch (cdError2) {
+        SfdxFalconDebug.obj(`${dbgNs}gitClone:cdError2:`, cdError2, `cdError2: `);
+
+        // Target directory was created, but can't be navigated to.
+        throw new SfdxFalconError( `Target directory '${targetDirectory}' not found or is not accessible`
+                                , 'NoTargetDirectory'
+                                , `${dbgNs}gitClone`
+                                , cdError2);
+      }
     }
-  }
 
-  // If we get here, we can be certain that our shell is inside
-  // the target directory.  Now all we need to do is execute
-  // `git clone` against the Git Remote URI to pull down the repo.
-  try {
+    // If we get here, we can be certain that our shell is inside
+    // the target directory.  Now all we need to do is execute
+    // `git clone` against the Git Remote URI to pull down the repo.
     SfdxFalconDebug.str(`${dbgNs}gitClone:`, `shell.exec('git clone ${gitRemoteUri} ${repoDirectory}', {silent: true})`, `Shell Command: `);
-    shell.exec(`git clone ${gitRemoteUri} ${repoDirectory}`, {silent: true});
-  } catch (gitCloneError) {
 
-    // If we get here, it's probably because the clone command is targeting
-    // a directory that already exists and is not empty.
-    SfdxFalconDebug.obj(`${dbgNs}gitClone:`, gitCloneError, `gitCloneError: `);
-    throw new SfdxFalconError( `Destination path '${path.join(targetDirectory, repoDirectory)}' already exists and is not an empty directory.`
-                             , 'InvalidDestination'
-                             , `${dbgNs}gitClone`);
-  }
+    // Make an async shell.exec call.
+    shell.exec(`git clone ${gitRemoteUri} ${repoDirectory}`, {silent: true}, (code, stdout, stderr) => {
+
+      // Create an object to store each of the streams returned by shell.exec.
+      const shellExecResult = {
+        code: code,
+        stdout: stdout,
+        stderr: stderr,
+        message: '',
+        resolve: false
+      } as ShellExecResult;
+
+      // Determine whether to resolve or reject. In each case, create a
+      // message based on what we know about various return code values.
+      switch (code) {
+        case 0:
+          shellExecResult.message = 'Repository cloned successfully';
+          shellExecResult.resolve = true;
+          break;
+        case 128:
+          shellExecResult.message = `Destination path '${repoDirectory}' already exists and is not an empty directory.`;
+          shellExecResult.resolve = false;
+          break;
+        default:
+          shellExecResult.message = `Unknown error cloning ${gitRemoteUri} to ${path.join(targetDirectory, repoDirectory)}`;
+          shellExecResult.resolve = false;
+      }
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}gitClone:shellExecResult:`, shellExecResult, `shellExecResult: `);
+
+      // Resolve or reject depending on what we got back.
+      if (shellExecResult.resolve) {
+        resolve(shellExecResult);
+      }
+      else {
+        reject(shellExecResult);
+      }
+    });
+  });
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -345,16 +379,17 @@ export function isGitInstalled():boolean {
 /**
  * @function    getRepoNameFromRemoteUri
  * @param       {string}  gitRemoteUri  Required. URI of the Git Remote Repository to be checked.
- * @returns     {boolean} TRUE if Git is installed and available to the running user via the shell.
- * @description Determines if Git has been installed on the user's local machine and if the
- *              executable has been added to the path.
+ * @returns     {string}  Repository name as parsed from the Git Remote URI.
+ * @description Given a Git Remote URI, parses that string and extracts the name of its associated
+ *              Git repo. For example, "https://github.com/sfdx-isv/testbed-falcon-apk.git" would
+ *              return the string "testbed-falcon-apk".
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function getRepoNameFromUri(gitRemoteUri:string):string {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}getRepoNameFromUri:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}getRepoNameFromUri:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
@@ -380,7 +415,7 @@ export function getRepoNameFromUri(gitRemoteUri:string):string {
   }
 
   // Debug and return
-  SfdxFalconDebug.str(`${dbgNs}getRepoNameFromUri:`, repoName, `repoName: `);
+  SfdxFalconDebug.str(`${dbgNs}getRepoNameFromUri:repoName:`, repoName, `repoName: `);
   return repoName;
 }
 

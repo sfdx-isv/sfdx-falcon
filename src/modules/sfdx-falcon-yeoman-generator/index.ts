@@ -24,7 +24,6 @@ import {SfdxFalconInterview}      from  '../sfdx-falcon-interview';       // Cla
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
-import {printStatusMessage}       from  '../sfdx-falcon-util/ux';         // Function. Prints a styled status message to stdout.
 import {GeneratorStatus}          from  '../sfdx-falcon-util/yeoman';     // Class. Status tracking object for use with Yeoman Generators.
 import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Interface. Specifies options used when spinning up an SFDX-Falcon Yeoman environment.
 
@@ -145,56 +144,46 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      _cloneRepository
-   * @returns     {string}  Local path to which the Git Repository was cloned.
+   * @returns     {Promise<string>} Local path into which the Git Repository
+   *              was cloned. If the clone operation is unsuccessful, this
+   *              will return an empty string.
    * @description Clones a remote Git Repository per information specified
    *              during by the command and/or during their interview. Returns
-   *              the local path to which the Git Repository was cloned.
+   *              the local path to which the Git Repository was cloned, or
+   *              an empty string otherwise.
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected _cloneRepository():string {
+  protected async _cloneRepository():Promise<string> {
 
     // Determine a number of Path/Git related strings required by this step.
     const targetDirectory   = this.finalAnswers['targetDirectory'];
-    const gitCloneDirectory = this['gitCloneDirectory'];
     const gitRemoteUri      = this['gitRemoteUri'];
-    const gitRepoName       = gitCloneDirectory || gitHelper.getRepoNameFromUri(gitRemoteUri);
-    const localProjectPath  = path.join(targetDirectory, gitRepoName);
+    const gitCloneDirectory = this['gitCloneDirectory'] || gitHelper.getRepoNameFromUri(gitRemoteUri);
+    const localProjectPath  = path.join(targetDirectory, gitCloneDirectory);
 
     // Quick message saying we're going to start cloning.
-    this.log(chalk`\n{yellow Cloning project to ${targetDirectory}}\n`);
+    this.log(chalk`{yellow Cloning Project...}`);
 
-    // Clone the Git Repository specified by gitRemoteUri into the target directory.
-    try {
-      gitHelper.gitClone(gitRemoteUri, targetDirectory, gitCloneDirectory);
-    }
-    catch (gitCloneError) {
-      this.generatorStatus.abort({
-        type:     'error',
-        title:    `Git Clone Error`,
-        message:  `${gitCloneError.message}`
+    // Run a Listr Task that will clone the Remote Git Repo.
+    return await listrTasks.cloneGitRemote.call(this, gitRemoteUri, targetDirectory, gitCloneDirectory).run()
+      .then(listrContext => {
+        // Add a message that the cloning was successful.
+        this.generatorStatus.addMessage({
+          type:     'success',
+          title:    `Project Cloned Successfully`,
+          message:  `Project cloned to ${localProjectPath}`
+        });
+        return localProjectPath;
+      })
+      .catch(gitCloneError => {
+        this.generatorStatus.abort({
+          type:     'error',
+          title:    `Git Clone Error`,
+          message:  gitCloneError.cause ? String(gitCloneError.cause.message).trim() : gitCloneError.message
+        });
+        return '';
       });
-      // Exit this function
-      return '';
-    }
-
-    // Show an in-process Success Message
-    // (we also add something similar to messages, below)
-    printStatusMessage({
-      type:     'success',
-      title:    `Success`,
-      message:  `Git repo cloned to ${localProjectPath}\n`
-    });
-
-    // Add a message that the cloning was successful.
-    this.generatorStatus.addMessage({
-      type:     'success',
-      title:    `Project Cloned Successfully`,
-      message:  `Project cloned to ${localProjectPath}`
-    });
-  
-    // The git clone operation was successfu. Return the local project path.
-    return localProjectPath;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -545,13 +534,6 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
       type:     'success',
       title:    `Local Config Created`,
       message:  `.sfdx-falcon/sfdx-falcon-config.json created and customized successfully`
-    });
-
-    // Show an in-process Success Message telling the user that we just customized their project files.
-    printStatusMessage({
-      type:     'success',
-      title:    `\nSuccess`,
-      message:  `Project files customized at ${this.destinationRoot()}\n`
     });
 
     // If we get here, it means that the install() step completed successfully.

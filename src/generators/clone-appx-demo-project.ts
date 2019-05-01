@@ -76,6 +76,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   protected envHubAliasChoices:     YeomanChoice[];   // Array of EnvHub aliases/usernames in the form of Yeoman choices.
   protected gitRemoteUri:           string;           // URI of the Git repo to clone.
   protected gitCloneDirectory:      string;           // Name of the Git repo directory once cloned to local storage.
+  protected localProjectPath:       string;           // Local path where the Git repository was successfully cloned to. Will be blank or undefined if cloning failed.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -232,13 +233,17 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    * @returns     {void}
    * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
    *              configuration steps based on the answers provided by the User.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected configuring():void {
+  protected async configuring():Promise<void> {
 
     // Call the default configuring() function. Replace with custom behavior if desired.
-    return this._default_configuring();
+    this._default_configuring();
+
+    // Clone the repository that was provided by the caller.
+    this.localProjectPath = await this._cloneRepository();
+
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -258,21 +263,18 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
       return;
     }
 
-    // Clone the repository.
-    const localProjectPath = this._cloneRepository();
-
     // If we didn't get back a local project path, the clone operation was NOT successful.
-    if (! localProjectPath) {
+    if (! this.localProjectPath) {
       return;
     }
 
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
     // Note: For falcon:project:clone the SOURCE and DESTINATION are the
     // same directory.
-    this.sourceRoot(localProjectPath);
+    this.sourceRoot(this.localProjectPath);
 
     // Set Yeoman's DESTINATION ROOT (where files will be copied TO
-    this.destinationRoot(localProjectPath);
+    this.destinationRoot(this.localProjectPath);
 
     // DEBUG
     SfdxFalconDebug.str(`${dbgNs}configuring:`, this.sourceRoot(),      `SOURCE PATH: `);
