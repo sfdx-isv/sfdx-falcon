@@ -140,6 +140,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
     this.sharedData['managedPkgOrgAliasChoices']    = this.managedPkgOrgAliasChoices;
     this.sharedData['unmanagedPkgOrgAliasChoices']  = this.unmanagedPkgOrgAliasChoices;
     this.sharedData['cliCommandName']               = this.cliCommandName;
+    this.sharedData['gitRemoteUri']                 = this.gitRemoteUri;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐

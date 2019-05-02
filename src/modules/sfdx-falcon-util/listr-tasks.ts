@@ -89,8 +89,8 @@ export function addGitRemote(targetDir:string, gitRemoteUri:string):ListrTask {
         
         // Define the Task Logic to be executed.
         const asyncTask = async () => {
-          const shellString = gitHelper.gitInit(targetDir);
-          SfdxFalconDebug.obj(`${dbgNs} addGitRemote:shellString:`, shellString, `shellString: `);
+          const shellString = gitHelper.gitRemoteAddOrigin(targetDir, gitRemoteUri);
+          SfdxFalconDebug.obj(`${dbgNs}addGitRemote:shellString:`, shellString, `shellString: `);
           return shellString;
         };
 
@@ -1129,11 +1129,22 @@ export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
           .then((successResult:ShellExecResult) => {
             SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:successResult:`, successResult, `successResult: `);
             listrContext.gitRemoteIsValid = true;
-            thisTask.title += successResult.message + '!';
+            thisTask.title += 'Done!';
             finalizeObservableTaskResult(otr);
           })
           .catch((errorResult:ShellExecResult) => {
             SfdxFalconDebug.obj(`${dbgNs}reValidateGitRemote:errorResult:`, errorResult, `errorResult: `);
+
+            // Error code 2 (Git remote reachable but empty) is the ideal state.
+            // Consider that a success result.
+            if (errorResult.code === 2) {
+              listrContext.gitRemoteIsValid = true;
+              thisTask.title += 'Done!';
+              finalizeObservableTaskResult(otr);
+              return;
+            }
+
+            // Any non-zero error code other than 2 is a failure.
             listrContext.gitRemoteIsValid = false;
             thisTask.title += errorResult.message;
             finalizeObservableTaskResult(otr,
@@ -1367,7 +1378,7 @@ export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
     task:   (listrContext, thisTask) => {
       return gitHelper.checkGitRemoteStatus(gitRemoteUri, 3)
         .then(result => {
-          thisTask.title += result.message + '!';
+          thisTask.title += 'Valid!';
           listrContext.wizardInitialized = true;
         })
         .catch(result => {
