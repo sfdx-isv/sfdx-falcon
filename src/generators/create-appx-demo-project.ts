@@ -27,7 +27,8 @@ import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-com
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';          // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
 
 // Import Falcon Types
-import {YeomanChoice} from  '../modules/sfdx-falcon-types'; // Interface. Represents a Yeoman/Inquirer choice object.
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
+import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Require Modules
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -58,7 +59,10 @@ interface InterviewAnswers {
   // SFDX Org Aliases
   devHubAlias:              string;
   envHubAlias:              string;
-  pkgOrgAlias:              string;
+
+  // SFDX Org Usernames
+  devHubUsername:           string;
+  envHubUsername:           string;
 
   // Scratch Org Settings
   scratchDefOrgName:        string;
@@ -135,7 +139,10 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     // SFDX Org Aliases
     this.defaultAnswers.devHubAlias                 = 'NOT_SPECIFIED';
     this.defaultAnswers.envHubAlias                 = 'NOT_SPECIFIED';
-    this.defaultAnswers.pkgOrgAlias                 = 'NOT_SPECIFIED';
+
+    // SFDX Org Usernames
+    this.defaultAnswers.devHubUsername              = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubUsername              = 'NOT_SPECIFIED';
 
     // Scratch Org Settings
     this.defaultAnswers.scratchDefOrgName           = 'ADK Demo Org';
@@ -188,14 +195,16 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
 
     // Group 0: Provide a target directory for this project.
     interview.createGroup({
+      title:        chalk.yellow('\nTarget Directory:'),
       questions:    iq.provideTargetDirectory
     });
     // Group 1: Choose a Developer Hub.
     interview.createGroup({
+      title:        chalk.yellow('\nDevHub Selection:'),
       questions:    iq.chooseDevHub,
       confirmation: iq.confirmNoDevHub,
       abort:  groupAnswers => {
-        if (groupAnswers.devHubAlias === 'NOT_SPECIFIED') {
+        if (groupAnswers.devHubUsername === 'NOT_SPECIFIED') {
           return 'A connection to your DevHub is required to continue.';
         }
         else {
@@ -205,21 +214,26 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     });
     // Group 2: Choose an Environment Hub.
     interview.createGroup({
-      questions:    iq.chooseEnvHub
+      title:        chalk.yellow('\nEnvironment Hub Selection:'),
+      questions:    iq.chooseEnvHub,
+      confirmation: iq.confirmNoEnvHub
     });
-    // Group 3: Provide a Git Remote
+    // Group 3: Provide Developer Info
     interview.createGroup({
+      title:              chalk.yellow('\nDeveloper Info:'),
+      questions:          iq.provideDeveloperInfo
+    });
+    // Group 4: Provide Project Info
+    interview.createGroup({
+      title:              chalk.yellow('\nProject Info:'),
+      questions:          iq.provideProjectInfo
+    });
+    // Group 5: Provide a Git Remote
+    interview.createGroup({
+      title:              chalk.yellow('\nGit Configuration:'),
       questions:          iq.provideGitRemote,
       confirmation:       iq.confirmNoGitHubRepo,
       invertConfirmation: true
-    });
-    // Group 4: Provide Developer Info
-    interview.createGroup({
-      questions:          iq.provideDeveloperInfo
-    });
-    // Group 5: Provide Project Info
-    interview.createGroup({
-      questions:          iq.provideProjectInfo
     });
 
     // Finished building the Interview.
@@ -243,13 +257,28 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     // Declare an array of Falcon Table Data Rows
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
 
-    // Group ZERO options (always visible).
-    tableData.push({option:'Target Directory:',       value:`${interviewAnswers.targetDirectory}`});
-    tableData.push({option:'Dev Hub Alias:',          value:`${interviewAnswers.devHubAlias}`});
-    tableData.push({option:'Env Hub Alias:',          value:`${interviewAnswers.envHubAlias}`});
+    // Grab the SFDX Org Info Map out of Shared Data.
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
 
-    // Group ONE options (sometimes visible)
-    if (interviewAnswers.hasGitRemote) {
+    // Project related answers
+    tableData.push({option:'Target Directory:',       value:`${interviewAnswers.targetDirectory}`});
+    //tableData.push({option:'Project Type:',           value:`${interviewAnswers.projectType}`});
+
+    // Org alias related answers
+    const devHubAlias = sfdxOrgInfoMap.get(interviewAnswers.devHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Dev Hub Alias:',          value:`${devHubAlias}`});
+    const envHubAlias = sfdxOrgInfoMap.get(interviewAnswers.envHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Env Hub Alias:',          value:`${envHubAlias}`});
+
+    // Developer related answers
+    tableData.push({option:'Developer Name:',         value:`${interviewAnswers.developerName}`});
+    tableData.push({option:'Developer Alias:',        value:`${interviewAnswers.developerAlias}`});
+    tableData.push({option:'Project Name:',           value:`${interviewAnswers.projectName}`});
+    tableData.push({option:'Project Alias:',          value:`${interviewAnswers.projectAlias}`});
+
+    // Git related answers
+    tableData.push({option:'Initialize Git:',         value:`${interviewAnswers.isInitializingGit ? 'Yes' : 'No'}`});
+    if (interviewAnswers.hasGitRemote && interviewAnswers.isInitializingGit) {
       tableData.push({option:'Git Remote URI:',       value:`${interviewAnswers.gitRemoteUri}`});
       if (interviewAnswers.isGitRemoteReachable) {
         tableData.push({option:'Git Remote Status:',  value:`${chalk.blue('AVAILABLE')}`});
@@ -258,12 +287,6 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
         tableData.push({option:'Git Remote Status:',  value:`${chalk.red('UNREACHABLE')}`});
       }
     }
-
-    // Group TWO options (always visible)
-    tableData.push({option:'Producer Name:',          value:`${interviewAnswers.developerName}`});
-    tableData.push({option:'Producer Alias:',         value:`${interviewAnswers.developerAlias}`});
-    tableData.push({option:'Project Name:',           value:`${interviewAnswers.projectName}`});
-    tableData.push({option:'Project Alias:',          value:`${interviewAnswers.projectAlias}`});
 
     // Return the Falcon Table Data.
     return tableData;
@@ -294,6 +317,9 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async prompting():Promise<void> {
+
+    // Let the User know that the Interview is starting.
+    console.log(chalk`{yellow Starting ADK project creation interview...}`);
 
     // Call the default prompting() function. Replace with custom behavior if desired.
     return this._default_prompting();
@@ -331,23 +357,30 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
       return;
     }
 
-    // Compose an Org Name and Org Description that are relevant to this project.
-    this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.developerName} Demo Org`;
+    // Extract the SFDX Org Info Map from Shared Data.
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+
+    // Compose a FINAL Org Name and FINAL Org Description that are relevant to this project.
+    this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.projectName} - Demo Org`;
     this.finalAnswers.scratchDefDescription = `ADK Sample Demo Org`;
+
+    // Set the FINAL Org Aliases.
+    this.finalAnswers.devHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    this.finalAnswers.envHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
 
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
     this.sourceRoot(path.dirname(this.sourceDirectory));
 
-    // Set Yeoman's DESTINATION ROOT (where files will be copied TO
+    // Set Yeoman's DESTINATION ROOT (where files will be copied TO)
     this.destinationRoot(path.resolve(this.finalAnswers.targetDirectory,
                                       this.finalAnswers.projectAlias));
 
     // DEBUG
-    SfdxFalconDebug.str(`${dbgNs}writing:sourceRoot`,       this.sourceRoot(),      `this.sourceRoot(): `);
-    SfdxFalconDebug.str(`${dbgNs}writing:destinationRoot`,  this.destinationRoot(), `this.destinationRoot(): `);
+    SfdxFalconDebug.str(`${dbgNs}writing:sourceRoot:`,      this.sourceRoot(),      `this.sourceRoot(): `);
+    SfdxFalconDebug.str(`${dbgNs}writing:destinationRoot:`, this.destinationRoot(), `this.destinationRoot(): `);
 
     // Tell the user that we are preparing to create their project.
-    this.log(chalk`{blue Preparing to write project files to ${this.destinationRoot()}...}\n`);
+    this.log(chalk`{yellow Writing project files to ${this.destinationRoot()}...}`);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -446,13 +479,21 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
    *              written to disk. For example, if the "writing" step downloaded
    *              an app to install, the "install" step would run the
    *              installation.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected install() {
+  protected async install() {
 
-    // Finalize the creation of the AppX Package Project.
-    return this._finalizeProjectCreation();
+    // Finalize the creation of the AppX Demo Project. Skip further action unless this returns TRUE.
+    if (this._finalizeProjectCreation() !== true) {
+      return;
+    }
+
+    // Try to finalize Git now.
+    await this._finalizeGitActions(this.destinationRoot(),
+                                   this.finalAnswers.isInitializingGit,
+                                   this.finalAnswers.hasGitRemote ? this.finalAnswers.gitRemoteUri : '',
+                                   this.finalAnswers.projectAlias);
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
