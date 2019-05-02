@@ -19,12 +19,10 @@ import * as path  from  'path'; // Library. Helps resolve local paths at runtime
 // Import Internal Modules
 import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                  // Library of Git Helper functions specific to SFDX-Falcon.
 import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';  // Library. Helper functions that create Interview Questions.
-//import * as listrTasks                  from  '../modules/sfdx-falcon-util/listr-tasks';          // Library. Helper functions that make using Listr with SFDX-Falcon easier.
 
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                     // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
-//import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';                 // Class. Provides a standard way of building a multi-group Interview to collect user input.
-//import {SfdxFalconResult}               from  '../modules/sfdx-falcon-result';                    // Class. Framework for creating results-driven, informational objects with a concept of heredity (child results).
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-command';            // Interface. Represents options used by SFDX-Falcon Yeoman generators.
@@ -313,10 +311,10 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
    * @returns     {void}
    * @description STEP FOUR in the Yeoman run-loop. Typically, this is where
    *              you perform filesystem writes, git clone operations, etc.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected writing():void {
+  protected async writing():Promise<void> {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -327,6 +325,57 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
     // If we didn't get back a local project path, the clone operation was NOT successful.
     if (! this.localProjectPath) {
       return;
+    }
+
+    // Get the Falcon Project Config so we can find out what kind of project we just cloned.
+    const falconProjectConfig = await this._resolveFalconProjectConfig(this.localProjectPath);
+    SfdxFalconDebug.obj(`${dbgNs}writing:falconProjectConfig:`, falconProjectConfig, `falconProjectConfig: `);
+
+    // Make sure we just cloned a valid Falcon Project.
+    if (falconProjectConfig === null) {
+      return;
+    }
+
+    // Extract the SFDX Org Info Map from Shared Data.
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+
+    // Set the FINAL Org Aliases.
+    this.finalAnswers.devHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    this.finalAnswers.envHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+
+    // Take special action for certain project types.
+    switch (falconProjectConfig.projectType) {
+      case '1GP:managed':
+
+        // Make sure the Falcon Config file has a Metadata Package ID.
+        if (typeof falconProjectConfig.appxPackage !== 'object' || typeof falconProjectConfig.appxPackage.metadataPackageId !== 'string') {
+          throw new SfdxFalconError ( `Missing value for 'appxPackage.metadataPackageId' in sfdx-project.json. This value is required for 1GP:managed projects.`
+                                    , `InvalidProjectConfig`
+                                    , `${dbgNs}writing`);
+        }
+
+        // Iterate over the known Org Infos and try to find a matching Managed Package ID.
+        for (const sfdxOrgInfo of sfdxOrgInfoMap.values()) {
+          if (sfdxOrgInfo.managedPkgId && sfdxOrgInfo.managedPkgId === falconProjectConfig.appxPackage.metadataPackageId) {
+            this.finalAnswers.pkgOrgAlias = sfdxOrgInfo.alias;
+            break;
+          }
+        }
+        // Not Yet Implemented
+        break;
+      case '1GP:unmanaged':
+        // Not Yet Implemented
+        break;
+      case '2GP:managed':
+        // Not Yet Implemented
+        break;
+      case '2GP:unlocked':
+        // Not Yet Implemented
+        break;
+      default:
+        throw new SfdxFalconError ( `Invalid Project Type: '${falconProjectConfig.projectType}'. `
+                                  , `InvalidProjectType`
+                                  , `${dbgNs}writing`);
     }
 
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
