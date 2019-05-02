@@ -20,7 +20,8 @@ import * as listrTasks            from  '../sfdx-falcon-util/listr-tasks';  // L
 
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';           // Class. Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}          from  '../sfdx-falcon-error';           // Class. Specialized Error object. Wraps SfdxError.
-import {SfdxFalconInterview}      from  '../sfdx-falcon-interview';       // Class. ???
+import {SfdxFalconInterview}      from  '../sfdx-falcon-interview';       // Class. Provides a standard way of building a multi-group Interview to collect user input.
+import {SfdxFalconProject}        from  '../sfdx-falcon-project';         // Class. Represents an SFDX-Falcon project, including locally stored project data.
 import {SfdxFalconResult}         from  '../sfdx-falcon-result';          // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';         // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 import {SfdxFalconTableData}      from  '../sfdx-falcon-util/ux';         // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
@@ -29,6 +30,7 @@ import {GeneratorOptions}         from  '../sfdx-falcon-yeoman-command';  // Int
 
 // Import Falcon Types
 import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';           // Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
+import {SfdxFalconProjectConfig}  from  '../sfdx-falcon-types';           // Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
 
 // Requires
 const chalk             = require('chalk');                 // Utility for creating colorful console output.
@@ -151,7 +153,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    *              during by the command and/or during their interview. Returns
    *              the local path to which the Git Repository was cloned, or
    *              an empty string otherwise.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _cloneRepository():Promise<string> {
@@ -381,7 +383,7 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @description Intended to run after _finalizeProjectCreation() during the
    *              Yeoman "writing" phase.  Initializes local Git repo, and will
    *              even try to attach a Git remote if specified by the user.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _finalizeGitActions(destinationRoot:string, isInitializingGit:boolean, gitRemoteUri:string, projectAlias:string):Promise<void> {
@@ -587,5 +589,41 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
 
     // If we get this far, return TRUE so additional finalization code knows it should run.
     return true;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _resolveFalconProjectConfig
+   * @returns     {Promise<SfdxFalconProjectConfig>}  Falcon Project config
+   *              JSON for the project that resides at the path provided.
+   * @description Given a local filepath, tries to resolve an SFDX Project at
+   *              that location, then extracts the SFDX-Falcon specific config
+   *              from it.
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async _resolveFalconProjectConfig(projectPath:string):Promise<SfdxFalconProjectConfig> {
+
+    // Debug incoming arguments.
+    SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:arguments:`, arguments, `arguments: `);
+
+    // Instantiate the SFDX-Falcon Project residing at the Project Path.
+    const sfdxFalconProjectConfig = await SfdxFalconProject.resolve(projectPath, {resolveLocalConfig:false})
+      .then((sfdxFalconProject:SfdxFalconProject) => {
+        SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:sfdxFalconProject:`, sfdxFalconProject, `sfdxFalconProject: `);
+        return sfdxFalconProject.falconProjectConfig; // Peel off the Falcon Project config
+      })
+      .catch(error => {
+        SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:error:`, error, `error: `);
+        this.generatorStatus.abort({
+          type:     'error',
+          title:    `Cloned Project is Invalid`,
+          message:  `${projectPath} does not contain a valid SFDX-Falcon project`
+        });
+        return null;    // Swallow errors and return null to let the caller know there was a problem.
+      }) as SfdxFalconProjectConfig;
+
+    // Done. Caller will need to check for NULL.
+    return sfdxFalconProjectConfig;
   }
 }

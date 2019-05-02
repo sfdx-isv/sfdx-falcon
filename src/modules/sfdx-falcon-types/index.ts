@@ -175,6 +175,95 @@ export interface SfdxFalconJsonResponse {
 
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Falcon and SFDX Config-related interfaces and types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+/**
+ * Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
+ */
+export interface SfdxFalconProjectConfig {
+  developerAlias?:  string;                   // eg. 'univ-ctrs'
+  developerName?:   string;                   // eg. 'Universal Containers'
+  projectAlias?:    string;                   // eg. 'my-sfdx-falcon-project'
+  projectName?:     string;                   // eg. 'My SFDX Falcon Project'
+  projectFamily?:   string;                   // 'ADK' | 'APK'
+  projectType?:     string;                   // '1GP:managed' | '1GP:unmanaged' | '2GP:managed' | '2GP:unlocked' | 'single-demo' | 'multi-demo'
+  defaultRecipe?:   string;                   // eg. 'demo-recipe-1.json'
+  gitRemoteUri?:    string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project.git'
+  gitHubUrl?:       string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project'
+  projectVersion?:  string;                   // eg. '1.5.1'
+  schemaVersion?:   string;                   // eg. '1.0.0'
+  pluginVersion?:   string;                   // eg. '1.0.0'
+  appxPackage?:     AppxPackageProjectConfig;
+  appxDemo?:        AppxDemoProjectConfig;
+}
+
+/**
+ * Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
+ */
+export interface SfdxFalconLocalConfig {
+  devHubAlias?:    string;                   // eg. 'My_DevHub'
+  envHubAlias?:   string;                   // eg. 'My_EnvHub'
+  pkgOrgAlias?:   string;                   // eg. 'My_PkgOrg'
+  appxPackage?:   AppxPackageLocalConfig;
+  appxDemo?:      AppxDemoLocalConfig;
+}
+
+/**
+ * Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
+ */
+export interface SfdxFalconGlobalConfig {
+  propertiesTBD?: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to ADK projects.
+ */
+export interface AppxDemoProjectConfig {
+  demoRecipes:      string[];               // eg. ['demo-recipe-1.json', 'demo-recipe-2.json']
+  partnerAlias:     string;                 // eg. 'appy-inc'
+  partnerName:      string;                 // eg. 'Appy Apps, Incorporated'
+}
+
+/**
+ * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to ADK projects.
+ */
+export interface AppxDemoLocalConfig {
+  propertiesTBD: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to APK projects.
+ */
+export interface AppxPackageProjectConfig {
+  developerRecipes:   string[];             // eg. ['developer-recipe-1.json', 'developer-recipe-2.json']
+  namespacePrefix:    string;               // eg. 'my_ns_prefix'
+  packageName:        string;               // eg. 'My Package Name'
+  metadataPackageId:  string;               // eg. '033000000000000'
+  packageVersionId: {
+    stable: string;                         // eg. '04t111111111111'
+    beta:   string;                         // eg. '04t222222222222'
+  };
+}
+
+/**
+ * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to APK projects.
+ */
+export interface AppxPackageLocalConfig {
+  propertiesTBD: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
+ */
+export interface ProjectResolutionOptions {
+  resolveProjectConfig?: boolean;
+  resolveLocalConfig?:   boolean;
+  resolveGlobalConfig?:  boolean;
+}
+
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Packaging-related types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
@@ -295,6 +384,7 @@ export type ListrObservable = any;  // tslint:disable-line: no-any
  */
 export type Subscriber = Subscriber<any>; // tslint:disable-line: no-any
 
+
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -312,6 +402,7 @@ export type InquirerAnswers   = inquirer.Answers;
 export interface YeomanAnswerHash {
   [key:string]: any;  // tslint:disable-line: no-any
 }
+
 /**
  * Represents a Yeoman/Inquirer choice object.
  */
@@ -322,6 +413,7 @@ export interface YeomanChoice {
   type?:      string;
   line?:      string;
 }
+
 /**
  * Represents a "checkbox choice" in Yeoman/Inquirer.
  */
@@ -330,10 +422,12 @@ export interface YeomanCheckboxChoice extends YeomanChoice {
   checked?:   boolean;
   disabled?:  boolean|string|YeomanChoiceDisabledFunction;
 }
+
 /**
  * Represents the function signature for a "Disabled" function.
  */
 export type YeomanChoiceDisabledFunction = (answers:any) => boolean|string; // tslint:disable-line: no-any
+
 /**
  * Represents what an answers hash should look like during Yeoman/Inquirer interactions
  * where the user is being asked to proceed/retry/abort something.
@@ -343,6 +437,7 @@ export interface ConfirmationAnswers {
   restart:  boolean;
   abort:    boolean;
 }
+
 /**
  * Type. Defines a function that displays answers to a user.
  */
@@ -544,6 +639,7 @@ export interface ObjectDescribe {
   updateable?:          boolean;
   urls?:                any;      // tslint:disable-line: no-any
 }
+
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 // SObject related types.

@@ -185,7 +185,7 @@ export async function gitClone(gitRemoteUri:string, targetDirectory:string='.', 
 export function gitInit(targetDirectory:string):ShellString {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}gitInit:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}gitInit:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments
   if (typeof targetDirectory !== 'string' || targetDirectory === '') {
@@ -370,7 +370,7 @@ export function isGitInstalled():boolean {
       return false;
     }
   } catch (err) {
-    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, err, `err: `);
+    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:err:`, err, `err: `);
     return false;
   }
 }
@@ -433,7 +433,7 @@ export function getRepoNameFromUri(gitRemoteUri:string):string {
 export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteEmpty:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteEmpty:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
@@ -447,7 +447,7 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
   try {
     shell.exec(`git ls-remote --exit-code -h ${gitRemoteUri}`, {silent: true});
   } catch (err) {
-    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:`, err, `err: `);
+    SfdxFalconDebug.obj(`${dbgNs}gitRemoteAddOrigin:err:`, err, `err: `);
     return false;
   }
 
@@ -473,7 +473,7 @@ export function isGitRemoteEmpty(gitRemoteUri:string):boolean {
 export async function checkGitRemoteStatus(gitRemoteUri:string, waitSeconds:number=0):Promise<ShellExecResult> {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
@@ -526,7 +526,7 @@ export async function checkGitRemoteStatus(gitRemoteUri:string, waitSeconds:numb
       }
 
       // Debug
-      SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:`, shellExecResult, `shellExecResult: `);
+      SfdxFalconDebug.obj(`${dbgNs}checkGitRemoteStatus:shellExecResult:`, shellExecResult, `shellExecResult: `);
 
       // Resolve or reject depending on what we got back.
       if (shellExecResult.resolve) {
@@ -552,7 +552,7 @@ export async function checkGitRemoteStatus(gitRemoteUri:string, waitSeconds:numb
 export function isGitRemoteReadable(gitRemoteUri:string):boolean {
 
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
@@ -564,7 +564,7 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
   try {
     shell.exec(`git ls-remote -h ${gitRemoteUri}`, {silent: true});
   } catch (err) {
-    SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, err, `err: `);
+    SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:err:`, err, `err: `);
     return false;
   }
 
@@ -587,7 +587,7 @@ export function isGitRemoteReadable(gitRemoteUri:string):boolean {
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isGitUriValid(gitRemoteUri:string, acceptedProtocols?:RegExp):boolean {
   // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}isGitRemoteReadable:arguments:`, arguments, `arguments: `);
 
   // Validate incoming arguments.
   if (typeof gitRemoteUri !== 'string') {
