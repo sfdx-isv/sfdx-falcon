@@ -315,7 +315,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
    *              Answer values provided by the caller. This function can be
    *              used by an SfdxFalconInterview to reflect input to the user
    *              at the end of an Interview.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _buildInterviewAnswersTableData(interviewAnswers:InterviewAnswers):Promise<SfdxFalconTableData> {
@@ -565,16 +565,16 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
                                   , `${dbgNs}writing`);
     }
     
-    // Tell Yeoman the path to the SOURCE directory
+    // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
     this.sourceRoot(path.dirname(this.sourceDirectory));
 
-    // Tell Yeoman the path to DESTINATION (join of targetDir and project name)
+    // Set Yeoman's DESTINATION ROOT (where files will be copied TO)
     this.destinationRoot(path.resolve(this.finalAnswers.targetDirectory,
                                       this.finalAnswers.projectAlias));
 
     // DEBUG
-    SfdxFalconDebug.str(`${dbgNs}writing:`, this.sourceRoot(),      `this.sourceRoot(): `);
-    SfdxFalconDebug.str(`${dbgNs}writing:`, this.destinationRoot(), `this.destinationRoot(): `);
+    SfdxFalconDebug.str(`${dbgNs}writing:sourceRoot:`,      this.sourceRoot(),      `this.sourceRoot(): `);
+    SfdxFalconDebug.str(`${dbgNs}writing:destinationRoot:`, this.destinationRoot(), `this.destinationRoot(): `);
 
     // Tell the user that we are preparing to create their project.
     this.log(chalk`{yellow Writing project files to ${this.destinationRoot()}...}`);
@@ -723,7 +723,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
    *              written to disk. For example, if the "writing" step downloaded
    *              an app to install, the "install" step would run the
    *              installation.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async install() {
