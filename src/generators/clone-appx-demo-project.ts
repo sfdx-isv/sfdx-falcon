@@ -18,10 +18,11 @@
 import * as path  from  'path'; // Library. Helps resolve local paths at runtime.
 
 // Import Internal Modules
+import * as gitHelper                   from  '../modules/sfdx-falcon-util/git';                  // Library of Git Helper functions specific to SFDX-Falcon.
 import * as iq                          from  '../modules/sfdx-falcon-util/interview-questions';  // Library. Helper functions that create Interview Questions.
 
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                     // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
-//import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';                 // Class. Provides a standard way of building a multi-group Interview to collect user input.
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
@@ -29,7 +30,8 @@ import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-com
 import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-generator';          // Class. Abstract base class class for building Yeoman Generators for SFDX-Falcon commands.
 
 // Import Falcon Types
-import {YeomanChoice} from  '../modules/sfdx-falcon-types'; // Interface. Represents a Yeoman/Inquirer choice object.
+import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
+import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -51,6 +53,10 @@ interface InterviewAnswers {
   // SFDX Org Aliases
   devHubAlias:        string;
   envHubAlias:        string;
+
+  // SFDX Org Usernames
+  devHubUsername:     string;
+  envHubUsername:     string;
 
   // Git Settings
   gitRemoteUri:       string;
@@ -93,7 +99,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     super(args, opts);
 
     // Initialize the "Confirmation Question".
-    this.confirmationQuestion = 'Clone the AppExchange Demo Kit (ADK) project using these settings?';
+    this.confirmationQuestion = 'Clone the AppExchange Demo Kit (ADK) project using the above settings?';
 
     // Initialize class members that are set by incoming options.
     this.gitRemoteUri       = opts.gitRemoteUri as string;
@@ -111,6 +117,10 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     this.defaultAnswers.devHubAlias       = 'NOT_SPECIFIED';
     this.defaultAnswers.envHubAlias       = 'NOT_SPECIFIED';
 
+    // SFDX Org Usernames
+    this.defaultAnswers.devHubUsername    = 'NOT_SPECIFIED';
+    this.defaultAnswers.envHubUsername    = 'NOT_SPECIFIED';
+
     // Git Settings
     this.defaultAnswers.gitRemoteUri      = opts.gitRemoteUri as string;
     this.defaultAnswers.gitCloneDirectory = opts.gitCloneDir as string;
@@ -119,6 +129,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     this.sharedData['devHubAliasChoices'] = this.devHubAliasChoices;
     this.sharedData['envHubAliasChoices'] = this.envHubAliasChoices;
     this.sharedData['cliCommandName']     = this.cliCommandName;
+    this.sharedData['gitRemoteUri']       = this.gitRemoteUri;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -136,23 +147,26 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
 
     // Initialize the Interview object.
     const interview = new SfdxFalconInterview<InterviewAnswers>({
-      defaultAnswers: this.defaultAnswers,
-      confirmation:   iq.confirmProceedRestart,
-      display:        this._buildInterviewAnswersTableData,
-      context:        this,
-      sharedData:     this.sharedData
+      defaultAnswers:     this.defaultAnswers,
+      confirmation:       iq.confirmProceedRestart,
+      confirmationHeader: chalk.yellow('Review Your Settings:'),
+      display:            this._buildInterviewAnswersTableData,
+      context:            this,
+      sharedData:         this.sharedData
     });
 
     // Group 0: Provide a target directory for this project.
     interview.createGroup({
+      title:        chalk.yellow('\nTarget Directory:'),
       questions:    iq.provideTargetDirectory
     });
     // Group 1: Choose a Developer Hub.
     interview.createGroup({
+      title:        chalk.yellow('\nDevHub Selection:'),
       questions:    iq.chooseDevHub,
       confirmation: iq.confirmNoDevHub,
       abort:  groupAnswers => {
-        if (groupAnswers.devHubAlias === 'NOT_SPECIFIED') {
+        if (groupAnswers.devHubUsername === 'NOT_SPECIFIED') {
           return 'A connection to your DevHub is required to continue.';
         }
         else {
@@ -162,7 +176,9 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     });
     // Group 2: Choose an Environment Hub.
     interview.createGroup({
-      questions:    iq.chooseEnvHub
+      title:        chalk.yellow('\nEnvironment Hub Selection:'),
+      questions:    iq.chooseEnvHub,
+      confirmation: iq.confirmNoEnvHub
     });
 
     // Finished building the Interview.
@@ -178,7 +194,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
    *              Answer values provided by the caller. This function can be
    *              used by an SfdxFalconInterview to reflect input to the user
    *              at the end of an Interview.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _buildInterviewAnswersTableData(interviewAnswers:InterviewAnswers):Promise<SfdxFalconTableData> {
@@ -186,15 +202,26 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     // Declare an array of Falcon Table Data Rows
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
 
-    // Main options (always visible).
-    tableData.push({option:'Git Remote URI:',   value:`${this.gitRemoteUri}`});
-    tableData.push({option:'Target Directory:', value:`${interviewAnswers.targetDirectory}`});
-    tableData.push({option:'Dev Hub Alias:',    value:`${interviewAnswers.devHubAlias}`});
-    tableData.push({option:'Env Hub Alias:',    value:`${interviewAnswers.envHubAlias}`});
+    // Grab the SFDX Org Info Map out of Shared Data.
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+
+    // Figure out where the Git Repo is being cloned into.
+    const repoClonedInto  = this.defaultAnswers.gitCloneDirectory
+                          ? path.join(interviewAnswers.targetDirectory, this.defaultAnswers.gitCloneDirectory)
+                          : path.join(interviewAnswers.targetDirectory, gitHelper.getRepoNameFromUri(this.defaultAnswers.gitRemoteUri));
+
+    // Git related answers
+    tableData.push({option:'Git Remote URI:',         value:`${this.defaultAnswers.gitRemoteUri}`});
+    tableData.push({option:'Clone Repo Into:',        value:`${repoClonedInto}`});
+
+    // Org alias related answers
+    const devHubAlias = sfdxOrgInfoMap.get(interviewAnswers.devHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Dev Hub Alias:',          value:`${devHubAlias}`});
+    const envHubAlias = sfdxOrgInfoMap.get(interviewAnswers.envHubUsername) ? sfdxOrgInfoMap.get(interviewAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+    tableData.push({option:'Env Hub Alias:',          value:`${envHubAlias}`});
 
     // Return the Falcon Table Data.
     return tableData;
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -230,7 +257,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      configuring
-   * @returns     {void}
+   * @returns     {Promise<void>}
    * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
    *              configuration steps based on the answers provided by the User.
    * @protected @async
@@ -238,24 +265,29 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   //───────────────────────────────────────────────────────────────────────────┘
   protected async configuring():Promise<void> {
 
-    // Call the default configuring() function. Replace with custom behavior if desired.
-    this._default_configuring();
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}configuring:`, `generatorStatus.aborted found as TRUE inside configuring()`);
+      return;
+    }
 
     // Clone the repository that was provided by the caller.
     this.localProjectPath = await this._cloneRepository();
 
+    // Add a line break to separate this section from the next.
+    console.log('');
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      writing
-   * @returns     {void}
+   * @returns     {Promise<void>}
    * @description STEP FOUR in the Yeoman run-loop. Typically, this is where
    *              you perform filesystem writes, git clone operations, etc.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected writing():void {
+  protected async writing():Promise<void> {
 
     // Check if we need to abort the Yeoman interview/installation process.
     if (this.generatorStatus.aborted) {
@@ -268,6 +300,36 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
       return;
     }
 
+    // Get the Falcon Project Config so we can find out what kind of project we just cloned.
+    const falconProjectConfig = await this._resolveFalconProjectConfig(this.localProjectPath);
+    SfdxFalconDebug.obj(`${dbgNs}writing:falconProjectConfig:`, falconProjectConfig, `falconProjectConfig: `);
+
+    // Make sure we just cloned a valid Falcon Project.
+    if (falconProjectConfig === null) {
+      return;
+    }
+
+    // Extract the SFDX Org Info Map from Shared Data.
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+
+    // Set the FINAL Org Aliases.
+    this.finalAnswers.devHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername).alias : 'NOT_SPECIFIED';
+    this.finalAnswers.envHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.envHubUsername).alias : 'NOT_SPECIFIED';
+
+    // Take special action for certain project types.
+    switch (falconProjectConfig.projectType) {
+      case 'single-demo':
+        // Not Yet Implemented
+        break;
+      case 'multi-demo':
+        // Not Yet Implemented
+        break;
+      default:
+        throw new SfdxFalconError ( `Invalid Project Type: '${falconProjectConfig.projectType}'. `
+                                  , `InvalidProjectType`
+                                  , `${dbgNs}writing`);
+    }
+
     // Set Yeoman's SOURCE ROOT (where template files will be copied FROM)
     // Note: For falcon:project:clone the SOURCE and DESTINATION are the
     // same directory.
@@ -277,8 +339,8 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     this.destinationRoot(this.localProjectPath);
 
     // DEBUG
-    SfdxFalconDebug.str(`${dbgNs}configuring:`, this.sourceRoot(),      `SOURCE PATH: `);
-    SfdxFalconDebug.str(`${dbgNs}configuring:`, this.destinationRoot(), `DESTINATION PATH: `);
+    SfdxFalconDebug.str(`${dbgNs}writing:sourceRoot`,       this.sourceRoot(),      `SOURCE PATH: `);
+    SfdxFalconDebug.str(`${dbgNs}writing:destinationRoot:`, this.destinationRoot(), `DESTINATION PATH: `);
 
     //─────────────────────────────────────────────────────────────────────────┐
     // *** IMPORTANT: READ CAREFULLY ******************************************
@@ -294,7 +356,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     //─────────────────────────────────────────────────────────────────────────┘
 
     // Quick message saying we're going to update project files
-    this.log(chalk`\n{yellow Customizing project files...}\n`);
+    this.log(chalk`{yellow Customizing project files...}`);
 
     // Add custom config info to the local .sfdx-falcon project config file.
     // This is found in a hidden directory at the root of the project.

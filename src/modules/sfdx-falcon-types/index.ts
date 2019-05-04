@@ -467,8 +467,10 @@ export interface PromptOptions<T extends object> {
 export interface InterviewOptions<T extends object> {
   defaultAnswers:       T;                            // Required. Default answers to the Questions.
   confirmation?:        Questions | QuestionsBuilder; // Optional. Confirmation Questions.
+  confirmationHeader?:  string;                       // Optional. Text to be shown above the Interview's Confirmation Question.
   invertConfirmation?:  boolean;                      // Optional. Inverts the relevant Confirmation Answers before considering their value.
-  display?:             AnswersDisplay<T>;            // Optional. ???
+  display?:             AnswersDisplay<T>;            // Optional. Async function that returns void if the function renders something, or an array of Falcon Data Table rows if not.
+  displayHeader?:       string;                       // Optional. Text to be shown above the Display Table.
   context?:             object;                       // Optional. ???
   sharedData?:          object;                       // Optional. ???
 }

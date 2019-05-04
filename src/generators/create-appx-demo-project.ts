@@ -115,7 +115,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     super(args, opts);
 
     // Initialize the "Confirmation Question".
-    this.confirmationQuestion = 'Create a new AppExchange Demo Kit (ADK) project using these settings?';
+    this.confirmationQuestion = 'Create a new AppExchange Demo Kit (ADK) project using the above settings?';
 
     // Initialize source directory where template files are kept.
     this.sourceDirectory  = require.resolve('sfdx-falcon-appx-demo-kit');
@@ -186,11 +186,12 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
 
     // Initialize the Interview object.
     const interview = new SfdxFalconInterview<InterviewAnswers>({
-      defaultAnswers: this.defaultAnswers,
-      confirmation:   iq.confirmProceedRestart,
-      display:        this._buildInterviewAnswersTableData,
-      context:        this,
-      sharedData:     this.sharedData
+      defaultAnswers:     this.defaultAnswers,
+      confirmation:       iq.confirmProceedRestart,
+      confirmationHeader: chalk.yellow('Review Your Settings:'),
+      display:            this._buildInterviewAnswersTableData,
+      context:            this,
+      sharedData:         this.sharedData
     });
 
     // Group 0: Provide a target directory for this project.

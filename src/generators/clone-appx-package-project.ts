@@ -102,7 +102,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
     super(args, opts);
 
     // Initialize the "Confirmation Question".
-    this.confirmationQuestion = 'Clone the AppExchange Package Kit (APK) project using these settings?';
+    this.confirmationQuestion = 'Clone the AppExchange Package Kit (APK) project using the above settings?';
 
     // Initialize class members that are set by incoming options.
     this.gitRemoteUri       = opts.gitRemoteUri as string;
@@ -158,11 +158,12 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
 
     // Initialize the Interview object.
     const interview = new SfdxFalconInterview<InterviewAnswers>({
-      defaultAnswers: this.defaultAnswers,
-      confirmation:   iq.confirmProceedRestart,
-      display:        this._buildInterviewAnswersTableData,
-      context:        this,
-      sharedData:     this.sharedData
+      defaultAnswers:     this.defaultAnswers,
+      confirmation:       iq.confirmProceedRestart,
+      confirmationHeader: chalk.yellow('Review Your Settings:'),
+      display:            this._buildInterviewAnswersTableData,
+      context:            this,
+      sharedData:         this.sharedData
     });
 
     // Group 0: Provide a target directory for this project.
@@ -176,7 +177,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
       questions:    iq.chooseDevHub,
       confirmation: iq.confirmNoDevHub,
       abort:  groupAnswers => {
-        if (groupAnswers.devHubAlias === 'NOT_SPECIFIED') {
+        if (groupAnswers.devHubUsername === 'NOT_SPECIFIED') {
           return 'A connection to your DevHub is required to continue.';
         }
         else {
@@ -247,7 +248,7 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
    */
   //───────────────────────────────────────────────────────────────────────────┘
   protected async _checkForPkgOrgConnection():Promise<boolean> {
-
+    // TODO: Delete this method unless therre is reason to move the logic from writing() to here.
     return false;
   }
 
@@ -295,21 +296,23 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
   //───────────────────────────────────────────────────────────────────────────┘
   protected async configuring():Promise<void> {
 
-    // Call the default configuring() function. Replace with custom behavior if desired.
-    this._default_configuring();
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}configuring:`, `generatorStatus.aborted found as TRUE inside configuring()`);
+      return;
+    }
 
     // Clone the repository that was provided by the caller.
     this.localProjectPath = await this._cloneRepository();
 
     // Add a line break to separate this section from the next.
     console.log('');
-
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      writing
-   * @returns     {void}
+   * @returns     {Promise<void>}
    * @description STEP FOUR in the Yeoman run-loop. Typically, this is where
    *              you perform filesystem writes, git clone operations, etc.
    * @protected @async
@@ -407,10 +410,8 @@ export default class CloneAppxPackageProject extends SfdxFalconYeomanGenerator<I
     // Quick message saying we're going to update project files
     this.log(chalk`{yellow Customizing project files...}`);
 
-    //─────────────────────────────────────────────────────────────────────────┐
     // Add custom config info to the local .sfdx-falcon project config file.
     // This is found in a hidden directory at the root of the project.
-    //─────────────────────────────────────────────────────────────────────────┘
     this.fs.copyTpl(this.templatePath('.templates/sfdx-falcon-config.json.ejs'),
                     this.destinationPath('.sfdx-falcon/sfdx-falcon-config.json'),
                     this);

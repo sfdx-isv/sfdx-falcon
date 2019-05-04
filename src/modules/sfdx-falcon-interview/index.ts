@@ -112,7 +112,9 @@ export class SfdxFalconInterview<T extends object> {
   // Private members
   private readonly  _interviewGroups:     Array<InterviewGroup<T>>;     // ???
   private readonly  _confirmation:        Questions | QuestionsBuilder; // ???
+  private readonly  _confirmationHeader:  string;                       // ???
   private readonly  _display:             AnswersDisplay<T>;            // ???
+  private readonly  _displayHeader:       string;                       // ???
   private readonly  _invertConfirmation:  boolean;                      // ???
 
   // Public Accessors
@@ -137,7 +139,9 @@ export class SfdxFalconInterview<T extends object> {
   constructor(opts:InterviewOptions<T>) {
     this.defaultAnswers       = opts.defaultAnswers as T;
     this._confirmation        = opts.confirmation;
+    this._confirmationHeader  = opts.confirmationHeader || '';
     this._display             = opts.display;
+    this._displayHeader       = opts.displayHeader || '';
     this._invertConfirmation  = opts.invertConfirmation || false;
     this.context              = opts.context || {} as object;
     this.sharedData           = opts.sharedData || {} as object;
@@ -277,7 +281,16 @@ export class SfdxFalconInterview<T extends object> {
       // If the display function returned an Array, then we'll show it to the user with a Falcon Table.
       if (Array.isArray(displayResults)) {
         const falconTable = new SfdxFalconKeyValueTable();
-        console.log('');
+
+        // If there's a Display Header, render it. Otherwise, add a line break.
+        if (this._displayHeader) {
+          console.log(this._displayHeader);
+        }
+        else {
+          console.log('');
+        }
+
+        // Render the Falcon Table, and add a line break afterwards.
         falconTable.render(displayResults);
         console.log('');
       }
@@ -311,6 +324,11 @@ export class SfdxFalconInterview<T extends object> {
 
     // If there is anything to display, displayAnswers() will take care of it.
     await this.displayAnswers();
+
+    // If there is a Confirmation Header, show it here.
+    if (this._confirmationHeader) {
+      console.log(this._confirmationHeader);
+    }
 
     // Create a Confirmation Answers structure to hold what we get back from the prompt.
     const confirmationDefaults = {
