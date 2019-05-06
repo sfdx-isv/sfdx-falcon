@@ -14,8 +14,11 @@ import {Connection}           from  '@salesforce/core';         // Why?
 import {AnyJson}              from  '@salesforce/ts-types';     // Why?
 import * as inquirer          from  'inquirer';                 // Why?
 import {QueryResult}          from  'jsforce';                  // Why?
+//import {Query}                from  'jsforce';                  // Why?
+//import {Record}               from  'jsforce';                  // Why?
 import {RequestInfo}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';                     // Why?
+import {Observer}             from  'rxjs';                     // Why?
 import {Subscriber}           from  'rxjs';                     // Why?
 import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
 import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
@@ -305,7 +308,7 @@ export interface ListrObject extends Object {
 }
 
 /**
- * Represents a Listr Task object that can be executed by a Listr Task Runner.
+ * Interface. Represents a Listr Task object that can be executed by a Listr Task Runner.
  */
 export interface ListrTask {
   title:    string;
@@ -378,6 +381,12 @@ export interface ListrContextPkgRetExCon {
  * Represents an Observable for use with Listr.
  */
 export type ListrObservable = any;  // tslint:disable-line: no-any
+
+/**
+ * Type. Alias to an rxjs Observer<any> type.
+ */
+export type Observer = Observer<any>;  // tslint:disable-line: no-any
+
 
 /**
  * Type. Alias to an rxjs Subscriber<any> type.
@@ -665,7 +674,8 @@ export type Profile = SObject;
  * Interface. Represents the Salesforce PermissionSetAssignment SObject.
  */
 export interface PermissionSetAssignment extends SObject {
-  PermissionSetId: string;
+  PermissionSetId:  string;
+  AssigneeId:       string;
 }
 
 /**
@@ -674,3 +684,8 @@ export interface PermissionSetAssignment extends SObject {
 export interface User extends SObject {
   username?: string;
 }
+
+/**
+ * Type. Alias for an array of objects that may have "Id" and "Name" properties.
+ */
+export type SObjectFindResult = Array<{Id?: string; Name?: string; }>;

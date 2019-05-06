@@ -23,15 +23,18 @@ import {executeSfdxCommand}         from  '../../../executors/sfdx';  // Functio
 import {SfdxCommandDefinition}      from  '../../../executors/sfdx';  // Interface. Represents an SFDX "Command Definition" that can be compiled into a string that can be executed at the command line against the Salesforce CLI.
 
 // Engine/Action Imports
-import {AppxEngineAction}           from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}    from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
-import {ExecutorMessages}           from  '../../../types';     // Interface. Represents the standard messages that most Executors use for Observer notifications.
-import {SfdxFalconActionType}       from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
+import {AppxEngineAction}           from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {SfdxCliActionResultDetail}  from  '../../appx/actions'; // Interface. Represents the "detail" information that every SFDX-CLI ACTION result should have.
+
+// Import Recipe Types
+import {ActionOptions}              from  '../../../types/';    // Type. Alias to JsonMap.
+import {ExecutorMessages}           from  '../../../types/';    // Interface. Represents the standard messages that most Executors use for Observer notifications.
+import {SfdxFalconActionType}       from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:import-data-tree:';
-//const clsDbgNs  = 'ImportDataTreeAction:';
+
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -40,14 +43,14 @@ const dbgNs     = 'ACTION:import-data-tree:';
  * @description Represents the structure of the "Result Detail" object used by this ACTION.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-interface ActionResultDetail extends SfdxCliActionResultDetail {}
+// NOTE: Left commented out because there are no additional option properties for this Action.
+//interface ActionResultDetail extends SfdxCliActionResultDetail {}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       ImportDataTreeAction
  * @extends     AppxEngineAction
  * @description Implements the action "import-data-tree".
- * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -58,7 +61,6 @@ export class ImportDataTreeAction extends AppxEngineAction {
    * @method      initializeAction
    * @returns     {void}
    * @description Sets member variables based on the specifics of this action.
-   * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -76,42 +78,42 @@ export class ImportDataTreeAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateActionOptions
-   * @param       {any}   actionOptions Required. The options that should be
-   *              validated because they are required by this specific action.
-   * @returns     {void}  
-   * @description Given an object containing Action Options, make sure that 
+   * @param       {ActionOptions} actionOptions Required. The options that
+   *              should be validated because they are required by this specific
+   *              action.
+   * @returns     {void}
+   * @description Given an object containing Action Options, make sure that
    *              everything expected by this Action in order to properly
    *              execute has been provided.
-   * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected validateActionOptions(actionOptions:any):void {
+  protected validateActionOptions(actionOptions:ActionOptions):void {
     if (typeof actionOptions.plan === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'plan'`);
     // Save this for later when(if) we add support for individual SOBject tree files.
     //if (typeof actionOptions.plan === 'undefined' && typeof actionOptions.sObjectTreeFiles === 'undefined') {
     //  throw new Error(`ERROR_MISSING_OPTION: Either 'plan' or 'sObjectTreeFiles' must be provided`);
     //}
-  }  
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      executeAction
-   * @param       {any}   actionOptions Optional. Any options that the command
-   *              execution logic will require in order to properly do its job.
+   * @param       {ActionOptions} [actionOptions] Optional. Any options that the
+   *              command execution logic will require in order to properly do
+   *              its job.
    * @returns     {Promise<SfdxFalconResult>} Resolves with an SfdxFalconResult
-   *              of type ACTION that has one or more EXECUTOR Results as 
+   *              of type ACTION that has one or more EXECUTOR Results as
    *              children.
    * @description Performs the custom logic that's wrapped by the execute method
    *              of the base class.
-   * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconResult> {
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:ActionOptions={}):Promise<SfdxFalconResult> {
 
     // Get an SFDX-Falcon Result that's customized for this Action.
-    let actionResult = this.createActionResult(
+    const actionResult = this.createActionResult(
       actionContext, actionOptions,
       { startNow:       true,
         bubbleError:    true,
@@ -125,23 +127,23 @@ export class ImportDataTreeAction extends AppxEngineAction {
         executorMessages:   null,
         sfdxCommandDef:     null
       }
-    } as ActionResultDetail;
-    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);    
+    } as SfdxCliActionResultDetail;
+    actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
-    let actionResultDetail = actionResult.detail as ActionResultDetail;
+    const actionResultDetail = actionResult.detail as SfdxCliActionResultDetail;
 
     // Define the messages that are relevant to this Action
-    let executorMessages = {
+    const executorMessages = {
       progressMsg:  `Importing data based on ${actionOptions.plan}`,
       errorMsg:     `Data tree import failed for plan ${actionOptions.plan}`,
-      successMsg:   `Data tree import succeeded for plan '${actionOptions.plan}'`  
+      successMsg:   `Data tree import succeeded for plan '${actionOptions.plan}'`
     } as ExecutorMessages;
     actionResultDetail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
 
     // Create an SFDX Command Definition object to specify which command the CLI will run.
-    let sfdxCommandDef = {
+    const sfdxCommandDef = {
       command:      'force:data:tree:import',
       progressMsg:  executorMessages.progressMsg,
       errorMsg:     executorMessages.errorMsg,
@@ -150,19 +152,19 @@ export class ImportDataTreeAction extends AppxEngineAction {
       commandArgs:  new Array<string>(),
       commandFlags: {
         FLAG_TARGETUSERNAME:  actionContext.targetOrg.alias,
-        FLAG_PLAN:            path.join(actionContext.projectContext.dataPath, actionOptions.plan),
+        FLAG_PLAN:            path.join(actionContext.projectContext.dataPath, actionOptions.plan as string),
         FLAG_CONTENTTYPE:     'json',
         FLAG_JSON:            true,
         FLAG_LOGLEVEL:        actionContext.logLevel
       }
     } as SfdxCommandDefinition;
     actionResultDetail.sfdxCommandDef = sfdxCommandDef;
-    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction:`);    
+    actionResult.debugResult(`SFDX Command Definition Created`, `${dbgNs}executeAction:`);
 
     // Run the executor then return or throw the result.
     // OPTIONAL: If you want to override success/error handling, do it here.
     return await executeSfdxCommand(sfdxCommandDef)
-      .catch(rejectedPromise => {return actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`);})
+      .catch(rejectedPromise => actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `sfdx:executeSfdxCommand`))
       .then(resolvedPromise => {
         if (resolvedPromise === actionResult) {
           // If "resolvedPromise" points to the same location in memory as "actionResult", it means that

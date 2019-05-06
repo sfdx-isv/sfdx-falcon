@@ -9,19 +9,25 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules/Types
+import {JsonMap}                      from  '@salesforce/ts-types'; // Any JSON compatible object.
+
 // Import Local Modules
-import {SfdxFalconResult}           from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
-import {SfdxFalconResultOptions}    from  '../../../../sfdx-falcon-result'; // Interface. Represents the options that can be set when an SfdxFalconResult object is constructed.
-import {SfdxFalconResultType}       from  '../../../../sfdx-falcon-result'; // Interface. Represents the different types of sources where Results might come from.
+import {SfdxFalconResult}             from  '../../../../sfdx-falcon-result'; // Class. Provides framework for bubbling "results" up from nested calls.
+import {SfdxFalconResultOptions}      from  '../../../../sfdx-falcon-result'; // Interface. Represents the options that can be set when an SfdxFalconResult object is constructed.
+import {SfdxFalconResultType}         from  '../../../../sfdx-falcon-result'; // Interface. Represents the different types of sources where Results might come from.
 
 // Executor Imports
 import {createUser}                   from  '../../../executors/hybrid';  // Function. Hybrid executor
 
 // Engine/Action Imports
-import {AppxEngineAction}             from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {AppxEngineActionContext}      from  '../../appx';         // Interface. Represents the context of an Appx Recipe Engine.
+import {AppxEngineAction}             from  '../../appx/actions'; // Abstract class. Extend this to build a custom Action for the Appx Recipe Engine.
 import {CoreActionResultDetail}       from  '../../appx/actions'; // Interface. Represents the core "result detail" info common to every ACTION.
-import {ExecutorMessages}             from  '../../../types';     // Interface. Represents the standard messages that most Executors use for Observer notifications.
+
+// Import Recipe Types
+import {ActionOptions}                from  '../../../types/';    // Type. Alias to JsonMap.
+import {ExecutorMessages}             from  '../../../types/';    // Interface. Represents the standard messages that most Executors use for Observer notifications.
 import {SfdxFalconActionType}         from  '../../../types/';    // Enum. Represents types of SfdxFalconActions.
 
 // Import Utility Functions
@@ -30,7 +36,6 @@ import {readConfigFile}               from  '../../../../sfdx-falcon-util';   //
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ACTION:create-user:';
-//const clsDbgNs  = 'CreateUserAction:';
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -41,7 +46,7 @@ const dbgNs     = 'ACTION:create-user:';
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 interface ActionResultDetail extends CoreActionResultDetail {
-  userDefinition:   any;
+  userDefinition:   JsonMap;
   uniqueUsername:   string;
   defaultPassword:  string;
 }
@@ -51,7 +56,6 @@ interface ActionResultDetail extends CoreActionResultDetail {
  * @class       CreateUserAction
  * @extends     AppxEngineAction
  * @description Implements the action "create-user".
- * @version     1.0.0
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -62,7 +66,6 @@ export class CreateUserAction extends AppxEngineAction {
    * @method      initializeAction
    * @returns     {void}
    * @description Sets member variables based on the specifics of this action.
-   * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -80,17 +83,17 @@ export class CreateUserAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      validateActionOptions
-   * @param       {any}   actionOptions Required. The options that should be
-   *              validated because they are required by this specific action.
-   * @returns     {void}  
-   * @description Given an object containing Action Options, make sure that 
+   * @param       {ActionOptions} actionOptions Required. The options that
+   *              should be validated because they are required by this specific
+   *              action.
+   * @returns     {void}
+   * @description Given an object containing Action Options, make sure that
    *              everything expected by this Action in order to properly
    *              execute has been provided.
-   * @version     1.0.0
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected validateActionOptions(actionOptions:any):void {
+  protected validateActionOptions(actionOptions:ActionOptions):void {
     if (typeof actionOptions.definitionFile === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'definitionFile'`);
     if (typeof actionOptions.sfdxUserAlias  === 'undefined') throw new Error(`ERROR_MISSING_OPTION: 'sfdxUserAlias'`);
   }
@@ -98,21 +101,21 @@ export class CreateUserAction extends AppxEngineAction {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      executeAction
-   * @param       {any}   actionOptions Optional. Any options that the command
-   *              execution logic will require in order to properly do its job.
+   * @param       {ActionOptions} actionOptions Optional. Any options that the
+   *              command execution logic will require in order to properly do
+   *              its job.
    * @returns     {Promise<SfdxFalconResult>} Resolves with an SfdxFalconResult
-   *              of type ACTION that has one or more EXECUTOR Results as 
+   *              of type ACTION that has one or more EXECUTOR Results as
    *              children.
    * @description Performs the custom logic that's wrapped by the execute method
    *              of the base class.
-   * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:any={}):Promise<SfdxFalconResult> {
+  protected async executeAction(actionContext:AppxEngineActionContext, actionOptions:ActionOptions={}):Promise<SfdxFalconResult> {
 
     // Get an SFDX-Falcon Result that's customized for this Action.
-    let actionResult = this.createActionResult(
+    const actionResult = this.createActionResult(
       actionContext, actionOptions,
       { startNow:       true,
         bubbleError:    true,
@@ -132,39 +135,39 @@ export class CreateUserAction extends AppxEngineAction {
     actionResult.debugResult(`Initialized`, `${dbgNs}executeAction:`);
 
     // Create a typed variable to represent this function's ACTION Result Detail.
-    let actionResultDetail = actionResult.detail as ActionResultDetail;
+    const actionResultDetail = actionResult.detail as ActionResultDetail;
 
     // Find and read the user definition file.
-    let userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile)
-      .catch(error => {actionResult.throw(error)});
-    actionResultDetail.userDefinition = userDefinition;
+    const userDefinition = await readConfigFile(actionContext.projectContext.configPath, actionOptions.definitionFile as string)
+      .catch(error => { actionResult.throw(error); });
+    actionResultDetail.userDefinition = userDefinition as JsonMap;
     actionResult.debugResult(`User Definition File Read`, `${dbgNs}executeAction:`);
 
     // Create a unique username based on what's in the definition file.
-    let uniqueUsername  = createUniqueUsername(userDefinition.Username);
+    const uniqueUsername  = createUniqueUsername(userDefinition['Username']);
     actionResultDetail.uniqueUsername = uniqueUsername;
     actionResult.debugResult(`Unique Username Generated`, `${dbgNs}executeAction:`);
 
     // Determine what the appropriate default password should be.
-    let defaultPassword = determineDefaultPassword(userDefinition.password);
+    const defaultPassword = determineDefaultPassword(userDefinition['password']);
     actionResultDetail.defaultPassword = defaultPassword;
     actionResult.debugResult(`Default Password Determined`, `${dbgNs}executeAction:`);
 
     // Define the messages for this command.
-    let executorMessages = {
+    const executorMessages = {
       progressMsg:  `Creating User '${uniqueUsername}' in ${actionContext.targetOrg.alias}`,
       errorMsg:     `Failed to create User '${uniqueUsername}' in ${actionContext.targetOrg.alias}`,
-      successMsg:   `User '${uniqueUsername}' created successfully`,
+      successMsg:   `User '${uniqueUsername}' created successfully`
     } as ExecutorMessages;
     actionResultDetail.executorMessages = executorMessages;
     actionResult.debugResult(`Executor Messages Set`, `${dbgNs}executeAction:`);
   
-    // Run the executor then return or throw the result. 
+    // Run the executor then return or throw the result.
     // OPTIONAL: If you want to override success/error handling, do it here.
-    return await createUser( uniqueUsername, defaultPassword, userDefinition, 
-                                actionContext.targetOrg, executorMessages, 
+    return await createUser( uniqueUsername, defaultPassword, userDefinition as JsonMap,
+                                actionContext.targetOrg, executorMessages,
                                 actionContext.listrExecOptions.observer)
-      .catch(rejectedPromise => {return actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `hybrid:createUser`);})
+      .catch(rejectedPromise => actionResult.addRejectedChild(rejectedPromise, SfdxFalconResultType.EXECUTOR, `hybrid:createUser`))
       .then(resolvedPromise => {
         if (resolvedPromise === actionResult) {
           // If "resolvedPromise" points to the same location in memory as "actionResult", it means that

@@ -10,14 +10,14 @@
  * @description   ???
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+/*
 const falconSubstitutionMap = new Map<string, any>([
   ['uuid',          generateUuid],
   ['companyName',   fetchCompanyName],
   ['recipeName',    fetchRecipeName],
   ['recipeVersion', fetchRecipeVersion],
   ['schemaVersion', fetchSchemaVersion]
-]);
+]);//*/
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -29,6 +29,7 @@ const falconSubstitutionMap = new Map<string, any>([
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class StringSubstitution {
+  /*
   // @ts-ignore - Temporary exclusion while this module is under development
   private substitutionMap:Map<string, any>    = new Map<string, any>();
   // @ts-ignore - Temporary exclusion while this module is under development
@@ -37,6 +38,7 @@ export class StringSubstitution {
   private openingTag:string                   = '<@';
   // @ts-ignore - Temporary exclusion while this module is under development
   private closingTag:string                   = '@>';
+  //*/
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -46,6 +48,7 @@ export class StringSubstitution {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  /*
   public constructor (substitutionMap:Map<string,any>=falconSubstitutionMap, userOptions:any={}) {
     this.substitutionMap = substitutionMap;
     let defaultOptions = {
@@ -60,7 +63,7 @@ export class StringSubstitution {
     this.ignoreInvalidKeys  = resolvedOptions.ignoreInvalidKeys;
     this.openingTag         = resolvedOptions.openingTag;
     this.closingTag         = resolvedOptions.closingTag;
-  }
+  }//*/
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -71,9 +74,10 @@ export class StringSubstitution {
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
+  /*
   public replaceStrings(contentBody:string):string {
     return 'NOT_IMPLEMENTED';
-  }
+  }//*/
 
 }
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -86,9 +90,10 @@ export class StringSubstitution {
  * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 function generateUuid():string {
   return 'NOT_IMPLEMENTED';
-}
+}//*/
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -99,9 +104,10 @@ function generateUuid():string {
  * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 function fetchCompanyName():string {
   return 'NOT_IMPLEMENTED';
-}
+}//*/
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -112,9 +118,10 @@ function fetchCompanyName():string {
  * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 function fetchRecipeName():string {
   return 'NOT_IMPLEMENTED';
-}
+}//*/
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -125,9 +132,10 @@ function fetchRecipeName():string {
  * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 function fetchRecipeVersion():string {
   return 'NOT_IMPLEMENTED';
-}
+}//*/
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -139,8 +147,7 @@ function fetchRecipeVersion():string {
  * @private @async
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
+/*
 function fetchSchemaVersion():string {
   return 'NOT_IMPLEMENTED';
-}
-
-
+}//*/
