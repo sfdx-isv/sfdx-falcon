@@ -512,6 +512,10 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
     let stdOutBuffer:string = '';
     let stdErrBuffer:string = '';
 
+    // Set the FORCE_COLOR environment variable to 0.
+    // This prevents the possibility of ANSI Escape codes polluting STDOUT
+    shell.env['FORCE_COLOR'] = 0;
+
     // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
     // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
     shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
