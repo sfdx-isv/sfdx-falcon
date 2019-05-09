@@ -134,7 +134,8 @@ workflows:
           filters:
             branches:
               only:
-                - test-config
+                - /^v\d+\.\d+\.\d+[-\w]+/   # Any branch named as a SemVer should be tested
+                - master
       - node-8:
           context: org-global
           requires:
@@ -143,10 +144,6 @@ workflows:
           context: org-global
           requires:
             - node-latest
-          filters:
-            branches:
-              only: test-config
-#              only: /^v.*/
 
 
 # TODO: This was the boilerplate setting for cache that come from plugins:generate scaffolding.
