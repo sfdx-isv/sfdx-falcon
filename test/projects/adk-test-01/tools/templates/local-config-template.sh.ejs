@@ -1,0 +1,76 @@
+#!/bin/bash
+#<%#
+####################################################################################################
+#
+# FILENAME:     local-config-template.sh.ejs
+#
+# PURPOSE:      Template for creating a personalized local-config.sh file.
+#
+# DESCRIPTION:  All shell scripts in the setup-tools directory require several configuration values
+#               to run correctly, eg. the alias of the Dev Hub and other orgs used by your project.
+#               These customizations can be specific to each individaul developer and therefore 
+#               should not be tracked by the project's VCS.
+#
+#               For SFDX-Falcon Demo projects, this file really only tracks the Dev Hub alias.
+#               All the other key values for the demo project are kept inside the four "settings"
+#               files located at setup-tools/settings.  
+#
+#               When someone clones an SFDX-Falcon Demo project, the Falcon plugin will use this
+#               template to create a local, personalized version and write it to the standard 
+#               location at <project-root>/setup-tools/lib/local-config.sh
+#
+# INSTRUCTIONS: If you didn't clone this project using `sfdx falcon:demo:clone`, you will need to 
+#               manually setup your local-config.sh file by following these instructions.
+#
+#               1. Inside of the setup-tools directory, execute the following command
+#                  cp ./templates/local-config-template.sh.ejs ./lib/local-config.sh
+#               2. Delete this entire comment header block. Start at line 2 and continue to line
+#                  33.  If you don't do this your setup-tools will not run correctly.
+#               2. Edit the default values in your local-config.sh to meet the needs of your local
+#                  environment and project setup.  DEV_HUB_ALIAS is the important one.
+#
+####################################################################################################
+#%>
+##
+###
+#### DEFINE LOCAL CONFIGURATION VARIABLES ##########################################################
+###
+##
+#
+# Alias for the Dev Hub that should be used when creating scratch orgs for this project.
+# This variable will always need to be customized for individual developers.
+DEV_HUB_ALIAS="<%-finalAnswers.devHubAlias%>"
+#
+##
+###
+#### UNIQUE USERNAMES (DO NOT MODIFY!) #############################################################
+###
+##
+#
+# Unique Username for the Admin User in the locally-known Demo Org
+DEMO_ADMIN_USER="NOT_SPECIFIED"
+
+# Unique Username for the Primary Demo User in the locally-known Demo Org
+DEMO_PRIMARY_USER="NOT_SPECIFIED"
+
+# Unique Username for the Secondary Demo User in the locally-known Demo Org
+DEMO_SECONDARY_USER="NOT_SPECIFIED"
+
+# Indicates whether or not ALL of the Unique Username config variables have been successfully set.
+UNIQUE_USER_CONFIG_VARS_SET="false"
+#
+##
+###
+#### LOAD GENERAL CONFIGURATION VARIABLES ##########################################################
+###
+##
+#
+# DO NOT MODIFY! 
+# This code is required to continue loading config variables.
+if [ ! -r `dirname $0`/lib/general-config.sh ]; then
+  echo "\nFATAL ERROR: `tput sgr0``tput setaf 1`Could not load setup-tools/lib/general-config.sh.  File not found.\n"
+  exit 1
+fi
+source `dirname $0`/lib/general-config.sh
+
+##END##

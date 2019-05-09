@@ -1,7 +1,7 @@
 *-debug.log
 *-error.log
-.oclif.manifest.json
 .sfdx
+/.nyc_output
 /dist
 /lib
 /package-lock.json
@@ -9,3 +9,4 @@
 node_modules
 /docs/_site
 /docs/Gemfile.lock
+/reports

@@ -1,0 +1,235 @@
+#!/bin/bash
+####################################################################################################
+#
+# FILENAME:     deploy-demo
+#
+# PURPOSE:      ##ADD_PURPOSE_HERE##
+#
+# DESCRIPTION:  ##ADD_DESCRIPTIION_HERE##
+#
+# INSTRUCTIONS: Execute the following command relative to your project's root directory:  
+#               ./dev-tools/##FILENAME##
+#
+# RELATED DOCS: TODO: ?????
+#               └─ https://???.???.com
+#
+#               TODO: ?????
+#               ├─ https://www.????.com
+#               └─ https://www.????.com
+#
+####################################################################################################
+#
+##
+###
+#### LOAD SHARED FUNCTIONS LIBRARY #################################################################
+###
+##
+#
+if [ ! -r `dirname $0`/lib/shared-functions.sh ]; then
+  echo "\nFATAL ERROR: `tput sgr0``tput setaf 1`Could not load setup-tools/lib/shared-functions.sh.  File not found.\n"
+  exit 1
+fi
+REQUESTED_OPERATION="DEPLOY_DEMO"
+source `dirname $0`/lib/shared-functions.sh
+#
+##
+###
+#### CONFIRM SCRIPT EXECUTION ######################################################################
+###
+##
+#
+confirmScriptExecution "Deploy this Demo to a Trial, Sandbox, or Developer Edition Org?"
+
+#
+##
+###
+#### CREATE LOCAL VARIABLES ########################################################################
+###
+##
+#
+# Add your own local variables here.  Make sure that your variable names do not
+# collide with names that already exist in any of the setup-tools scripts,
+# helper libraries (setup-tools/lib), or settings (setup-tools/settings).
+
+#
+##
+###
+#### RESET STEP MESSAGE COUNTER ####################################################################
+###
+##
+#
+resetStepMsgCounter 6
+#
+##
+###
+#### INSTALL PARTNER PACKAGES ######################################################################
+###
+##
+#
+# Install the MAIN Demo Package.
+#installPackage  $DEMO_PACKAGE_VERSION_ID_01 \
+#                "MAIN Demo Package" \
+#                "Install the Main Demo Package into the $TARGET_ORG_ALIAS org"
+
+# Install the SECOND Demo Package. (uncomment if needed)
+#installPackage $DEMO_PACKAGE_VERSION_ID_02 \
+#               "SECOND Demo Package" \
+#               "Install the Second Demo Package into the $TARGET_ORG_ALIAS org"
+
+# Install the THIRD Demo Package. (uncomment if needed)
+#installPackage $DEMO_PACKAGE_VERSION_ID_03 \
+#               "THIRD Demo Package" \
+#               "Install the Third Demo Package into the $TARGET_ORG_ALIAS org"
+
+# Install the FOURTH Demo Package. (uncomment if needed)
+#installPackage $DEMO_PACKAGE_VERSION_ID_04 \
+#               "FOURTH Demo Package" \
+#               "Install the Fourth Demo Package into the $TARGET_ORG_ALIAS org"
+
+# Install the FIFTH Demo Package. (uncomment if needed)
+#installPackage $DEMO_PACKAGE_VERSION_ID_05 \
+#               "FIFTH Demo Package" \
+#               "Install the Fifth Demo Package into the $TARGET_ORG_ALIAS org"
+#
+##
+###
+#### POST-INSTALL MDAPI DEPLOYMENTS ################################################################
+###
+##
+#
+
+# Deploy Org Config Metadata
+deployMdapiSource "org-config"
+
+# Deploy App Config Metadata
+deployMdapiSource "app-config"
+
+# Deploy Data Config Metadata
+deployMdapiSource "data-config"
+#
+##
+###
+#### CREATE USERS ##################################################################################
+###
+##
+#
+
+createUser () {
+  # Make sure we have a target org alias to deploy to.
+  if [ ! -z $TARGET_ORG_ALIAS ]; then
+    local _target_org_alias="$TARGET_ORG_ALIAS"
+  else
+    # Something went wrong. The TARGET_ORG_ALIAS variable has not yet been set
+    # or is an empty string.  Raise error message then exit 1 to kill the script.
+    echoErrorMsg "Could not execute createUser(). Unknown target org alias."
+    exit 1
+  fi
+
+
+
+  # Create the PRIMARY Demo User
+  (cd $PROJECT_ROOT && exec ./setup-tools/create-user \
+                                  --targetorgalias  "$_target_org_alias" \
+                                  --username        "$1.$2" \
+                                  --profilename     "$3" \
+                                  --firstname       "$4" \
+                                  --lastname        "$5" \
+                                  --email           "$6" \
+                                  --password        "$7" \
+                                  )
+  if [ $? -ne 0 ]; then
+    echoErrorMsg "Could not create a user in $TARGET_ORG_ALIAS. Aborting Script."
+    exit 1
+  fi
+
+
+}
+
+# Generate a random UUID 
+_temp_username_salt=$(generatePseudoUuid)
+
+#createUser  "$DEMO_ADMIN_USERNAME_BASE" \
+#            "$_temp_username_salt" \
+#            "Chatter Free User" \
+#            "Vivek First" \
+#            "Chawla Last" \
+#            "vivek.m.chawla@gmail.com" \
+#            "HappyTiger1"
+
+
+
+
+#
+##
+###
+#### ASSIGN PERMISSION SETS ########################################################################
+###
+##
+#
+# Assign packaged permission sets to specific users (ADMIN, PRIMARY, and/or SECONDARY).
+#assignPermset "FinServ__Advisor" \
+#              "$DEMO_ADMIN_USER,
+#               $DEMO_PRIMARY_USER,
+#               $DEMO_SECONDARY_USER"
+
+# Repeat permission set assignments as many times as necessary using the following template:
+#assignPermset "NameSpace__PermSetApiName" \
+#              "$DEMO_ADMIN_USER,
+#               $DEMO_PRIMARY_USER,
+#               $DEMO_SECONDARY_USER"
+
+
+#
+##
+###
+#### IMPORT/CREATE DEMO DATA #######################################################################
+###
+##
+#
+
+echoStepMsg "Import/create demo-specifc data in the $TARGET_ORG_ALIAS org"
+
+#
+##
+###
+#### ECHO CLOSING MESSAGE ##########################################################################
+###
+##
+#
+if [ "$PARENT_OPERATION" == "DEPLOY_DEMO" ]; then
+  echoScriptCompleteMsg \
+  "Demo App has been successfully installed and configured."
+  exit 0
+fi
+
+##END##
+
+
+
+#
+##
+###
+#### DETERMINE INSTALLATION OPTIONS ################################################################
+###
+##
+#
+# Check if an $PARENT_OPERATION has been set. If not, default to the 
+# "DEPLOY_DEMO" option and set the Target Org to the Demo Installation Org.
+if [ -z "$PARENT_OPERATION" ]; then
+  PARENT_OPERATION="DEPLOY_DEMO"
+  TARGET_ORG_ALIAS=$DEMO_INSTALLATION_ORG_ALIAS
+else 
+  case $PARENT_OPERATION in 
+    "VALIDATE_DEMO")
+      TARGET_ORG_ALIAS=$DEMO_VALIDATION_ORG_ALIAS
+      ;;
+  esac
+fi
+
+# Make sure that TARGET_ORG_ALIAS was set.  If it wasn't, it means that an
+# unexpected PARENT_OPERATION was provided.  If that happens, we must 
+# raise an error and abort the script.
+if [ -z "$TARGET_ORG_ALIAS" ]; then
+  echo "\nFATAL ERROR: `tput sgr0``tput setaf 1`$PARENT_OPERATION is not a valid installation option.\n"
+  exit 1
+fi

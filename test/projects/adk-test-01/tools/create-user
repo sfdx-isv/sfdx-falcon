@@ -1,0 +1,300 @@
+#!/bin/sh
+####################################################################################################
+#
+# FILENAME:     create-user
+#
+# SUMMARY:      ##ADD_SUMMARY_HERE##
+#
+# DESCRIPTION:  ##ADD_DESCRIPTIION_HERE##
+#
+# INSTRUCTIONS: Execute the following command relative to your project's root directory:  
+#               ./setup-tools/##FILENAME##
+#
+# RELATED DOCS: TODO: ?????
+#               └─ https://???.???.com
+#
+#               TODO: ?????
+#               ├─ https://www.????.com
+#               └─ https://www.????.com
+#
+####################################################################################################
+#
+##
+###
+#### FUNCTION: echoDebug () ########################################################################
+###
+##
+#
+echoDebug () {
+  if [ "$CREATE_USER_DEBUG_STATE" == "true" ]; then
+    echo $1
+  fi
+}
+#
+##
+###
+#### FUNCTION: echoErrorMsg () #####################################################################
+###
+##
+#
+echoErrorMsg () {
+  tput sgr 0; tput setaf 7; tput bold;
+  printf "\n\nERROR: "
+  tput sgr 0; tput setaf 1;
+  printf "%b\n\n" "$1"
+  tput sgr 0;
+}
+#
+##
+###
+#### FUNCTION: checkResult () ######################################################################
+###
+##
+#
+checkResult () {
+  # Parse out the bit in a JSON repsonse that indicates success/failure (true/false)
+  if [[ $1 =~ '"success":'([A-Za-z]+)',' ]]; then
+    if [ ${BASH_REMATCH[1]} == "true" ]; then
+      return 0
+    else
+      return 1
+    fi
+  else
+    echoErrorMsg "CRITICAL ERROR: Could not find the 'success' key in the JSON result."
+    return 2
+  fi
+}
+#
+##
+###
+#### FUNCTION: createUser () #######################################################################
+###
+##
+#
+createUser () {
+  # Parse incoming arguments and assign to local vars as appropriate.
+  while [[ ${1} ]]; do
+    # Check for a missing parameter argument and exit if not provided.
+    if [[ -z "$2" || ( "${1:0:2}" == "--" && "${2:0:2}" == "--" ) ]]; then
+      echoErrorMsg "Missing parameter argument for: ${1}"
+      exit 1
+    fi
+    # Determine each flag, then set the appropriate local variable.
+    case "${1}" in
+      --targetorgalias)
+          local _target_org_alias=${2}
+          ;;
+      --username)
+          local _user_name=${2}
+          ;;
+      --password)
+          local _password=${2}
+          ;;
+      --profilename)
+          local _profile_name=${2}
+          ;;
+      --firstname)
+          local _first_name=${2}
+          ;;
+      --lastname)
+          local _last_name=${2}
+          ;;
+      --email)
+          local _email=${2}
+          ;;
+      *)
+          echoErrorMsg "Unknown parameter: ${1}" >&2
+          exit 2
+    esac
+    # shift twice to move to the next parameter
+    shift
+    shift
+  done  
+  
+  # Make sure we have a target org alias to deploy to.
+  if [ -z "$_target_org_alias" ]; then
+    # Something went wrong. The Target Org Alias argument was not provided by the
+    # caller or is an empty string.  Raise error message then exit 1 to kill the script.
+    echoErrorMsg "Error executing create-user. Unknown target org alias."
+    exit 3
+  fi
+
+  # Check if a password was provided.  If it was, set the "trigger user email" option to "false".
+  if [ -z "$_password" ]; then
+    local _trigger_user_email="false"
+  else
+    local _trigger_user_email="true"
+  fi
+
+  # Echo the incoming param values (only in DEBUG mode).
+  echoDebug "Inside createUser()"
+  echoDebug "Target Org:    $_target_org_alias"
+  echoDebug "Profile Name:  $_profile_name"
+  echoDebug "Username:      $_user_name"
+  echoDebug "Password:      $_password"
+  echoDebug "Trigger Email: $_trigger_user_email"
+  echoDebug "First Name:    $_first_name"
+  echoDebug "Last Name:     $_last_name"
+  echoDebug "Email:         $_email"
+
+  # Set the name of the temp file used to store the dynamicall built anonymous Apex
+  local _apex_output="anonymous.apex"
+
+  # Prepare the Anonymous Apex block
+  echo "public class FalconCreateUserException extends Exception {}"              > $_apex_output
+  echo "String debugKey = 'FALCON';"                                              >> $_apex_output
+  echo "Database.DMLOptions dmlo = new Database.DMLOptions();"                    >> $_apex_output
+  echo "dmlo.EmailHeader.triggerUserEmail = $_trigger_user_email;"                >> $_apex_output
+  echo "Profile p = [SELECT id FROM Profile WHERE name='$_profile_name'];"        >> $_apex_output
+  echo "User u = new User(profileid         = p.id,"                              >> $_apex_output
+  echo "                  username          = '$_user_name',"                     >> $_apex_output
+  echo "                  firstName         = '$_first_name',"                    >> $_apex_output
+  echo "                  lastName          = '$_last_name',"                     >> $_apex_output
+  echo "                  email             = '$_email',"                         >> $_apex_output
+  echo "                  alias             = 'myAlias',"                         >> $_apex_output
+  echo "                  emailencodingkey  = 'UTF-8',"                           >> $_apex_output
+  echo "                  localesidkey      = 'en_US',"                           >> $_apex_output
+  echo "                  timezonesidkey    = 'GMT',"                             >> $_apex_output
+  echo "                  languagelocalekey = 'en_US');"                          >> $_apex_output
+  echo "Database.SaveResult sr = Database.insert(u, dmlo);"                       >> $_apex_output
+  echo "if (!sr.isSuccess()) {"                                                   >> $_apex_output
+  echo "  for (Database.Error err : sr.getErrors()) {"                            >> $_apex_output
+  echo "    System.debug(debugKey + ': The following error has occurred.');"                    >> $_apex_output
+  echo "    System.debug(debugKey + ': ' + err.getStatusCode() + ': ' + err.getMessage());"     >> $_apex_output
+  echo "    System.debug(debugKey + ': Fields that affected this error: ' + err.getFields());"  >> $_apex_output  
+  echo "  }"                                                                      >> $_apex_output
+  echo "  Database.Error err = sr.getErrors()[0];"                                >> $_apex_output
+  echo "  String exMsg = err.getStatusCode() + ' - ' + err.getMessage();"         >> $_apex_output
+  echo "  throw new FalconCreateUserException(exMsg);"                            >> $_apex_output
+  echo "}"                                                                        >> $_apex_output
+  echo "System.Debug(debugKey + ': User.id->' + u.id + '<-');"                    >> $_apex_output
+
+
+  # Execute the Anonymous Apex to create a new user.
+  echo "\nAttempting to create user '$_user_name' in org '$_target_org_alias'"
+  local _json_result=$(sfdx force:apex:execute \
+                          --apexcodefile    $_apex_output \
+                          --targetusername  $_target_org_alias \
+                          --loglevel        debug \
+                          --json)
+
+  # Parse the result to see if the Apex code succeeded or failed.
+  checkResult "$_json_result"
+  if [ $? -ne 0 ]; then
+    echoErrorMsg "Could not create a user in $_target_org_alias. Aborting Script."
+    exit 4
+  fi
+
+  # Set the password
+  setPassword $_target_org_alias \
+              $_user_name \
+              $_password
+
+  # 1. Get username base (eg. name@something.org)
+
+  # 2. Make sure username base is < 40 chars to keep room for UUID extension
+
+  # 3. Create random extension (eg. db5017c5-dee3-4320-b2ae-02ef664b9a5c)
+
+  # 4. Create a user with the (hopefully) unique username just created
+
+  # 5. 
+
+}
+#
+##
+###
+#### FUNCTION: setPassword () ######################################################################
+###
+##
+#
+setPassword () {
+  local _target_org_alias="$1"
+  local _user_name="$2"
+  local _password="$3"
+
+  echo "Inside setPassword()"
+  echo $_target_org_alias
+  echo $_user_name
+  echo $_password
+
+  local _apex_output="anonymous.apex"
+
+  # Prepare the Anonymous Apex block
+  echo "public class FalconChangePasswordException extends Exception {}"          > $_apex_output
+  echo "String debugKey = 'FALCON';"                                              >> $_apex_output
+  echo "Database.DMLOptions dmlo = new Database.DMLOptions();"                    >> $_apex_output
+  echo "dmlo.EmailHeader.triggerUserEmail = false;"                               >> $_apex_output
+  echo "User u;"                                                                  >> $_apex_output
+  echo "try {"                                                                    >> $_apex_output
+  echo "  u = [SELECT id FROM User WHERE username='$_user_name'];"                >> $_apex_output
+  echo "} catch (Exception e) {"                                                  >> $_apex_output
+  echo "  String exMsg='Could not find user $_user_name';"                        >> $_apex_output
+  echo "  throw new FalconChangePasswordException(exMsg);"                        >> $_apex_output
+  echo "}"                                                                        >> $_apex_output
+  echo "System.debug(debugKey + ': User (object)-->' + u);"                       >> $_apex_output
+  echo "System.setPassword(u.id, '$_password');"                                  >> $_apex_output
+
+  # Execute the Anonymous Apex to create a new user.
+  echo "\nAttempting to change password for user '$_user_name' to '$_password'"
+  local _json_result=$(sfdx force:apex:execute \
+                          --apexcodefile    $_apex_output \
+                          --targetusername  $_target_org_alias \
+                          --loglevel        debug \
+                          --json)
+
+  echo $_json_result
+
+  echo "Done with Password Change"
+
+}
+#
+##
+###
+#### CONFIRM SCRIPT EXECUTION ######################################################################
+###
+##
+#
+
+
+#
+##
+###
+#### CREATE LOCAL VARIABLES ########################################################################
+###
+##
+#
+CREATE_USER_DEBUG_STATE="true"
+#
+##
+###
+#### CUSTOM CODE BEGINS HERE #######################################################################
+###
+##
+#
+
+createUser "$@"
+
+#
+##
+###
+#### ECHO CLOSING MESSAGE ##########################################################################
+###
+##
+#
+
+##END##
+
+
+
+
+
+# Attempt to create the user
+#  (cd $PROJECT_ROOT && exec sfdx force:user:create \
+#                                  --setalias "PARTNER_DEVTEST_USER" \
+#                                  --definitionfile ./sfdx-config/user-definition.json \
+#                                  --targetusername "tpo-playful-raccoon")
+#  if [ $? -ne 0 ]; then
+#    echoErrorMsg "$2 could not be installed. Aborting Script."
+#    exit 1
+#  fi

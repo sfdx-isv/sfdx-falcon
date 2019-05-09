@@ -52,40 +52,48 @@ The AppExchange Package Kit (APK) builds on the [SFDX-Falcon Template](https://g
 ## Available Commands
 <!-- install -->
 <!-- commands -->
-* [`sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconadkclone-git-remote-uri-git-clone-dir)
-* [`sfdx-falcon falcon:adk:create`](#sfdx-falcon-falconadkcreate)
-* [`sfdx-falcon falcon:adk:install`](#sfdx-falcon-falconadkinstall)
-* [`sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`](#sfdx-falcon-falconapkclone-git-remote-uri-git-clone-dir)
-* [`sfdx-falcon falcon:apk:create`](#sfdx-falcon-falconapkcreate)
+* [`sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-falcon-falconadkclone--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-falcon-falconadkcreate--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-falcon-falconadkinstall--d-directory--f-string--x-string---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-falcon-falconapkclone--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
+* [`sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`](#sfdx-falcon-falconapkcreate--d-directory---falcondebug-array---falcondebugerror---falcondebugsuccess---falcondebugdepth-number---json---loglevel-tracedebuginfowarnerrorfataltracedebuginfowarnerrorfatal)
 
-## `sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+## `sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Clones an AppExchange Demo Kit (ADK) project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+  $ sfdx-falcon falcon:adk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 ARGUMENTS
   GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
   GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] Directory to clone the AppExchange Demo Kit (ADK) project
-                                                  into
+  -d, --outputdir=outputdir                                                         [default: .] Directory to clone the
+                                                                                    AppExchange Demo Kit (ADK) project
+                                                                                    into
 
-  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
+  --falcondebug=falcondebug                                                         [default: ] List of debug namespaces
+                                                                                    which should render output
 
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
+  --falcondebugdepth=falcondebugdepth                                               [default: 2] Sets the depth of
+                                                                                    object inspection when debug output
+                                                                                    is displayed
 
-  --falcondebugerror                              Display extended information for uncaught Errors
+  --falcondebugerror                                                                Display extended information for
+                                                                                    uncaught Errors
 
-  --falcondebugsuccess                            Display extended information upon successful command completion
+  --falcondebugsuccess                                                              Display extended information upon
+                                                                                    successful command completion
 
-  --json                                          format output as json
+  --json                                                                            format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:clone https://github.com/GitHubUser/my-repository.git
@@ -94,68 +102,87 @@ EXAMPLES
                           --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/clone.ts)_
+_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/clone.ts)_
 
-## `sfdx-falcon falcon:adk:create`
+## `sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Creates an AppExchange Demo Kit (ADK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:create
+  $ sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] Directory where your ADK project will be created
-  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
+  -d, --outputdir=outputdir                                                         [default: .] Directory where your
+                                                                                    ADK project will be created
 
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
+  --falcondebug=falcondebug                                                         [default: ] List of debug namespaces
+                                                                                    which should render output
 
-  --falcondebugerror                              Display extended information for uncaught Errors
+  --falcondebugdepth=falcondebugdepth                                               [default: 2] Sets the depth of
+                                                                                    object inspection when debug output
+                                                                                    is displayed
 
-  --falcondebugsuccess                            Display extended information upon successful command completion
+  --falcondebugerror                                                                Display extended information for
+                                                                                    uncaught Errors
 
-  --json                                          format output as json
+  --falcondebugsuccess                                                              Display extended information upon
+                                                                                    successful command completion
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --json                                                                            format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:create
   $ sfdx falcon:adk:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/create.ts)_
+_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/create.ts)_
 
-## `sfdx-falcon falcon:adk:install`
+## `sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Reads an AppExchange Demo Kit (ADK) Recipe and builds a customized org
 
 ```
 USAGE
-  $ sfdx-falcon falcon:adk:install
+  $ sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] 
+  [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
-  -d, --projectdir=projectdir                     [default: .] Path to a directory that contains a fully-configured ADK
-                                                  project
+  -d, --projectdir=projectdir                                                       [default: .] Path to a directory
+                                                                                    that contains a fully-configured ADK
+                                                                                    project
 
-  -f, --configfile=configfile                     Overrides 'demoRecipes' setting from sfdx-project.json to run a
-                                                  specific Recipe
+  -f, --recipefile=recipefile                                                       Overrides 'demoRecipes' setting from
+                                                                                    sfdx-project.json to run a specific
+                                                                                    Recipe
 
-  -x, --extendedoptions=extendedoptions           [default: {}] Options for overriding internal settings passed as a
-                                                  JSON string
+  -x, --extendedoptions=extendedoptions                                             [default: {}] Options for overriding
+                                                                                    internal settings passed as a JSON
+                                                                                    string
 
-  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
+  --falcondebug=falcondebug                                                         [default: ] List of debug namespaces
+                                                                                    which should render output
 
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
+  --falcondebugdepth=falcondebugdepth                                               [default: 2] Sets the depth of
+                                                                                    object inspection when debug output
+                                                                                    is displayed
 
-  --falcondebugerror                              Display extended information for uncaught Errors
+  --falcondebugerror                                                                Display extended information for
+                                                                                    uncaught Errors
 
-  --falcondebugsuccess                            Display extended information upon successful command completion
+  --falcondebugsuccess                                                              Display extended information upon
+                                                                                    successful command completion
 
-  --json                                          format output as json
+  --json                                                                            format output as json
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 
 EXAMPLES
   $ sfdx falcon:adk:install
@@ -164,34 +191,43 @@ EXAMPLES
                             --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/adk/install.ts)_
+_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/install.ts)_
 
-## `sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]`
+## `sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Clones an SFDX-Falcon project from a remote Git repository.
 
 ```
 USAGE
-  $ sfdx-falcon falcon:apk:clone GIT_REMOTE_URI [GIT_CLONE_DIR]
+  $ sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 ARGUMENTS
   GIT_REMOTE_URI  URI (https only) of the Git repository to clone (eg. https://github.com/GitHubUser/my-repository.git)
   GIT_CLONE_DIR   Directory name of the cloned repository (defaults to repo name if not specified)
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] Directory to clone the project into
-  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
+  -d, --outputdir=outputdir                                                         [default: .] Directory to clone the
+                                                                                    project into
 
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
+  --falcondebug=falcondebug                                                         [default: ] List of debug namespaces
+                                                                                    which should render output
 
-  --falcondebugerror                              Display extended information for uncaught Errors
+  --falcondebugdepth=falcondebugdepth                                               [default: 2] Sets the depth of
+                                                                                    object inspection when debug output
+                                                                                    is displayed
 
-  --falcondebugsuccess                            Display extended information upon successful command completion
+  --falcondebugerror                                                                Display extended information for
+                                                                                    uncaught Errors
 
-  --json                                          format output as json
+  --falcondebugsuccess                                                              Display extended information upon
+                                                                                    successful command completion
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --json                                                                            format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 
 EXAMPLES
   $ sfdx falcon:apk:clone git@github.com:GitHubUser/my-repository.git
@@ -200,37 +236,46 @@ EXAMPLES
                          --outputdir ~/projects/appexchange-package-kit-projects
 ```
 
-_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/clone.ts)_
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/clone.ts)_
 
-## `sfdx-falcon falcon:apk:create`
+## `sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
 Creates an AppExchange Package Kit (APK) project
 
 ```
 USAGE
-  $ sfdx-falcon falcon:apk:create
+  $ sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] 
+  [--falcondebugdepth <number>] [--json] [--loglevel 
+  trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]
 
 OPTIONS
-  -d, --outputdir=outputdir                       [default: .] Directory where your APK project will be created
-  --falcondebug=falcondebug                       [default: ] List of debug namespaces which should render output
+  -d, --outputdir=outputdir                                                         [default: .] Directory where your
+                                                                                    APK project will be created
 
-  --falcondebugdepth=falcondebugdepth             [default: 2] Sets the depth of object inspection when debug output is
-                                                  displayed
+  --falcondebug=falcondebug                                                         [default: ] List of debug namespaces
+                                                                                    which should render output
 
-  --falcondebugerror                              Display extended information for uncaught Errors
+  --falcondebugdepth=falcondebugdepth                                               [default: 2] Sets the depth of
+                                                                                    object inspection when debug output
+                                                                                    is displayed
 
-  --falcondebugsuccess                            Display extended information upon successful command completion
+  --falcondebugerror                                                                Display extended information for
+                                                                                    uncaught Errors
 
-  --json                                          format output as json
+  --falcondebugsuccess                                                              Display extended information upon
+                                                                                    successful command completion
 
-  --loglevel=(trace|debug|info|warn|error|fatal)  logging level for this command invocation
+  --json                                                                            format output as json
+
+  --loglevel=(trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL)  [default: warn] logging level for
+                                                                                    this command invocation
 
 EXAMPLES
   $ sfdx falcon:apk:create
   $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.92/src/commands/falcon/apk/create.ts)_
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/create.ts)_
 <!-- commandsstop -->
 
 

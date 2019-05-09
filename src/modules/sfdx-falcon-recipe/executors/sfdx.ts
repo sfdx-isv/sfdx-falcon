@@ -10,32 +10,35 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
+// Import External Modules/Types
+import {JsonMap}                      from  '@salesforce/ts-types'; // Why?
 
 // Import Local Modules
 import {SfdxCliError}                 from  '../../sfdx-falcon-error';            // Why?
 import {ShellError}                   from  '../../sfdx-falcon-error';            // Why?
-
 import {updateObserver}               from  '../../sfdx-falcon-notifications';    // Why?
 import {FalconProgressNotifications}  from  '../../sfdx-falcon-notifications';    // Why?
 import {SfdxFalconResult}             from  '../../sfdx-falcon-result';           // Why?
 import {SfdxFalconResultType}         from  '../../sfdx-falcon-result';           // Why?
 
+// Import Falcon Types
+import {Subscriber}                   from  '../../sfdx-falcon-types';            // Why?
+
 // Import Utility Functions
 import {safeParse}                    from  '../../sfdx-falcon-util';             // Why?
-import {detectSalesforceCliError}     from  '../../sfdx-falcon-util/sfdx'         // Why?
+import {detectSalesforceCliError}     from  '../../sfdx-falcon-util/sfdx';        // Why?
 
 // Requies
 const shell = require('shelljs');                                                 // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'EXECUTOR:sfdx:';
-//const clsDbgNs  = '';
+
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @interface   SfdxCommandDefinition
- * @description Represents an SFDX "Command Definition", a structure that can be compiled into 
+ * @description Represents an SFDX "Command Definition", a structure that can be compiled into
  *              a string that can be executed at the command line against the Salesforce CLI.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -44,22 +47,22 @@ export interface SfdxCommandDefinition {
   progressMsg:    string;
   errorMsg:       string;
   successMsg:     string;
-  commandArgs:    Array<string>;
-  commandFlags:   any;
-  observer:       any;
+  commandArgs:    string[];
+  commandFlags:   JsonMap;
+  observer:       Subscriber;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @interface   ExecutorResultDetail
- * @description Represents the structure of the Detail object used by the EXECUTOR 
+ * @description Represents the structure of the Detail object used by the EXECUTOR
  *              executeSfdxCommand().
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface ExecutorResultDetail {
-  sfdxCommandDef:     SfdxCommandDefinition,
+  sfdxCommandDef:     SfdxCommandDefinition;
   sfdxCommandString:  string;
-  stdOutParsed:       any;
+  stdOutParsed:       JsonMap;
   stdOutBuffer:       string;
   stdErrBuffer:       string;
 }
@@ -78,10 +81,10 @@ export interface ExecutorResultDetail {
 export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):Promise<SfdxFalconResult> {
 
   // Initialize an EXECUTOR Result for this function.
-  let executorResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.EXECUTOR);
+  const executorResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.EXECUTOR);
 
   // Initialize the EXECUTOR Result Detail for this function and attach it to the EXECUTOR Result.
-  let executorResultDetail = {
+  const executorResultDetail = {
     sfdxCommandDef:     sfdxCommandDef,
     sfdxCommandString:  null,
     stdOutParsed:       null,
@@ -92,7 +95,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
   executorResult.debugResult('Executor Result Initialized', `${dbgNs}executeSfdxCommand:`);
 
   // Construct the SFDX Command String
-  let sfdxCommandString = parseSfdxCommand(sfdxCommandDef)
+  const sfdxCommandString = parseSfdxCommand(sfdxCommandDef);
   executorResultDetail.sfdxCommandString = sfdxCommandString;
   executorResult.debugResult('Parsed SFDX Command Object to String', `${dbgNs}executeSfdxCommand:`);
 
@@ -103,7 +106,11 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     let stdOutBuffer:string = '';
     let stdErrBuffer:string = '';
 
-    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.  
+    // Set the FORCE_COLOR environment variable to 0.
+    // This prevents the possibility of ANSI Escape codes polluting STDOUT
+    shell.env['FORCE_COLOR'] = 0;
+
+    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
     // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
     shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
 
@@ -118,8 +125,8 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
     updateObserver(sfdxCommandDef.observer, `[0.000s] Executing ${sfdxCommandDef.command}`);
 
     // Set up Progress Notifications.
-    const progressNotifications 
-      = FalconProgressNotifications.start2(sfdxCommandDef.progressMsg, 1000, executorResult, sfdxCommandDef.observer);
+    const progressNotifications
+      = FalconProgressNotifications.start(sfdxCommandDef.progressMsg, 1000, executorResult, sfdxCommandDef.observer);
 
     // Capture the stdout datastream. This should end up being a valid JSON object.
     childProcess.stdout.on('data', (stdOutDataStream:string) => {
@@ -145,11 +152,11 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
       //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
       //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
 
-      // Try to tickle out a JSON object from the stdout buffer. We have to do this because 
-      // the Salesforce CLI sometimes streams non-JSON output to stdout before finalizing 
+      // Try to tickle out a JSON object from the stdout buffer. We have to do this because
+      // the Salesforce CLI sometimes streams non-JSON output to stdout before finalizing
       // with valid JSON content as the last thing to come into stdout.
-      let stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
-      let parsedCliResponse   = safeParse(stdOutJsonResponse) as any;
+      const stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+      const parsedCliResponse   = safeParse(stdOutJsonResponse) as JsonMap;
 
       // Determine if the shell execution was successful.
       if (code !== 0) {
@@ -159,7 +166,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
           // ERROR because the Salesforce CLI was able to return a recognizable JSON response.
           // By resolving instead of rejecting, we allow the caller to decide if it wants to
           // convert the FAILURE to an ERROR.
-          executorResult.failure(new SfdxCliError(stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.failure(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
           executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
           resolve(executorResult);
         }
@@ -176,7 +183,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 
         // We have what LOOKS like a successful result, but sometimes the Salesforce CLI returns
         // an ERROR result as a garbled stdout stream with a shell exit code of 0.  Check the parsed
-        // CLI Response for an "unparsed" property. Unparseable responses from the CLI are SHELL ERRORS 
+        // CLI Response for an "unparsed" property. Unparseable responses from the CLI are SHELL ERRORS
         // and should be marked ERROR and rejected.
         if (parsedCliResponse.unparsed) {
           executorResult.error(new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`));
@@ -185,11 +192,11 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
         }
 
         // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
-        // This is a rejected ERROR instead of resolved FAILURE because it's an ERROR JSON response from 
+        // This is a rejected ERROR instead of resolved FAILURE because it's an ERROR JSON response from
         // the CLI even though the exit code from the shell indicated success.  For now, we want to surface
         // the fact that this is happening. Rejecting this promise will force the caller to bubble this ERROR.
         if (detectSalesforceCliError(parsedCliResponse)) {
-          executorResult.error(new SfdxCliError(stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.error(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
           executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
           reject(executorResult);
         }
@@ -215,11 +222,10 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
 /**
  * @function    parseSfdxCommand
  * @param       {SfdxCommandDefinition} sfdxCommand Required. The SFDX Command Definition object
- *                                      that will be parsed to create an SFDX Command String.
+ *              that will be parsed to create an SFDX Command String.
  * @returns     {string}  A fully parsed SFDX CLI command, ready for immediate shell execution.
  * @description Given an SFDX Command Definition object, this function will parse it and return a
  *              string that can be immediately executed in a shell.
- * @version     1.0.0
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -231,25 +237,25 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
   let parsedCommand = `sfdx ${sfdxCommand.command}`;
 
   // Add arguments to the command (must happen before flags).
-  for (let argument of sfdxCommand.commandArgs) {
+  for (const argument of sfdxCommand.commandArgs) {
     parsedCommand += ' ' + sanitizeArgument(argument);
   }
 
   // Add flags to the command.
-  for (let objectKey of Object.keys(sfdxCommand.commandFlags)) {
+  for (const objectKey of Object.keys(sfdxCommand.commandFlags)) {
 
     // Only process keys that start with "FLAG_".
-    if (objectKey.substr(0,5).toUpperCase() !== 'FLAG_') {
+    if (objectKey.substr(0, 5).toUpperCase() !== 'FLAG_') {
       continue;
     }
 
     // Parse the flag, value, and whether it's a single or multi-char flag.
-    let flag          = objectKey.substring(5).toLowerCase();
-    let value         = sfdxCommand.commandFlags[objectKey];
-    let hyphen        = flag.length === 1 ? '-' : '--';
+    const flag    = objectKey.substring(5).toLowerCase();
+    const value   = sfdxCommand.commandFlags[objectKey] as string;
+    const hyphen  = flag.length === 1 ? '-' : '--';
 
     // Begin constructing a resolved flag. Make sure the combo of hyphen+flag is sanitized.
-    let resolvedFlag  = sanitizeFlag(hyphen + flag);
+    const resolvedFlag  = sanitizeFlag(hyphen + flag);
 
     // If it's a boolean flag, we're done for this iteration.
     if (typeof value === 'boolean') {
@@ -271,7 +277,6 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
  * @param       {string} argument  Required. String containing shell argument to sanitize.
  * @returns     {string}  A sanitized String that should be safe for inclusion in a shell command.
  * @description Given any String, strip all non-alphanumeric chars.
- * @version     1.0.0
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -282,7 +287,7 @@ function sanitizeArgument(argument:string):string {
 
   // If the argument has any chars that may be unsafe, single-quote the entire thing.
   if (/[^A-Za-z0-9_\/:=-]/.test(argument)) {
-    argument = "'" + argument.replace(/'/g,"'\\''") + "'";  // Escape any existing single quotes.
+    argument = "'" + argument.replace(/'/g, "'\\''") + "'";  // Escape any existing single quotes.
     argument = argument.replace(/^(?:'')+/g, '')            // Unduplicate single-quote at the beginning.
                        .replace(/\\'''/g, "\\'" );          // Remove non-escaped single-quote if there are enclosed between 2 escaped
   }
@@ -297,7 +302,6 @@ function sanitizeArgument(argument:string):string {
  * @param       {string} flag  Required. String containing a command flag to sanitize.
  * @returns     {string}  A sanitized String that should be safe for use as a shell command flag.
  * @description Given any String, strip all non-alphanumeric chars except hyphen
- * @version     1.0.0
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -307,7 +311,7 @@ function sanitizeFlag(flag:string):string {
   flag = String(flag).trim();
 
   // Arguments must be alphanumeric with no spaces.
-  flag = flag.replace(/[^a-z0-9-]/gim,"");
+  flag = flag.replace(/[^a-z0-9-]/gim, "");
 
   // Done. The flag should now be safe to add to a shell exec command string.
   return flag;

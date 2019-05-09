@@ -1,0 +1,10 @@
+[
+  {
+    "sobject": "isvte_falcon_x__DriveWealth__c",
+    "saveRefs": false,
+    "resolveRefs": false,
+    "files": [
+      "data-tree.json"
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+################################################################################
+# Ignore all files and folders in this directory.
+#
+# Developers can add local files of any kind to this directory without worrying
+# about them being picked up by Git and pushed to the origin repository.
+#
+# Some scripts that come bundled with SFDX-Falcon projects assume the existence
+# of a "temp" directory at the project's root.  Nothing put here (other than
+# README.md) should need to be tracked by Git, though.  
+################################################################################
+
+# Ignore everything in this directory...
+/*
+
+# Except the following files...
+!.gitignore
+!README.md

@@ -1,39 +1,160 @@
 ---
 version: 2
 jobs:
+####################################################################################################
+## JOB:     node-latest
+## PURPOSE: Tests the Falcon plugin using the latest version of Node.js.
+####################################################################################################
   node-latest: &test
     docker:
       - image: node:latest
     working_directory: ~/cli
-    environment:
-      NYC: "yarn exec nyc -- --nycrc-path node_modules/@oclif/nyc-config/.nycrc"
     steps:
       - checkout
-      - restore_cache: &restore_cache
+      - restore_cache:
           keys:
-            - v1-yarn-{{checksum ".circleci/config.yml"}}-{{ checksum "yarn.lock"}}
-            - v1-yarn-{{checksum ".circleci/config.yml"}}
+            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+            - v1-npm-{{checksum ".circleci/config.yml"}}
       - run:
-          name: Install dependencies
+          name: Install system dependencies
           command: |
-            .circleci/greenkeeper
-            yarn add -D nyc@11 @oclif/nyc-config@1
+            mkdir sfdx
+            wget -qO- $DX_CLI_URL | tar xJ -C sfdx --strip-components 1
+            ./sfdx/install
+            sfdx
+            apt-get update -y
+            apt-get install -y xxd
+            npm install -g npm@latest
       - run:
-          name: Testing
-          command: $NYC yarn test
-      - run:
-          name: Submitting code coverage to codecov
+          name: Display version info for installed system dependencies
           command: |
-            $NYC report --reporter text-lcov > coverage.lcov
+            sfdx version          # Output the version of the CLI
+            sfdx plugins --core   # Output the version of the core plugins
+            node --version
+            npm  --version
+            git  --version
+            xxd  --version
+      - run:
+          name: Prepare JWT key file for use by force:auth:jwt:grant
+          command: |
+            # Create directory where all JWT Org Keys will be stored
+            mkdir /tmp/sfdx-keys
+            # Convert the Hex Keys stored in the context's environment variables back to binary
+            echo $DEVHUB_SERVER_KEY_HEX | xxd -r -ps >> /tmp/sfdx-keys/dev-hub.key
+            # Confirm that our converted keys are both valid RSA Private Keys
+            openssl rsa -in /tmp/sfdx-keys/dev-hub.key -check -noout
+      - run:
+          name: Authenticate and connect to the Dev Hub
+          command: |
+            # Confirm that the key can actually be used to login to the specific
+            # Salesforce Org that the username stored in $DEVHUB_SFDC_USERNAME
+            # is associated with.
+            sfdx force:auth:jwt:grant -i $DEVHUB_CONSUMER_KEY \
+                                      -f /tmp/sfdx-keys/dev-hub.key \
+                                      -u $DEVHUB_SFDC_USERNAME \
+                                      -d \
+                                      -a DevHub-PBO
+      - run:
+          name: Override the apiVersion global config value
+          command: |
+            # This setting ensures that a WARNING message is sent to stderr on every
+            # Salesforce CLI command. The Falcon plugin needs to be able to ignore 
+            # this output, so all tests must function while the warning is present.
+            sfdx force:config:set apiVersion=45.0 --global
+      - run:
+          name: Install package dependencies
+          command: yarn
+      - run:
+          name: Run Mocha tests
+          command: ./node_modules/.bin/nyc --extension .ts ./node_modules/.bin/mocha --forbid-only "test/**/*.test.ts" --reporter mocha-junit-reporter --reporter-options mochaFile=reports/mocha/test-results.xml
+          no_output_timeout: 20m
+      - run:
+          name: Run tslint
+          command: ./node_modules/.bin/tslint -p test -t junit -o ./reports/tslint/tslint.xml
+      - run:
+          name: Submit code coverage to codecov
+          command: |
+            ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
             curl -s https://codecov.io/bash | bash
+      - run:
+          name: Mark scratch orgs for deletion
+          command: |
+            sfdx force:org:delete -p -u falcon-test-recipe-01
+
+      # Store test results and other artifacts
+      - store_test_results:
+          path: reports
+      - store_artifacts:
+          path: ~/.sfdx/sfdx.log
+          destination: sfdx-logs
+      - store_artifacts:
+          path: ./reports/mocha/test-results.xml
+          destination: mocha-test-results.xml
+      - store_artifacts:
+          path: ./reports/tslint/tslint.xml
+          destination: tslint-results.xml
+
+####################################################################################################
+## JOB:     node-8
+## PURPOSE: Runs Mocha tests against Node 8.
+####################################################################################################
   node-8:
     <<: *test
     docker:
       - image: node:8
 
+####################################################################################################
+## JOB:     cache
+## PURPOSE: Saves node-modules and Yarn cache/config to CircleCI's cache.
+####################################################################################################
+  cache:
+    <<: *test
+    steps:
+      - checkout
+      - run:
+          name: Install package dependencies
+          command: yarn
+      - save_cache:
+          key: v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+          paths:
+            - ~/cli/node_modules
+            - /usr/local/share/.cache/yarn
+            - /usr/local/share/.config/yarn
+
+####################################################################################################
+## WORKFLOW:  SFDX-Falcon Plugin Tests
+## PURPOSE:   Primary workflow used by the CI process to test the SFDX-Falcon CLI plugin.
+####################################################################################################
 workflows:
   version: 2
-  "sfdx-falcon":
+  "SFDX-Falcon Plugin Tests":
     jobs:
-      - node-latest
-      - node-8
+      - node-latest:
+          context: org-global
+          filters:
+            branches:
+              only:
+                - test-config
+      - node-8:
+          context: org-global
+          requires:
+            - node-latest
+      - cache:
+          context: org-global
+          requires:
+            - node-latest
+          filters:
+            branches:
+              only: test-config
+#              only: /^v.*/
+
+
+# TODO: This was the boilerplate setting for cache that come from plugins:generate scaffolding.
+# Keeping a reference of it until I can understand what the filter strategy for the cache
+# job is intended to do.
+#      - cache:
+#          filters:
+#            tags:
+#              only: /^v.*/
+#            branches:
+#              ignore: /.*/

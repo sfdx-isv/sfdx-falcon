@@ -1,0 +1,26 @@
+# Ignore OS system files that are usually auto-added to directories
+[Tt]humbs.db
+.DS_Store
+
+# Ignore Salesforce DX config files
+.sfdx
+.salesforce
+
+# Ignore SFDX-Falcon local config files
+#.sfdx-falcon # Commenting out this ignore directive because this is critical to automatic testing
+
+# Ignore Eclipse config files
+.classpath
+.project
+.settings/
+
+# Ignore VSCode config files
+.vscode
+
+# Ignore Intellij config files
+.idea/
+*.iml
+*.iws
+
+# Ignore any file named "anonymous.apex"
+anonymous.apex

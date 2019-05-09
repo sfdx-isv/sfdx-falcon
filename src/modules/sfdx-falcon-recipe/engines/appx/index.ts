@@ -10,6 +10,8 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
+import {AnyJson}                  from  '@salesforce/ts-types';                     // Why?
+import {JsonMap}                  from  '@salesforce/ts-types';                     // Why?
 import {Observable}               from  'rxjs';                                     // Class. Used to communicate status with Listr.
 
 // Import Local Modules
@@ -19,37 +21,44 @@ import {SfdxFalconResult}         from  '../../../../modules/sfdx-falcon-result'
 import {SfdxFalconResultStatus}   from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents possible states of an SFDX-Falcon Result.
 import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result';   // Enum. Represents types of SfdxFalconResults.
 
-// Import Local Types
+// Import Falcon Types
 import {ListrContext}             from '../../../../modules/sfdx-falcon-types';     // Type. Alias to "any". Used in project to make code easier to read.
 import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';     // Why?
+import {ListrObservable}          from '../../../../modules/sfdx-falcon-types';     // Why?
+import {ListrObject}              from '../../../../modules/sfdx-falcon-types';     // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';     // Why?
+
+// Import Recipe Types
+import {ActionOptions}            from '../../types';                               // Type. Alias to JsonMap.
+import {CompileOptions}           from '../../types';                               // Type. Alias to JsonMap.
+import {ExecutionOptions}         from '../../types';                               // Type. Alias to JsonMap.
 import {TargetOrg}                from '../../types';                               // Interface. Represents an org that will be targeted by SFDX/JSForce code.
 
 // Project/Recipe/Engine Imports
-import {SfdxFalconRecipe}         from '../../../../modules/sfdx-falcon-recipe';    // Why?
-import {SfdxFalconRecipeJson}     from '../../../../modules/sfdx-falcon-recipe';    // Why?
-import {AppxEngineAction}         from '../appx/actions';                           // Why?
 import {SfdxFalconProject}        from  '../../../../modules/sfdx-falcon-project';  // Why?
+import {SfdxFalconRecipe}         from  '../../../../modules/sfdx-falcon-recipe';   // Why?
+import {SfdxFalconRecipeJson}     from  '../../../../modules/sfdx-falcon-recipe';   // Why?
+import {AppxEngineAction}         from  '../appx/actions';                          // Why?
 
 // Require Modules
-const Listr                 = require('listr');                                   // Official Task Runner of Project Falcon ;-)
-const FalconUpdateRenderer  = require('falcon-listr-update-renderer');            // Custom renderer for Listr
+const listr                 = require('listr');                                   // Official Task Runner of Project Falcon ;-)
+const falconUpdateRenderer  = require('falcon-listr-update-renderer');            // Custom renderer for Listr
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'ENGINE:appx:';
-const clsDbgNs  = 'AppxRecipeEngine:';
+
 
 //─────────────────────────────────────────────────────────────────────────────┐
 // Declare interfaces for AppxEngine (and derived classes)
 //─────────────────────────────────────────────────────────────────────────────┘
 export interface AppxEngineContext {
-  compileOptions:     any;
-  recipeObserver:     any;
+  compileOptions:     CompileOptions;
+  recipeObserver:     ListrObservable;
   executing:          boolean;
   initialized:        boolean;
   haltOnError:        boolean;
-  skipGroups:         Array<string>;
-  skipActions:        Array<string>;
+  skipGroups:         string[];
+  skipActions:        string[];
   devHubAlias:        string;
   projectContext:     SfdxFalconProject;
   logLevel:           SfdxCliLogLevel;
@@ -58,9 +67,7 @@ export interface AppxEngineContext {
 export interface AppxEngineActionContext extends AppxEngineContext {
   listrExecOptions:  ListrExecutionOptions;
 }
-export interface AppxEngineActionFunction {
-  (actionContext:AppxEngineActionContext, actionOptions:any):Promise<SfdxFalconResult>;
-}
+export type AppxEngineActionFunction = (actionContext:AppxEngineActionContext, actionOptions:ActionOptions) =>Promise<SfdxFalconResult>;
 export interface AppxEngineHandler {
   handlerName: string;
   // TODO: Flesh out this interface
@@ -69,25 +76,32 @@ export interface AppxEngineStepGroup {
   stepGroupName:  string;
   alias:          string;
   description:    string;
-  recipeSteps:    Array<AppxEngineStep>;
+  recipeSteps:    AppxEngineStep[];
 }
 export interface AppxEngineStep {
   stepName:     string;
   description:  string;
   action:       string;
-  options:      any;
+  options:      JsonMap;
   onSuccess?:   string;
   onError?:     string;
 }
 export interface AppxEngineStepResult {
   status:   AppxEngineStepResultStatus;
   message:  string;
-  data:     any;
+  data:     AnyJson;
 }
 export enum AppxEngineStepResultStatus {
   SUCCESS = 'SUCCESS',
   WARNING = 'WARNING',
-  ERROR   = 'ERROR'  
+  ERROR   = 'ERROR'
+}
+export interface FalconEngineResultDetail {
+  recipeName:       string;
+  engineName:       string;
+  engineContext:    AppxEngineContext;
+  projectContext:   SfdxFalconProject;
+  supportedActions: IterableIterator<string>;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -96,55 +110,228 @@ export enum AppxEngineStepResultStatus {
  * @summary     Abstract class for Appx Recipe Engines.
  * @description Abstract class for creating custom SFDX-Falcon Recipe Engines for Appx flavored
  *              projects.
- * @version     1.0.0
  * @public @abstract
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export abstract class AppxRecipeEngine {
 
-  // Declare class member vars.
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateOuterRecipe
+   * @param       {SfdxFalconRecipeJson} recipe Required.
+   * @returns     {void}
+   * @description ???
+   * @protected @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected static validateOuterRecipe(recipe:SfdxFalconRecipeJson):void {
+
+    // Make sure the Recipe contains an "options" key.
+    if (typeof recipe.options === 'undefined') {
+      throw new Error (`ERROR_INVALID_RECIPE: Recipes in the AppX family (eg. '${recipe.recipeType}' `
+                      +`must provide values in the 'options' key of your recipe`);
+    }
+    // Make sure there is an Array of Skip Groups
+    if (Array.isArray(recipe.options.skipGroups) === false) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array of strings must be provided in the `
+                      +`'options.skipGroups' key of your recipe.  The value provided was of type `
+                      +`${typeof recipe.options.skipGroups}`);
+    }
+    // Make sure there is an Array of Skip Actions
+    if (Array.isArray(recipe.options.skipActions) === false) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array of strings must be provided for the `
+                      +`'options.skipActions' key of your recipe.  The value you provided was of type `
+                      +`${typeof recipe.options.skipActions}`);
+    }
+    // Make sure that haltOnError is a boolean
+    if (typeof recipe.options.haltOnError !== 'boolean') {
+      throw new Error (`ERROR_INVALID_RECIPE: A boolean value must be provided for the `
+                      +`'options.haltOnError' key of your recipe.  The value you provided was of type `
+                      +`${typeof recipe.options.haltOnError}`);
+    }
+    // Make sure there is an Array of Target Orgs
+    if (Array.isArray(recipe.options.targetOrgs) === false || (recipe.options.targetOrgs as unknown as TargetOrg[]).length < 1) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array with at least one Target Org must be provided in the `
+                      +`'options.targetOrgs' key of your recipe.`);
+    }
+    // Validate every member of the Taget Orgs array.
+    for (const targetOrg of recipe.options.targetOrgs as unknown as TargetOrg[]) {
+      AppxRecipeEngine.validateTargetOrg(targetOrg);
+    }
+    // Make sure there is an Array of Recipe Step Groups
+    if (Array.isArray(recipe.recipeStepGroups) === false) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array of Recipe Step Groups must be provided at the root `
+                      +`level of your recipe. The value you provided was of type `
+                      +`${typeof recipe.recipeStepGroups}`);
+    }
+    // Validate every member of the Taget Orgs array.
+    for (const recipeStepGroup of recipe.recipeStepGroups as unknown as AppxEngineStepGroup[]) {
+      AppxRecipeEngine.validateRecipeStepGroup(recipeStepGroup);
+    }
+    // Make sure there is an Array of Handlers
+    if (Array.isArray(recipe.handlers) === false) {
+      throw new Error (`ERROR_INVALID_RECIPE: An array of Handlers must be provided at the root `
+                      +`level of your recipe. The value you provided was of type `
+                      +`${typeof recipe.handlers}`);
+    }
+    // Validate every member of the Handlers array.
+    for (const handler of recipe.handlers as unknown as AppxEngineHandler[]) {
+      AppxRecipeEngine.validateHandler(handler);
+    }
+    // Done with validation
+    return;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateHandler
+   * @param       {AppxEngineHandler} handler Required.
+   * @returns     {void}
+   * @description ???
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static validateHandler(handler:AppxEngineHandler):void {
+
+    // TODO: Implement this validation method.
+  }
+
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateRecipeStep
+   * @param       {AppxEngineStep} recipeStep Required.
+   * @returns     {void}
+   * @description ???
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static validateRecipeStep(recipeStep:AppxEngineStep):void {
+
+    // TODO: Implement this validation method.
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateRecipeStepGroup
+   * @param       {AppxRecipeStepGroup} stepGroup Required.
+   * @returns     {void}
+   * @description ???
+   * @private @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static validateRecipeStepGroup(stepGroup:AppxEngineStepGroup):void {
+
+    // Make sure that the Step Group Name is a string
+    if (typeof stepGroup.stepGroupName !== 'string' || stepGroup.stepGroupName === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: Missing string value for 'stepGroupName' in  `
+                      +`one of your 'recipeStepGroup' definitions `
+                      +`(type provided: ${typeof stepGroup.stepGroupName})`);
+    }
+    // Make sure that the Alias is a string
+    if (typeof stepGroup.alias !== 'string' || stepGroup.alias === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: Missing string value for 'alias' in the `
+                      +`recipeStepGroup '${stepGroup.stepGroupName}' `
+                      +`(type provided: ${typeof stepGroup.alias})`);
+    }
+    // Make sure that the Description is a string
+    if (typeof stepGroup.description !== 'string' || stepGroup.description === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: Missing string value 'description' in `
+                      +`one of your 'recipeStepGroup' definitions `
+                      +`(type provided: ${typeof stepGroup.description})`);
+    }
+    // Make sure there is an Array of Recipe Steps in this group
+    if (Array.isArray(stepGroup.recipeSteps) === false) {
+      throw new Error (`ERROR_INVALID_RECIPE: Missing array of Recipe Steps in `
+                      +`one of your 'recipeStepGroup' definitions. `
+                      +`(type provided: ${typeof stepGroup.recipeSteps})`);
+    }
+    // Validate every member of the Recipe Steps array.
+    for (const recipeStep of stepGroup.recipeSteps) {
+      AppxRecipeEngine.validateRecipeStep(recipeStep);
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateTargetOrg
+   * @param       {TargetOrg} targetOrg Required.
+   * @returns     {void}
+   * @description ???
+   * @private
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  private static validateTargetOrg(targetOrg:TargetOrg):void {
+
+    // Make sure that orgName is a string
+    if (typeof targetOrg.orgName !== 'string' || targetOrg.orgName === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
+                      +`'orgName' key in each targetOrg in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.orgName}`);
+    }
+    // Make sure that alias is a string
+    if (typeof targetOrg.alias !== 'string' || targetOrg.alias === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
+                      +`'alias' key in each targetOrg in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.alias}`);
+    }
+    // Make sure that description is a string
+    if (typeof targetOrg.description !== 'string' || targetOrg.description === '') {
+      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
+                      +`'description' key in each targetOrg in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.description}`);
+    }
+    // Make sure that isScratchOrg is a boolean
+    if (typeof targetOrg.isScratchOrg !== 'boolean') {
+      throw new Error (`ERROR_INVALID_RECIPE: A boolean value must be provided for the `
+                      +`'isScratchOrg' key in each targetOrg in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.isScratchOrg}`);
+    }
+    // Make sure that scratchDefJson is a string if isScratchOrg is set to TRUE
+    if (targetOrg.isScratchOrg === true && (typeof targetOrg.scratchDefJson !== 'string' || targetOrg.scratchDefJson === '')) {
+      throw new Error (`ERROR_INVALID_RECIPE: If targetOrg.isScratchOrg is TRUE then a string value must be provided for the `
+                      +`'scratchDefJson' key in that targetOrg's definition in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.scratchDefJson}`);
+    }
+    // Make sure that orgReqsJson is a string if isScratchOrg is set to FALSE
+    if (targetOrg.isScratchOrg === false && (typeof targetOrg.orgReqsJson !== 'string' || targetOrg.orgReqsJson === '')) {
+      throw new Error (`ERROR_INVALID_RECIPE: If targetOrg.isScratchOrg is FALSE then a string value must be provided for the `
+                      +`'orgReqsJson' key in that targetOrg's definition in your recipe.  The value you provided was of type `
+                      +`${typeof targetOrg.orgReqsJson}`);
+    }
+  }
+
+  // Protected class memebers
   protected actionExecutorMap:        Map<string, AppxEngineAction>;
-  protected listrTasks:               any;
+  protected listrTasks:               ListrObject;
   protected recipe:                   SfdxFalconRecipe;
   protected falconEngineResult:       SfdxFalconResult;
-  protected falconEngineResultDetail: any;
-  protected preBuildStepGroups:       Array<AppxEngineStepGroup>;
-  protected postBuildStepGroups:      Array<AppxEngineStepGroup>;
+  protected falconEngineResultDetail: FalconEngineResultDetail;
+  protected preBuildStepGroups:       AppxEngineStepGroup[];
+  protected postBuildStepGroups:      AppxEngineStepGroup[];
   protected engineContext:            AppxEngineContext;
-
-  // Declare abstract methods.
-  protected abstract async  executeEngine(executionOptions:any):  Promise<ListrContext>;
-  protected abstract async  initializeActionMap():          Promise<void>;
-  protected abstract async  initializePostBuildStepGroups():Promise<void>;
-  protected abstract async  initializePreBuildStepGroups(): Promise<void>;
-  protected abstract async  initializeRecipeEngineContext():Promise<void>;
-  protected abstract async  initializeSkipActions():        Promise<void>;
-  protected abstract async  initializeSkipGroups():         Promise<void>;
-  protected abstract async  initializeTargetOrg():          Promise<void>;
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @constructs  AppxRecipeEngine
    * @param       {string}  engineName  Required. Name of the specific Engine
    *              that is extending this class.
-   * @param       {string}  recipeName  Required. Name of the Recipe being 
+   * @param       {string}  recipeName  Required. Name of the Recipe being
    *              compiled into the Engine.
    * @description Creates an instance ONLY for use of the compileRecipe() and
    *              compile() functions.  That is how instances of this object
-   *              are passed back to the caller.  
-   * @version     1.0.0
-   * @protected
+   *              are passed back to the caller.
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected constructor(engineName:string, recipeName:string) {
+  constructor(engineName:string, recipeName:string) {
     // Initialize object/array member variables.
-    this.engineContext        = <AppxEngineContext>{};
+    this.engineContext        = {} as AppxEngineContext;
     this.preBuildStepGroups   = new Array<AppxEngineStepGroup>();
     this.postBuildStepGroups  = new Array<AppxEngineStepGroup>();
     this.listrTasks           = null;
 
     // Setup the ENGINE Result.
-    this.falconEngineResult   = 
+    this.falconEngineResult   =
       new SfdxFalconResult(`${engineName}:${recipeName}`, SfdxFalconResultType.ENGINE,
                           { startNow:       false,  // Don't count time spent by the user answering prompts.
                             bubbleError:    true,
@@ -161,16 +348,61 @@ export abstract class AppxRecipeEngine {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      execute
+   * @param       {ExecutionOptions}  [executionOptions]  Optional.
+   * @returns     {Promise<SfdxFalconResult>} Resolves with the SFDX-Falcon
+   *              Result for this ENGINE.
+   * @description Starts the execution of a compiled recipe.  Execution starutp
+   *              and cleanup are handled here in the base class. Relies on the
+   *              extended class to actually execute the Listr Tasks, though.
+   *              This gives the extended class the ability to inject any final
+   *              pre or post task execution logic.
+   * @public @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public async execute(executionOptions:ExecutionOptions={}):Promise<SfdxFalconResult> {
+
+    // Make sure that the Engine is compiled by checking for at least one Listr Task.
+    if (this.listrTasks == null) {
+      throw new Error('ERROR_RECIPE_NOT_COMPILED: AppxRecipeEngine.execute() called before compiling a Recipe');
+    }
+
+    // Perform any pre-engine-run logic
+    this.startExecution();
+
+    // Ask the child class to execute the Listr Tasks that are currently compiled into the Engine.
+    await this.executeEngine(executionOptions)
+      .then(listrContext  => { this.onSuccess(listrContext); })
+      .catch(listrError   => { this.onError(listrError); }); // This SHOULD always be an ENGINE Result in an ERROR state.
+
+    // Run the execution closing tasks.
+    this.endExecution();
+
+    // Return the SFDX-Falcon Result for this ENGINE instance (should be fully populated)
+    return this.falconEngineResult;
+  }
+
+  // Declare abstract methods.
+  protected abstract async  executeEngine(executionOptions:ExecutionOptions):Promise<ListrContext>;
+  protected abstract async  initializeActionMap():Promise<void>;
+  protected abstract async  initializePostBuildStepGroups():Promise<void>;
+  protected abstract async  initializePreBuildStepGroups():Promise<void>;
+  protected abstract async  initializeRecipeEngineContext():Promise<void>;
+  protected abstract async  initializeSkipActions():Promise<void>;
+  protected abstract async  initializeSkipGroups():Promise<void>;
+  protected abstract async  initializeTargetOrg():Promise<void>;
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      compile
    * @param       {SfdxFalconRecipe}  recipe  Required.
-   * @param       {any}               compileOptions  Required.
-   * @returns     {Promise<any>} ???
+   * @param       {CompileOptions}  compileOptions  Required.
+   * @returns     {Promise<void>} ???
    * @description ???
-   * @version     1.0.0
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected async compile(recipe:SfdxFalconRecipe, compileOptions:any):Promise<any> {
+  protected async compile(recipe:SfdxFalconRecipe, compileOptions:CompileOptions):Promise<void> {
 
     // Make sure that the incoming recipe has been validated.
     if (recipe.validated !== true) {
@@ -214,7 +446,7 @@ export abstract class AppxRecipeEngine {
     this.compileAllTasks();
 
     // We should be done by this point. Debug and return.
-    SfdxFalconDebug.obj(`${dbgNs}compile:`, this, `${clsDbgNs}constructor:this: `)
+    SfdxFalconDebug.obj(`${dbgNs}compile:this:`, this, `this: `);
     return;
   }
 
@@ -224,7 +456,6 @@ export abstract class AppxRecipeEngine {
    * @returns     {void}
    * @description Compiles all of the Listr tasks required by the recipe and
    *              adds them to the listrTasks member var.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -237,43 +468,42 @@ export abstract class AppxRecipeEngine {
     }
 
     // Debug - See what the pre and post build Step Groups are, and how they bookend the core group.
-    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.preBuildStepGroups, `${clsDbgNs}compileAllTasks:this.preBuildStepGroups: `)
-    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.recipe.recipeStepGroups, `${clsDbgNs}compileAllTasks:this.recipe.recipeStepGroups: `)
-    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, this.postBuildStepGroups, `${clsDbgNs}compileAllTasks:this.postBuildStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:preBuildStepGroups:`,  this.preBuildStepGroups,      `preBuildStepGroups: `);
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:recipeStepGroups:`,    this.recipe.recipeStepGroups, `recipeStepGroups: `);
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:postBuildStepGroups:`, this.postBuildStepGroups,     `postBuildStepGroups: `);
 
     // Join the pre and post-build Recipe Step Groups with the "core" given to us by the Recipe.
-    let completeRecipeStepGroups = [
-      ...this.preBuildStepGroups, 
+    const completeRecipeStepGroups = [
+      ...this.preBuildStepGroups,
       ...this.recipe.recipeStepGroups,
       ...this.postBuildStepGroups
     ];
 
     // Debug - Show the combined Step Groups
-    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:`, completeRecipeStepGroups, `${clsDbgNs}compileAllTasks:completeRecipeStepGroups: `)
+    SfdxFalconDebug.obj(`${dbgNs}compileAllTasks:completeRecipeStepGroups:`, completeRecipeStepGroups, `completeRecipeStepGroups: `);
 
     // Call compileParentTasks() from the Recipe's "Step Group root" and all tasks should compile.
-    this.listrTasks = this.compileParentTasks(completeRecipeStepGroups);
+    this.listrTasks = this.compileParentTasks(completeRecipeStepGroups as AppxEngineStepGroup[]);
     return;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      compileParentTasks
-   * @param       {Array<AppxEngineStepGroup>}  recipeStepGroups Required. ???
-   * @returns     {object} Returns an instantiated Listr object fully populated
-   *              with SubTasks.
+   * @param       {AppxEngineStepGroup[]}  recipeStepGroups Required.
+   * @returns     {ListrObject} Returns an instantiated Listr object fully
+   *              populated with SubTasks.
    * @description ???
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private compileParentTasks(recipeStepGroups:Array<AppxEngineStepGroup>):object {
+  private compileParentTasks(recipeStepGroups:AppxEngineStepGroup[]):ListrObject {
 
     // Create a Listr object to hold Falcon Command Sequence Steps as TASKS.
-    let parentTasks = new Listr({concurrent:false,collapse:false,renderer:FalconUpdateRenderer});
+    const parentTasks = new listr({concurrent:false, collapse:false, renderer:falconUpdateRenderer});
 
     // Iterate over all Recipe Step Groups and create Listr Tasks / Groups as needed.
-    for (let recipeStepGroup of recipeStepGroups) {
+    for (const recipeStepGroup of recipeStepGroups) {
       
       // Check if we need to skip compilation of this group
       if (this.skipGroup(recipeStepGroup.alias) === true) {
@@ -287,7 +517,7 @@ export abstract class AppxRecipeEngine {
       // Compile the SubTasks for this group and add them to the Parent Tasks we're creating
       parentTasks.add({
         title:  recipeStepGroup.stepGroupName,
-        task:   (listrContext) => { return this.compileSubTasks(recipeStepGroup, listrContext) }
+        task:   listrContext => this.compileSubTasks(recipeStepGroup)
       });
     }
 
@@ -298,16 +528,15 @@ export abstract class AppxRecipeEngine {
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      compileSubTasks
-   * @param       {AppxRecipeStepGroup} recipeStepGroup Required. ???
-   * @param       {any}                 parentContext Required. ???
-   * @returns     {any} Returns an instantiated Listr object fully populated by
-   *              all active Sub Tasks based on the Recipe Step Group.
+   * @param       {AppxRecipeStepGroup} recipeStepGroup Required.
+   * @returns     {ListrObject} Returns an instantiated Listr object fully
+   *              populated by all active Sub Tasks based on the Recipe Step
+   *              Group.
    * @description ???
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private compileSubTasks(recipeStepGroup:AppxEngineStepGroup, parentContext:any=null):any {
+  private compileSubTasks(recipeStepGroup:AppxEngineStepGroup):ListrObject {
 
     // Make sure we have at least one step in the group.
     if (recipeStepGroup.recipeSteps.length < 1) {
@@ -315,48 +544,48 @@ export abstract class AppxRecipeEngine {
     }
 
     // Create a Listr object for the subtasks.
-    let listrSubTasks = new Listr({concurrent:false,collapse:false,renderer:FalconUpdateRenderer});
+    const listrSubTasks = new listr({concurrent:false, collapse:false, renderer:falconUpdateRenderer});
 
     // For each Recipe Step, add a new SUB TASK to the group if the step's action is not on the skip list.
-    for (let recipeStep of recipeStepGroup.recipeSteps) {
+    for (const recipeStep of recipeStepGroup.recipeSteps) {
       if (this.skipAction(recipeStep.action) === true) {
         continue;
       }
       listrSubTasks.add({
         title:  recipeStep.stepName,
         task:   (listrContext, thisTask) => {
-          return new Observable(observer => { 
-            let listrExecOptions:ListrExecutionOptions = {
+          return new Observable(observer => {
+            const listrExecOptions:ListrExecutionOptions = {
               listrContext: listrContext,
               listrTask:    thisTask,
               observer:     observer
-            }
+            };
             this.executeStep(recipeStep, listrExecOptions)
               .then(resolvedPromise => {
-                let falconActionResult = SfdxFalconResult.wrap(resolvedPromise, SfdxFalconResultType.FUNCTION, 'executeStep:then');
+                const falconActionResult = SfdxFalconResult.wrap(resolvedPromise, SfdxFalconResultType.FUNCTION, 'executeStep:then');
                 falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Resolved)', 'LISTR_TASK_DEBUG:');
                 // We should NOT be getting ACTION Results that are marked as ERROR, but it's possible.
                 // We need to use try/catch precautions here or we could leave the observer in an incomplete state.
                 try {
                   this.falconEngineResult.addChild(falconActionResult);
                   this.falconEngineResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Child Added)', 'LISTR_TASK_DEBUG:');
-                  observer.complete();  
+                  observer.complete();
                 } catch (bubbledError) {
                   // Somehow, an ERROR Result came through as a Resolved Promise. This SHOULD NOT happen, but in
                   // case it does, create a special SfdxFalconError and throw it to the user by calling observer.error().
                   falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (WARNING: Error Bubbled by a Resolved Promise)', 'LISTR_TASK_DEBUG:');
-                  let unexpectedError = 
-                    new SfdxFalconError (`An ERROR was mistakenly bubbled by a Resolved Promise.`
-                                        ,`UnexpectedError`
-                                        ,`${dbgNs}executeStep`
-                                        ,SfdxFalconError.wrap(bubbledError));
+                  const unexpectedError =
+                    new SfdxFalconError ( `An ERROR was mistakenly bubbled by a Resolved Promise.`
+                                        , `UnexpectedError`
+                                        , `${dbgNs}executeStep`
+                                        , SfdxFalconError.wrap(bubbledError));
                   unexpectedError.setData(falconActionResult);
                   observer.error(unexpectedError);
                 }
               })
               .catch(rejectedPromise => {
                 // Make sure we ONLY deal with an SFDX-Falcon Result
-                let falconActionResult = SfdxFalconResult.wrapRejectedPromise(rejectedPromise, SfdxFalconResultType.UNKNOWN, `ActionResult (REJECTED)`);
+                const falconActionResult = SfdxFalconResult.wrapRejectedPromise(rejectedPromise, SfdxFalconResultType.UNKNOWN, `ActionResult (REJECTED)`);
                 falconActionResult.debugResult('LISTR TASK DEBUG - AppxRecipeEngine:executeStep (Promise Rejected)', 'LISTR_TASK_DEBUG:');
                 try {
                   // If ENGINE Result's "bubbleError" is FALSE, then the call to addChild() will NOT throw an error.
@@ -384,50 +613,12 @@ export abstract class AppxRecipeEngine {
    * @method      endExecution
    * @returns     {void}
    * @description Lets the Engine know that execution has stopped without error.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private endExecution():void {
     
     // OPTIONAL: Add any post-execution closing tasks here.
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      execute
-   * @param       {any} [executionOptions]  Optional. 
-   * @returns     {Promise<SfdxFalconResult>} Resolves with the SFDX-Falcon
-   *              Result for this ENGINE.
-   * @description Starts the execution of a compiled recipe.  Execution starutp
-   *              and cleanup are handled here in the base class. Relies on the
-   *              extended class to actually execute the Listr Tasks, though. 
-   *              This gives the extended class the ability to inject any final
-   *              pre or post task execution logic.
-   * @version     1.0.0
-   * @public @async
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  public async execute(executionOptions:any={}):Promise<SfdxFalconResult> {
-
-    // Make sure that the Engine is compiled by checking for at least one Listr Task.
-    if (this.listrTasks == null) {
-      throw new Error('ERROR_RECIPE_NOT_COMPILED: AppxRecipeEngine.execute() called before compiling a Recipe');
-    }
-
-    // Perform any pre-engine-run logic
-    this.startExecution();
-
-    // Ask the child class to execute the Listr Tasks that are currently compiled into the Engine.
-    await this.executeEngine(executionOptions)
-      .then(listrContext  => {this.onSuccess(listrContext)})
-      .catch(listrError   => {this.onError(listrError)}); // This SHOULD always be an ENGINE Result in an ERROR state.
-
-    // Run the execution closing tasks.
-    this.endExecution();
-
-    // Return the SFDX-Falcon Result for this ENGINE instance (should be fully populated)
-    return this.falconEngineResult;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -441,20 +632,19 @@ export abstract class AppxRecipeEngine {
    *              of object bubbles up, it should be an Error.
    * @description Given a valid Falcon Recipe Step object, tries to
    *              route the requested Step Action to the appropriate Executor.
-   * @version     1.0.0
    * @private @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
   private async executeStep(recipeStep:AppxEngineStep, listrExecOptions:ListrExecutionOptions):Promise<SfdxFalconResult> {
 
     // Build the context the Action Executor will need to correctly do its job.
-    let actionContext:AppxEngineActionContext =  { 
+    const actionContext:AppxEngineActionContext =  {
       ...this.engineContext,
       listrExecOptions: listrExecOptions
-    }
+    };
 
     // Find the Executor for the specified Action.
-    let actionExecutor = this.actionExecutorMap.get(recipeStep.action);
+    const actionExecutor = this.actionExecutorMap.get(recipeStep.action);
 
     // Make sure we actually found an Executor.
     if (typeof actionExecutor === 'undefined') {
@@ -472,7 +662,6 @@ export abstract class AppxRecipeEngine {
    * @method      initializeEngineResultDetail
    * @returns     {void}
    * @description ???
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -484,43 +673,42 @@ export abstract class AppxRecipeEngine {
     this.falconEngineResultDetail.supportedActions  = this.actionExecutorMap.keys();
 
     // Set the detail of the ENGINE Result.
-    this.falconEngineResult.setDetail(this.falconEngineResultDetail);    
+    this.falconEngineResult.setDetail(this.falconEngineResultDetail);
   }
   
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      onError
-   * @param       {any}  listrError  Required. This SHOULD always be an ENGINE
-   *              Result (this.falconEngineResult, to be exact)...BUT there is
-   *              a small chance this may be some other kind of error.
+   * @param       {unknown} resultOrError  Required. This SHOULD always be an
+   *              ENGINE Result (this.falconEngineResult, to be exact)...BUT
+   *              there is a small chance this may be some other kind of error.
    * @returns     {void}
    * @description Handles rejected calls returning from this.executeEngine().
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  private onError(listrError:any):void {
+  private onError(resultOrError:unknown):void {
 
     // Make sure that what we got here is an SFDX-Falcon Result, of type ENGINE, with status ERROR.
-    if (! SfdxFalconResult.validate(listrError, SfdxFalconResultType.ENGINE, SfdxFalconResultStatus.ERROR)) {
+    if (! SfdxFalconResult.validate(resultOrError, SfdxFalconResultType.ENGINE, SfdxFalconResultStatus.ERROR)) {
 
       // We got something we were not expecting. Debug the contents of listrError.
-      SfdxFalconDebug.obj(`${dbgNs}onError:`, listrError, `${clsDbgNs}onError:listrError: `);
+      SfdxFalconDebug.obj(`${dbgNs}onError:resultOrError:`, {resultOrError: resultOrError}, `resultOrError: `);
 
       // Create an Error to throw.
-      let falconError = new SfdxFalconError(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
-                                            +`got an unexpected result from listr.run()`);
+      const falconError = new SfdxFalconError(`ERROR_UNEXPECTED_LISTR_RESULT: Engine ${this.falconEngineResult.name} `
+                                             +`got an unexpected result from listr.run()`);
 
       // Throw the ENGINE with the error just created
       this.falconEngineResult.throw(falconError);
     }
 
-    // Debug the contents of listrError
-    let lastActionResult = this.falconEngineResult.children[this.falconEngineResult.children.length-1];
-    SfdxFalconDebug.obj(`${dbgNs}onError:`, lastActionResult, `${clsDbgNs}onError:lastActionResult: `);
+    // Debug the contents of resultOrError
+    const lastActionResult = this.falconEngineResult.children[this.falconEngineResult.children.length-1];
+    SfdxFalconDebug.obj(`${dbgNs}onError:lastActionResult:`, lastActionResult, `lastActionResult: `);
 
     // Debug the contents of the ENGINE Result in it's final state.
-    SfdxFalconDebug.obj(`${dbgNs}onError:`, this.falconEngineResult, `${clsDbgNs}onError:this.falconEngineResult: `);
+    SfdxFalconDebug.obj(`${dbgNs}onError:falconEngineResult:`, this.falconEngineResult, `falconEngineResult: `);
 
     // Throw the ENGINE Result so the caller (likely a RECIPE) knows what happened.
     throw this.falconEngineResult;
@@ -532,7 +720,6 @@ export abstract class AppxRecipeEngine {
    * @param       {ListrContext}  listrContext  Required.
    * @returns     {void}
    * @description Called upon successful return from this.executeEngine().
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -540,7 +727,7 @@ export abstract class AppxRecipeEngine {
 
     // Debug the contents of the Listr Context
     // TODO: Do we really need to know what's in the Listr Context var?
-    SfdxFalconDebug.obj(`${dbgNs}onSuccess:`, listrContext, `${clsDbgNs}onSuccess:listrContext: `);
+    SfdxFalconDebug.obj(`${dbgNs}onSuccess:listrContext:`, listrContext, `listrContext: `);
 
     if (this.falconEngineResult.status === SfdxFalconResultStatus.FAILURE) {
       if (this.engineContext.haltOnError) {
@@ -561,7 +748,6 @@ export abstract class AppxRecipeEngine {
    * @param       {string}  actionToCheck Required. The Action to check.
    * @returns     {boolean} Returns true if the action should be skipped.
    * @description Checks if an action should be skipped during compile.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -575,7 +761,6 @@ export abstract class AppxRecipeEngine {
    * @param       {string}  groupToCheck Required. The Step Group Name to check.
    * @returns     {boolean} Returns true if the group should be skipped.
    * @description Checks if a group of steps should be skipped during compile.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -588,7 +773,6 @@ export abstract class AppxRecipeEngine {
    * @method      startExecution
    * @returns     {void}
    * @description Executes pre-engine-run logic right before running Listr tasks.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -613,8 +797,8 @@ export abstract class AppxRecipeEngine {
   private stepGroupHasActiveTasks(stepGroupToCheck:AppxEngineStepGroup):boolean {
     if (stepGroupToCheck.recipeSteps.length < 1) {
       return false;
-    }    
-    for (let step of stepGroupToCheck.recipeSteps) {
+    }
+    for (const step of stepGroupToCheck.recipeSteps) {
       if (this.skipAction(step.action) === false) {
         return true;
       }
@@ -627,9 +811,8 @@ export abstract class AppxRecipeEngine {
   /**
    * @method      validateEngine
    * @returns     {void}
-   * @description Validates the overall state of the AppxRecipeEngine and 
+   * @description Validates the overall state of the AppxRecipeEngine and
    *              determines if it is ready for compilation.
-   * @version     1.0.0
    * @private
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -669,195 +852,4 @@ export abstract class AppxRecipeEngine {
     this.engineContext.initialized = true;
     return;
   }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateHandler
-   * @param       {AppxEngineHandler} handler Required. 
-   * @returns     {void}
-   * @description ???
-   * @version     1.0.0
-   * @private @static
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private static validateHandler(handler:AppxEngineHandler):void {
-
-    // TODO: Implement this validation method.
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateOuterRecipe
-   * @param       {SfdxFalconRecipeJson} recipe Required. 
-   * @returns     {void}
-   * @description ???
-   * @version     1.0.0
-   * @protected @static
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  protected static validateOuterRecipe(recipe:SfdxFalconRecipeJson):void {
-
-    // Make sure the Recipe contains an "options" key.
-    if (typeof recipe.options === 'undefined') {
-      throw new Error (`ERROR_INVALID_RECIPE: Recipes in the AppX family (eg. '${recipe.recipeType}' `
-                      +`must provide values in the 'options' key of your recipe`);
-    }
-    // Make sure there is an Array of Skip Groups
-    if (Array.isArray(recipe.options.skipGroups) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array of strings must be provided in the `
-                      +`'options.skipGroups' key of your recipe.  The value provided was of type `
-                      +`${typeof recipe.options.skipGroups}`);
-    }
-    // Make sure there is an Array of Skip Actions
-    if (Array.isArray(recipe.options.skipActions) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array of strings must be provided for the `
-                      +`'options.skipActions' key of your recipe.  The value you provided was of type `
-                      +`${typeof recipe.options.skipActions}`);
-    }
-    // Make sure that haltOnError is a boolean
-    if (typeof recipe.options.haltOnError !== 'boolean') {
-      throw new Error (`ERROR_INVALID_RECIPE: A boolean value must be provided for the `
-                      +`'options.haltOnError' key of your recipe.  The value you provided was of type `
-                      +`${typeof recipe.options.haltOnError}`);
-    }
-    // Make sure there is an Array of Target Orgs
-    if (Array.isArray(recipe.options.targetOrgs) === false || recipe.options.targetOrgs.length < 1) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array with at least one Target Org must be provided in the `
-                      +`'options.targetOrgs' key of your recipe.`);
-    }
-    // Validate every member of the Taget Orgs array.
-    for (let targetOrg of recipe.options.targetOrgs) {
-      AppxRecipeEngine.validateTargetOrg(targetOrg);
-    }
-    // Make sure there is an Array of Recipe Step Groups
-    if (Array.isArray(recipe.recipeStepGroups) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array of Recipe Step Groups must be provided at the root `
-                      +`level of your recipe. The value you provided was of type `
-                      +`${typeof recipe.recipeStepGroups}`);
-    }
-    // Validate every member of the Taget Orgs array.
-    for (let recipeStepGroup of recipe.recipeStepGroups) {
-      AppxRecipeEngine.validateRecipeStepGroup(recipeStepGroup);
-    }
-    // Make sure there is an Array of Handlers
-    if (Array.isArray(recipe.handlers) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: An array of Handlers must be provided at the root `
-                      +`level of your recipe. The value you provided was of type `
-                      +`${typeof recipe.handlers}`);
-    }
-    // Validate every member of the Handlers array.
-    for (let handler of recipe.handlers as Array<AppxEngineHandler>) {
-      AppxRecipeEngine.validateHandler(handler);
-    }
-    // Done with validation
-    return;
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateRecipeStep
-   * @param       {AppxEngineStep} recipeStep Required. 
-   * @returns     {void}
-   * @description ???
-   * @version     1.0.0
-   * @private @static
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private static validateRecipeStep(recipeStep:AppxEngineStep):void {
-
-    // TODO: Implement this validation method.
-
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateRecipeStepGroup
-   * @param       {AppxRecipeStepGroup} stepGroup Required. 
-   * @returns     {void}
-   * @description ???
-   * @version     1.0.0
-   * @private @static
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private static validateRecipeStepGroup(stepGroup:AppxEngineStepGroup):void {
-
-    // Make sure that the Step Group Name is a string
-    if (typeof stepGroup.stepGroupName !== 'string' || stepGroup.stepGroupName === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: Missing string value for 'stepGroupName' in  `
-                      +`one of your 'recipeStepGroup' definitions `
-                      +`(type provided: ${typeof stepGroup.stepGroupName})`);
-    }
-    // Make sure that the Alias is a string
-    if (typeof stepGroup.alias !== 'string' || stepGroup.alias === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: Missing string value for 'alias' in the `
-                      +`recipeStepGroup '${stepGroup.stepGroupName}' `
-                      +`(type provided: ${typeof stepGroup.alias})`);
-    }
-    // Make sure that the Description is a string
-    if (typeof stepGroup.description !== 'string' || stepGroup.description === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: Missing string value 'description' in `
-                      +`one of your 'recipeStepGroup' definitions `
-                      +`(type provided: ${typeof stepGroup.description})`);
-    }
-    // Make sure there is an Array of Recipe Steps in this group
-    if (Array.isArray(stepGroup.recipeSteps) === false) {
-      throw new Error (`ERROR_INVALID_RECIPE: Missing array of Recipe Steps in `
-                      +`one of your 'recipeStepGroup' definitions. `
-                      +`(type provided: ${typeof stepGroup.recipeSteps})`);
-    }
-    // Validate every member of the Recipe Steps array.
-    for (let recipeStep of stepGroup.recipeSteps) {
-      AppxRecipeEngine.validateRecipeStep(recipeStep);
-    }
-  }
-
-  //───────────────────────────────────────────────────────────────────────────┐
-  /**
-   * @method      validateTargetOrg
-   * @param       {TargetOrg} targetOrg Required. 
-   * @returns     {void}
-   * @description ???
-   * @version     1.0.0
-   * @private
-   */
-  //───────────────────────────────────────────────────────────────────────────┘
-  private static validateTargetOrg(targetOrg:TargetOrg):void {
-
-    // Make sure that orgName is a string
-    if (typeof targetOrg.orgName !== 'string' || targetOrg.orgName === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
-                      +`'orgName' key in each targetOrg in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.orgName}`);
-    }
-    // Make sure that alias is a string
-    if (typeof targetOrg.alias !== 'string' || targetOrg.alias === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
-                      +`'alias' key in each targetOrg in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.alias}`);
-    }
-    // Make sure that description is a string
-    if (typeof targetOrg.description !== 'string' || targetOrg.description === '') {
-      throw new Error (`ERROR_INVALID_RECIPE: A string value must be provided for the `
-                      +`'description' key in each targetOrg in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.description}`);
-    }
-    // Make sure that isScratchOrg is a boolean
-    if (typeof targetOrg.isScratchOrg !== 'boolean') {
-      throw new Error (`ERROR_INVALID_RECIPE: A boolean value must be provided for the `
-                      +`'isScratchOrg' key in each targetOrg in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.isScratchOrg}`);
-    }
-    // Make sure that scratchDefJson is a string if isScratchOrg is set to TRUE
-    if (targetOrg.isScratchOrg === true && (typeof targetOrg.scratchDefJson !== 'string' || targetOrg.scratchDefJson === '')) {
-      throw new Error (`ERROR_INVALID_RECIPE: If targetOrg.isScratchOrg is TRUE then a string value must be provided for the `
-                      +`'scratchDefJson' key in that targetOrg's definition in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.scratchDefJson}`);
-    }
-    // Make sure that orgReqsJson is a string if isScratchOrg is set to FALSE
-    if (targetOrg.isScratchOrg === false && (typeof targetOrg.orgReqsJson !== 'string' || targetOrg.orgReqsJson === '')) {
-      throw new Error (`ERROR_INVALID_RECIPE: If targetOrg.isScratchOrg is FALSE then a string value must be provided for the `
-                      +`'orgReqsJson' key in that targetOrg's definition in your recipe.  The value you provided was of type `
-                      +`${typeof targetOrg.orgReqsJson}`);
-    }
-  }
-} // End of class
+}

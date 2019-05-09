@@ -1,0 +1,20 @@
+{
+  "records": [
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId":  "parentAccount1"
+      },
+      "Name": "Han Solo",
+      "isvte_falcon_x__DW_Email__c":  "han@solo.com"
+    },
+    {
+      "attributes": {
+        "type": "Account",
+        "referenceId":  "parentAccount2"
+      },
+      "Name": "Luke Skywalker",
+      "isvte_falcon_x__DW_Email__c":  "luke@skywalker.com"
+    }
+  ]
+}

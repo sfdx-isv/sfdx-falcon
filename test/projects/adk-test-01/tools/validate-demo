@@ -1,0 +1,114 @@
+#!/bin/sh
+####################################################################################################
+#
+# FILENAME:     setup-tools/validate-demo
+#
+# SUMMARY:      Validates a demo project, usually against a scratch org.
+#
+# DESCRIPTION:  ##ADD_DESCRIPTIION_HERE##
+#
+# INSTRUCTIONS: Execute the following command relative to your project's root directory:  
+#               ./setup-tools/validate-demo
+#
+# RELATED DOCS: TODO: ?????
+#               └─ https://???.???.com
+#
+#               TODO: ?????
+#               ├─ https://www.????.com
+#               └─ https://www.????.com
+#
+####################################################################################################
+#
+##
+###
+#### LOAD SHARED FUNCTIONS LIBRARY #################################################################
+###
+##
+#
+# Make sure that the shared-functions.sh script exists.
+if [ ! -r `dirname $0`/lib/shared-functions.sh ]; then
+  echo "\nFATAL ERROR: `tput sgr0``tput setaf 1`Could not load setup-tools/lib/shared-functions.sh.  File not found.\n"
+  exit 1
+fi
+
+# Indicate what the requested operation is.
+REQUESTED_OPERATION="VALIDATE_DEMO"
+
+# Load the shared-functions.sh library.  This action will also cause the
+# config variables from setup-tools/lib/local-config.sh to be loaded.
+source `dirname $0`/lib/shared-functions.sh
+#
+##
+###
+#### CONFIRM SCRIPT EXECUTION ######################################################################
+###
+##
+#
+confirmScriptExecution "Validate this Demo's deployment steps against a Scratch Org?"
+#
+##
+###
+#### CREATE LOCAL VARIABLES ########################################################################
+###
+##
+#
+# The default version of this script does not require additional local
+# variables.  If your customized script does require them, this is where
+# you would define and initialize them.
+#
+##
+###
+#### EXECUTE DEMO VALIDATION LOGIC #################################################################
+###
+##
+#
+# Nomally, the first thing we do is call resetStepMsgCounter() to set 
+# the number of TOTAL STEPS in the script that's about to execute.
+# Because `validte-demo` relies on `deploy-demo` for all of the heavy
+# lifting, we can skip calling resetStepMsgCounter() and jump right 
+# into running commands.  Note: Any commands that would normally 
+# output a "step message" will instead output "preliminary step messages"
+# until the someone calls resetStepMsgCounter().
+
+# PRELIMINARY STEP 1
+# Start by deleting the old scratch org
+deleteScratchOrg
+
+# PRELIMINARY STEP 2
+# Now create a new scratch org
+createScratchOrg
+
+# DEVTEST
+exit 0
+
+# THE MAIN EVENT
+# For most demos, the only thing that's different between `validate-demo` and `deploy-demo` is the
+# target org.  Demos are VALIDATED in scratch orgs and DEPLOYED to DE/EE/TRIAL orgs.  
+#
+# The standard behavior here is to leverage the logic present in `deploy-demo` by sourcing it and
+# having it run with "VALIDATE_DEMO" set as the PARENT_OPERATION.
+#
+# NOTE: Unless you have good reason to create a distinct demo validation script, this file should
+# be left as-is.  All of your demo setup logic should be put inside `src/deploy-demo`.
+source `dirname $0`/deploy-demo
+#
+##
+###
+#### POST-DEPLOY OPERATIONS ########################################################################
+###
+##
+#
+# If you want to add any special "validation only" operations AFTER the logic in `deploy-demo` runs
+# you can add it here.
+#
+##
+###
+#### ECHO CLOSING MESSAGE ##########################################################################
+###
+##
+#
+echoScriptCompleteMsg \
+"Demo App has been validated successfully"
+exit 0
+
+##END##

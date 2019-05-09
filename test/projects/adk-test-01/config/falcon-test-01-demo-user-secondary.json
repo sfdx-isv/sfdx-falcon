@@ -1,0 +1,13 @@
+{
+  "Username": "secondary@demo-user.org",
+  "FirstName": "Sam",
+  "LastName": "Eagle",
+  "Alias": "SEagle",
+  "Email": "sam@test.com",
+  "TimeZoneSidKey": "America/Los_Angeles",
+  "LocaleSidKey": "en_US",
+  "EmailEncodingKey": "UTF-8",
+  "LanguageLocaleKey": "en_US",
+  "profileName": "Chatter Free User",
+  "password": "abc123pass"
+}

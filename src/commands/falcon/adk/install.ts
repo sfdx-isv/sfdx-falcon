@@ -6,25 +6,26 @@
  * @summary       Implements the CLI command "falcon:adk:install"
  * @description   Salesforce CLI Plugin command (falcon:adk:install) that is expected to run inside
  *                of a fully-configured AppExchange Demo Kit (ADK) project.  Takes project and local
- *                settings from various JSON config files and uses them to power an Org Build 
+ *                settings from various JSON config files and uses them to power an Org Build
  *                based on the SFDX Falcon Recipe selected by the user.
  * @version       1.0.0
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Modules
-import * as path                      from  'path';                 // Helps resolve local paths at runtime.
 import {flags}                        from  '@salesforce/command';  // Allows creation of flags for CLI commands.
-import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
 import {SfdxError}                    from  '@salesforce/core';     // Generalized SFDX error which also contains an action.
-import {isEmpty}                      from  'lodash';               // Why?
+import {Messages}                     from  '@salesforce/core';     // Messages library that simplifies using external JSON for string reuse.
+import {AnyJson}                      from  '@salesforce/ts-types'; // Safe type for use where "any" might otherwise be used.
+import {isEmpty}                      from  'lodash';               // Useful function for detecting empty objects.
+import * as path                      from  'path';                 // Helps resolve local paths at runtime.
 
 // Import Local Modules
-import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Why?
-import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Why?
-import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-import {SfdxFalconResult}             from  '../../../modules/sfdx-falcon-result';  // Why?
-import {SfdxFalconResultType}         from  '../../../modules/sfdx-falcon-result';  // Why?
+import {SfdxFalconCommand}            from  '../../../modules/sfdx-falcon-command'; // Class. Base class used by all SFDX-Falcon commands.
+import {SfdxFalconError}              from  '../../../modules/sfdx-falcon-error';   // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconProject}            from  '../../../modules/sfdx-falcon-project'; // Class. Represents an SFDX-Falcon project, including locally stored project data.
+import {SfdxFalconResult}             from  '../../../modules/sfdx-falcon-result';  // Class. Used to communicate results of SFDX-Falcon code execution at a variety of levels.
+import {SfdxFalconResultType}         from  '../../../modules/sfdx-falcon-result';  // Enum. Represents the different types of sources where Results might come from.
 
 // Import Internal Types
 import {SfdxFalconCommandType}        from  '../../../modules/sfdx-falcon-command'; // Enum. Represents the types of SFDX-Falcon Commands.
@@ -32,7 +33,6 @@ import {CoreActionResultDetail}       from  '../../../modules/sfdx-falcon-recipe
 
 // Set the File Local Debug Namespace
 //const dbgNs     = 'COMMAND:falcon-demo-install:';
-//const clsDbgNs  = 'FalconDemoInstall:';
 
 // Use SfdxCore's Messages framework to get the message bundles for this command.
 Messages.importMessagesDirectory(__dirname);
@@ -60,40 +60,34 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
   public static examples    = [
     `$ sfdx falcon:adk:install`,
     `$ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project`,
-    `$ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project \\\n` + 
+    `$ sfdx falcon:adk:install --projectdir ~/demos/adk-projects/my-adk-project \\\n` +
     `                         --configfile my-alternate-demo-config.json`
   ];
 
-  // Identify the core SFDX arguments/features required by this command.
-  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
-  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
-  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
-  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
-  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.  
-
   //───────────────────────────────────────────────────────────────────────────┐
   // -d --PROJECTDIR  Directory where a fully configured AppX Demo Kit (ADK)
-  //                  project exists. All commands for deployment must be 
+  //                  project exists. All commands for deployment must be
   //                  defined inside this directory.
   // -f --CONFIGFILE  Name of the config file to override the normal demo
   //                  install process with.
   //───────────────────────────────────────────────────────────────────────────┘
   protected static flagsConfig = {
     projectdir: flags.directory({
-      char: 'd', 
+      char: 'd',
       required: false,
       description: baseMessages.getMessage('projectdir_FlagDescription'),
       default: '.',
       hidden: false
     }),
-    configfile: flags.filepath({
-      char: 'f', 
+    recipefile: flags.string({
+      char: 'f',
       required: false,
-      description: baseMessages.getMessage('configfile_FlagDescription'),
+      description: baseMessages.getMessage('recipefile_FlagDescription'),
+      default: '',
       hidden: false
     }),
     extendedoptions: flags.string({
-      char: 'x', 
+      char: 'x',
       required: false,
       description: baseMessages.getMessage('extendedoptions_FlagDescription'),
       default: '{}',
@@ -104,10 +98,17 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     ...SfdxFalconCommand.falconBaseflagsConfig
   };
 
+  // Identify the core SFDX arguments/features required by this command.
+  protected static requiresProject        = false;  // True if an SFDX Project workspace is REQUIRED.
+  protected static requiresUsername       = false;  // True if an org username is REQUIRED.
+  protected static requiresDevhubUsername = false;  // True if a hub org username is REQUIRED.
+  protected static supportsUsername       = false;  // True if an org username is OPTIONAL.
+  protected static supportsDevhubUsername = false;  // True if a hub org username is OPTIONAL.
+
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @function    run
-   * @returns     {Promise<any>}  This should resolve by returning a JSON object
+   * @returns     {Promise<AnyJson>}  This should resolve by returning a JSON object
    *              that the CLI will then forward to the user if the --json flag
    *              was set when this command was called.
    * @description Entrypoint function used by the CLI when the user wants to
@@ -116,40 +117,51 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
    * @public @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  public async run(): Promise<any> { 
+  public async run():Promise<AnyJson> {
 
     // Initialize the SfdxFalconCommand base (DO NOT REMOVE THIS LINE OF CODE!)
     this.sfdxFalconCommandInit('falcon:adk:install', SfdxFalconCommandType.APPX_DEMO);
 
     // Resolve the Project Directory (specified by the user) to a Project Path.
-    let projectPath = path.resolve(this.projectDirectory)
+    const projectPath = path.resolve(this.projectDirectory);
 
     // Instantiate the SFDX-Falcon Project residing at the Project Path.
     const sfdxFalconProject = await SfdxFalconProject.resolve(projectPath);
-    
-    // If the user passed any Extended Options, use them as Compile Options.
-    let compileOptions = this.extendedOptions;
 
-    // Run the Default Recipe as specified by the project.
-    await sfdxFalconProject.runDefaultRecipe(compileOptions)
-      .then(async falconRecipeResult  => {await this.onSuccess(falconRecipeResult)})  // Implemented by parent class
-      .catch(async falconRecipeResult => {await this.onError(falconRecipeResult)});   // Implemented by parent class
+    // If the user passed any Extended Options, use them as Compile Options.
+    const compileOptions = this.extendedOptions;
+
+    if (this.recipeFile) {
+
+      // Run the specific Recipe supplied by the user.
+      await sfdxFalconProject.runSpecifiedRecipe(this.recipeFile)
+        .then(async falconRecipeResult  => { await this.onSuccess(falconRecipeResult); })  // Implemented by parent class
+        .catch(async falconRecipeResult => { await this.onError(falconRecipeResult); });   // Implemented by parent class
+    }
+    else {
+
+      // Run the Default Recipe as specified in sfdx-project.json.
+      await sfdxFalconProject.runDefaultRecipe(compileOptions)
+        .then(async falconRecipeResult  => { await this.onSuccess(falconRecipeResult); })  // Implemented by parent class
+        .catch(async falconRecipeResult => { await this.onError(falconRecipeResult); });   // Implemented by parent class
+    }
+
 
     // Return the JSON Response that was populated by onSuccess().
-    return this.falconJsonResponse;
+    return this.falconJsonResponse as unknown as AnyJson;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      buildFinalError
-   * @param       {SfdxFalconError} cmdError  Required. Error object used as 
-   *              the basis for the "friendly error message" being created 
+   * @param       {SfdxFalconError} cmdError  Required. Error object used as
+   *              the basis for the "friendly error message" being created
    *              by this method.
    * @returns     {SfdxError}
    * @description Builds a user-friendly error message that is appropriate to
    *              the CLI command that's being implemented by this class. The
    *              output of this method will always be used by the onError()
-   *              method from the base class to communicate the end-of-command 
+   *              method from the base class to communicate the end-of-command
    *              error state.
    * @protected
    */
@@ -162,26 +174,26 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
       if (actionError.data && actionError.data.sfdxFalconResult) {
         if (actionError.data.sfdxFalconResult.type === SfdxFalconResultType.ACTION) {
           // Found what we were looking for.
-          let actionResult  = actionError.data.sfdxFalconResult as SfdxFalconResult;
-          let actionDetail  = actionResult.detail as CoreActionResultDetail;
+          const actionResult  = actionError.data.sfdxFalconResult as SfdxFalconResult;
+          const actionDetail  = actionResult.detail as CoreActionResultDetail;
           let errorMessage  = '';
           try {
-            let stepName = actionDetail.actionContext.listrExecOptions.listrTask._task.title;
+            const stepName = actionDetail.actionContext.listrExecOptions.listrTask._task.title;
             errorMessage = `The step "${stepName}" has failed. Its action, "${actionDetail.actionName}", returned the following error:`;
           } catch (err) {
             errorMessage = `A step with the action "${actionDetail.actionName}" has failed with the following error:`;
           }
 
           // Build the FINAL error that we'll throw to the CLI.
-          let finalError = 
-            new SfdxError (`${errorMessage}\n`
-                          +`${actionError.rootCause.name}: ${actionError.rootCause.message}`
-                          ,`FailedCommand`
-                          ,actionError.rootCause.actions
-                          ,1
-                          ,cmdError);
+          const finalError =
+            new SfdxError ( `${errorMessage}\n`
+                          + `${actionError.rootCause.name}: ${actionError.rootCause.message}`
+                          , `FailedCommand`
+                          , actionError.rootCause.actions
+                          , 1
+                          , cmdError);
           finalError.commandName = `falcon:adk:install`;
-          return finalError
+          return finalError;
         }
       }
       // Get the next child error object.
@@ -189,5 +201,5 @@ export default class FalconDemoInstall extends SfdxFalconCommand {
     }
     // We could not find an ACTION error. Just reflect the COMMAND error.
     return cmdError;
-  }  
+  }
 } // End of Class FalconDemoInstall

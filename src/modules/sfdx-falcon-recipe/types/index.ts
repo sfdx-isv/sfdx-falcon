@@ -9,37 +9,49 @@
  * @description   Types and classes relevant throughout the SFDX-Falcon Recipe Module
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// @ts-ignore - Needed so JSDoc interprets a break between file header and first class/function.
-var noOp = 'never used';
+// Import External Modules/Types
+import {JsonMap} from  '@salesforce/ts-types';     // Why?
 
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @interface   ExecutorMessages
- * @description Represents the standard messages that most Executors use for Observer notifications.
+ * Type. Alias to JsonMap.
  */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export type ApexEngineStepOptions = JsonMap;
+
+/**
+ * Type. Alias to JsonMap.
+ */
+export type ActionOptions = JsonMap;
+
+/**
+ * Type. Alias to JsonMap.
+ */
+export type CompileOptions = JsonMap;
+
+/**
+ * Type. Alias to JsonMap.
+ */
+export type ExecutionOptions = JsonMap;
+
+/**
+ * Interface. Represents the standard messages that most Executors use for Observer notifications.
+ */
 export interface ExecutorMessages {
   progressMsg:  string;
   errorMsg:     string;
   successMsg:   string;
 }
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+
 /**
- * @enum        RecipeType
- * @description Describes the types of SFDX-Falcon Recipes (well, technically the Recipe Engines).
+ * Enum. Describes the types of SFDX-Falcon Recipes (well, technically the Recipe Engines).
  */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export enum RecipeType {
   APPX_DEMO     = 'appx:demo-recipe',
   APPX_PACKAGE  = 'appx:package-recipe'
 }
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+
 /**
- * @enum        SfdxFalconActionType
- * @description Describes the types of SFDX-Falcon Recipe Actions.
+ * Enum. Describes the types of SFDX-Falcon Recipe Actions.
  */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export enum SfdxFalconActionType {
   SFDX_CLI      = 'sfdx-cli',
   SFDC_API      = 'salesforce-api',
@@ -47,12 +59,10 @@ export enum SfdxFalconActionType {
   PLUGIN        = 'plugin',
   UNSPECIFIED   = 'unspecified'
 }
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+
 /**
- * @interface   TargetOrg
- * @description Represents an org that will be the target of one or more CLI/JSForce operations.
+ * Interface. Represents an org that will be the target of one or more CLI/JSForce operations.
  */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface TargetOrg {
   orgName:        string;
   alias:          string;
@@ -61,24 +71,3 @@ export interface TargetOrg {
   scratchDefJson: string;
   orgReqsJson:    string;
 }
-
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @class       ????
- * @description ????
- * @version     1.0.0
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,13 @@
+{
+  "Username": "admin@demo-user.org",
+  "FirstName": "Kermit",
+  "LastName": "Frog",
+  "Alias": "KFrog",
+  "Email": "kermit@test.com",
+  "TimeZoneSidKey": "America/Los_Angeles",
+  "LocaleSidKey": "en_US",
+  "EmailEncodingKey": "UTF-8",
+  "LanguageLocaleKey": "en_US",
+  "profileName": "System Administrator",
+  "permsets": ["FSC_DW", "VMC_Sample_App_User"]
+}
