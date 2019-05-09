@@ -1,7 +1,7 @@
 {
   "name": "sfdx-falcon",
   "description": "A plugin for the Salesforce CLI that enables and enhances implementation of the SFDX-Falcon template.",
-  "version": "0.0.93",
+  "version": "0.0.94",
   "author": "Vivek M. Chawla @VivekMChawla",
   "bugs": "https://github.com/sfdx-isv/sfdx-falcon/issues",
   "dependencies": {
@@ -20,13 +20,13 @@
     "request-promise-native": "1.0.7",
     "rxjs": "6.5.1",
     "sfdx-falcon-appx-demo-kit": "0.0.92",
-    "sfdx-falcon-appx-package-kit": "0.0.4",
+    "sfdx-falcon-appx-package-kit": "0.0.5",
     "shelljs": "0.8.3",
     "tslib": "1.9.3",
     "unzipper": "0.9.11",
     "uuid": "3.3.2",
     "yeoman-environment": "2.3.4",
-    "yeoman-generator": "3.2.0",
+    "yeoman-generator": "4.0.0",
     "yosay": "2.0.2"
   },
   "devDependencies": {

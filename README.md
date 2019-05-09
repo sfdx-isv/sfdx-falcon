@@ -102,7 +102,7 @@ EXAMPLES
                           --outputdir ~/demos/appexchange-demo-kit-projects
 ```
 
-_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/clone.ts)_
+_See code: [src/commands/falcon/adk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.94/src/commands/falcon/adk/clone.ts)_
 
 ## `sfdx-falcon falcon:adk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -141,7 +141,7 @@ EXAMPLES
   $ sfdx falcon:adk:create --outputdir ~/ADK-Projects
 ```
 
-_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/create.ts)_
+_See code: [src/commands/falcon/adk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.94/src/commands/falcon/adk/create.ts)_
 
 ## `sfdx-falcon falcon:adk:install [-d <directory>] [-f <string>] [-x <string>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -191,7 +191,7 @@ EXAMPLES
                             --configfile my-alternate-demo-config.json
 ```
 
-_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/adk/install.ts)_
+_See code: [src/commands/falcon/adk/install.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.94/src/commands/falcon/adk/install.ts)_
 
 ## `sfdx-falcon falcon:apk:clone [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -236,7 +236,7 @@ EXAMPLES
                          --outputdir ~/projects/appexchange-package-kit-projects
 ```
 
-_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/clone.ts)_
+_See code: [src/commands/falcon/apk/clone.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.94/src/commands/falcon/apk/clone.ts)_
 
 ## `sfdx-falcon falcon:apk:create [-d <directory>] [--falcondebug <array>] [--falcondebugerror] [--falcondebugsuccess] [--falcondebugdepth <number>] [--json] [--loglevel trace|debug|info|warn|error|fatal|TRACE|DEBUG|INFO|WARN|ERROR|FATAL]`
 
@@ -275,7 +275,7 @@ EXAMPLES
   $ sfdx falcon:apk:create --outputdir ~/projects/sfdx-falcon-projects
 ```
 
-_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.93/src/commands/falcon/apk/create.ts)_
+_See code: [src/commands/falcon/apk/create.ts](https://github.com/sfdx-isv/sfdx-falcon/blob/v0.0.94/src/commands/falcon/apk/create.ts)_
 <!-- commandsstop -->
 
 
