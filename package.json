@@ -96,7 +96,7 @@
   "repository": "sfdx-isv/sfdx-falcon",
   "scripts": {
     "postpack": "rm -f oclif.manifest.json npm-shrinkwrap.json",
-    "posttest": "#tslint -p test -t stylish",
+    "posttest": "tslint -p test -t stylish",
     "prepare": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme && npm shrinkwrap",
     "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
     "version": "oclif-dev readme && git add README.md"

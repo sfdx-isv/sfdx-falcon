@@ -3,14 +3,15 @@
     {"path": "sfdx-source/force-app", "default": true}
   ],
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "44.0",
+  "sourceApiVersion": "45.0",
   "plugins": {
     "sfdxFalcon": {
       "developerAlias"  : "sfdc",
       "developerName"   : "Salesforce",
       "projectAlias"    : "adk-testbed",
       "projectName"     : "ADK Testbed",
-      "projectType"     : "appx:single-demo",
+      "projectFamily"   : "ADK",
+      "projectType"     : "single-demo",
       "defaultRecipe"   : "falcon-test-01-recipe.json",
       "gitRemoteUri"    : "https://github.com/sfdx-isv/testbed-falcon-adk.git",
       "gitHubUrl"       : "https://github.com/sfdx-isv/testbed-falcon-adk",

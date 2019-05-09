@@ -40,8 +40,8 @@ describe('falcon:adk:install', () => {
       ],
       {
         envVars: {
-          SFDX_JSON_TO_STDOUT: true,        // Sends all JSON output to STDOUT
-          SFDX_AUTOUPDATE_DISABLE: true     // Disables the Salesforce CLI AutoUpdate feature
+          SFDX_JSON_TO_STDOUT:      true,   // Sends all JSON output to STDOUT
+          SFDX_AUTOUPDATE_DISABLE:  true    // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: path.join(process.env.FALCON_TEST_PROJECTDIR, 'adk-test-01'),
         showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,
@@ -90,8 +90,8 @@ describe('falcon:adk:install', () => {
       ],
       {
         envVars: {
-          SFDX_JSON_TO_STDOUT: true,        // Sends all JSON output to STDOUT
-          SFDX_AUTOUPDATE_DISABLE: true     // Disables the Salesforce CLI AutoUpdate feature
+          SFDX_JSON_TO_STDOUT:      true,   // Sends all JSON output to STDOUT
+          SFDX_AUTOUPDATE_DISABLE:  true    // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: path.join(process.env.FALCON_TEST_PROJECTDIR, 'adk-test-01'),
         showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,

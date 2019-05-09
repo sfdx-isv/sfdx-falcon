@@ -32,16 +32,18 @@ describe('falcon:adk:create', () => {
         'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
       ],
       [
-        {input: KEY.ENTER, delay: 45000},       // Choose first DevHub listed
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: 'N' + KEY.ENTER, delay: 500},   // ???
-        {input: 'Y' + KEY.ENTER, delay: 500},   // ???
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: KEY.ENTER, delay: 500},         // ???
-        {input: 'Y' + KEY.ENTER, delay: 500}    // ???
+        {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
+        {input: KEY.ENTER, delay: 500},         // Choose first DevHub on the list
+        {input: KEY.ENTER, delay: 500},         // Choose first EnvHub on the list
+        {input: KEY.ENTER, delay: 500},         // Choose default Company Name
+        {input: KEY.ENTER, delay: 500},         // Choose default Company Alias
+        {input: KEY.ENTER, delay: 500},         // Choose default Project Name
+        {input: KEY.ENTER, delay: 500},         // Choose default Project Alias
+        {input: 'Y' + KEY.ENTER, delay: 500},   // Choose YES to initialize Git
+        {input: 'Y' + KEY.ENTER, delay: 500},   // Choose YES that I've created a remote Git Repo
+        {input: KEY.ENTER, delay: 500},         // Choose default Git Remote URI
+        {input: 'Y' + KEY.ENTER, delay: 2000},  // Choose YES to continue with unreachable Git Remote
+        {input: 'Y' + KEY.ENTER, delay: 500}    // Choose YES to create a new ADK project
       ],
       {
         envVars: {
@@ -65,10 +67,10 @@ describe('falcon:adk:create', () => {
     // Check final output for success indicators.
     // TODO: Figure out why the git stage/commit step works locally but not at CircleCI
     //       In the meantime, let's just focus on an exit code of ZERO to indicate success.
-    // expect(commandResponse.stdoutLines)
-    //   .to
-    //   .include('Command Succeded   : falcon:adk:create completed successfully',
-    //            'FAILURE! Final output missing success message');
+    expect(commandResponse.stdoutLines)
+      .to
+      .include('Command Succeded   : falcon:adk:create completed successfully, but with some warnings (see above)',
+               'FAILURE! Incorrect Final Status message');
     }).timeout(120000);
 
   //───────────────────────────────────────────────────────────────────────────┐
