@@ -42,7 +42,7 @@ describe('falcon:adk:create', () => {
         {input: 'Y' + KEY.ENTER, delay: 500},   // Choose YES to initialize Git
         {input: 'Y' + KEY.ENTER, delay: 500},   // Choose YES that I've created a remote Git Repo
         {input: KEY.ENTER, delay: 500},         // Choose default Git Remote URI
-        {input: 'Y' + KEY.ENTER, delay: 2000},  // Choose YES to continue with unreachable Git Remote
+        {input: 'Y' + KEY.ENTER, delay: 5000},  // Choose YES to continue with unreachable Git Remote
         {input: 'Y' + KEY.ENTER, delay: 500}    // Choose YES to create a new ADK project
       ],
       {
