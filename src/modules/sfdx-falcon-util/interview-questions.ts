@@ -318,6 +318,8 @@ export function confirmNoGitHubRepo():Questions {
             return gitHelper.checkGitRemoteStatus(this.userAnswers['gitRemoteUri'])
             .then((successResult:ShellExecResult) => {
               this.userAnswers['isGitRemoteReachable'] = true;    // The Git Remote is valid.
+              confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
+              resolve(! this.userAnswers['isGitRemoteReachable']);
             })
             .catch((errorResult:ShellExecResult) => {
               if (errorResult.code === 2) {
@@ -326,11 +328,15 @@ export function confirmNoGitHubRepo():Questions {
               else {
                 this.userAnswers['isGitRemoteReachable'] = false; // The Git Remote is NOT valid. Show this question to give the user the chance to fix things.
               }
-            })
-            .finally(() => {
               confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
               resolve(! this.userAnswers['isGitRemoteReachable']);
             });
+            // TODO: Revert to using finally() once the minimum supported version of Node 
+            //       increases to Node 10. finally() is not supported in Node 8.
+            //.finally(() => {
+            //  confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
+            //  resolve(! this.userAnswers['isGitRemoteReachable']);
+            //});
           }
         });
       }
