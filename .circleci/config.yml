@@ -13,7 +13,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+            - v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "npm-shrinkwrap.json"}}
             - v1-npm-{{checksum ".circleci/config.yml"}}
       - run:
           name: Install system dependencies
@@ -115,7 +115,7 @@ jobs:
           name: Install package dependencies
           command: yarn
       - save_cache:
-          key: v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "yarn.lock"}}
+          key: v1-npm-{{checksum ".circleci/config.yml"}}-{{checksum "npm-shrinkwrap.json"}}
           paths:
             - ~/cli/node_modules
             - /usr/local/share/.cache/yarn
