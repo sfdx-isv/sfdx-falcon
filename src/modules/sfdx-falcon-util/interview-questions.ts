@@ -331,7 +331,7 @@ export function confirmNoGitHubRepo():Questions {
               confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
               resolve(! this.userAnswers['isGitRemoteReachable']);
             });
-            // TODO: Revert to using finally() once the minimum supported version of Node 
+            // TODO: Revert to using finally() once the minimum supported version of Node
             //       increases to Node 10. finally() is not supported in Node 8.
             //.finally(() => {
             //  confirmationAnswers.proceed = this.userAnswers['isGitRemoteReachable'];
