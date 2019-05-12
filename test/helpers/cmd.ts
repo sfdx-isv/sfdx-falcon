@@ -16,9 +16,10 @@ import {AnyJson}      from "@salesforce/ts-types";
 import {ChildProcess} from "child_process";
 
 // Require Modules
-const {existsSync}          = require('fs');
-const {constants}           = require('os');
-const {ChildProcess, spawn} = require('cross-spawn');
+const {existsSync}          = require('fs');          // ???
+const chalk                 = require('chalk');       // Utility for creating colorful console output.
+const {constants}           = require('os');          // ???
+const {ChildProcess, spawn} = require('cross-spawn'); // ???
 const util                  = require('util');        // Provides access to the "inspect" function to help output objects via console.log.
 
 // RegEx for detecting ANSI escape codes.
@@ -32,12 +33,14 @@ const ansiRegEx = /[\u001B\u009B][[\]()#;?]*(?:(?:(?:[a-zA-Z\d]*(?:;[-a-zA-Z\d\/
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface CommandOutput {
-  exitCode?:  number;
-  signal?:      string;
-  stderr?:      string;
-  stderrLines?: string[];
-  stdout?:      string;
-  stdoutLines?: string[];
+  exitCode?:            number;
+  signal?:              string;
+  stderr?:              string;
+  stderrLines?:         string[];
+  stderrLinesTrimmed?:  string[];
+  stdout?:              string;
+  stdoutLines?:         string[];
+  stdoutLinesTrimmed?:  string[];
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -47,13 +50,14 @@ export interface CommandOutput {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export interface ExecOptions {
-  envVars?:     AnyJson;
-  maxTimeout?:  number;
-  minTimeout?:  number;
-  showStdout?:  boolean;
-  showStderr?:  boolean;
-  showResult?:  boolean;
-  workingDir?:  string;
+  envVars?:         AnyJson;
+  maxTimeout?:      number;
+  minTimeout?:      number;
+  showStdout?:      boolean;
+  showStderr?:      boolean;
+  showResultAll?:   boolean;
+  showResultLines?: boolean;
+  workingDir?:      string;
 }
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -196,12 +200,12 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
 
   // Echo useful info about the command and related paths relevant to this execution.
   console.log(
-    `\n--------------------------------------------------------------------------------` +
-    `\nCommand to Execute:    ${args.join(' ')}\n` +
-    `\nCurrent Working Dir:   ${process.cwd()}` +
-    `\nIntended Working Dir:  ${opts.workingDir}` +
-    `\nCLI Command Runner:    ${process.env.FALCON_COMMAND_RUNNER}` +
-    `\n--------------------------------------------------------------------------------\n`
+    chalk`\n{yellow --------------------------------------------------------------------------------}` +
+    chalk`\n{bold Command to Execute:}    ${args.join(' ')}\n` +
+    chalk`\n{bold Current Working Dir:}   ${process.cwd()}` +
+    chalk`\n{bold Intended Working Dir:}  ${opts.workingDir}` +
+    chalk`\n{bold CLI Command Runner:}    ${process.env.FALCON_COMMAND_RUNNER}` +
+    chalk`\n{yellow --------------------------------------------------------------------------------}\n`
   );
 
   // Create a child process using the details provided by the caller.
@@ -249,14 +253,24 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
       clearAllTimeouts(trackedTimeouts);
 
       // Prep the Command Output variable for return.
-      commandOutput.stdoutLines = removeAnsiEscapeSequences(commandOutput.stdout.trim().split('\n'));
-      commandOutput.stderrLines = removeAnsiEscapeSequences(commandOutput.stderr.trim().split('\n'));
-      commandOutput.exitCode    = code;
-      commandOutput.signal      = signal;
+      commandOutput.stdoutLines         = removeAnsiEscapeSequences(commandOutput.stdout.trim().split('\n'));
+      commandOutput.stderrLines         = removeAnsiEscapeSequences(commandOutput.stderr.trim().split('\n'));
+      commandOutput.stdoutLinesTrimmed  = trimEveryString(commandOutput.stdoutLines);
+      commandOutput.stderrLinesTrimmed  = trimEveryString(commandOutput.stderrLines);
+      commandOutput.exitCode            = code;
+      commandOutput.signal              = signal;
 
       // Show the contents of the Command Output if the showResults option was set.
-      if (opts && opts.showResult) {
-        console.log(`Command Output:\n${util.inspect(commandOutput, {depth:10, maxArrayLength:1000, colors:true})}`);
+      if (opts) {
+        if (opts.showResultAll) {
+          console.log(`Command Output:\n${util.inspect(commandOutput, {depth:10, maxArrayLength:1000, colors:true})}`);
+        }
+        if (opts.showResultLines) {
+          console.log(`stdout (LINED)\n${util.inspect(commandOutput.stdoutLines, {depth:10, maxArrayLength:1000, colors:true})}`);
+          console.log(`stdout (LINED and TRIMMED)\n${util.inspect(commandOutput.stdoutLinesTrimmed, {depth:10, maxArrayLength:1000, colors:true})}`);
+          console.log(`stderr (LINED)\n${util.inspect(commandOutput.stderrLines, {depth:10, maxArrayLength:1000, colors:true})}`);
+          console.log(`stderr (LINED and TRIMMED)\n${util.inspect(commandOutput.stderrLinesTrimmed, {depth:10, maxArrayLength:1000, colors:true})}`);
+        }
       }
 
       // Resolve the promise, returning the Command Output we've collected.
@@ -406,4 +420,24 @@ function setMockInputTimeouts(mockInputs:MockInput[], childProcess:ChildProcess,
 
   // Return the Tracked Timeouts to the caller.
   return trackedTimeouts;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    trimEveryString
+ * @param       {string[]}   stringsToTrim Array of strings to be trimmed.
+ * @returns     {string[]}  Returns a NEW array containing trimmed versions of every string from
+ *              the array that was passed into the function.
+ * @description Given an array of strings to trim, goes through each member of the array and
+ *              trims all leading and trailing whitespace before adding that string to a new array.
+ *              The new array will be returned to the caller.  The original arrray is not modified.
+ * @private
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+function trimEveryString(stringsToTrim:string[]):string[] {
+  const trimmedStrings:string[] = [];
+  for (const stringToTrim of stringsToTrim) {
+    trimmedStrings.push(stringToTrim.trim());
+  }
+  return trimmedStrings;
 }

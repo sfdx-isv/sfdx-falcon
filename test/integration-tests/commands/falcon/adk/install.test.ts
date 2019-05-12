@@ -44,9 +44,10 @@ describe('falcon:adk:install', () => {
           SFDX_AUTOUPDATE_DISABLE:  true    // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: path.join(process.env.FALCON_TEST_PROJECTDIR, 'adk-test-01'),
-        showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,
-        showStderr: process.env.FALCON_TEST_SHOW_STDERR ? true : false,
-        showResult: process.env.FALCON_TEST_SHOW_RESULT ? true : false,
+        showStdout:       process.env.FALCON_TEST_SHOW_STDOUT       ? true : false,
+        showStderr:       process.env.FALCON_TEST_SHOW_STDERR       ? true : false,
+        showResultAll:    process.env.FALCON_TEST_SHOW_RESULT       ? true : false,
+        showResultLines:  process.env.FALCON_TEST_SHOW_RESULT_LINES ? true : false,
         minTimeout: 100,
         maxTimeout: 300000
       }
@@ -94,9 +95,10 @@ describe('falcon:adk:install', () => {
           SFDX_AUTOUPDATE_DISABLE:  true    // Disables the Salesforce CLI AutoUpdate feature
         },
         workingDir: path.join(process.env.FALCON_TEST_PROJECTDIR, 'adk-test-01'),
-        showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,
-        showStderr: process.env.FALCON_TEST_SHOW_STDERR ? true : false,
-        showResult: process.env.FALCON_TEST_SHOW_RESULT ? true : false,
+        showStdout:       process.env.FALCON_TEST_SHOW_STDOUT       ? true : false,
+        showStderr:       process.env.FALCON_TEST_SHOW_STDERR       ? true : false,
+        showResultAll:    process.env.FALCON_TEST_SHOW_RESULT       ? true : false,
+        showResultLines:  process.env.FALCON_TEST_SHOW_RESULT_LINES ? true : false,
         minTimeout: 100,
         maxTimeout: 300000
       }

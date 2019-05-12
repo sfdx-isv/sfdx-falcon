@@ -69,10 +69,11 @@ describe.skip('falcon:apk:create', () => {
           SFDX_JSON_TO_STDOUT:      true,       // Sends all JSON output to STDOUT
           SFDX_AUTOUPDATE_DISABLE:  true        // Disables the Salesforce CLI AutoUpdate feature
         },
-        workingDir: process.env.FALCON_TEST_TEMPDIR,
-        showStdout: process.env.FALCON_TEST_SHOW_STDOUT ? true : false,
-        showStderr: process.env.FALCON_TEST_SHOW_STDERR ? true : false,
-        showResult: process.env.FALCON_TEST_SHOW_RESULT ? true : false,
+        workingDir:       process.env.FALCON_TEST_TEMPDIR,
+        showStdout:       process.env.FALCON_TEST_SHOW_STDOUT       ? true : false,
+        showStderr:       process.env.FALCON_TEST_SHOW_STDERR       ? true : false,
+        showResultAll:    process.env.FALCON_TEST_SHOW_RESULT       ? true : false,
+        showResultLines:  process.env.FALCON_TEST_SHOW_RESULT_LINES ? true : false,
         minTimeout: 100,
         maxTimeout: 300000
       }

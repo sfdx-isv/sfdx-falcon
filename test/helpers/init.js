@@ -13,9 +13,10 @@ process.env.FALCON_TEST_SHOW_STDERR = process.env.FALCON_TEST_SHOW_STDERR || '';
 process.env.FALCON_TEST_SHOW_RESULT = process.env.FALCON_TEST_SHOW_RESULT || ''; // Prints internal commandResult object at the conclusion of executeWithInput().
 
 // Echo the TRUE/FALSE state of the "Falcon Test Show" family of environment vars.
-console.log(`FALCON_TEST_SHOW_STDOUT: ${process.env.FALCON_TEST_SHOW_STDOUT ? 'TRUE' : 'FALSE'}`);
-console.log(`FALCON_TEST_SHOW_STDERR: ${process.env.FALCON_TEST_SHOW_STDERR ? 'TRUE' : 'FALSE'}`);
-console.log(`FALCON_TEST_SHOW_RESULT: ${process.env.FALCON_TEST_SHOW_RESULT ? 'TRUE' : 'FALSE'}`);
+console.log(`FALCON_TEST_SHOW_STDOUT:       ${process.env.FALCON_TEST_SHOW_STDOUT       ? 'TRUE' : 'FALSE'}`);
+console.log(`FALCON_TEST_SHOW_STDERR:       ${process.env.FALCON_TEST_SHOW_STDERR       ? 'TRUE' : 'FALSE'}`);
+console.log(`FALCON_TEST_SHOW_RESULT:       ${process.env.FALCON_TEST_SHOW_RESULT       ? 'TRUE' : 'FALSE'}`);
+console.log(`FALCON_TEST_SHOW_RESULT_LINES: ${process.env.FALCON_TEST_SHOW_RESULT_LINES ? 'TRUE' : 'FALSE'}`);
 
 // Delete everything inside of the Falcon Test Temp Directory EXCEPT .gitignore
 del.sync(
