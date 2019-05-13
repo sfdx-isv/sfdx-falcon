@@ -145,15 +145,12 @@ export function createProcess(processPath:string, args:string[]=[], envVars:AnyJ
     args,
     {
       shell:  false,
-      cols:   200,
-      //rows:   20,
       cwd:    workingDir,
       env: Object.assign(
         {
           FORCE_COLOR:  true,       // Output will include color.
           NODE_ENV:     'test',     // Specifies that production code is NOT being run.
-          COLUMNS:      200,        // ???
-          CLI_WIDTH:    200,        // ???
+          CLI_WIDTH:    200,        // Used by the module "cli-width" (inside Inquirer) to set the default CLI width.
           PATH: process.env.PATH,   // This is needed in order to get all the binaries in your current terminal.
           HOME: process.env.HOME    // Required by the SFDX executable.
         },
@@ -270,10 +267,10 @@ export async function executeWithInput(processPath:string, args:string[]=[], moc
           console.log(`Command Output:\n${util.inspect(commandOutput, {depth:10, maxArrayLength:1000, colors:true})}`);
         }
         if (opts.showResultLines) {
-          console.log(`stdout (LINED)\n${util.inspect(commandOutput.stdoutLines, {depth:10, maxArrayLength:1000, colors:true})}`);
-          console.log(`stdout (LINED and TRIMMED)\n${util.inspect(commandOutput.stdoutLinesTrimmed, {depth:10, maxArrayLength:1000, colors:true})}`);
-          console.log(`stderr (LINED)\n${util.inspect(commandOutput.stderrLines, {depth:10, maxArrayLength:1000, colors:true})}`);
-          console.log(`stderr (LINED and TRIMMED)\n${util.inspect(commandOutput.stderrLinesTrimmed, {depth:10, maxArrayLength:1000, colors:true})}`);
+          console.log(`stdout (LINED)\n${util.inspect(commandOutput.stdoutLines, {depth:10, compact: false, breakLength:'Infinity', maxArrayLength:1000, colors:true})}`);
+          console.log(`stdout (LINED and TRIMMED)\n${util.inspect(commandOutput.stdoutLinesTrimmed, {depth:10, compact: false, breakLength:'Infinity', maxArrayLength:1000, colors:true})}`);
+          console.log(`stderr (LINED)\n${util.inspect(commandOutput.stderrLines, {depth:10, compact: false, breakLength:'Infinity', maxArrayLength:1000, colors:true})}`);
+          console.log(`stderr (LINED and TRIMMED)\n${util.inspect(commandOutput.stderrLinesTrimmed, {depth:10, compact: false, breakLength:'Infinity', maxArrayLength:1000, colors:true})}`);
         }
       }
 
