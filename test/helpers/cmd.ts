@@ -144,12 +144,16 @@ export function createProcess(processPath:string, args:string[]=[], envVars:AnyJ
     processPath,
     args,
     {
-      shell: false,
-      cwd: workingDir,
+      shell:  false,
+      cols:   200,
+      //rows:   20,
+      cwd:    workingDir,
       env: Object.assign(
         {
-          FORCE_COLOR: true,        // Output will include color.
-          NODE_ENV: 'test',         // Specifies that production code is NOT being run.
+          FORCE_COLOR:  true,       // Output will include color.
+          NODE_ENV:     'test',     // Specifies that production code is NOT being run.
+          COLUMNS:      200,        // ???
+          CLI_WIDTH:    200,        // ???
           PATH: process.env.PATH,   // This is needed in order to get all the binaries in your current terminal.
           HOME: process.env.HOME    // Required by the SFDX executable.
         },
