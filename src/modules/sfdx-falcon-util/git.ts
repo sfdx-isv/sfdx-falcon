@@ -237,50 +237,6 @@ export function gitAdd(targetDirectory:string):ShellString {
  * @function    gitAddAndCommit
  * @param       {string}  targetDirectory Required. Location where the git command will be run
  * @param       {string}  commitMessage   Required. String to be used as the commit message
- * @returns     {void}  No return value. Will throw Error if any problems.
- * @description Executes "git add -A" and "git commit" inside of the target directory.  For the
- *              commit, it adds the message passed in via commitMessage.
- * @public
- */
-//─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitAddAndCommit(targetDirectory:string, commitMessage:string):void {
-
-  // Debug incoming arguments.
-  SfdxFalconDebug.obj(`${dbgNs}gitAddAndCommit:arguments:`, arguments, `arguments: `);
-
-  // Validate incoming arguments.
-  if (typeof targetDirectory !== 'string' || targetDirectory === '') {
-    throw new SfdxFalconError( `Expected non-empty string for targetDirectory but got '${typeof targetDirectory}'`
-                             , 'TypeError'
-                             , `${dbgNs}gitAddAndCommit`);
-  }
-  if (typeof commitMessage !== 'string' || commitMessage === '') {
-    throw new SfdxFalconError( `Expected non-empty string for commitMessage but got '${typeof commitMessage}'`
-                             , 'TypeError'
-                             , `${dbgNs}gitAddAndCommit`);
-  }
-
-  // Set shelljs config to throw exceptions on fatal errors.
-  shell.config.fatal = true;
-
-  // Change the shell's directory to the target directory.
-  shell.cd(targetDirectory);
-
-  // Stage all new and modified files
-  shell.exec(`git add -A`, {silent: true});
-
-  // Commit
-  shell.exec(`git commit -m "${commitMessage}"`, {silent: true});
-
-  // Done
-  return;
-}
-
-//─────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    gitAddAndCommit
- * @param       {string}  targetDirectory Required. Location where the git command will be run
- * @param       {string}  commitMessage   Required. String to be used as the commit message
  * @returns     {ShellString}
  * @description Executes "git commit" inside of the target directory.  For the commit, it adds the
  *              message passed in via commitMessage.
