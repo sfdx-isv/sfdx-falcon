@@ -29,7 +29,9 @@ describe('falcon:adk:create', () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,        // Path to the process that will be run.
       [
-        'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
+        'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
+        '--falcondebug',                         // The --recipefile flag.
+        'UTILITY:listr-tasks:stageProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:shellString'  // Specific ADK Recipe to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
@@ -87,7 +89,9 @@ describe('falcon:adk:create', () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,        // Path to the process that will be run.
       [
-        'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
+        'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
+        '--falcondebug',                         // The --recipefile flag.
+        'UTILITY:listr-tasks:stageProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:shellString'  // Specific ADK Recipe to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
