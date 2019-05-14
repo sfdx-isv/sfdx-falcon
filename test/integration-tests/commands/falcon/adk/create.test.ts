@@ -29,9 +29,7 @@ describe('falcon:adk:create', () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,        // Path to the process that will be run.
       [
-        'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
-        '--falcondebug',                         // The --recipefile flag.
-        'UTILITY:listr-tasks:commitProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:error'  // Specific ADK Recipe to run.
+        'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
@@ -74,8 +72,6 @@ describe('falcon:adk:create', () => {
                'FAILURE! Git Remote not properly marked as UNREACHABLE');
 
     // Check final output for success indicators.
-    // TODO: Figure out why the git stage/commit step works locally but not at CircleCI
-    //       In the meantime, let's just focus on an exit code of ZERO to indicate success.
     expect(commandResponse.stdoutLines)
       .to
       .include('Command Succeded   : falcon:adk:create completed successfully, but with some warnings (see above)',
@@ -89,9 +85,7 @@ describe('falcon:adk:create', () => {
     const commandResponse = await executeWithInput(
       process.env.FALCON_COMMAND_RUNNER,        // Path to the process that will be run.
       [
-        'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
-        '--falcondebug',                         // The --recipefile flag.
-        'UTILITY:listr-tasks:commitProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:error'  // Specific ADK Recipe to run.
+        'falcon:adk:create'                     // First member of the array must be the CLI command we want to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
