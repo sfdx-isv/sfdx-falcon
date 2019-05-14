@@ -62,6 +62,11 @@ jobs:
             # this output, so all tests must function while the warning is present.
             sfdx force:config:set apiVersion=45.0 --global
       - run:
+          name: Update Git configuration
+          command: |
+            git config --global user.email "automated-test@sfdx-falcon.org"
+            git config --golbal user.name  "Automated Test"
+      - run:
           name: Install package dependencies
           command: yarn
       - run:
