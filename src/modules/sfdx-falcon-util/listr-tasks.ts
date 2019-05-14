@@ -368,6 +368,9 @@ export function commitProjectFiles(targetDir:string, commitMessage:string):Listr
           .catch(async error => {
             await waitASecond(3);
             listrContext.projectFilesCommitted = false;
+            // DEVTEST
+            SfdxFalconDebug.debugObject('DEVTEST:', error, '\n-\n-\n-\n-\n-\n-\n-\n-\n-\n', '\n-\n-\n-\n-\n-\n-\n-\n-\n-\n');
+
             (thisTask.skip as ListrSkipCommand)('Nothing to Commit');
             // NOTE: We are finalizing *without* passing the Error to force the observer to
             // end with complete() instead of error().
