@@ -31,7 +31,7 @@ describe('falcon:adk:create', () => {
       [
         'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
         '--falcondebug',                         // The --recipefile flag.
-        'UTILITY:listr-tasks:stageProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:shellString'  // Specific ADK Recipe to run.
+        'UTILITY:listr-tasks:commitProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:error'  // Specific ADK Recipe to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
@@ -91,7 +91,7 @@ describe('falcon:adk:create', () => {
       [
         'falcon:adk:create',                     // First member of the array must be the CLI command we want to run.
         '--falcondebug',                         // The --recipefile flag.
-        'UTILITY:listr-tasks:stageProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:shellString'  // Specific ADK Recipe to run.
+        'UTILITY:listr-tasks:commitProjectFiles:shellString,UTILITY:listr-tasks:commitProjectFiles:error'  // Specific ADK Recipe to run.
       ],
       [
         {input: KEY.ENTER, delay: 45000},       // Choose default Target Directory
