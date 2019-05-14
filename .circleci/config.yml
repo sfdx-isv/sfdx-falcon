@@ -65,7 +65,7 @@ jobs:
           name: Update Git configuration
           command: |
             git config --global user.email "automated-test@sfdx-falcon.org"
-            git config --golbal user.name  "Automated Test"
+            git config --global user.name  "Automated Test"
       - run:
           name: Install package dependencies
           command: yarn
