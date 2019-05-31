@@ -66,7 +66,12 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   protected generatorStatus:        GeneratorStatus;            // Used to keep track of status and to return messages to the caller.
   protected generatorResult:        SfdxFalconResult;           // Used to keep track of status and to return messages to the caller.
   protected generatorType:          string;                     // Tracks the name (type) of generator being run, eg. 'clone-appx-package-project'.
+  protected initializingComplete:   boolean;                    // Indicates that the initializing() function completed successfully.
+  protected promptingComplete:      boolean;                    // Indicates that the prompting() function completed successfully.
+  protected configuringComplete:    boolean;                    // Indicates that the configuring() function completed successfully.
+  protected writingComplete:        boolean;                    // Indicates that the writing() function completed successfully.
   protected installComplete:        boolean;                    // Indicates that the install() function completed successfully.
+  protected endComplete:            boolean;                    // Indicates that the end() function completed successfully.
   protected falconTable:            SfdxFalconKeyValueTable;    // Falcon Table from ux-helper.
   protected userInterview:          SfdxFalconInterview<T>;     // Why?
   protected defaultAnswers:         T;                          // Why?
@@ -104,7 +109,12 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
     this.generatorStatus      = new GeneratorStatus();          // Tracks status and build messages to the user.
     this.pluginVersion        = version;                        // Version of the plugin, taken from package.json.
     this.sfdcApiVersion       = falcon.sfdcApiVersion;          // Version of the Salesforce API to use by default (when such is needed).
-    this.installComplete      = false;                          // Marked true only after the "writing" and "install" Yeoman phases are completely successful.
+    this.initializingComplete = false;                          // Should be marked true only after the "initializing" Yeoman phase is completely successful.
+    this.promptingComplete    = false;                          // Should be marked true only after the "prompting" Yeoman phase is completely successful.
+    this.configuringComplete  = false;                          // Should be marked true only after the "configuring" Yeoman phase is completely successful.
+    this.writingComplete      = false;                          // Should be marked true only after the "writing" Yeoman phase is completely successful.
+    this.installComplete      = false;                          // Should be marked true only after the "install" Yeoman phase is completely successful.
+    this.endComplete          = false;                          // Should be marked true only after the "end" Yeoman phase is completely successful.
     this.falconTable          = new SfdxFalconKeyValueTable();  // Initialize the Falcon Table for end-of-command output.
     this.defaultAnswers       = {} as T;                        // Set of default answers.
     this.finalAnswers         = {} as T;                        // Set of final answers, ie. merging of User and Default answers in case user did not supply some answers.
@@ -138,10 +148,14 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
   }
 
   // Define abstract methods.
-  protected abstract        _buildInterview():SfdxFalconInterview<T>;             // Builds a complete Interview, which may include zero or more confirmation groupings.
-  protected abstract async  _buildInterviewAnswersTableData(userAnswers:T):Promise<SfdxFalconTableData>; // Creates Interview Answers table data. Can be used to render a Falcon Table.
-//  protected abstract async  _executeFinalizationTasks():Promise<void>;          // Performs any finalization tasks, typically run after the "writing" or "installing" phases.
-//  protected abstract async  _displayInterviewAnswersTable(userAnswers:T):Promise<void>; // Displays an Interview Answers table directly to the user.
+  protected abstract        _buildInterview():SfdxFalconInterview<T>; // Builds a complete Interview, which may include zero or more confirmation groupings.
+  protected abstract async  _buildInterviewAnswersTableData(userAnswers:T):Promise<SfdxFalconTableData>;  // Creates Interview Answers table data. Can be used to render a Falcon Table.
+  protected abstract async  initializing():Promise<void>;             // STEP ONE in the Yeoman run-loop. Uses Yeoman's "initializing" run-loop priority.
+  protected abstract async  prompting():Promise<void>;                // STEP TWO in the Yeoman run-loop. Interviews the User to get information needed by the "writing" and "installing" phases.
+  protected abstract async  configuring():Promise<void>;              // STEP THREE in the Yeoman run-loop. Perform any pre-install configuration steps based on the answers provided by the User.
+  protected abstract async  writing():Promise<void>;                  // STEP FOUR in the Yeoman run-loop. Typically, this is where you perform filesystem writes, git clone operations, etc.
+  protected abstract async  install():Promise<void>;                  // STEP FIVE in the Yeoman run-loop. Typically, this is where you perform operations that must happen AFTER files are written to disk. For example, if the "writing" step downloaded an app to install, the "install" step would run the installation.
+  protected abstract async  end():Promise<void>;                      // STEP SIX in the Yeoman run-loop. This is the FINAL step that Yeoman runs and it gives us a chance to do any post-Yeoman updates and/or cleanup.
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -237,7 +251,8 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @description STEP TWO in the Yeoman run-loop. Interviews the User to get
    *              information needed by the "writing" and "installing" phases.
    *              This is a "default" implementation and should work for most
-   *              SFDX-Falcon use cases.
+   *              SFDX-Falcon use cases. It must be called from inside the
+   *              prompting() method of the child class.
    * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -281,7 +296,8 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @description STEP THREE in the Yeoman run-loop. Perform any pre-install
    *              configuration steps based on the answers provided by the User.
    *              This is a "default" implementation and should work for most
-   *              SFDX-Falcon use cases.
+   *              SFDX-Falcon use cases. It must be called from inside the
+   *              configuring() method of the child class.
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -292,10 +308,50 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
       SfdxFalconDebug.msg(`${dbgNs}configuring:`, `generatorStatus.aborted found as TRUE inside configuring()`);
       return;
     }
+  }
 
-    // Normally we have nothing else to run in the configuring step, but
-    // I'm keeping this here to help create a standard framework for running
-    // Yeoman in CLI Plugin scripts.
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _default_writing
+   * @returns     {void}
+   * @description STEP FOUR in the Yeoman run-loop. Typically, this is where
+   *              you perform filesystem writes, git clone operations, etc.
+   *              This is a "default" implementation and should work for most
+   *              SFDX-Falcon use cases. It must be called from inside the
+   *              writing() method of the child class.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _default_writing():void {
+
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}writing:`, `generatorStatus.aborted found as TRUE inside writing()`);
+      return;
+    }
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _default_install
+   * @returns     {void}
+   * @description STEP FIVE in the Yeoman run-loop. Typically, this is where
+   *              you perform operations that must happen AFTER files are
+   *              written to disk. For example, if the "writing" step downloaded
+   *              an app to install, the "install" step would run the
+   *              installation. This is a "default" implementation and should
+   *              work for most SFDX-Falcon use cases. It must be called from
+   *              inside the install() method of the child class.
+   * @protected
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected _default_install():void {
+
+    // Check if we need to abort the Yeoman interview/installation process.
+    if (this.generatorStatus.aborted) {
+      SfdxFalconDebug.msg(`${dbgNs}install:`, `generatorStatus.aborted found as TRUE inside install()`);
+      return;
+    }
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -304,7 +360,9 @@ export abstract class SfdxFalconYeomanGenerator<T extends object> extends Genera
    * @returns     {void}
    * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
    *              Yeoman runs and it gives us a chance to do any post-Yeoman
-   *              updates and/or cleanup.
+   *              updates and/or cleanup. This is a "default" implementation
+   *              and should work for most SFDX-Falcon use cases. It must be
+   *              called from inside the end() method of the child class.
    * @protected
    */
   //───────────────────────────────────────────────────────────────────────────┘

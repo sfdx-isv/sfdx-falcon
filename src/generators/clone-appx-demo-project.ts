@@ -371,16 +371,16 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      install
-   * @returns     {void}
+   * @returns     {Promise<void>}
    * @description STEP FIVE in the Yeoman run-loop. Typically, this is where
    *              you perform operations that must happen AFTER files are
    *              written to disk. For example, if the "writing" step downloaded
    *              an app to install, the "install" step would run the
    *              installation.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected install():void {
+  protected async install():Promise<void> {
 
     // Finalize the cloning of the AppX Demo Project. Skip further action unless this returns TRUE.
     if (this._finalizeProjectCloning() !== true) {
@@ -391,14 +391,14 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
   //───────────────────────────────────────────────────────────────────────────┐
   /**
    * @method      end
-   * @returns     {void}
+   * @returns     {Promise<void>}
    * @description STEP SIX in the Yeoman run-loop. This is the FINAL step that
    *              Yeoman runs and it gives us a chance to do any post-Yeoman
    *              updates and/or cleanup.
-   * @protected
+   * @protected @async
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  protected end():void {
+  protected async end():Promise<void> {
 
     // Call the default end() function. Replace with custom behavior if desired.
     return this._default_end();
