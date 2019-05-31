@@ -524,7 +524,7 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
     // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
     shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
 
-    // Run force:org:list asynchronously inside a child process.
+    // Run the SFDX Command String asynchronously inside a child process.
     const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
 
     // Capture stdout datastream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
@@ -939,6 +939,60 @@ export async function resolveConnection(aliasOrConnection:AliasOrConnection):Pro
     connection: connection,
     orgIdentifier: orgIdentifier
   };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    retrieveMetadata
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string}  manifestFilePath  Required. Complete path for the manifest file (ie.
+ *              package.xml) that specifies the components to retrieve.
+ * @param       {string}  retrieveTargetDir Required. The root of the directory structure where
+ *              the retrieved .zip or metadata files are put.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI's force:mdapi:retrieve command to retrieve the metadata
+ *              components specified by the supplied Manifest File (ie. package.xml).
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function retrieveMetadata(aliasOrUsername:string, manifestFilePath:string, retrieveTargetDir:string):Promise<SfdxFalconResult> {
+
+  // Set the SFDX Command String to be used by this function.
+  const sfdxCommandString =
+    `sfdx force:mdapi:retrieve `
+  + ` --targetusername ${aliasOrUsername}`
+  + ` --unpackaged "${manifestFilePath}"`
+  + ` --retrievetargetdir ${retrieveTargetDir}`
+  + ` --wait 10`
+  + ` --loglevel debug`
+  + ` --json`;
+
+  // Introduce a small delay in case this is being used by an Observable Listr Task.
+  await waitASecond(3);
+
+  // Initialize a UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:retrieveMetadata`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}retrieveMetadata:`);
+
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'Metadata Retrieval Failed',
+    successMessage: 'Metadata Retrieval Succeeded',
+    mixedMessage:   'Metadata retrieval failed but the CLI returned a Success Response'
+  };
+
+  // Execute the Salesforce CLI Command.
+  return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
