@@ -14,6 +14,7 @@ import {Aliases}                from  '@salesforce/core';       // Why?
 import {AuthInfo}               from  '@salesforce/core';       // Why?
 import {Connection}             from  '@salesforce/core';       // Why?
 import {AnyJson}                from  '@salesforce/ts-types';   // Why?
+import * as path                from  'path';                   // Why?
 
 // Import Internal Modules
 import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
@@ -26,7 +27,6 @@ import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
 // Import Utility Functions
 import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
 import {waitASecond}            from  '../sfdx-falcon-util/async';    // Function. Can be used to introduce a delay when called inside async functions with the "await" keyword.
-//import {toolingApiQuery}        from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or JSForce Connection, makes a REST call to the target org's tooling.
 import {describeSignupRequest}  from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, tries to get an "Object Describe" back for the SignupRequest SObject.
 import {getPackages}            from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
 
@@ -37,8 +37,10 @@ import {MetadataPackageVersion} from  '../sfdx-falcon-types';  // Interface. Rep
 import {PackageVersionMap}      from  '../sfdx-falcon-types';  // Type. Alias to a Map with string keys and MetadataPackageVersion values.
 import {QueryResult}            from  '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
 import {RawSfdxOrgInfo}         from  '../sfdx-falcon-types';  // Interface. Represents the data returned by the sfdx force:org:list command.
+import {RawScratchOrgInfo}      from  '../sfdx-falcon-types';  // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
 import {ResolvedConnection}     from  '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
 import {SfdxOrgInfoMap}         from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {ScratchOrgInfoMap}      from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding ScratchOrgInfo values.
 import {SfdxOrgInfoSetup}       from  '../sfdx-falcon-types';  // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
 
 // Requires
@@ -58,12 +60,112 @@ export interface SfdxUtilityResultDetail {
   error:              Error;
 }
 
+/**
+ * Interface. Represents the possible flags that are available to the force:data:soql:query command.
+ */
+export interface SfdxForceDataSoqlQueryOptions {
+  json?:          boolean;
+  logLevel?:      'trace'|'debug'|'info'|'warn'|'error'|'fatal';
+  apiVersion?:    string;
+  useToolingApi?: boolean;
+  resultFormat?:  'human'|'csv'|'json';
+  perfLog?:       boolean;
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @class       ScratchOrgInfo
+ * @summary     Stores information about a scratch org that is connected to the local Salesforce CLI.
+ * @description This class models a single scratch org that is connected to the local Salesforce CLI.
+ *              The information required to contruct a ScratchOrgInfo object can be obtained by a
+ *              call to "force:org:list --all".
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export class ScratchOrgInfo {
+
+  // Public members
+  public  readonly  orgId:                string;     // Why?
+  public  readonly  username:             string;     // Why?
+  public  readonly  alias:                string;     // Why?
+  public  readonly  accessToken:          string;     // Why?
+  public  readonly  instanceUrl:          string;     // Why?
+  public  readonly  loginUrl:             string;     // Why?
+  public  readonly  clientId:             string;     // Why?
+  public  readonly  createdOrgInstance:   string;     // Why?
+  public  readonly  created:              string;     // Wyy?
+  public  readonly  devHubUsername:       string;     // Why?
+  public  readonly  connectedStatus:      string;     // Why?
+  public  readonly  lastUsed:             string;     // Why?
+  public  readonly  attributes:           object;     // Why?
+  public  readonly  orgName:              string;     // Why?
+  public  readonly  status:               string;     // Why?
+  public  readonly  createdBy:            string;     // Why?
+  public  readonly  createdDate:          string;     // Why?
+  public  readonly  expirationDate:       string;     // Why?
+  public  readonly  edition:              string;     // Why?
+  public  readonly  signupUsername:       string;     // Why?
+  public  readonly  devHubOrgId:          string;     // Why?
+  public  readonly  isExpired:            boolean;    // Why?
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @constructs  ScratchOrgInfo
+   * @param       {RawScratchOrgInfo}  rawScratchOrgInfo Required.
+   * @description Constructs a SfdxOrgInfo object.
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  constructor(rawScratchOrgInfo:RawScratchOrgInfo) {
+
+    // Debug incoming arguments
+    SfdxFalconDebug.obj(`${dbgNs}ScratchOrgInfo:constructor:arguments:`, arguments);
+
+    // Make sure the caller passed us an object.
+    if (typeof rawScratchOrgInfo !== 'object') {
+      throw new SfdxFalconError( `Expected rawScratchOrgInfo to an object but got type '${typeof rawScratchOrgInfo}' instead.`
+                              , `TypeError`
+                              , `${dbgNs}ScratchOrgInfo:constructor`);
+    }
+    
+    // Initialize core class members.
+    this.orgId              = rawScratchOrgInfo.orgId;
+    this.username           = rawScratchOrgInfo.username;
+    this.alias              = rawScratchOrgInfo.alias;
+    this.accessToken        = rawScratchOrgInfo.accessToken;
+    this.instanceUrl        = rawScratchOrgInfo.instanceUrl;
+    this.loginUrl           = rawScratchOrgInfo.loginUrl;
+    this.clientId           = rawScratchOrgInfo.clientId;
+    this.createdOrgInstance = rawScratchOrgInfo.createdOrgInstance;
+    this.created            = rawScratchOrgInfo.created;
+    this.devHubUsername     = rawScratchOrgInfo.devHubUsername;
+    this.connectedStatus    = rawScratchOrgInfo.connectedStatus;
+    this.lastUsed           = rawScratchOrgInfo.lastUsed;
+    this.attributes         = rawScratchOrgInfo.attributes;
+    this.orgName            = rawScratchOrgInfo.orgName;
+    this.status             = rawScratchOrgInfo.status;
+    this.createdBy          = rawScratchOrgInfo.createdBy;
+    this.createdDate        = rawScratchOrgInfo.createdDate;
+    this.expirationDate     = rawScratchOrgInfo.expirationDate;
+    this.edition            = rawScratchOrgInfo.edition;
+    this.signupUsername     = rawScratchOrgInfo.signupUsername;
+    this.devHubOrgId        = rawScratchOrgInfo.devHubOrgId;
+    this.isExpired          = rawScratchOrgInfo.isExpired;
+  
+    // If no alias was set, copy the username over as the alias.
+    if (typeof this.alias !== 'string' || this.alias.length < 1) {
+      this.alias = this.username;
+    }
+  }
+}
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @class       SfdxOrgInfo
  * @summary     Stores information about orgs that are connected to the local Salesforce CLI.
- * @description ???
+ * @description This class models a single NON-scratch org that is connected to the local Salesforce
+ *              CLI. The information required to contruct an SfdxOrgInfo object can be obtained by a
+ *              call to "force:org:list" or "force:org:list --all".
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -387,14 +489,66 @@ export class SfdxOrgInfo {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    buildScratchOrgInfoMap
+ * @param       {RawScratchOrgInfo[]} rawScratchOrgList This should be the raw list of SFDX orgs
+ *              that comes in the result of a call to force:org:list --all.
+ * @returns     {ScratchOrgInfoMap} Map containing ScratchOrgInfo objects for EVERY scratch org that
+ *              was part of the raw scratch org list. The Scratch Org Info's "username" value will
+ *              be used as the key for this map.
+ * @description Given a raw list of Scratch Org Information (like what you get from
+ *              force:org:list --all), creates a ScratchOrgInfo object for each one, then builds a
+ *              map of ScratchOrgInfo objects keyed by the "username" of each scratch org.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function buildScratchOrgInfoMap(rawScratchOrgList:RawScratchOrgInfo[]):ScratchOrgInfoMap {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgInfoMap:arguments:`, arguments);
+
+  // Make sure that the caller passed us an Array.
+  if (Array.isArray(rawScratchOrgList) !== true) {
+    throw new SfdxFalconError( `Expected rawScratchOrgList to an Array but got type '${typeof rawScratchOrgList}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}buildScratchOrgInfoMap`);
+  }
+
+  // Initalize an array to hold the ScratchOrgInfo objects we're going to create.
+  const scratchOrgInfoMap = new Map<string, ScratchOrgInfo>();
+
+  // Iterate over the raw list of orgs to create ScratchOrgInfo objects.
+  for (const rawScratchOrgInfo of rawScratchOrgList) {
+
+    // Only work with orgs that have an ACTIVE status.
+    if (rawScratchOrgInfo.status === 'Active') {
+
+      // Create a new ScratchOrgInfo object and add it to the Map using the Username as the key.
+      scratchOrgInfoMap.set(rawScratchOrgInfo.username, new ScratchOrgInfo(rawScratchOrgInfo));
+    }
+    else {
+      SfdxFalconDebug.str(`${dbgNs}buildScratchOrgInfoMap:AliasUsername`, `${rawScratchOrgInfo.alias}(${rawScratchOrgInfo.username})`, `SCRATCH ORG NOT ACTIVE!`);
+    }
+  }
+
+  // DEBUG
+  SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgInfoMap:scratchOrgInfoMap:`, scratchOrgInfoMap);
+
+  // Return the Scratch Org Infos to the caller. Let them worry about putting it into Shared Data.
+  return scratchOrgInfoMap;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    buildSfdxOrgInfoMap
  * @param       {RawSfdxOrgInfo[]}  rawSfdxOrgList  This should be the raw list of SFDX orgs that
- *              comes in the result of a call to force:org:list.
+ *              comes in the result of a call to force:org:list. This list will NEVER contain
+ *              scratch orgs.
  * @returns     {SfdxOrgInfoMap} Map containing SfdxOrgInfo objects for EVERY org that
  *              was part of the raw SFDX org list. The Org Info's "username" value will be used
  *              as the key for this map.
  * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
- *              creates an SfdxOrgInfo object for each one.
+ *              creates an SfdxOrgInfo object for each one, then builds a map of SfdxOrgInfo objects
+ *              keyed by the "username" of each org.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -484,6 +638,133 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    executeRedirectedSfdxCommand
+ * @param       {string}  sfdxCommandString Required. String containing an "sfdx force" command.
+ * @param       {string}  outputRedirectString  Required. String specifying output redirection.
+ * @param       {SfdxFalconResult}  utilityResult Required. Falcon Result used to track actions here.
+ * @param       {object}  [messages]  Optional. Success, failure, and "mixed" messages.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI to execute the "sfdx force" command provided by the caller.
+ *              Output from the command is redirected per the instructions in the Output Redirect
+ *              String.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function executeRedirectedSfdxCommand(sfdxCommandString:string, outputRedirectString:string, utilityResult:SfdxFalconResult, messages:object={}):Promise<SfdxFalconResult> {
+
+  // Extract the Detail object from the Utility Result.
+  const utilityResultDetail = utilityResult.detail as SfdxUtilityResultDetail;
+
+  // Override default messages if provided by the caller.
+  const failureMessage  = messages['failureMessage']  ||  'Salesforce CLI Command Failed';
+  const successMessage  = messages['successMessage']  ||  'Salesforce CLI Command Succeeded';
+  const mixedMessage    = messages['mixedMessage']    ||  'Salesforce CLI Command failed but returned a Success Response';
+
+  return new Promise((resolve, reject) => {
+
+    // Declare a function-local string buffer to hold the stdio stream.
+    let stdOutBuffer:string = '';
+    let stdErrBuffer:string = '';
+
+    // Set the FORCE_COLOR environment variable to 0.
+    // This prevents the possibility of ANSI Escape codes polluting STDOUT
+    shell.env['FORCE_COLOR'] = 0;
+
+    // Set the SFDX_JSON_TO_STDOUT environment variable to TRUE.
+    // This won't be necessary after CLI v45.  See CLI v44.2.0 release notes for more info.
+    shell.env['SFDX_JSON_TO_STDOUT'] = 'true';
+
+    // Set the SFDX_AUTOUPDATE_DISABLE environment variable to TRUE.
+    // This may help prevent strange typescript compile errors when internal SFDX CLI commands are executed.
+    shell.env['SFDX_AUTOUPDATE_DISABLE'] = 'true';
+
+    // Run the SFDX Command String asynchronously inside a child process.
+    const childProcess = shell.exec(sfdxCommandString, {silent:true, async: true});
+
+    // Capture stdout datastream. Data is piped in from stdout in small chunks, so prepare for multiple calls.
+    childProcess.stdout.on('data', (stdOutDataStream:string) => {
+      stdOutBuffer += stdOutDataStream;
+    });
+
+    // Capture the stderr datastream. Values should only come here if there was a shell error.
+    // CLI warnings used to be sent to stderr as well, but as of CLI v45 all output should be going to stdout.
+    childProcess.stderr.on('data', (stdErrDataStream:string) => {
+      stdErrBuffer += stdErrDataStream;
+    });
+
+    // Handle Child Process "close". Fires only once the contents of stdout and stderr are read.
+    childProcess.on('close', (code:number, signal:string) => {
+
+      // If stdout was redirected, the buffer may be empty. Provide a default value.
+      if (stdOutBuffer === '') {
+        stdOutBuffer = `{"status":${code}, "message":"Output redirected to ${outputRedirectString}"}`;
+      }
+
+      // Store BOTH stdout and stderr buffers (this helps track stderr WARNING messages)
+      utilityResultDetail.stdOutBuffer = stdOutBuffer;
+      utilityResultDetail.stdErrBuffer = stdErrBuffer;
+
+      // Determine if the command succeded or failed.
+      if (code !== 0) {
+        if (detectSalesforceCliError(stdOutBuffer)) {
+
+          // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutBuffer, stdErrBuffer, `${failureMessage}`, `${dbgNs}executeRedirectedSfdxCommand`);
+        }
+        else {
+
+          // We have a shell Error. Prepare ERROR detail using ShellError.
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeRedirectedSfdxCommand`);
+        }
+
+        // Close the UTILITY result out as an ERROR.
+        utilityResult.error(utilityResultDetail.error);
+        utilityResult.debugResult(`${failureMessage}`, `${dbgNs}executeRedirectedSfdxCommand:`);
+
+        // Reject the result.
+        reject(utilityResult);
+      }
+      else {
+
+        //The code below can be used to simulate invalid JSON response that sometimes comes from the Salesforce CLI
+        //stdOutBuffer = '\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1GProcessing... \\\u001b[2K\u001b[1GProcessing... |\u001b[2K\u001b[1GProcessing... /\u001b[2K\u001b[1GProcessing... -\u001b[2K\u001b[1G{"message":"The request to create a scratch org failed with error code: C-9999.","status":1,"stack":"RemoteOrgSignupFailed: The request to create a scratch org failed with error code: C-9999.\\n    at force.retrieve.then (/Users/vchawla/.local/share/sfdx/client/node_modules/salesforce-alm/dist/lib/scratchOrgInfoApi.js:333:25)\\n    at tryCatcher (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/util.js:16:23)\\n    at Promise._settlePromiseFromHandler (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:510:31)\\n    at Promise._settlePromise (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:567:18)\\n    at Promise._settlePromise0 (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:612:10)\\n    at Promise._settlePromises (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/promise.js:691:18)\\n    at Async._drainQueue (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:138:16)\\n    at Async._drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:148:10)\\n    at Immediate.Async.drainQueues (/Users/vchawla/.local/share/sfdx/client/node_modules/bluebird/js/release/async.js:17:14)\\n    at runCallback (timers.js:789:20)\\n    at tryOnImmediate (timers.js:751:5)\\n    at processImmediate [as _immediateCallback] (timers.js:722:5)","name":"RemoteOrgSignupFailed","warnings":[]}\n'
+
+        // Make sure we got back a valid JSON Response
+        const stdOutJsonResponse  = stdOutBuffer.substring(stdOutBuffer.indexOf('{'), stdOutBuffer.lastIndexOf('}')+1);
+        const parsedCliResponse   = safeParse(stdOutJsonResponse) as AnyJson;
+
+        // Unparseable responses from the CLI are SHELL ERRORS and should be rejected.
+        if (parsedCliResponse['unparsed']) {
+          utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeRedirectedSfdxCommand`);
+          utilityResult.error(utilityResultDetail.error);
+          reject(utilityResult);
+        }
+
+        // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
+        if (detectSalesforceCliError(parsedCliResponse)) {
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutJsonResponse, stdErrBuffer, `${failureMessage}`, `${dbgNs}executeRedirectedSfdxCommand:`);
+          utilityResult.error(utilityResultDetail.error);
+          utilityResult.debugResult(`${mixedMessage}`, `${dbgNs}executeRedirectedSfdxCommand:`);
+          reject(utilityResult);
+        }
+
+        // If we get here, the call was successful. Prepare the SUCCESS detail for this function's Result.
+        utilityResultDetail.stdOutParsed = parsedCliResponse;
+
+        // Regiser a SUCCESS result
+        utilityResult.success();
+        utilityResult.debugResult(`${successMessage}`, `${dbgNs}executeRedirectedSfdxCommand:`);
+
+        // Resolve with the successful SFDX-Falcon Result.
+        resolve(utilityResult);
+      }
+    });
+  }) as Promise<SfdxFalconResult>;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    executeSfdxCommand
  * @param       {string}  sfdxCommandString Required. String containing an "sfdx force" command.
  * @param       {SfdxFalconResult}  utilityResult Required. Falcon Result used to track actions here.
@@ -550,18 +831,19 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
         if (detectSalesforceCliError(stdOutBuffer)) {
 
           // We have a Salesforce CLI Error. Prepare ERROR detail using SfdxCliError.
-          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand`);
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutBuffer, stdErrBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand`);
         }
         else {
+
           // We have a shell Error. Prepare ERROR detail using ShellError.
           utilityResultDetail.error = new ShellError(sfdxCommandString, code, signal, stdErrBuffer, stdOutBuffer, `${dbgNs}executeSfdxCommand`);
         }
 
-        // Process this as an ERROR result.
+        // Close the UTILITY result out as an ERROR.
         utilityResult.error(utilityResultDetail.error);
         utilityResult.debugResult(`${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
 
-        // Process this as an ERROR result.
+        // Reject the result.
         reject(utilityResult);
       }
       else {
@@ -582,7 +864,7 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
 
         // Parseable responses might be CLI ERRORS and should be marked ERROR and rejected if so.
         if (detectSalesforceCliError(parsedCliResponse)) {
-          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutJsonResponse, `${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
+          utilityResultDetail.error = new SfdxCliError(sfdxCommandString, stdOutJsonResponse, stdErrBuffer, `${failureMessage}`, `${dbgNs}executeSfdxCommand:`);
           utilityResult.error(utilityResultDetail.error);
           utilityResult.debugResult(`${mixedMessage}`, `${dbgNs}executeSfdxCommand:`);
           reject(utilityResult);
@@ -600,6 +882,69 @@ export async function executeSfdxCommand(sfdxCommandString:string, utilityResult
       }
     });
   }) as Promise<SfdxFalconResult>;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    executeSoqlQuery
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string}  soqlQuery  Required.
+ * @param       {SfdxForceDataSoqlQueryOptions} [opts]  Optional. Allows the caller to set various
+ *              flags that are available to the force:data:soql:query command.
+ * @param       {string}  [targetFile] Optional. The complete path to a file where the results of
+ *              the query should be sent to INSTEAD of to stdout.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI's force:mdapi:retrieve command to retrieve the metadata
+ *              components specified by the supplied Manifest File (ie. package.xml).
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function executeSoqlQuery(aliasOrUsername:string, soqlQuery:string, opts:SfdxForceDataSoqlQueryOptions={}, targetFile:string=''):Promise<SfdxFalconResult> {
+
+  // TODO: Sanitize the targetFile variable to ensure the caller can't run arbitrary code.
+
+  // Set the SFDX Command String to be used by this function.
+  const sfdxCommandString =
+    `sfdx force:data:soql:query`
+  + ` --targetusername ${aliasOrUsername}`
+  + ` --query "${soqlQuery}"`
+  + (opts.resultFormat  ? ` --resultformat ${opts.resultFormat}` : ``)
+  + (opts.apiVersion    ? ` --apiversion ${opts.apiVersion}` : ``)
+  + (opts.logLevel      ? ` --loglevel ${opts.logLevel}` : ``)
+  + (opts.useToolingApi ? ` --usetoolingapi` : ``)
+  + (opts.perfLog       ? ` --perflog` : ``)
+  + (opts.json          ? ` --json` : ``)
+  + (targetFile         ? ` > ${targetFile}` : ``);
+
+  // Introduce a small delay in case this is being used by an Observable Listr Task.
+  await waitASecond(3);
+
+  // Initialize a UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:executeSoqlQuery`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}executeSoqlQuery:`);
+
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'SOQL Query Failed',
+    successMessage: 'SOQL Query Succeeded',
+    mixedMessage:   'SOQL Query failed but the CLI returned a Success Response'
+  };
+
+  // Make sure that a path to the Target File exists.
+  shell.mkdir('-p', path.dirname(targetFile));
+
+  // Execute the Salesforce CLI Command and redirect output to file.
+  return executeRedirectedSfdxCommand(sfdxCommandString, `> ${targetFile}`, utilityResult, messages);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -1009,7 +1354,7 @@ export async function retrieveMetadata(aliasOrUsername:string, manifestFilePath:
 export async function scanConnectedOrgs():Promise<SfdxFalconResult> {
 
   // Set the SFDX Command String to be used by this function.
-  const sfdxCommandString = `sfdx force:org:list --json`;
+  const sfdxCommandString = `sfdx force:org:list --all --json`;
 
   // Initialize an UTILITY Result for this function.
   const utilityResult = new SfdxFalconResult(`sfdx:executeSfdxCommand`, SfdxFalconResultType.UTILITY);
