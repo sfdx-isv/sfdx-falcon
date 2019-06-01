@@ -258,7 +258,7 @@ function createOrgAliasChoice(orgInfo:SfdxOrgInfo, longestAlias:number, longestU
 export function buildOrgAliasChoices(sfdxOrgInfos:SfdxOrgInfo[]):YeomanChoice[] {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:arguments:`, arguments);
 
   // Create local var to build the YeomanChoice array.
   const orgAliasChoices = new Array<YeomanChoice>();
@@ -286,7 +286,7 @@ export function buildOrgAliasChoices(sfdxOrgInfos:SfdxOrgInfo[]):YeomanChoice[] 
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:`, orgAliasChoices, `orgAliasChoices: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:orgAliasChoices:`, orgAliasChoices);
 
   // All done.
   return orgAliasChoices;
