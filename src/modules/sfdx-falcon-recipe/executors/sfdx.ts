@@ -166,7 +166,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
           // ERROR because the Salesforce CLI was able to return a recognizable JSON response.
           // By resolving instead of rejecting, we allow the caller to decide if it wants to
           // convert the FAILURE to an ERROR.
-          executorResult.failure(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.failure(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, stdErrBuffer, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
           executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
           resolve(executorResult);
         }
@@ -196,7 +196,7 @@ export async function executeSfdxCommand(sfdxCommandDef:SfdxCommandDefinition):P
         // the CLI even though the exit code from the shell indicated success.  For now, we want to surface
         // the fact that this is happening. Rejecting this promise will force the caller to bubble this ERROR.
         if (detectSalesforceCliError(parsedCliResponse)) {
-          executorResult.error(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
+          executorResult.error(new SfdxCliError(sfdxCommandString, stdOutJsonResponse, stdErrBuffer, sfdxCommandDef.errorMsg, `${dbgNs}executeSfdxCommand`));
           executorResult.debugResult('CLI Command Failed', `${dbgNs}executeSfdxCommand:`);
           reject(executorResult);
         }
