@@ -40,6 +40,7 @@ import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. 
 import {ListrSkipCommand}         from  '../sfdx-falcon-types';   // Type. A built-in function of the "this task" Listr Task object that gets passed into executable task code.
 import {ListrTask}                from  '../sfdx-falcon-types';   // Interface. Represents a Listr Task.
 import {RawSfdxOrgInfo}           from  '../sfdx-falcon-types';   // Interface. Represents the data returned by the sfdx force:org:list command.
+import {RawScratchOrgInfo}        from  '../sfdx-falcon-types';   // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
 import {SfdxOrgInfoMap}           from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 import {ShellExecResult}          from  '../sfdx-falcon-types';   // Interface. Represents the result of a call to shell.execL().
 import {Subscriber}               from  '../sfdx-falcon-types';   // Type. Alias to an rxjs Subscriber<any> type.
@@ -238,6 +239,80 @@ export function buildPkgOrgAliasList():ListrTask {
       this.sharedData.unmanagedPkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(unmanagedPkgOrgInfos);
       this.sharedData.unmanagedPkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
       this.sharedData.unmanagedPkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+
+      // All done!
+      thisTask.title += 'Done!';
+      return;
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    buildScratchOrgAliasList
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that takes the list of all connected scratch
+ *              orgs and uses it to create an Inquirer-compatible "choice list". This function must
+ *              be executed using the call() method because it relies on the caller's "this" context
+ *              to properly function.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function buildScratchOrgAliasList():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  'Building Scratch Org Alias List...',
+    enabled:() => Array.isArray(this.sharedData.scratchOrgAliasChoices),
+    task:   (listrContext, thisTask) => {
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgAliasList:sharedData:scratchOrgInfoMap`, this.sharedData.scratchOrgInfoMap);
+      
+      // Build Choices based on ALL SFDX Org Infos, followed by a separator and a "not specified" option.
+      this.sharedData.scratchOrgAliasChoices = yoHelper.buildOrgAliasChoices(Array.from(this.sharedData.scratchOrgInfoMap.values()));
+      this.sharedData.scratchOrgAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.scratchOrgAliasChoices.push({name:'My Scratch Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+
+      // All done!
+      thisTask.title += 'Done!';
+      return;
+    }
+  } as ListrTask;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    buildTargetOrgAliasList
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that takes the list of all connected orgs
+ *              and uses it to create an Inquirer-compatible "choice list". This function must
+ *              be executed using the call() method because it relies on the caller's "this" context
+ *              to properly function.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function buildTargetOrgAliasList():ListrTask {
+
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Build and return a Listr Task.
+  return {
+    title:  'Building Target Org Alias List...',
+    enabled:() => Array.isArray(this.sharedData.targetOrgAliasChoices),
+    task:   (listrContext, thisTask) => {
+
+      // DEBUG
+      SfdxFalconDebug.obj(`${dbgNs}buildTargetOrgAliasList:sharedData:sfdxOrgInfoMap`, this.sharedData.sfdxOrgInfoMap);
+      
+      // Build Choices based on ALL SFDX Org Infos, followed by a separator and a "not specified" option.
+      this.sharedData.targetOrgAliasChoices = yoHelper.buildOrgAliasChoices(Array.from(this.sharedData.sfdxOrgInfoMap.values()));
+      this.sharedData.targetOrgAliasChoices.push(new yoHelper.YeomanSeparator());
+      this.sharedData.targetOrgAliasChoices.push({name:'My Target Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // All done!
       thisTask.title += 'Done!';
@@ -1040,6 +1115,63 @@ function initObservableTaskResult(extDbgNs:string, listrContext:object, listrTas
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    metadataRetrieve
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string}  manifestFilePath  Required. Complete path for the manifest file (ie.
+ *              package.xml) that specifies the components to retrieve.
+ * @param       {string}  retrieveTargetDir Required. The root of the directory structure where
+ *              the retrieved .zip or metadata files are put.
+ * @returns     {ListrTask}  A Listr-compatible Task Object
+ * @description Returns a Listr-compatible Task Object that attempts to retrieve the metadata
+ *              components specified by the Manifest File from the specified org. Metadata will be
+ *              retrieved as a .zip file and saved to the local filesystem at the location specified
+ *              by the caller.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function metadataRetrieve(aliasOrUsername:string, manifestFilePath:string, retrieveTargetDir:string):ListrTask {
+
+  // Validate incoming arguments.
+  validateMetadataRetrieveArguments.apply(null, arguments);
+
+  // Make sure the calling scope has access to Shared Data.
+  validateSharedData.call(this);
+
+  // Build and return an OTR (Observable Listr Task).
+  return {
+    title:  'Retrieving Metadata...',
+    task:   (listrContext:object, thisTask:ListrTask) => {
+      return new Observable(observer => {
+
+        // Initialize an OTR (Observable Task Result).
+        const otr = initObservableTaskResult(`${dbgNs}metadataRetrieve`, listrContext, thisTask, observer, this.sharedData, this.generatorResult,
+                    `Retrieving metadata from ${aliasOrUsername} (this might take a few minutes)`);
+
+        // Execute the Task Logic
+        sfdxHelper.retrieveMetadata(aliasOrUsername, manifestFilePath, retrieveTargetDir)
+        .then((successResult:SfdxFalconResult) => {
+          SfdxFalconDebug.obj(`${dbgNs}metadataRetrieve:successResult:`, successResult);
+
+          // Save the UTILITY result to Shared Data and update the task title.
+          this.sharedData.metadataRetrieveResult = successResult;
+          thisTask.title += 'Done!';
+          finalizeObservableTaskResult(otr);
+        })
+        .catch((failureResult:SfdxFalconResult|Error) => {
+          SfdxFalconDebug.obj(`${dbgNs}metadataRetrieve:failureResult:`, failureResult);
+
+          // We get here if no connections were found.
+          thisTask.title += 'Failed';
+          finalizeObservableTaskResult(otr, failureResult);
+        });
+      });
+    }
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    packagedMetadataFetch
  * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
  *              Salesforce CLI connected org.
@@ -1183,14 +1315,22 @@ export function scanConnectedOrgs():ListrTask {
           SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:successResult:`, successResult, `successResult: `);
 
           // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-          let rawSfdxOrgList;
+          let rawSfdxOrgList = [];
           if (successResult.detail && typeof successResult.detail === 'object') {
             if ((successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
               rawSfdxOrgList = (successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
             }
           }
 
-          // Make sure that there is at least ONE connnected org
+          // Store the JSON result containing the list of orgs that ARE scratch orgs in a class member.
+          let rawScratchOrgList = [];
+          if (successResult.detail && typeof successResult.detail === 'object') {
+            if ((successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
+              rawScratchOrgList = (successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['scratchOrgs'];
+            }
+          }
+
+          // Make sure that there is at least ONE connnected NON-SCRATCH org
           if (Array.isArray(rawSfdxOrgList) === false || rawSfdxOrgList.length < 1) {
             throw new SfdxFalconError( `No orgs have been authenticated to the Salesforce CLI. `
                                      + `Please run force:auth:web:login to connect to an org.`
@@ -1199,10 +1339,12 @@ export function scanConnectedOrgs():ListrTask {
           }
 
           // Put the raw SFDX Org List into the Listr Context variable.
-          this.sharedData.rawSfdxOrgList  = rawSfdxOrgList;
+          this.sharedData.rawSfdxOrgList    = rawSfdxOrgList;
+          this.sharedData.rawScratchOrgList = rawScratchOrgList;
 
           // Build a baseline list of SFDX Org Info objects based on thie raw list.
-          this.sharedData.sfdxOrgInfoMap  = sfdxHelper.buildSfdxOrgInfoMap(rawSfdxOrgList as RawSfdxOrgInfo[]);
+          this.sharedData.sfdxOrgInfoMap    = sfdxHelper.buildSfdxOrgInfoMap(rawSfdxOrgList       as RawSfdxOrgInfo[]);
+          this.sharedData.scratchOrgInfoMap = sfdxHelper.buildScratchOrgInfoMap(rawScratchOrgList as RawScratchOrgInfo[]);
 
           // Change the title of the task.
           thisTask.title += 'Done!';
@@ -1245,7 +1387,9 @@ export function sfdxInitTasks():ListrObject {
               identifyPkgOrgs.call(this),
               buildDevHubAliasList.call(this),
               buildEnvHubAliasList.call(this),
-              buildPkgOrgAliasList.call(this)
+              buildPkgOrgAliasList.call(this),
+              buildTargetOrgAliasList.call(this),
+              buildScratchOrgAliasList.call(this)
             ],
             // SUBTASK OPTIONS: (SFDX Config Tasks)
             {
@@ -1415,6 +1559,36 @@ function validateSharedData():void {
                              + `You must also ensure that the calling scope has defined an object named 'sharedData'.`
                              , `InvalidSharedData`
                              , `${dbgNs}validateSharedData`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    validateMetadataRetrieveArguments
+ * @returns     {void}
+ * @description Ensures that the arguments provided match an expected, ordered set.
+ * @private
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+function validateMetadataRetrieveArguments():void {
+
+  // Validate "aliasOrUsername".
+  if (typeof arguments[0] !== 'string' || arguments[0] === '') {
+    throw new SfdxFalconError( `Expected aliasOrUsername to be a non-empty string but got type '${typeof arguments[0]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateMetadataRetrieveArguments`);
+  }
+  // Validate "manifestFilePath".
+  if (typeof arguments[1] !== 'string' || arguments[1] === '') {
+    throw new SfdxFalconError( `Expected manifestFilePath to be a non-empty string but got type '${typeof arguments[1]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateMetadataRetrieveArguments`);
+  }
+  // Validate "retrieveTargetDir".
+  if (typeof arguments[2] !== 'string' || arguments[2] === '') {
+    throw new SfdxFalconError( `Expected retrieveTargetDir to be a non-empty string but got type '${typeof arguments[2]}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}validateMetadataRetrieveArguments`);
   }
 }
 
