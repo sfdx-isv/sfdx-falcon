@@ -94,6 +94,9 @@ export async function readConfigFile(rootFolder:string, filename:string):Promise
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function safeParse(contentToParse:string):JsonMap {
   SfdxFalconDebug.obj(`${dbgNs}safeParse:contentToParse:`, {contentToParse: contentToParse}, `contentToParse: `);
+  if (contentToParse === '') {
+    contentToParse = '{}';
+  }
   try {
     return JSON.parse(contentToParse);
   } catch (e) {
