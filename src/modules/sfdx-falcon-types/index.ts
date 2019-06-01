@@ -14,8 +14,6 @@ import {Connection}           from  '@salesforce/core';         // Why?
 import {AnyJson}              from  '@salesforce/ts-types';     // Why?
 import * as inquirer          from  'inquirer';                 // Why?
 import {QueryResult}          from  'jsforce';                  // Why?
-//import {Query}                from  'jsforce';                  // Why?
-//import {Record}               from  'jsforce';                  // Why?
 import {RequestInfo}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';                     // Why?
 import {Observer}             from  'rxjs';                     // Why?
@@ -25,148 +23,14 @@ import {Question}             from  'yeoman-generator';         // Interface. Re
 
 // Import Internal Modules/Types
 import {SfdxFalconResult}     from  '../sfdx-falcon-result';    // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
-import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about orgs that are connected to the local Salesforce CLI.
+import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about an org that is connected to the local Salesforce CLI.
+import {ScratchOrgInfo}       from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about a scratch orgs that is connected to the local Salesforce CLI.
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
 
-/**
- * Represents the local config options for an AppX Demo project.
- * TODO: Delete this interface if not used.
- */
-/*
-export interface AppxDemoLocalConfig {
-  demoValidationOrgAlias: string;
-  demoDeploymentOrgAlias: string;
-  devHubAlias:            string;
-  envHubAlias:            string;
-}//*/
-/**
- * Represents the configuration schema of an AppX Demo Project.
- */
-/*
-export interface AppxDemoProjectConfig {
-  demoAlias:        string;
-  demoConfig:       string;
-  demoTitle:        string;
-  demoType:         string;
-  demoVersion:      string;
-  gitHubUrl:        string;
-  gitRemoteUri:     string;
-  partnerAlias:     string;
-  partnerName:      string;
-  schemaVersion:    string;
-}//*/
-/**
- * Represents the sequence options for an AppX Demo project
- * TODO: Delete this if left unused.
- */
-/*
-export interface AppxDemoSequenceOptions {
-  scratchDefJson:       string;
-  rebuildValidationOrg: boolean;
-  skipActions:          [string];
-}//*/
-/**
- * Represents local config settings for an APK (AppX Package) project
- * TODO: Delete this if left unused.
- */
-/*
-export interface AppxPackageLocalConfig {
-  demoValidationOrgAlias: string;
-  demoDeploymentOrgAlias: string;
-  devHubAlias:            string;
-  envHubAlias:            string;
-}//*/
-/**
- * TODO: Delete this if left unused.
- */
-/*
-export interface AppxPackageProjectConfig {
-  gitHubUrl:          string;
-  gitRemoteUri:       string;
-  metadataPackageId:  string;
-  namespacePrefix:    string;
-  packageName:        string;
-  packageVersionId: {
-    stable: string;
-    beta:   string;
-  };
-  partnerAlias:       string;
-  partnerName:        string;
-  projectAlias:       string;
-  projectName:        string;
-  projectType:        string;
-  schemaVersion:      string;
-}//*/
-/**
- * TODO: Delete this if left unused
- */
-/*
-export interface AppxPackageSequenceOptions {
-  scratchDefJson:    string;
-}//*/
-/**
- * TODO: Delete this if left unused
- */
-/*
-export interface FalconConfig {
-  appxProject?:  AppxPackageProjectConfig;
-  appxDemo?:     AppxDemoProjectConfig;
-}//*/
-/**
- * TODO: Delete this if left unused
- */
-/*
-export interface FalconCommandContext extends FalconSequenceContext {
-  commandObserver:  any;  // tslint:disable-line: no-any
-}//*/
-/**
- * TODO: Delete this if left unused.
- */
-/*
-export interface FalconCommandHandler {
-  changeMe: string;
-}//*/
-/**
- * Delete this if left unused.
- */
-/*
-export interface FalconCommandSequence {
-  sequenceName:     string;
-  sequenceType:     string;
-  sequenceVersion:  string;
-  description:      string;
-  options:          any;  // tslint:disable-line: no-any
-  sequenceGroups:   [FalconCommandSequenceGroup];
-  handlers:         [FalconCommandHandler];
-  schemaVersion:    string;
-}//*/
-/**
- * Delete this if left unused.
- */
-/*
-export interface FalconCommandSequenceGroup {
-  groupId:        string;
-  groupName:      string;
-  description:    string;
-  sequenceSteps:  FalconCommandSequenceStep[];
-}//*/
-/**
- * Delete this if left unused.
- */
-/*
-export interface FalconCommandSequenceStep {
-  stepName:     string;
-  description:  string;
-  action:       string;
-  options:      any;  // tslint:disable-line: no-any
-  onSuccess?: {
-    handler:  string;
-  };
-  onError?: {
-    handler:  string;
-  };
-}//*/
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Falcon and SFDX Config-related interfaces and types.
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 /**
  * Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
@@ -175,11 +39,6 @@ export interface SfdxFalconJsonResponse {
   falconStatus: number;
   falconResult: AnyJson;
 }
-
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-// Falcon and SFDX Config-related interfaces and types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 /**
  * Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
@@ -205,7 +64,7 @@ export interface SfdxFalconProjectConfig {
  * Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
  */
 export interface SfdxFalconLocalConfig {
-  devHubAlias?:    string;                   // eg. 'My_DevHub'
+  devHubAlias?:   string;                   // eg. 'My_DevHub'
   envHubAlias?:   string;                   // eg. 'My_EnvHub'
   pkgOrgAlias?:   string;                   // eg. 'My_PkgOrg'
   appxPackage?:   AppxPackageLocalConfig;
@@ -300,6 +159,7 @@ export interface MetadataPackageVersion {
 // Listr related interfaces and types.
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
+
 /**
  * Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
  */
@@ -387,7 +247,6 @@ export type ListrObservable = any;  // tslint:disable-line: no-any
  */
 export type Observer = Observer<any>;  // tslint:disable-line: no-any
 
-
 /**
  * Type. Alias to an rxjs Subscriber<any> type.
  */
@@ -399,11 +258,11 @@ export type Subscriber = Subscriber<any>; // tslint:disable-line: no-any
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 
 
-export type InquirerChoice    = inquirer.objects.Choice;
-export type InquirerChoices   = inquirer.objects.Choices;
-export type InquirerQuestion  = inquirer.Question;
-export type InquirerQuestions = inquirer.Questions;
-export type InquirerAnswers   = inquirer.Answers;
+export type InquirerChoice<A=any>   = inquirer.objects.Choice<A>;   // tslint:disable-line: no-any
+export type InquirerChoices<A=any>  = inquirer.objects.Choices<A>;  // tslint:disable-line: no-any
+export type InquirerQuestion        = inquirer.Question;
+export type InquirerQuestions       = inquirer.Questions;
+export type InquirerAnswers         = inquirer.Answers;
 
 /**
  * Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
@@ -416,11 +275,11 @@ export interface YeomanAnswerHash {
  * Represents a Yeoman/Inquirer choice object.
  */
 export interface YeomanChoice {
-  name:       string;
-  value:      string;
-  short:      string;
-  type?:      string;
-  line?:      string;
+  name:   string;
+  value:  string;
+  short:  string;
+  type?:  string;
+  line?:  string;
 }
 
 /**
@@ -519,14 +378,17 @@ export type InterviewControlFunction = (userAnswers:InquirerAnswers, sharedData?
  * Type alias defining a function or simple boolean that checks whether an Interview Group should be shown.
  */
 export type ShowInterviewGroup = boolean | InterviewControlFunction;
+
 /**
  * Function type alias defining a function that returns Inquirer Questions.
  */
 export type QuestionsBuilder = () => Questions;
+
 /**
  * Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Questions = Questions;
+
 /**
  * Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
@@ -571,20 +433,60 @@ export type PackageVersionMap = Map<string, MetadataPackageVersion[]>;
 export type QueryResult<T> = QueryResult<T>;
 
 /**
- * Interface. Represents the data returned by the sfdx force:org:list command.
+ * Interface. Represents the "nonScratchOrgs" data returned by the sfdx force:org:list command.
  */
 export interface RawSfdxOrgInfo {
-  alias:                    string;                       // Why?
-  username:                 string;                       // Why?
   orgId:                    string;                       // Why?
-  connectedStatus:          string;                       // Why?
+  username:                 string;                       // Why?
+  alias:                    string;                       // Why?
+  accessToken:              string;                       // Why?
+  instanceUrl:              string;                       // Why?
+  loginUrl:                 string;                       // Why?
+  clientId:                 string;                       // Why?
   isDevHub:                 boolean;                      // Why?
+  isDefaultDevHubUsername:  boolean;                      // Why?
+  defaultMarker:            string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  lastUsed:                 string;                       // Why?
+}
+
+/**
+ * Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
+ */
+export interface RawScratchOrgInfo {
+  orgId:                    string;                       // Why?
+  username:                 string;                       // Why?
+  alias:                    string;                       // Why?
+  accessToken:              string;                       // Why?
+  instanceUrl:              string;                       // Why?
+  loginUrl:                 string;                       // Why?
+  clientId:                 string;                       // Why?
+  createdOrgInstance:       string;                       // Why?
+  created:                  string;                       // Wyy?
+  devHubUsername:           string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  lastUsed:                 string;                       // Why?
+  attributes:               object;                       // Why?
+  orgName:                  string;                       // Why?
+  status:                   string;                       // Why?
+  createdBy:                string;                       // Why?
+  createdDate:              string;                       // Why?
+  expirationDate:           string;                       // Why?
+  edition:                  string;                       // Why?
+  signupUsername:           string;                       // Why?
+  devHubOrgId:              string;                       // Why?
+  isExpired:                boolean;                      // Why?
 }
 
 /**
  * Type. Alias for a Map with string keys holding SfdxOrgInfo values.
  */
 export type SfdxOrgInfoMap = Map<string, SfdxOrgInfo>;
+
+/**
+ * Type. Alias for a Map with string keys holding ScratchOrgInfo values.
+ */
+export type ScratchOrgInfoMap = Map<string, ScratchOrgInfo>;
 
 /**
  * Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
