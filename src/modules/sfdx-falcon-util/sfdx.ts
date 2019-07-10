@@ -940,11 +940,20 @@ export async function executeSoqlQuery(aliasOrUsername:string, soqlQuery:string,
     mixedMessage:   'SOQL Query failed but the CLI returned a Success Response'
   };
 
-  // Make sure that a path to the Target File exists.
-  shell.mkdir('-p', path.dirname(targetFile));
+  // If the caller specified a Target File, then we must execute a "redirected" SFDX command.
+  if (targetFile) {
 
-  // Execute the Salesforce CLI Command and redirect output to file.
-  return executeRedirectedSfdxCommand(sfdxCommandString, `> ${targetFile}`, utilityResult, messages);
+    // Make sure that a path to the Target File exists. There should be no ill effects if targetFile is an empty string.
+    shell.mkdir('-p', path.dirname(targetFile));
+
+    // Execute the Salesforce CLI Command and redirect output to file.
+    return executeRedirectedSfdxCommand(sfdxCommandString, `> ${targetFile}`, utilityResult, messages);
+  }
+  else {
+
+    // Execute the SFDX command in the standard way.
+    return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
