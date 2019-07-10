@@ -321,8 +321,10 @@ export type ErrorOrResult = Error | SfdxFalconResult;
  */
 export interface PromptOptions<T extends object> {
   questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
+  questionsArgs?:       any[];  // tslint:disable-line: no-any    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
   defaultAnswers:       T;                                        // Required. Default answers to the Questions.
   confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
+  confirmationArgs?:    any[];  // tslint:disable-line: no-any    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
   invertConfirmation?:  boolean;                                  // Optional. Treats
   display?:             AnswersDisplay<T>;                        // ???
   context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
@@ -348,7 +350,9 @@ export interface InterviewOptions<T extends object> {
  */
 export interface InterviewGroupOptions<T extends object> {
   questions:            Questions | QuestionsBuilder;
+  questionsArgs?:       any[];  // tslint:disable-line: no-any
   confirmation?:        Questions | QuestionsBuilder;
+  confirmationArgs?:    any[];  // tslint:disable-line: no-any
   invertConfirmation?:  boolean;
   display?:             AnswersDisplay<T>;
   when?:                ShowInterviewGroup;

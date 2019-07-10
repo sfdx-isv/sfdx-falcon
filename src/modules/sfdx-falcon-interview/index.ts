@@ -170,7 +170,9 @@ export class SfdxFalconInterview<T extends object> {
     // Create a new SFDX Falcon Prompt based on the incoming options.
     const falconPrompt = new SfdxFalconPrompt<T>({
       questions:          opts.questions,
+      questionsArgs:      opts.questionsArgs,
       confirmation:       opts.confirmation,
+      confirmationArgs:   opts.confirmationArgs,
       invertConfirmation: opts.invertConfirmation,
       defaultAnswers:     this.defaultAnswers,
       context:            this

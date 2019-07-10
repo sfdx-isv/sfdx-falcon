@@ -48,15 +48,17 @@ export class SfdxFalconPrompt<T extends object> {
   public context:                       object;                       // ???
   
   // Private members
-  private readonly _questions:          Questions | QuestionsBuilder; // ???
-  private readonly _confirmation:       Questions | QuestionsBuilder; // ???
-  private readonly _display:            AnswersDisplay<T>;            // ???
-  private readonly _invertConfirmation: boolean;                      // ???
+  private readonly _questions:          Questions | QuestionsBuilder;           // ???
+  private readonly _confirmation:       Questions | QuestionsBuilder;           // ???
+  private readonly _questionsArgs:      any[];  // tslint:disable-line: no-any  // ???
+  private readonly _confirmationArgs:   any[];  // tslint:disable-line: no-any  // ???
+  private readonly _display:            AnswersDisplay<T>;                      // ???
+  private readonly _invertConfirmation: boolean;                                // ???
 
   // Public Accessors
   public get confirmation():Questions {
     if (typeof this._confirmation === 'function') {
-      return this._confirmation.call(this);
+      return this._confirmation.call(this, this._confirmationArgs);
     }
     else {
       return this._confirmation;
@@ -73,7 +75,7 @@ export class SfdxFalconPrompt<T extends object> {
   }
   public get questions():Questions {
     if (typeof this._questions === 'function') {
-      return this._questions.call(this);
+      return this._questions.call(this, this._questionsArgs);
     }
     else {
       return this._questions;
@@ -93,7 +95,9 @@ export class SfdxFalconPrompt<T extends object> {
   //───────────────────────────────────────────────────────────────────────────┘
   constructor(opts:PromptOptions<T>) {
     this._questions           = opts.questions;
+    this._questionsArgs       = opts.questionsArgs || [];
     this._confirmation        = opts.confirmation;
+    this._confirmationArgs    = opts.confirmationArgs || [];
     this._display             = opts.display;
     this._invertConfirmation  = opts.invertConfirmation || false;
     this.defaultAnswers       = opts.defaultAnswers;
