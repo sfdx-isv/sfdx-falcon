@@ -1055,6 +1055,56 @@ export async function getConnection(aliasOrUsername:string, apiVersion?:string):
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    getRecordCountFromResult
+ * @param       {SfdxFalconResult}  result  Required. An SfdxFalconResult object that should have
+ *              a valid block of Salesforce Response JSON in its detail member.
+ * @returns     {number}  Returns the value of "totalSize" from the parsed JSON response.
+ * @description Given an SfdxFalconResult, opens up the result's "detail" member and looks for a
+ *              "stdOutParsed" key, then inspects the JSON result, ultimately returning the value
+ *              of the "totalSize" key. If this process yields anything that's NaN, this function
+ *              will throw an Error.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function getRecordCountFromResult(result:SfdxFalconResult):number {
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNs}getRecordCountFromResult:arguments:`, arguments);
+
+  // Make sure that the caller passed us an SfdxFalconResult.
+  if ((result instanceof SfdxFalconResult) !== true) {
+    throw new SfdxFalconError( `Expected result to be an SfdxFalconResult object but got '${typeof result !== 'undefined' ? result.constructor.name : 'undefined'}' instead.`
+                             , `TypeError`
+                             , `${dbgNs}getRecordCountFromResult`);
+  }
+
+  // Make sure that the result detail contains a "stdOutParsed" key.
+  if (typeof result.detail['stdOutParsed'] !== 'object') {
+    throw new SfdxFalconError( `The provided SfdxFalconResult object's details do not contain a 'stdOutParsed' key.`
+                             , `InvalidResultDetail`
+                             , `${dbgNs}getRecordCountFromResult`);
+  }
+
+  // Make sure that the "stdOutParsed" detail contains a "result" key.
+  if (typeof result.detail['stdOutParsed']['result'] !== 'object') {
+    throw new SfdxFalconError( `The provided SfdxFalconResult object's 'stdOutParsed' details do not contain a 'result' key.`
+                             , `InvalidResultDetail`
+                             , `${dbgNs}getRecordCountFromResult`);
+  }
+
+  // Make sure that the "stdOutParsed" detail contains a "result" key with a numeric "totalSize" value.
+  if (isNaN(result.detail['stdOutParsed']['result']['totalSize'])) {
+    throw new SfdxFalconError( `The provided SfdxFalconResult object's 'stdOutParsed' details do not contain a numeric value in the 'result.totalSize' key.`
+                             , `InvalidResultDetail`
+                             , `${dbgNs}getRecordCountFromResult`);
+  }
+
+  // If we get here, we can safely return a "totalSize" result.
+  return Number(result.detail['stdOutParsed']['result']['totalSize']);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    getUsernameFromAlias
  * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
  * @returns     {Promise<string>}   Resolves to the username if the alias was found, NULL if not.
