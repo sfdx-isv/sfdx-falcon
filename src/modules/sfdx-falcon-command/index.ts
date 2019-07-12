@@ -130,6 +130,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
   // Member vars for commonly implemented flags.
   protected outputDirectory:            string;                         // Why?
   protected projectDirectory:           string;                         // Why?
+  protected sourceDirectory:            string;                         // Why?
   protected targetDirectory:            string;                         // Why?
   protected recipeFile:                 string;                         // Why?
   protected configFile:                 string;                         // Why?
@@ -173,6 +174,7 @@ export abstract class SfdxFalconCommand extends SfdxCommand {
     // Read the inocming values for all COMMON FLAGS. (not all of these will have values)
     this.outputDirectory            = path.resolve(this.flags.outputdir       ||  '.');
     this.projectDirectory           = path.resolve(this.flags.projectdir      ||  '.');
+    this.sourceDirectory            = path.resolve(this.flags.sourcedir       ||  '.');
     this.targetDirectory            = path.resolve(this.flags.targetdir       ||  '.');
     this.recipeFile                 = this.flags.recipefile                   ||  '';
     this.configFile                 = this.flags.configfile                   ||  '';
