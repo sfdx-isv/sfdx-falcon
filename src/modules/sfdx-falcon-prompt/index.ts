@@ -48,12 +48,12 @@ export class SfdxFalconPrompt<T extends object> {
   public context:                       object;                       // ???
   
   // Private members
-  private readonly _questions:          Questions | QuestionsBuilder;           // ???
-  private readonly _confirmation:       Questions | QuestionsBuilder;           // ???
-  private readonly _questionsArgs:      any[];  // tslint:disable-line: no-any  // ???
-  private readonly _confirmationArgs:   any[];  // tslint:disable-line: no-any  // ???
-  private readonly _display:            AnswersDisplay<T>;                      // ???
-  private readonly _invertConfirmation: boolean;                                // ???
+  private readonly _questions:          Questions | QuestionsBuilder; // ???
+  private readonly _confirmation:       Questions | QuestionsBuilder; // ???
+  private readonly _questionsArgs:      unknown[];                    // ???
+  private readonly _confirmationArgs:   unknown[];                    // ???
+  private readonly _display:            AnswersDisplay<T>;            // ???
+  private readonly _invertConfirmation: boolean;                      // ???
 
   // Public Accessors
   public get confirmation():Questions {
@@ -75,7 +75,7 @@ export class SfdxFalconPrompt<T extends object> {
   }
   public get questions():Questions {
     if (typeof this._questions === 'function') {
-      return this._questions.call(this, this._questionsArgs);
+      return this._questions.apply(this, this._questionsArgs);
     }
     else {
       return this._questions;
