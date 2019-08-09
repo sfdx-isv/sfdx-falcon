@@ -15,6 +15,7 @@
 
 // Import Internal Modules
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';     // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}          from  '../sfdx-falcon-error';     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {SfdxFalconPrompt}         from  '../sfdx-falcon-prompt';    // Class. Wraps user prompting/interaction functionality provided by Inquirer.
 import {SfdxFalconKeyValueTable}  from  '../sfdx-falcon-util/ux';   // Class. Uses table creation code borrowed from the SFDX-Core UX library to make it easy to build "Key/Value" tables.
 
@@ -100,6 +101,50 @@ export class InterviewGroup<T extends object> {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconInterview<T extends object> {
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      validateInterviewScope
+   * @param       {unknown} callingScope  Required. The calling scope, ie. the
+   *              caller's "this" scope, that will be validated by this method.
+   * @description Ensures that the calling scope has certain variables that are
+   *              required when Questions are required to be created within an
+   *              "Interview Scope".
+   * @public @static
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public static validateInterviewScope(callingScope:unknown):void {
+    if (typeof callingScope !== 'object' || callingScope === null) {
+      throw new SfdxFalconError( `Expected the 'callingScope' argument to be a non-null object${typeof callingScope !== 'object' ? ` but got '${typeof callingScope}' instead.` : `.`}`
+                               , `TypeError`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+    if (typeof callingScope['userAnswers'] !== 'object' || callingScope['userAnswers'] === null) {
+      throw new SfdxFalconError( `Expected 'userAnswers' to be a non-null object available to the calling scope${typeof callingScope['userAnswers'] !== 'object' ? ` but got '${typeof callingScope['userAnswers']}' instead.` : `.`}`
+                               , `InvalidInterviewScope`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+    if (typeof callingScope['defaultAnswers'] !== 'object' || callingScope['defaultAnswers'] === null) {
+      throw new SfdxFalconError( `Expected 'defaultAnswers' to be a non-null object available to the calling scope${typeof callingScope['defaultAnswers'] !== 'object' ? ` but got '${typeof callingScope['defaultAnswers']}' instead.` : `.`}`
+                               , `InvalidInterviewScope`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+    if (typeof callingScope['confirmationAnswers'] !== 'object' || callingScope['confirmationAnswers'] === null) {
+      throw new SfdxFalconError( `Expected 'confirmationAnswers' to be a non-null object available to the calling scope${typeof callingScope['confirmationAnswers'] !== 'object' ? ` but got '${typeof callingScope['confirmationAnswers']}' instead.` : `.`}`
+                               , `InvalidInterviewScope`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+    if (typeof callingScope['context'] !== 'object' || callingScope['context'] === null) {
+      throw new SfdxFalconError( `Expected 'context' to be a non-null object available to the calling scope${typeof callingScope['context'] !== 'object' ? ` but got '${typeof callingScope['context']}' instead.` : `.`}`
+                               , `InvalidInterviewScope`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+    if (typeof callingScope['sharedData'] !== 'object' || callingScope['sharedData'] === null) {
+      throw new SfdxFalconError( `Expected 'sharedData' to be a non-null object available to the calling scope${typeof callingScope['sharedData'] !== 'object' ? ` but got '${typeof callingScope['sharedData']}' instead.` : `.`}`
+                               , `InvalidInterviewScope`
+                               , `${dbgNs}validateInterviewScope`);
+    }
+  }
 
   // Public members
   public readonly   context:        object;                             // ???
