@@ -24,7 +24,7 @@ import {SfdxFalconResultType}     from  '../../../../modules/sfdx-falcon-result'
 // Import Falcon Types
 import {ListrContext}             from '../../../../modules/sfdx-falcon-types';     // Type. Alias to "any". Used in project to make code easier to read.
 import {ListrExecutionOptions}    from '../../../../modules/sfdx-falcon-types';     // Why?
-import {ListrObservable}          from '../../../../modules/sfdx-falcon-types';     // Why?
+import {Observer}                 from '../../../../modules/sfdx-falcon-types';     // Why?
 import {ListrObject}              from '../../../../modules/sfdx-falcon-types';     // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
 import {SfdxCliLogLevel}          from '../../../../modules/sfdx-falcon-types';     // Why?
 
@@ -53,7 +53,7 @@ const dbgNs     = 'ENGINE:appx:';
 //─────────────────────────────────────────────────────────────────────────────┘
 export interface AppxEngineContext {
   compileOptions:     CompileOptions;
-  recipeObserver:     ListrObservable;
+  recipeObserver:     Observer;
   executing:          boolean;
   initialized:        boolean;
   haltOnError:        boolean;

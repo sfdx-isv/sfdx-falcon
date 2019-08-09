@@ -12,7 +12,7 @@
 // Import External Modules/Types
 import {Connection}           from  '@salesforce/core';         // Why?
 import {AnyJson}              from  '@salesforce/ts-types';     // Why?
-import * as inquirer          from  'inquirer';                 // Why?
+import {JsonMap}              from  '@salesforce/ts-types';     // Why?
 import {QueryResult}          from  'jsforce';                  // Why?
 import {RequestInfo}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';                     // Why?
@@ -27,13 +27,20 @@ import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores
 import {ScratchOrgInfo}       from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about a scratch orgs that is connected to the local Salesforce CLI.
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Falcon and SFDX Config-related interfaces and types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
 /**
- * Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
+ * Interface. Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
  */
 export interface SfdxFalconJsonResponse {
   falconStatus: number;
@@ -124,11 +131,17 @@ export interface ProjectResolutionOptions {
   resolveGlobalConfig?:  boolean;
 }
 
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Packaging-related types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
 /**
  * Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
@@ -154,11 +167,17 @@ export interface MetadataPackageVersion {
   ReleaseState:       string;
 }
 
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Listr related interfaces and types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
 /**
  * Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
@@ -178,7 +197,7 @@ export interface ListrTask {
 }
 
 /**
- * Represents an "enabled" function for use in a Listr Task.
+ * Type. Represents an "enabled" function for use in a Listr Task.
  */
 export type ListrEnabledFunction =
   (context?:any)=> boolean; // tslint:disable-line: no-any
@@ -196,13 +215,13 @@ export type ListrSkipCommand =
   (message?:string) => void;
 
 /**
- * Represents a "task" function for use in a Listr Task.
+ * Type. Represents a "task" function for use in a Listr Task.
  */
 export type ListrTaskFunction =
   (context?:ListrContext, task?:ListrTask) => void|Promise<void>|Observable<any>; // tslint:disable-line: no-any
 
 /**
- * Represents the set of "execution options" related to the use of Listr.
+ * Interface. Represents the set of "execution options" related to the use of Listr.
  */
 export interface ListrExecutionOptions {
   listrContext: any;  // tslint:disable-line: no-any
@@ -212,14 +231,14 @@ export interface ListrExecutionOptions {
 }
 
 /**
- * Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
+ * Type. Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
  */
 export type ListrContext = any; // tslint:disable-line: no-any
 
 /**
  * Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
  */
-export interface ListrContextFinalizeGit {
+export interface ListrContextFinalizeGit extends JsonMap {
   gitInstalled:           boolean;
   gitInitialized:         boolean;
   projectFilesStaged:     boolean;
@@ -231,76 +250,61 @@ export interface ListrContextFinalizeGit {
 /**
  * Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
  */
-export interface ListrContextPkgRetExCon {
+export interface ListrContextPkgRetExCon extends JsonMap {
   packagesRetrieved:  boolean;
   sourceExtracted:    boolean;
   sourceConverted:    boolean;
 }
 
 /**
- * Represents an Observable for use with Listr.
+ * Type. Alias to an rxjs Observer<unknown> type.
  */
-export type ListrObservable = any;  // tslint:disable-line: no-any
+export type Observer = Observer<unknown>;
 
 /**
- * Type. Alias to an rxjs Observer<any> type.
+ * Type. Alias to an rxjs Subscriber<unknown> type.
  */
-export type Observer = Observer<any>;  // tslint:disable-line: no-any
+export type Subscriber = Subscriber<unknown>;
 
-/**
- * Type. Alias to an rxjs Subscriber<any> type.
- */
-export type Subscriber = Subscriber<any>; // tslint:disable-line: no-any
-
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
-
-export type InquirerChoice<A=any>   = inquirer.objects.Choice<A>;   // tslint:disable-line: no-any
-export type InquirerChoices<A=any>  = inquirer.objects.Choices<A>;  // tslint:disable-line: no-any
-export type InquirerQuestion        = inquirer.Question;
-export type InquirerQuestions       = inquirer.Questions;
-export type InquirerAnswers         = inquirer.Answers;
+export type InquirerChoice<U=unknown>   = import('inquirer/lib/objects/choice')<U>;
+export type InquirerSeparator           = import('inquirer/lib/objects/separator');
+export type InquirerChoices             = Array<InquirerChoice|InquirerSeparator>;
+export type InquirerQuestion            = import('inquirer').Question;
+export type InquirerQuestions           = import('inquirer').QuestionCollection;
+export type InquirerAnswers             = import('inquirer').Answers;
 
 /**
- * Represents an answer hash (basically AnyJson) for Yeoman/Inquirer.
+ * Type. Represents a Yeoman/Inquirer choice object.
  */
-export interface YeomanAnswerHash {
-  [key:string]: any;  // tslint:disable-line: no-any
-}
+export type  YeomanChoice = InquirerChoice;
 
 /**
- * Represents a Yeoman/Inquirer choice object.
+ * Type. Represents a "checkbox choice" in Yeoman/Inquirer.
  */
-export interface YeomanChoice {
-  name:   string;
-  value:  string;
-  short:  string;
-  type?:  string;
-  line?:  string;
-}
+export type YeomanCheckboxChoice = InquirerChoice;
 
 /**
- * Represents a "checkbox choice" in Yeoman/Inquirer.
+ * Type. Represents the function signature for a "Disabled" function.
  */
-export interface YeomanCheckboxChoice extends YeomanChoice {
-  key?:       string;
-  checked?:   boolean;
-  disabled?:  boolean|string|YeomanChoiceDisabledFunction;
-}
+export type YeomanChoiceDisabledFunction = (answers:unknown) => boolean|string; // tslint:disable-line: no-any
 
 /**
- * Represents the function signature for a "Disabled" function.
- */
-export type YeomanChoiceDisabledFunction = (answers:any) => boolean|string; // tslint:disable-line: no-any
-
-/**
- * Represents what an answers hash should look like during Yeoman/Inquirer interactions
+ * Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions
  * where the user is being asked to proceed/retry/abort something.
  */
-export interface ConfirmationAnswers {
+export interface ConfirmationAnswers extends JsonMap {
   proceed:  boolean;
   restart:  boolean;
   abort:    boolean;
@@ -321,10 +325,10 @@ export type ErrorOrResult = Error | SfdxFalconResult;
  */
 export interface PromptOptions<T extends object> {
   questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
-  questionsArgs?:       any[];  // tslint:disable-line: no-any    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  questionsArgs?:       unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
   defaultAnswers:       T;                                        // Required. Default answers to the Questions.
   confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
-  confirmationArgs?:    any[];  // tslint:disable-line: no-any    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  confirmationArgs?:    unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
   invertConfirmation?:  boolean;                                  // Optional. Treats
   display?:             AnswersDisplay<T>;                        // ???
   context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
@@ -350,9 +354,9 @@ export interface InterviewOptions<T extends object> {
  */
 export interface InterviewGroupOptions<T extends object> {
   questions:            Questions | QuestionsBuilder;
-  questionsArgs?:       any[];  // tslint:disable-line: no-any
+  questionsArgs?:       unknown[];
   confirmation?:        Questions | QuestionsBuilder;
-  confirmationArgs?:    any[];  // tslint:disable-line: no-any
+  confirmationArgs?:    unknown[];
   invertConfirmation?:  boolean;
   display?:             AnswersDisplay<T>;
   when?:                ShowInterviewGroup;
@@ -369,40 +373,46 @@ export interface InterviewStatus {
 }
 
 /**
- * Type alias defining a function that checks whether an Interview should be aborted.
+ * Type. Alias defining a function that checks whether an Interview should be aborted.
  */
 export type AbortInterview = (groupAnswers:InquirerAnswers, userAnswers?:InquirerAnswers) => boolean | string;
 
 /**
- * Type alias defining a function that can be used to determine boolean control-flow inside an Interview.
+ * Type. Alias defining a function that can be used to determine boolean control-flow inside an Interview.
  */
 export type InterviewControlFunction = (userAnswers:InquirerAnswers, sharedData?:object) => boolean | Promise<boolean>;
 
 /**
- * Type alias defining a function or simple boolean that checks whether an Interview Group should be shown.
+ * Type. Alias defining a function or simple boolean that checks whether an Interview Group should be shown.
  */
 export type ShowInterviewGroup = boolean | InterviewControlFunction;
 
 /**
- * Function type alias defining a function that returns Inquirer Questions.
+ * Type. Function type alias defining a function that returns Inquirer Questions.
  */
 export type QuestionsBuilder = () => Questions;
 
 /**
- * Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ * Type. Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Questions = Questions;
 
 /**
- * Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ * Type. Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Question = Question;
 
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Salesforce DX / JSForce related types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
 /**
  * Type. Represents either an Org Alias or a JSForce Connection.
@@ -557,11 +567,17 @@ export interface ObjectDescribe {
   urls?:                any;      // tslint:disable-line: no-any
 }
 
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // SObject related types.
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
 
 /**
  * Interface. Represents a baseline SObject.

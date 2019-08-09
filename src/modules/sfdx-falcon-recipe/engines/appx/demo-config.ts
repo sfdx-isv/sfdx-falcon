@@ -437,7 +437,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
         name:     recipeStepGroup.stepGroupName,
         value:    recipeStepGroup.alias,
         short:    recipeStepGroup.stepGroupName,
-        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias))
+        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias)),
+        disabled: false
       });
     }
 
@@ -447,7 +448,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
         name:     recipeStepGroup.stepGroupName,
         value:    recipeStepGroup.alias,
         short:    recipeStepGroup.stepGroupName,
-        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias))
+        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias)),
+        disabled: false
       });
     }
 
@@ -457,7 +459,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
         name:     recipeStepGroup.stepGroupName,
         value:    recipeStepGroup.alias,
         short:    recipeStepGroup.stepGroupName,
-        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias))
+        checked:  (! (this.recipe.options.skipGroups as string[]).includes(recipeStepGroup.alias)),
+        disabled: false
       });
     }
 
@@ -545,7 +548,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
       targetOrgChoices.push({
         name:   `${targetOrg.orgName} -- ${targetOrg.description}`,
         value:  targetOrg as any,     // tslint:disable-line: no-any // TODO: Are we saving an object to this Listr choice? Is that possible?
-        short:  `${targetOrg.orgName}`
+        short:  `${targetOrg.orgName}`,
+        disabled: false
       });
     }
 
@@ -556,7 +560,8 @@ export class AppxDemoConfigEngine extends AppxRecipeEngine {
     targetOrgChoices.push({
       name:   `Cancel Installation`,
       value:  `CANCEL_INSTALLATION`,
-      short:  `Installation Canceled`
+      short:  `Installation Canceled`,
+      disabled: false
     });
     
     // Define the Inquirer Prompt (this powers the user interatcion in the CLI).
