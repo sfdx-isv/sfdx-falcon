@@ -12,19 +12,23 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
+// Import External Libraries & Modules
 
-// Import Internal Modules
+// Import Internal Libraries
 import * as yoValidate        from  '../sfdx-falcon-validators/yeoman-validator'; // Library of validation functions for Yeoman interview inputs, specific to SFDX-Falcon.
 import * as gitHelper         from  './git';                                      // Library of Git Helper functions specific to SFDX-Falcon.
 
+// Import Internal Classes and Functions
 import {SfdxFalconDebug}      from  '../sfdx-falcon-debug';       // Specialized debug provider for SFDX-Falcon code.
 import {SfdxFalconError}      from  '../sfdx-falcon-error';       // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxFalconInterview}  from  '../sfdx-falcon-interview';   // Class. Provides a standard way of building a multi-group Interview to collect user input.
 import {filterLocalPath}      from  '../sfdx-falcon-util/yeoman'; // Function. Yeoman filter which takes a local Path value and resolves it using path.resolve().
 import {YeomanSeparator}      from  '../sfdx-falcon-util/yeoman'; // Class. Separator object for use when creating Yeoman Lists.
 
 // Import Falcon Types
 import {ConfirmationAnswers}  from  '../sfdx-falcon-types';       // Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions where the user is being asked to proceed/retry/abort something.
+import {InquirerChoices}      from  '../sfdx-falcon-types';       // Type. Represents an InquirerChoice array.
+import {InquirerSeparator}    from  '../sfdx-falcon-types';       // Type. Represents an Inquirer Separator.
 import {Question}             from  '../sfdx-falcon-types';       // Interface. Represents an Inquirer Question.
 import {Questions}            from  '../sfdx-falcon-types';       // Interface. Represents mulitple Inquirer Questions.
 import {ShellExecResult}      from  '../sfdx-falcon-types';       // Interface. Represents the result of a call to shell.execL().
@@ -35,11 +39,12 @@ const dbgNs = 'UTILITY:inquirer-questions:';
 
 // Set file-global defaults
 const PKG_PROJECT_TYPE_CHOICES = [
-  new YeomanSeparator(),
+  new YeomanSeparator() as InquirerSeparator,
   {
-    name:   'Managed Package (1GP)',
-    value:  '1GP:managed',
-    short:  'Managed Package (1GP)'
+    name:     'Managed Package (1GP)',
+    value:    '1GP:managed',
+    short:    'Managed Package (1GP)',
+    disabled: false
   }/*,
   {
     name:   'Unmanaged Package (1GP)',  // TODO: Add support for Unmanaged 1GP packages
@@ -75,7 +80,7 @@ export function chooseDevHub(devHubChoices?:YeomanChoice[]):Question {
 
   // If the caller didn't supply DevHub Choices, try to grab them from Shared Data.
   if (typeof devHubChoices === 'undefined') {
-    validateInterviewScope.call(this);
+    SfdxFalconInterview.validateInterviewScope(this);
     devHubChoices = this.sharedData['devHubAliasChoices'];
   }
 
@@ -112,7 +117,7 @@ export function chooseEnvHub(envHubChoices?:YeomanChoice[]):Question {
 
   // If the caller didn't supply EnvHub Choices, try to grab them from Shared Data.
   if (typeof envHubChoices === 'undefined') {
-    validateInterviewScope.call(this);
+    SfdxFalconInterview.validateInterviewScope(this);
     envHubChoices = this.sharedData['envHubAliasChoices'];
   }
 
@@ -151,7 +156,7 @@ export function choosePkgOrg(pkgOrgChoices?:YeomanChoice[]):Question {
   if (typeof pkgOrgChoices === 'undefined') {
 
     // Since caller didn't supply anything, make sure we have a valid Interview scope.
-    validateInterviewScope.call(this);
+    SfdxFalconInterview.validateInterviewScope(this);
 
     // DEBUG
     SfdxFalconDebug.obj(`${dbgNs}choosePkgOrg:context.userAnswers:`,            this.context.userAnswers, `this.context.userAnswers: `);
@@ -203,7 +208,7 @@ export function choosePkgOrg(pkgOrgChoices?:YeomanChoice[]):Question {
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function choosePkgProjectType(pkgProjectTypeChoices:YeomanChoice[]=PKG_PROJECT_TYPE_CHOICES):Questions {
+export function choosePkgProjectType(pkgProjectTypeChoices:InquirerChoices=PKG_PROJECT_TYPE_CHOICES):Questions {
 
   // Debug arguments.
   SfdxFalconDebug.obj(`${dbgNs}chooseEnvHub:`, arguments, `arguments: `);
@@ -245,7 +250,7 @@ export function choosePkgProjectType(pkgProjectTypeChoices:YeomanChoice[]=PKG_PR
 export function confirmNoDevHub():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Questions.
   return [
@@ -270,7 +275,7 @@ export function confirmNoDevHub():Questions {
 export function confirmNoEnvHub():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Questions.
   return [
@@ -297,7 +302,7 @@ export function confirmNoEnvHub():Questions {
 export function confirmNoGitHubRepo():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Questions.
   return [
@@ -370,7 +375,7 @@ export function confirmNoGitHubRepo():Questions {
 export function confirmNoPkgOrg():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Questions.
   return [
@@ -396,7 +401,7 @@ export function confirmNoPkgOrg():Questions {
 export function confirmNoPkgOrgConnection():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Debug
   SfdxFalconDebug.obj(`${dbgNs}confirmNoPkgOrgConnection:`, this.context.userAnswers, `this.context.userAnswers: `);
@@ -427,7 +432,7 @@ export function confirmNoPkgOrgConnection():Questions {
 export function confirmProceedRestart():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Initialize a "Confirmation Question" string.
   let confirmationQuestion  = 'Would you like to proceed based on the above settings?';
@@ -478,7 +483,7 @@ export function confirmProceedRestart():Questions {
 export function provideDeveloperInfo():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Question.
   return [
@@ -517,7 +522,7 @@ export function provideDeveloperInfo():Questions {
 export function provideGitRemote():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Question.
   return [
@@ -563,7 +568,7 @@ export function provideGitRemote():Questions {
 export function provideProjectInfo():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Question.
   return [
@@ -602,7 +607,7 @@ export function provideProjectInfo():Questions {
 export function provideTargetDirectory():Questions {
 
   // Make sure the calling scope has the variables we expect.
-  validateInterviewScope.call(this);
+  SfdxFalconInterview.validateInterviewScope(this);
 
   // Build and return the Question.
   return [
@@ -618,46 +623,4 @@ export function provideTargetDirectory():Questions {
       when:     true
     }
   ];
-}
-
-// ────────────────────────────────────────────────────────────────────────────────────────────────┐
-/**
- * @function    validateInterviewScope
- * @returns     {void}
- * @description Ensures that the calling scope has certain variables that are required the various
- *              Question Builder functions in this file.
- * @private
- */
-// ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function validateInterviewScope():void {
-  if (typeof this.userAnswers !== 'object') {
-    throw new SfdxFalconError( `Expected this.userAnswers to be an object available in the calling scope. Got type '${typeof this.userAnswers}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }
-  if (typeof this.defaultAnswers !== 'object') {
-    throw new SfdxFalconError( `Expected this.defaultAnswers to be an object available in the calling scope. Got type '${typeof this.defaultAnswers}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }
-  if (typeof this.confirmationAnswers !== 'object') {
-    throw new SfdxFalconError( `Expected this.confirmationAnswers to be an object available in the calling scope. Got type '${typeof this.confirmationAnswers}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }
-  if (typeof this.context !== 'object') {
-    throw new SfdxFalconError( `Expected this.context to be an object available in the calling scope. Got type '${typeof this.context}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }
-  if (typeof this.sharedData !== 'object') {
-    throw new SfdxFalconError( `Expected this.sharedData to be an object available in the calling scope. Got type '${typeof this.sharedData}' instead. `
-                             + `Please execute this function using the syntax: functionName.call(this)`
-                             , `InvalidCallScope`
-                             , `${dbgNs}validateInterviewScope`);
-  }
 }
