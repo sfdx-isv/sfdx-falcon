@@ -43,11 +43,11 @@ const dbgNs = 'UTILITY:yeoman:';
 export class YeomanSeparator {
 
   // Class Members
-  public name:   string;
-  public value:  string;
-  public short:  string;
-  public type:   string;
-  public line?:  string;
+  public name:  string;
+  public value: string;
+  public short: string;
+  public type:  string;
+  public line?: string;
 
   // Constructor
   constructor(separatorLine?:string) {
@@ -78,6 +78,40 @@ export class GeneratorStatus {
   public completed:  boolean;
   public running:    boolean;
   public messages:   StatusMessage[];
+
+  // Public accessors
+  public get hasError():boolean {
+    for (const message of this.messages) {
+      if (message.type === 'error') {
+        return true;
+      }
+    }
+    return false;
+  }
+  public get hasInfo():boolean {
+    for (const message of this.messages) {
+      if (message.type === 'info') {
+        return true;
+      }
+    }
+    return false;
+  }
+  public get hasSuccess():boolean {
+    for (const message of this.messages) {
+      if (message.type === 'success') {
+        return true;
+      }
+    }
+    return false;
+  }
+  public get hasWarning():boolean {
+    for (const message of this.messages) {
+      if (message.type === 'warning') {
+        return true;
+      }
+    }
+    return false;
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -234,11 +268,12 @@ function createOrgAliasChoice(orgInfo:SfdxOrgInfo, longestAlias:number, longestU
 
   // Build an OrgAliasChoice as a YeomanChoice data structure.
   return {
-    name:   `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`,
-    value:  orgInfo.username,
-    short:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
-            ? `${orgInfo.alias} (${orgInfo.username})${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`  // Use Alias (Username)
-            : orgInfo.username + (orgInfo.nsPrefix ? '['+orgInfo.nsPrefix+']' : '')                         // Just use Username
+    name:     `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`,
+    disabled: false,
+    value:    orgInfo.username,
+    short:    (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
+              ? `${orgInfo.alias} (${orgInfo.username})${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`  // Use Alias (Username)
+              : orgInfo.username + (orgInfo.nsPrefix ? '['+orgInfo.nsPrefix+']' : '')                         // Just use Username
   };
 }
 
