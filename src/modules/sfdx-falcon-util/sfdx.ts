@@ -596,6 +596,58 @@ export function buildSfdxOrgInfoMap(rawSfdxOrgList:RawSfdxOrgInfo[]):SfdxOrgInfo
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    deployMetadata
+ * @param       {string}  aliasOrUsername Required. The alias or username associated with a current
+ *              Salesforce CLI connected org.
+ * @param       {string}  deployDirectory Required. Path to directory containing a package manifest
+ *              (package.xml) that specifies the components to deploy.
+ * @returns     {Promise<SfdxFalconResult>} Uses an SfdxShellResult to return data to the caller for
+ *              both RESOLVE and REJECT.
+ * @description Uses the Salesforce CLI's force:mdapi:deploy command to deploy the metadata
+ *              components specified by the Manifest File (package.xml) inside the Deploy Directory.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function deployMetadata(aliasOrUsername:string, deployDirectory:string):Promise<SfdxFalconResult> {
+
+  // Set the SFDX Command String to be used by this function.
+  const sfdxCommandString =
+    `sfdx force:mdapi:deploy `
+  + ` --targetusername ${aliasOrUsername}`
+  + ` --deploydir "${deployDirectory}"`
+  + ` --wait 10`
+  + ` --testlevel NoTestRun`
+  + ` --loglevel debug`
+  + ` --json`;
+
+  // Introduce a small delay in case this is being used by an Observable Listr Task.
+  await waitASecond(3);
+
+  // Initialize a UTILITY Result for this function.
+  const utilityResult = new SfdxFalconResult(`sfdx:deployMetadata`, SfdxFalconResultType.UTILITY);
+  const utilityResultDetail = {
+    sfdxCommandString:  sfdxCommandString,
+    stdOutParsed:       null,
+    stdOutBuffer:       null,
+    stdErrBuffer:       null,
+    error:              null
+  } as SfdxUtilityResultDetail;
+  utilityResult.detail = utilityResultDetail;
+  utilityResult.debugResult('Utility Result Initialized', `${dbgNs}deployMetadata:`);
+
+  // Define the success, failure, and "mixed" messages for the SFDX command execution.
+  const messages = {
+    failureMessage: 'Metadata Deployment Failed',
+    successMessage: 'Metadata Deployment Succeeded',
+    mixedMessage:   'Metadata Deployment failed but the CLI returned a Success Response'
+  };
+
+  // Execute the Salesforce CLI Command.
+  return executeSfdxCommand(sfdxCommandString, utilityResult, messages);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    detectSalesforceCliError
  * @param       {unknown} thingToCheck  Required. Either a string buffer containing an
  *              stderr CLI response or a safeParse() JSON object that (hopefully) came from a
