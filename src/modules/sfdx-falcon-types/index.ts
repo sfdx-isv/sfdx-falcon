@@ -363,6 +363,7 @@ export interface InterviewGroupOptions<T extends object> {
   abort?:               AbortInterview;
   title?:               string;
 }
+
 /**
  * Interface. Represents a set of status indicators for an SfdxFalconInterview.
  */
