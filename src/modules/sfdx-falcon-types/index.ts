@@ -32,6 +32,56 @@ import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Re
 //
 //
 //─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Fundamental Types
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Type. Represents the constructor for a Class, ie. something that can be the right operand of the instanceof operator.
+ */
+export type ClassConstructor = any;  // tslint:disable-line: no-any
+
+/**
+ * Interface. Allows for specification of a message string and chalk-specific styling information.
+ */
+export interface StyledMessage extends JsonMap {
+  /** Required. The text of the desired message. */
+  message:  string;
+  /** Required. Chalk styles to be applied to the message. Uses the "tagged template literal" format. */
+  styling:  string;
+}
+
+/**
+ * Interface. Represents a "state aware" message. Contains a title, a message, and a type.
+ */
+export interface StatusMessage extends JsonMap {
+  /** Required. The title of the status message. */
+  title:    string;
+  /** Required. The text of the status message. */
+  message:  string;
+  /** Required. The type of the status message. */
+  type:     StatusMessageType;
+}
+
+/**
+ * Enum. Represents the various types/states of a Status Message.
+ */
+export enum StatusMessageType {
+  ERROR   = 'error',
+  INFO    = 'info',
+  SUCCESS = 'success',
+  WARNING = 'warning',
+  FATAL   = 'fatal'
+}
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Falcon and SFDX Config-related interfaces and types.
 //─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 //
@@ -254,6 +304,26 @@ export interface ListrContextPkgRetExCon extends JsonMap {
   packagesRetrieved:  boolean;
   sourceExtracted:    boolean;
   sourceConverted:    boolean;
+}
+
+/**
+ * Interface. Represents the suite of information required to run a Listr Task Bundle.
+ */
+export interface ListrTaskBundle {
+  /** Required. A fully instantiated Listr Object representing the tasks that the caller would like to run. */
+  listrObject:            ListrObject;
+  /** Required. The debug namespace that will be used by SfdxFalconDebug and SfdxFalconError objects. */
+  dbgNsLocal:             string;
+  /** Required. Status Message that will be added to the GeneratorStatus object if the Task Bundle completes successfully. */
+  generatorStatusSuccess: StatusMessage;
+  /** Required. Status Message that will be added to the GeneratorStatus object if the Task Bundle does not complete successfully. */
+  generatorStatusFailure: StatusMessage;
+  /** Required. Specifies whether an error will be thrown if any of the Tasks in the Task Bundle fail. */
+  throwOnFailure:         boolean;
+  /** Optional. A styled message that will be shown to the user BEFORE the Task Bundle is run. */
+  preTaskMessage?:        StyledMessage;
+  /** Optional. A styled message that will be shown to the user AFTER the Task Bundle is run. */
+  postTaskMessage?:       StyledMessage;
 }
 
 /**
