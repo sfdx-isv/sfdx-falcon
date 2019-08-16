@@ -20,6 +20,7 @@ import {Observable}             from  'rxjs';                       // Class. Us
 // Import Internal Libraries
 import * as sfdxHelper          from  '../sfdx-falcon-util/sfdx';   // Library of SFDX Helper functions specific to SFDX-Falcon.
 import * as yoHelper            from  '../sfdx-falcon-util/yeoman'; // Library of Yeoman Helper functions specific to SFDX-Falcon.
+import * as typeValidator       from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
 import * as gitHelper           from  './git';                      // Library of Git Helper functions specific to SFDX-Falcon.
 import * as zipHelper           from  './zip';                      // Library of Zip Helper functions.
 
@@ -33,15 +34,16 @@ import {waitASecond}                  from  '../sfdx-falcon-util/async';    // F
 
 // Import Falcon Types
 import {ErrorOrResult}            from  '../sfdx-falcon-types';   // Type. Alias to a combination of Error or SfdxFalconResult.
+import {GeneratorRequirements}    from  '../sfdx-falcon-types';   // Interface. Represents the initialization requirements for Yeoman Generators that implement SfdxFalconYeomanGenerator.
 import {ListrContextFinalizeGit}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
 import {ListrContextPkgRetExCon}  from  '../sfdx-falcon-types';   // Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
 import {ListrExecutionOptions}    from  '../sfdx-falcon-types';   // Interface. Represents the set of "execution options" related to the use of Listr.
 import {ListrObject}              from  '../sfdx-falcon-types';   // Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
 import {ListrSkipCommand}         from  '../sfdx-falcon-types';   // Type. A built-in function of the "this task" Listr Task object that gets passed into executable task code.
 import {ListrTask}                from  '../sfdx-falcon-types';   // Interface. Represents a Listr Task.
-import {RawSfdxOrgInfo}           from  '../sfdx-falcon-types';   // Interface. Represents the data returned by the sfdx force:org:list command.
+import {RawStandardOrgInfo}       from  '../sfdx-falcon-types';   // Interface. Represents the data returned by the sfdx force:org:list command.
 import {RawScratchOrgInfo}        from  '../sfdx-falcon-types';   // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
-import {SfdxOrgInfoMap}           from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StandardOrgInfoMap}       from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding StandardOrgInfo values.
 import {ShellExecResult}          from  '../sfdx-falcon-types';   // Interface. Represents the result of a call to shell.execL().
 import {Subscriber}               from  '../sfdx-falcon-types';   // Type. Alias to an rxjs Subscriber<any> type.
 
@@ -130,21 +132,25 @@ export function buildDevHubAliasList():ListrTask {
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}buildDevHubAliasList:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Building DevHub Alias List...',
-    enabled:() => Array.isArray(this.sharedData.devHubAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.devHubOrgs === true,
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}buildDevHubAliasList:listrContext.devHubOrgInfos:`, listrContext.devHubOrgInfos, `listrContext.devHubOrgInfos: `);
+      // Grab DevHub Org Infos out of Shared Data.
+      const devHubOrgInfos = this.sharedData['devHubOrgInfos'] as sfdxHelper.StandardOrgInfo[];
+      SfdxFalconDebug.obj(`${dbgNs}buildDevHubAliasList:devHubOrgInfos:`, devHubOrgInfos);
 
-      // Build a list of Choices based on the DevHub org infos.
-      this.sharedData.devHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.devHubOrgInfos);
-
-      // Add a separator and a "not specified" option
-      this.sharedData.devHubAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.devHubAliasChoices.push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
+      // Build a list of Choices based on the DevHub org infos, followed by a separator and a "not specified" option.
+      this.sharedData['devHubAliasChoices'] = yoHelper.buildOrgAliasChoices(devHubOrgInfos);
+      this.sharedData['devHubAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['devHubAliasChoices'].push({name:'My DevHub Is Not Listed Above', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
       return;
     }
@@ -167,21 +173,25 @@ export function buildEnvHubAliasList():ListrTask {
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}buildEnvHubAliasList:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Building EnvHub Alias List...',
-    enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.envHubOrgs === true,
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}buildEnvHubAliasList:listrContext.envHubOrgInfos:`, listrContext.envHubOrgInfos, `listrContext.envHubOrgInfos: `);
+      // Grab EnvHub Org Infos out of Shared Data.
+      const envHubOrgInfos = this.sharedData['envHubOrgInfos'] as sfdxHelper.StandardOrgInfo[];
+      SfdxFalconDebug.obj(`${dbgNs}buildEnvHubAliasList:envHubOrgInfos:`, envHubOrgInfos);
       
-      // Build a list of Choices based on the Env Hub org infos.
-      this.sharedData.envHubAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.envHubOrgInfos);
-
-      // Add a separator and a "not specified" option
-      this.sharedData.envHubAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.envHubAliasChoices.push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      // Build a list of Choices based on the Env Hub org infos, followed by a separator and a "not specified" option.
+      this.sharedData['envHubAliasChoices'] = yoHelper.buildOrgAliasChoices(envHubOrgInfos);
+      this.sharedData['envHubAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['envHubAliasChoices'].push({name:'My Environment Hub Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
       thisTask.title += 'Done!';
       return;
     }
@@ -204,41 +214,47 @@ export function buildPkgOrgAliasList():ListrTask {
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}buildPkgOrgAliasList:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Building PkgOrg Alias List...',
-    enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && (generatorRequirements.managedPkgOrgs === true || generatorRequirements.unmanagedPkgOrgs === true),
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}buildPkgOrgAliasList:listrContext.pkgOrgInfos:`, listrContext.pkgOrgInfos, `listrContext.pkgOrgInfos: `);
-      
+      // Grab Package Org Infos out of Shared Data.
+      const pkgOrgInfos = this.sharedData['pkgOrgInfos'] as sfdxHelper.StandardOrgInfo[];
+      SfdxFalconDebug.obj(`${dbgNs}buildPkgOrgAliasList:pkgOrgInfos:`, pkgOrgInfos);
+
       // Build Choices based on ALL Packaging Org infos, followed by a separator and a "not specified" option.
-      this.sharedData.pkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(listrContext.pkgOrgInfos);
-      this.sharedData.pkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.pkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      this.sharedData['pkgOrgAliasChoices'] = yoHelper.buildOrgAliasChoices(pkgOrgInfos);
+      this.sharedData['pkgOrgAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['pkgOrgAliasChoices'].push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // Build Choices based on MANAGED Packaging Org infos, followed by a separator and a "not specified" option.
-      const managedPkgOrgInfos = new Array<sfdxHelper.SfdxOrgInfo>();
-      for (const orgInfo of listrContext.pkgOrgInfos as sfdxHelper.SfdxOrgInfo[]) {
+      const managedPkgOrgInfos = new Array<sfdxHelper.StandardOrgInfo>();
+      for (const orgInfo of pkgOrgInfos) {
         if (orgInfo.nsPrefix) {
           managedPkgOrgInfos.push(orgInfo);
         }
       }
-      this.sharedData.managedPkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(managedPkgOrgInfos);
-      this.sharedData.managedPkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.managedPkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      this.sharedData['managedPkgOrgAliasChoices'] = yoHelper.buildOrgAliasChoices(managedPkgOrgInfos);
+      this.sharedData['managedPkgOrgAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['managedPkgOrgAliasChoices'].push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // Build Choices based on UNMANAGED Packaging Org infos, followed by a separator and a "not specified" option.
-      const unmanagedPkgOrgInfos = new Array<sfdxHelper.SfdxOrgInfo>();
-      for (const orgInfo of listrContext.pkgOrgInfos as sfdxHelper.SfdxOrgInfo[]) {
+      const unmanagedPkgOrgInfos = new Array<sfdxHelper.StandardOrgInfo>();
+      for (const orgInfo of pkgOrgInfos) {
         if (! orgInfo.nsPrefix) {
           unmanagedPkgOrgInfos.push(orgInfo);
         }
       }
-      this.sharedData.unmanagedPkgOrgAliasChoices = yoHelper.buildOrgAliasChoices(unmanagedPkgOrgInfos);
-      this.sharedData.unmanagedPkgOrgAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.unmanagedPkgOrgAliasChoices.push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      this.sharedData['unmanagedPkgOrgAliasChoices'] = yoHelper.buildOrgAliasChoices(unmanagedPkgOrgInfos);
+      this.sharedData['unmanagedPkgOrgAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['unmanagedPkgOrgAliasChoices'].push({name:'My Packaging Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // All done!
       thisTask.title += 'Done!';
@@ -263,19 +279,25 @@ export function buildScratchOrgAliasList():ListrTask {
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgAliasList:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Building Scratch Org Alias List...',
-    enabled:() => Array.isArray(this.sharedData.scratchOrgAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.scratchOrgs === true,
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgAliasList:sharedData:scratchOrgInfoMap`, this.sharedData.scratchOrgInfoMap);
+      // Grab Scratch Org Infos out of Shared Data.
+      const scratchOrgInfos = Array.from(this.sharedData['scratchOrgInfoMap'].values() as sfdxHelper.ScratchOrgInfo[]);
+      SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgAliasList:scratchOrgInfos:`, scratchOrgInfos);
       
-      // Build Choices based on ALL SFDX Org Infos, followed by a separator and a "not specified" option.
-      this.sharedData.scratchOrgAliasChoices = yoHelper.buildOrgAliasChoices(Array.from(this.sharedData.scratchOrgInfoMap.values()));
-      this.sharedData.scratchOrgAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.scratchOrgAliasChoices.push({name:'My Scratch Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      // Build Choices based on ALL Scratch Org Infos, followed by a separator and a "not specified" option.
+      this.sharedData['scratchOrgAliasChoices'] = yoHelper.buildOrgAliasChoices(scratchOrgInfos);
+      this.sharedData['scratchOrgAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['scratchOrgAliasChoices'].push({name:'My Scratch Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // All done!
       thisTask.title += 'Done!';
@@ -286,33 +308,39 @@ export function buildScratchOrgAliasList():ListrTask {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildTargetOrgAliasList
+ * @function    buildStandardOrgAliasList
  * @returns     {ListrTask}  A Listr-compatible Task Object
- * @description Returns a Listr-compatible Task Object that takes the list of all connected orgs
- *              and uses it to create an Inquirer-compatible "choice list". This function must
- *              be executed using the call() method because it relies on the caller's "this" context
- *              to properly function.
+ * @description Returns a Listr-compatible Task Object that takes the list of all Standard (ie.
+ *              non-scratch) connected orgs and uses it to create an Inquirer-compatible "choice list".
+ *              This function must be executed using the call() method because it relies on the
+ *              caller's "this" context to properly function.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildTargetOrgAliasList():ListrTask {
+export function buildStandardOrgAliasList():ListrTask {
 
   // Make sure the calling scope has a valid context variable.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}buildStandardOrgAliasList:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
-    title:  'Building Target Org Alias List...',
-    enabled:() => Array.isArray(this.sharedData.targetOrgAliasChoices),
+    title:  'Building Standard Org Alias List...',
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.standardOrgs === true,
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}buildTargetOrgAliasList:sharedData:sfdxOrgInfoMap`, this.sharedData.sfdxOrgInfoMap);
+      // Grab Standard Org Infos out of Shared Data.
+      const standardOrgInfos = Array.from(this.sharedData['standardOrgInfoMap'].values() as sfdxHelper.ScratchOrgInfo[]);
+      SfdxFalconDebug.obj(`${dbgNs}buildStandardOrgAliasList:standardOrgInfos:`, standardOrgInfos);
       
-      // Build Choices based on ALL SFDX Org Infos, followed by a separator and a "not specified" option.
-      this.sharedData.targetOrgAliasChoices = yoHelper.buildOrgAliasChoices(Array.from(this.sharedData.sfdxOrgInfoMap.values()));
-      this.sharedData.targetOrgAliasChoices.push(new yoHelper.YeomanSeparator());
-      this.sharedData.targetOrgAliasChoices.push({name:'My Target Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
+      // Build Choices based on ALL Standard Org Infos, followed by a separator and a "not specified" option.
+      this.sharedData['standardOrgAliasChoices'] = yoHelper.buildOrgAliasChoices(standardOrgInfos);
+      this.sharedData['standardOrgAliasChoices'].push(new yoHelper.YeomanSeparator());
+      this.sharedData['standardOrgAliasChoices'].push({name:'My Org Is Not Listed', value:'NOT_SPECIFIED', short:'Not Specified'});
 
       // All done!
       thisTask.title += 'Done!';
@@ -766,37 +794,27 @@ function finalizeObservableTaskResult(otr:SfdxFalconResult, errorOrResult?:Error
  * @function    gitInitTasks
  * @returns     {ListrObject}  A "runnable" Listr Object
  * @description Returns a Listr-compatible Task Object that verifies the presence of the Git
- *              executable in the local environment.
+ *              executable in the local environment and checks if a Git Remote is reachable, if
+ *              one is provided.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function gitInitTasks():ListrObject {
+export function gitInitTasks(gitRemoteUri:string=''):ListrObject {
 
-  // Make sure the calling scope has a valid context variable.
-  validateSharedData.call(this);
-
-  // Grab the Command Name and Git Remote URI out of Shared Data.
-  const cliCommandName  = this.sharedData.cliCommandName;
-  const gitRemoteUri    = this.sharedData.gitRemoteUri;
-
-  // Check for the presence of key variables in the calling scope.
-  if (typeof cliCommandName !== 'string' || cliCommandName === '') {
-    throw new SfdxFalconError( `Expected cliCommandName to be a non-empty string but got type '${typeof cliCommandName}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}gitInitTasks`);
-  }
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}gitInitTasks:arguments:`, arguments);
 
   // Build and return a Listr Object.
   return new listr(
     [
       {
-        // PARENT_TASK: "Initialize" the Falcon command.
+        // PARENT_TASK: (Git Validation/Initialization)
         title:  `Inspecting Environment`,
         task:   listrContext => {
           return new listr(
             [
               // SUBTASKS: Check for Git executable and for valid Git Remote URI.
-              gitRuntimeCheck.call(this),
+              gitRuntimeCheck(),
               validateGitRemote(gitRemoteUri)
             ],
             {
@@ -861,32 +879,32 @@ export function identifyDevHubs():ListrTask {
   // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements'] as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Identifying DevHub Orgs...',
-    enabled:() => Array.isArray(this.sharedData.devHubAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.devHubOrgs === true,
     task:   (listrContext, thisTask) => {
 
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
-
+      // Grab the Standard Org Info Map out of Shared Data.
+      const standardOrgInfoMap = this.sharedData['standardOrgInfoMap'] as StandardOrgInfoMap;
+      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:standardOrgInfoMap:`, standardOrgInfoMap);
+    
       // Search the SFDX Org Infos list for any DevHub orgs.
-      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap);
-
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:`, devHubOrgInfos, `devHubOrgInfos: `);
+      const devHubOrgInfos = sfdxHelper.identifyDevHubOrgs(standardOrgInfoMap);
+      SfdxFalconDebug.obj(`${dbgNs}identifyDevHubs:devHubOrgInfos:`, devHubOrgInfos);
  
-      // Make sure there is at least one active Dev Hub.
+      // Update the task title based on the number of DevHub Org Infos
       if (devHubOrgInfos.length < 1) {
         thisTask.title += 'No Dev Hubs Found';
-        throw new SfdxFalconError( `No Dev Hubs found. You must have at least one active Dev Hub to continue. `
-                                 + `Please run force:auth:web:login to connect to your Dev Hub.`
-                                 , `NoDevHubs`
-                                 , `${dbgNs}identifyDevHubs`);
       }
  
-      // Give the Listr Context variable access to this.devHubOrgInfos
-      listrContext.devHubOrgInfos = devHubOrgInfos;
+      // Save the DevHub Org Infos to Shared Data.
+      this.sharedData['devHubOrgInfos'] = devHubOrgInfos;
  
       // Update the Task Title
       thisTask.title += 'Done!';
@@ -909,22 +927,29 @@ export function identifyEnvHubs():ListrTask {
   // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Identifying EnvHub Orgs...',
-    enabled:() => Array.isArray(this.sharedData.envHubAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && generatorRequirements.envHubOrgs === true,
     task:   (listrContext, thisTask) => {
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: `);
 
+      // Grab the Standard Org Info Map out of Shared Data.
+      const standardOrgInfoMap = this.sharedData['standardOrgInfoMap'] as StandardOrgInfoMap;
+      SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:standardOrgInfoMap:`, standardOrgInfoMap);
+    
       // Search the SFDX Org Infos list for any Environment Hub orgs.
-      return sfdxHelper.identifyEnvHubOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap)
+      return sfdxHelper.identifyEnvHubOrgs(standardOrgInfoMap)
         .then(envHubOrgInfos => {
           // DEBUG
-          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:envHubOrgInfos:`, envHubOrgInfos, `envHubOrgInfos: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:envHubOrgInfos:`, envHubOrgInfos);
 
-          // Give the Listr Context variable access to the Packaging Org Infos just returned.
-          listrContext.envHubOrgInfos = envHubOrgInfos;
+          // Save the EnvHub Org Infos to Shared Data.
+          this.sharedData['envHubOrgInfos'] = envHubOrgInfos;
 
           // Update the task title based on the number of EnvHub Org Infos
           if (envHubOrgInfos.length < 1) {
@@ -936,7 +961,7 @@ export function identifyEnvHubs():ListrTask {
         })
         .catch(error => {
           // We normally should NOT get here.
-          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:error:`, error, `error: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubs:error:`, error);
           thisTask.title += 'Unexpected error while identifying Environment Hub Orgs';
           throw error;
         });
@@ -959,22 +984,29 @@ export function identifyPkgOrgs():ListrTask {
   // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements'] as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Identifying Packaging Orgs...',
-    enabled:() => Array.isArray(this.sharedData.pkgOrgAliasChoices),
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && (generatorRequirements.managedPkgOrgs === true || generatorRequirements.unmanagedPkgOrgs === true),
     task:   (listrContext, thisTask) => {
-      // DEBUG
-      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:listrContext.rawSfdxOrgList:`, listrContext.rawSfdxOrgList, `listrContext.rawSfdxOrgList: (BEFORE ASYNC CALL)`);
 
+      // Grab the Standard Org Info Map out of Shared Data.
+      const standardOrgInfoMap = this.sharedData['standardOrgInfoMap'] as StandardOrgInfoMap;
+      SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:standardOrgInfoMap:`, standardOrgInfoMap);
+    
       // Search the SFDX Org Infos list for any Packaging orgs.
-      return sfdxHelper.identifyPkgOrgs(this.sharedData.sfdxOrgInfoMap as SfdxOrgInfoMap)
+      return sfdxHelper.identifyPkgOrgs(standardOrgInfoMap)
         .then(pkgOrgInfos => {
           // DEBUG
-          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos:`, pkgOrgInfos, `pkgOrgInfos: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos:`, pkgOrgInfos);
 
-          // Give the Listr Context variable access to the Packaging Org Infos just returned.
-          listrContext.pkgOrgInfos = pkgOrgInfos;
+          // Save the Package Org Infos to Shared Data.
+          this.sharedData['pkgOrgInfos'] = pkgOrgInfos;
 
           // Update the task title based on the number of EnvHub Org Infos
           if (pkgOrgInfos.length < 1) {
@@ -986,7 +1018,7 @@ export function identifyPkgOrgs():ListrTask {
         })
         .catch(error => {
           // We normally should NOT get here.
-          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:error:`, error, `error: `);
+          SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:error:`, error);
           thisTask.title += 'Unexpected error while identifying Packaging Orgs';
           throw error;
         });
@@ -1294,9 +1326,9 @@ export function reValidateGitRemote(gitRemoteUri:string):ListrTask {
 /**
  * @function    scanConnectedOrgs
  * @returns     {ListrTask}  A Listr-compatible Task Object
- * @description Returns a Listr-compatible Task Object that scans the orgs that are connected to
- *              (ie. authenticated to) the local SFDX environment. The raw list of these orgs is
- *              added to the Listr Context var so it's available to subsequent Listr tasks.
+ * @description Returns a Listr-compatible Task Object that scans the Standard and Scratch orgs that
+ *              are connected to (ie. authenticated to) the local SFDX environment. The raw lists of
+ *              these orgs are added to Shared Data so they're available to subsequent Listr tasks.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -1305,24 +1337,35 @@ export function scanConnectedOrgs():ListrTask {
   // Make sure the calling scope has access to Shared Data.
   validateSharedData.call(this);
 
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Task.
   return {
     title:  'Scanning Connected Orgs...',
+    enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                  && (generatorRequirements.standardOrgs        === true
+                      || generatorRequirements.scratchOrgs      === true
+                      || generatorRequirements.devHubOrgs       === true
+                      || generatorRequirements.envHubOrgs       === true
+                      || generatorRequirements.managedPkgOrgs   === true
+                      || generatorRequirements.unmanagedPkgOrgs === true),
     task:   (listrContext, thisTask) => {
       return sfdxHelper.scanConnectedOrgs()
         .then(successResult => {
           // DEBUG
           SfdxFalconDebug.obj(`${dbgNs}scanConnectedOrgs:successResult:`, successResult, `successResult: `);
 
-          // Store the JSON result containing the list of orgs that are NOT scratch orgs in a class member.
-          let rawSfdxOrgList = [];
+          // Extract a list of Standard (ie. non-scratch) orgs from the successResult.
+          let rawStandardOrgList = [];
           if (successResult.detail && typeof successResult.detail === 'object') {
             if ((successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
-              rawSfdxOrgList = (successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
+              rawStandardOrgList = (successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed['result']['nonScratchOrgs'];
             }
           }
 
-          // Store the JSON result containing the list of orgs that ARE scratch orgs in a class member.
+          // Extract a list of Scratch (ie. non-scratch) orgs from the successResult.
           let rawScratchOrgList = [];
           if (successResult.detail && typeof successResult.detail === 'object') {
             if ((successResult.detail as sfdxHelper.SfdxUtilityResultDetail).stdOutParsed) {
@@ -1330,21 +1373,21 @@ export function scanConnectedOrgs():ListrTask {
             }
           }
 
-          // Make sure that there is at least ONE connnected NON-SCRATCH org
-          if (Array.isArray(rawSfdxOrgList) === false || rawSfdxOrgList.length < 1) {
+          // Make sure that there is at least ONE connnected Standard or Scratch org
+          if (typeValidator.isEmptyNullInvalidArray(rawStandardOrgList) && typeValidator.isEmptyNullInvalidArray(rawScratchOrgList)) {
             throw new SfdxFalconError( `No orgs have been authenticated to the Salesforce CLI. `
-                                     + `Please run force:auth:web:login to connect to an org.`
+                                     + `Please run one of the force:auth commands to connect to an org to the CLI.`
                                      , `NoConnectedOrgs`
                                      , `${dbgNs}scanConnectedOrgs`);
           }
 
-          // Put the raw SFDX Org List into the Listr Context variable.
-          this.sharedData.rawSfdxOrgList    = rawSfdxOrgList;
-          this.sharedData.rawScratchOrgList = rawScratchOrgList;
+          // Put the raw Standard and Scratch Org Lists into Shared Data.
+          this.sharedData['rawStandardOrgList'] = rawStandardOrgList;
+          this.sharedData['rawScratchOrgList']  = rawScratchOrgList;
 
-          // Build a baseline list of SFDX Org Info objects based on thie raw list.
-          this.sharedData.sfdxOrgInfoMap    = sfdxHelper.buildSfdxOrgInfoMap(rawSfdxOrgList       as RawSfdxOrgInfo[]);
-          this.sharedData.scratchOrgInfoMap = sfdxHelper.buildScratchOrgInfoMap(rawScratchOrgList as RawScratchOrgInfo[]);
+          // Build maps of Standard and Scratch org infos based on the raw lists.
+          this.sharedData['standardOrgInfoMap'] = sfdxHelper.buildStandardOrgInfoMap(rawStandardOrgList as RawStandardOrgInfo[]);
+          this.sharedData['scratchOrgInfoMap']  = sfdxHelper.buildScratchOrgInfoMap (rawScratchOrgList  as RawScratchOrgInfo[]);
 
           // Change the title of the task.
           thisTask.title += 'Done!';
@@ -1372,12 +1415,26 @@ export function scanConnectedOrgs():ListrTask {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function sfdxInitTasks():ListrObject {
 
+  // Make sure the calling scope has a valid context variable.
+  validateSharedData.call(this);
+
+  // Grab Generator Requirements out of Shared Data.
+  const generatorRequirements = this.sharedData['generatorRequirements']  as GeneratorRequirements;
+  SfdxFalconDebug.obj(`${dbgNs}sfdxInitTasks:generatorRequirements:`, generatorRequirements);
+
   // Build and return a Listr Object.
   return new listr(
     [
       {
         // PARENT_TASK: Local SFDX Configuration
         title: 'Inspecting Local SFDX Configuration',
+        enabled:() => typeValidator.isNotNullInvalidObject(generatorRequirements)
+                      && (generatorRequirements.standardOrgs        === true
+                          || generatorRequirements.scratchOrgs      === true
+                          || generatorRequirements.devHubOrgs       === true
+                          || generatorRequirements.envHubOrgs       === true
+                          || generatorRequirements.managedPkgOrgs   === true
+                          || generatorRequirements.unmanagedPkgOrgs === true),
         task: listrContext => {
           return new listr(
             [
@@ -1388,7 +1445,7 @@ export function sfdxInitTasks():ListrObject {
               buildDevHubAliasList.call(this),
               buildEnvHubAliasList.call(this),
               buildPkgOrgAliasList.call(this),
-              buildTargetOrgAliasList.call(this),
+              buildStandardOrgAliasList.call(this),
               buildScratchOrgAliasList.call(this)
             ],
             // SUBTASK OPTIONS: (SFDX Config Tasks)
@@ -1510,11 +1567,7 @@ function validateGitCloneArguments():void {
 export function validateGitRemote(gitRemoteUri:string=''):ListrTask {
 
   // Validate incoming arguments.
-  if (typeof gitRemoteUri !== 'string') {
-    throw new SfdxFalconError( `Expected gitRemoteUri to be string but got type '${typeof gitRemoteUri}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}validateGitRemote`);
-  }
+  typeValidator.throwOnInvalidString(gitRemoteUri, `${dbgNs}validateGitRemote`, `gitRemoteUri`);
 
   // Build and return the Listr task.
   return {

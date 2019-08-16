@@ -1,7 +1,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @file          modules/sfdx-falcon-types/index.d.ts
- * @copyright     Vivek M. Chawla - 2018
+ * @file          modules/sfdx-falcon-types/index.ts
+ * @copyright     Vivek M. Chawla / Salesforce - 2019
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Collection of interfaces and types used across SFDX-Falcon modules.
  * @description   Collection of interfaces and types used across SFDX-Falcon modules.
@@ -13,8 +13,6 @@
 import {Connection}           from  '@salesforce/core';         // Why?
 import {AnyJson}              from  '@salesforce/ts-types';     // Why?
 import {JsonMap}              from  '@salesforce/ts-types';     // Why?
-import {QueryResult}          from  'jsforce';                  // Why?
-import {RequestInfo}          from  'jsforce';                  // Why?
 import {Observable}           from  'rxjs';                     // Why?
 import {Observer}             from  'rxjs';                     // Why?
 import {Subscriber}           from  'rxjs';                     // Why?
@@ -23,7 +21,7 @@ import {Question}             from  'yeoman-generator';         // Interface. Re
 
 // Import Internal Modules/Types
 import {SfdxFalconResult}     from  '../sfdx-falcon-result';    // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
-import {SfdxOrgInfo}          from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about an org that is connected to the local Salesforce CLI.
+import {StandardOrgInfo}      from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about a standard (ie. non-scratch) org that is connected to the local Salesforce CLI.
 import {ScratchOrgInfo}       from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about a scratch orgs that is connected to the local Salesforce CLI.
 import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 
@@ -52,6 +50,19 @@ export interface StyledMessage extends JsonMap {
   message:  string;
   /** Required. Chalk styles to be applied to the message. Uses the "tagged template literal" format. */
   styling:  string;
+}
+
+/**
+ * Enum. Represents a generic set of commonly used Status values.
+ */
+export enum Status {
+  NOT_STARTED = 'NOT_STARTED',
+  WAITING     = 'WAITING',
+  WORKING     = 'WORKING',
+  COMPLETE    = 'COMPLETE',
+  PENDING     = 'PENDING',
+  SKIPPED     = 'SKIPPED',
+  FAILED      = 'FAILED'
 }
 
 /**
@@ -92,7 +103,7 @@ export enum StatusMessageType {
 /**
  * Interface. Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
  */
-export interface SfdxFalconJsonResponse {
+export interface SfdxFalconJsonResponse extends JsonMap {
   falconStatus: number;
   falconResult: AnyJson;
 }
@@ -100,7 +111,7 @@ export interface SfdxFalconJsonResponse {
 /**
  * Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
  */
-export interface SfdxFalconProjectConfig {
+export interface SfdxFalconProjectConfig extends JsonMap {
   developerAlias?:  string;                   // eg. 'univ-ctrs'
   developerName?:   string;                   // eg. 'Universal Containers'
   projectAlias?:    string;                   // eg. 'my-sfdx-falcon-project'
@@ -120,7 +131,7 @@ export interface SfdxFalconProjectConfig {
 /**
  * Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
  */
-export interface SfdxFalconLocalConfig {
+export interface SfdxFalconLocalConfig extends JsonMap {
   devHubAlias?:   string;                   // eg. 'My_DevHub'
   envHubAlias?:   string;                   // eg. 'My_EnvHub'
   pkgOrgAlias?:   string;                   // eg. 'My_PkgOrg'
@@ -131,14 +142,14 @@ export interface SfdxFalconLocalConfig {
 /**
  * Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
  */
-export interface SfdxFalconGlobalConfig {
+export interface SfdxFalconGlobalConfig extends JsonMap {
   propertiesTBD?: any;                       // tslint:disable-line: no-any
 }
 
 /**
  * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to ADK projects.
  */
-export interface AppxDemoProjectConfig {
+export interface AppxDemoProjectConfig extends JsonMap {
   demoRecipes:      string[];               // eg. ['demo-recipe-1.json', 'demo-recipe-2.json']
   partnerAlias:     string;                 // eg. 'appy-inc'
   partnerName:      string;                 // eg. 'Appy Apps, Incorporated'
@@ -147,14 +158,14 @@ export interface AppxDemoProjectConfig {
 /**
  * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to ADK projects.
  */
-export interface AppxDemoLocalConfig {
+export interface AppxDemoLocalConfig extends JsonMap {
   propertiesTBD: any;                       // tslint:disable-line: no-any
 }
 
 /**
  * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to APK projects.
  */
-export interface AppxPackageProjectConfig {
+export interface AppxPackageProjectConfig extends JsonMap {
   developerRecipes:   string[];             // eg. ['developer-recipe-1.json', 'developer-recipe-2.json']
   namespacePrefix:    string;               // eg. 'my_ns_prefix'
   packageName:        string;               // eg. 'My Package Name'
@@ -168,14 +179,14 @@ export interface AppxPackageProjectConfig {
 /**
  * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to APK projects.
  */
-export interface AppxPackageLocalConfig {
+export interface AppxPackageLocalConfig extends JsonMap {
   propertiesTBD: any;                       // tslint:disable-line: no-any
 }
 
 /**
  * Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
  */
-export interface ProjectResolutionOptions {
+export interface ProjectResolutionOptions extends JsonMap {
   resolveProjectConfig?: boolean;
   resolveLocalConfig?:   boolean;
   resolveGlobalConfig?:  boolean;
@@ -196,7 +207,7 @@ export interface ProjectResolutionOptions {
 /**
  * Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
  */
-export interface MetadataPackage {
+export interface MetadataPackage extends JsonMap {
   Id:                       string;
   Name:                     string;
   NamespacePrefix:          string;
@@ -206,7 +217,7 @@ export interface MetadataPackage {
 /**
  * Interface. Represents a Metadata Package Version (04t).
  */
-export interface MetadataPackageVersion {
+export interface MetadataPackageVersion extends JsonMap {
   Id:                 string;
   Name:               string;
   MetadataPackageId:  string;
@@ -473,6 +484,22 @@ export type Questions = Questions;
  */
 export type Question = Question;
 
+/**
+ * Interface. Represents the initialization requirements for Yeoman Generators that implement SfdxFalconYeomanGenerator.
+ */
+export interface GeneratorRequirements {
+  git:              boolean;
+  gitRemoteUri:     string;
+  localFile:        string;
+  localDirectory:   string;
+  standardOrgs:     boolean;
+  scratchOrgs:      boolean;
+  devHubOrgs:       boolean;
+  envHubOrgs:       boolean;
+  managedPkgOrgs:   boolean;
+  unmanagedPkgOrgs: boolean;
+}
+
 //
 //
 //
@@ -503,8 +530,142 @@ export interface ResolvedConnection {
  */
 export interface RestApiRequestDefinition {
   aliasOrConnection:  string|Connection;
-  request:            RequestInfo;
+  request:            import ('jsforce').RequestInfo;
   options?:           {any};
+}
+
+/**
+ * Interface. Represents the unparsed response to a "raw" REST API request via a JSForce connection.
+ */
+export interface RawRestResponse extends JsonMap {
+  statusCode:     number;
+  statusMessage:  string;
+  headers:        JsonMap;
+  body:           string;
+}
+
+/**
+ * Interface. Represents the request body required to close or abort a Bulk API 2.0 job.
+ */
+export interface Bulk2JobCloseAbortRequest extends JsonMap {
+  /** The state to update the job to. Use "UploadComplete" to close a job, or "Aborted" to abort a job. */
+  state:  'UploadComplete'|'Aborted';
+}
+
+/**
+ * Interface. Represents the request body required to create a Bulk API 2.0 job.
+ */
+export interface Bulk2JobCreateRequest extends JsonMap {
+  /** The column delimiter used for CSV job data. */
+  columnDelimiter?:     'BACKQUOTE'|'CARET'|'COMMA'|'PIPE'|'SEMICOLON'|'TAB';
+  /** The format of the data being processed. Only CSV is supported */
+  contentType?:          'CSV';
+  /** The external ID field in the object being updated. Only needed for upsert operations. Field values must also exist in CSV job data. */
+  externalIdFieldName?: string;
+  /** The line ending used for CSV job data. */
+  lineEnding?:          'LF'|'CRLF';
+  /** The object type for the data being processed. */
+  object:               string;
+  /** The processing operation for the job. Values include "insert", "delete", "update", and "upsert". */
+  operation:            'insert'|'delete'|'update'|'upsert';
+}
+
+/**
+ * Interface. Represents the response body returned by Salesforce after attempting to create a Bulk API 2.0 job.
+ */
+export interface Bulk2JobCreateResponse extends Bulk2JobCreateRequest {
+  /** The API version that the job was created in. */
+  apiVersion?:          string;
+  /** How the request was processed. */
+  concurrencyMode?:     string;
+  /** The URL to use for Upload Job Data requests for this job. Only valid if the job is in Open state. */
+  contentUrl?:          string;
+  /** The ID of the user who created the job. */
+  createdById?:         string;
+  /** The date and time in the UTC time zone when the job was created. */
+  createdDate?:         string;
+  /** Unique ID for this job. */
+  id?:                  string;
+  /** The job’s type. Values include "BigObjectIngest" (BigObjects), "Classic" (Bulk API 1.0), or "V2Ingest" (Bulk API 2.0 job) */
+  jobType?:             'BigObjectIngest'|'Classic'|'V2Ingest';
+  /** The current state of processing for the job. */
+  state?:               'Open'|'UploadComplete'|'Aborted'|'JobComplete'|'Failed';
+  /** Date and time in the UTC time zone when the job finished. */
+  systemModstamp?:      string;
+}
+
+/**
+ * Interface. Represents the response body returned by Salesforce when closing or aborting a specific Bulk API 2.0 job.
+ */
+export interface Bulk2JobCloseAbortResponse extends Bulk2JobCreateResponse {} // tslint:disable-line: no-empty-interface
+
+/**
+ * Interface. Represents the response body returned by Salesforce when requesting info about a specific Bulk API 2.0 job.
+ */
+export interface Bulk2JobInfoResponse extends Bulk2JobCreateResponse {
+  /** The number of milliseconds taken to process triggers and other processes related to the job data. This doesn't include the time used for processing asynchronous and batch Apex operations. If there are no triggers, the value is 0. */
+  apexProcessingTime?:      number;
+  /** The number of milliseconds taken to actively process the job and includes apexProcessingTime, but doesn't include the time the job waited in the queue to be processed or the time required for serialization and deserialization. */
+  apiActiveProcessingTime?: number;
+  /** The number of records that were not processed successfully in this job. */
+  numberRecordsFailed?:     number;
+  /** The number of records already processed. */
+  numberRecordsProcessed?:  number;
+  /** The number of times that Salesforce attempted to save the results of an operation. The repeated attempts are due to a problem, such as a lock contention. */
+  retries?:                 number;
+  /** The number of milliseconds taken to process the job. */
+  totalProcessingTime?:     number;
+}
+
+/**
+ * Interface. Represents a record that encountered an error while being processed by a Bulk API 2.0 job.
+ * Contains all field data that was provided in the original job data upload request.
+ */
+export interface Bulk2FailureRecord extends JsonMap {
+  /** Error code and message, if applicable. */
+  sf__Error:    string;
+  /** ID of the record that had an error during processing, if applicable. */
+  sf__Id:       string;
+  /** Field data for the row that was provided in the original job data upload request. */
+  [key:string]: string;
+}
+
+/**
+ * Type. Represents the collection of "Successful Results" data from a Bulk API 2.0 job.
+ */
+export type Bulk2FailureResults = Bulk2FailureRecord[];
+
+/**
+ * Interface. Represents a record that has been successfully processed by a Bulk API 2.0 job.
+ * Contains all field data that was provided in the original job data upload request.
+ */
+export interface Bulk2SuccesRecord extends JsonMap {
+  /** Indicates if the record was created. */
+  sf__Created:  string;
+  /** ID of the record that was successfully processed. */
+  sf__Id:       string;
+  /** Field data for the row that was provided in the original job data upload request. */
+  [key:string]: string;
+}
+
+/**
+ * Type. Represents the collection of "Successful Results" data from a Bulk API 2.0 job.
+ */
+export type Bulk2SuccesfulResults = Bulk2SuccesRecord[];
+
+/**
+ * Interface. Represents the overall status of a Bulk API 2.0 operation.
+ */
+export interface Bulk2OperationStatus extends JsonMap {
+  currentJobStatus?:        Bulk2JobInfoResponse;
+  dataSourcePath?:          string;
+  dataSourceSize?:          number;
+  dataSourceUploadStatus?:  Status;
+  failureResults?:          Bulk2FailureResults;
+  failureResultsPath?:      string;
+  initialJobStatus?:        Bulk2JobCreateResponse;
+  successfulResults?:       Bulk2SuccesfulResults;
+  successfulResultsPath?:   string;
 }
 
 /**
@@ -515,58 +676,58 @@ export type PackageVersionMap = Map<string, MetadataPackageVersion[]>;
 /**
  * Type. Alias to the JSForce definition of QueryResult.
  */
-export type QueryResult<T> = QueryResult<T>;
+export type QueryResult<T> = import('jsforce').QueryResult<T>;
 
 /**
- * Interface. Represents the "nonScratchOrgs" data returned by the sfdx force:org:list command.
+ * Interface. Represents the "nonScratchOrgs" (aka "standard orgs") data returned by the sfdx force:org:list command.
  */
-export interface RawSfdxOrgInfo {
-  orgId:                    string;                       // Why?
-  username:                 string;                       // Why?
-  alias:                    string;                       // Why?
-  accessToken:              string;                       // Why?
-  instanceUrl:              string;                       // Why?
-  loginUrl:                 string;                       // Why?
-  clientId:                 string;                       // Why?
-  isDevHub:                 boolean;                      // Why?
-  isDefaultDevHubUsername:  boolean;                      // Why?
-  defaultMarker:            string;                       // Why?
-  connectedStatus:          string;                       // Why?
-  lastUsed:                 string;                       // Why?
+export interface RawStandardOrgInfo {
+  orgId?:                   string;     // Why?
+  username?:                string;     // Why?
+  alias?:                   string;     // Why?
+  accessToken?:             string;     // Why?
+  instanceUrl?:             string;     // Why?
+  loginUrl?:                string;     // Why?
+  clientId?:                string;     // Why?
+  isDevHub?:                boolean;    // Why?
+  isDefaultDevHubUsername?: boolean;    // Why?
+  defaultMarker?:           string;     // Why?
+  connectedStatus?:         string;     // Why?
+  lastUsed?:                string;     // Why?
 }
 
 /**
  * Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
  */
 export interface RawScratchOrgInfo {
-  orgId:                    string;                       // Why?
-  username:                 string;                       // Why?
-  alias:                    string;                       // Why?
-  accessToken:              string;                       // Why?
-  instanceUrl:              string;                       // Why?
-  loginUrl:                 string;                       // Why?
-  clientId:                 string;                       // Why?
-  createdOrgInstance:       string;                       // Why?
-  created:                  string;                       // Wyy?
-  devHubUsername:           string;                       // Why?
-  connectedStatus:          string;                       // Why?
-  lastUsed:                 string;                       // Why?
-  attributes:               object;                       // Why?
-  orgName:                  string;                       // Why?
-  status:                   string;                       // Why?
-  createdBy:                string;                       // Why?
-  createdDate:              string;                       // Why?
-  expirationDate:           string;                       // Why?
-  edition:                  string;                       // Why?
-  signupUsername:           string;                       // Why?
-  devHubOrgId:              string;                       // Why?
-  isExpired:                boolean;                      // Why?
+  orgId?:                   string;     // Why?
+  username?:                string;     // Why?
+  alias?:                   string;     // Why?
+  accessToken?:             string;     // Why?
+  instanceUrl?:             string;     // Why?
+  loginUrl?:                string;     // Why?
+  clientId?:                string;     // Why?
+  createdOrgInstance?:      string;     // Why?
+  created?:                 string;     // Wyy?
+  devHubUsername?:          string;     // Why?
+  connectedStatus?:         string;     // Why?
+  lastUsed?:                string;     // Why?
+  attributes?:              object;     // Why?
+  orgName?:                 string;     // Why?
+  status?:                  string;     // Why?
+  createdBy?:               string;     // Why?
+  createdDate?:             string;     // Why?
+  expirationDate?:          string;     // Why?
+  edition?:                 string;     // Why?
+  signupUsername?:          string;     // Why?
+  devHubOrgId?:             string;     // Why?
+  isExpired?:               boolean;    // Why?
 }
 
 /**
- * Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+ * Type. Alias for a Map with string keys holding StandardOrgInfo values.
  */
-export type SfdxOrgInfoMap = Map<string, SfdxOrgInfo>;
+export type StandardOrgInfoMap = Map<string, StandardOrgInfo>;
 
 /**
  * Type. Alias for a Map with string keys holding ScratchOrgInfo values.
@@ -574,15 +735,10 @@ export type SfdxOrgInfoMap = Map<string, SfdxOrgInfo>;
 export type ScratchOrgInfoMap = Map<string, ScratchOrgInfo>;
 
 /**
- * Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
+ * Interface. Represents the options that can be set when constructing a StandardOrgInfo object.
  */
-export interface SfdxOrgInfoSetup {
-  alias:                    string;                       // Why?
-  username:                 string;                       // Why?
-  orgId:                    string;                       // Why?
-  connectedStatus:          string;                       // Why?
-  isDevHub:                 boolean;                      // Why?
-  metadataPackageResults?:  QueryResult<MetadataPackage>; // Why?
+export interface StandardOrgInfoOptions extends RawStandardOrgInfo {
+  metadataPackageResults?:  QueryResult<MetadataPackage>;
 }
 
 /**

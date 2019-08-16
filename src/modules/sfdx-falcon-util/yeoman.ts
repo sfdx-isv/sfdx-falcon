@@ -9,26 +9,26 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import * as path    from 'path';  // Node's path library.
+// Import External Libraries, Modules, and Types
+import * as path              from 'path';  // Node's path library.
 
-// Import Local Modules
+// Import Internal Classes & Functions
 import {SfdxFalconDebug}      from  '../../modules/sfdx-falcon-debug';      // Class. Provides a system for sending debug info to the console.
 import {SfdxFalconError}      from  '../../modules/sfdx-falcon-error';      // Class. Specialized Error object. Wraps SfdxError.
-
-// Import Utility Functions/Types
-import {SfdxOrgInfo}          from  '../../modules/sfdx-falcon-util/sfdx';  // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
-import {StatusMessage}        from  '../../modules/sfdx-falcon-util/ux';    // Interface. Standard SFDX-Falcon Status Message type.
+import {ScratchOrgInfo}       from  '../../modules/sfdx-falcon-util/sfdx';  // Class. Stores information about a scratch org that is connected to the local Salesforce CLI.
+import {StandardOrgInfo}      from  '../../modules/sfdx-falcon-util/sfdx';  // Class. Stores information about a standard (ie. non-scratch) orgs that is connected to the local Salesforce CLI.
 import {printStatusMessages}  from  '../../modules/sfdx-falcon-util/ux';    // Function. Prints an array of Status Messages.
 
-// Import Falcon Types
-import {YeomanChoice}         from  '../../modules/sfdx-falcon-types';      // Interface. Represents a Yeoman/Inquirer choice object.
+// Import Internal Types
+import {StatusMessage}        from  '../../modules/sfdx-falcon-types';      // Interface. Interface. Represents a "state aware" message. Contains a title, a message, and a type.
+import {InquirerChoice}       from  '../../modules/sfdx-falcon-types';      // Type. Represents an Inquirer Choice object.
 
 // Requires
 const pad = require('pad');   // Provides consistent spacing when trying to align console output.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:yeoman:';
+SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
 
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -43,11 +43,11 @@ const dbgNs = 'UTILITY:yeoman:';
 export class YeomanSeparator {
 
   // Class Members
-  public name:  string;
-  public value: string;
-  public short: string;
-  public type:  string;
-  public line?: string;
+  public name:   string;
+  public value:  string;
+  public short:  string;
+  public type:   string;
+  public line?:  string;
 
   // Constructor
   constructor(separatorLine?:string) {
@@ -251,56 +251,55 @@ export class GeneratorStatus {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    createOrgAliasChoice
- * @param       {SfdxOrgInfo}  alias  Required.
+ * @param       {StandardOrgInfo|ScratchOrgInfo}  orgInfo Required. The Standard or Scratch Org
+ *              Info that will be used as the basis of an Org Alias Choice.
  * @param       {number}  longestAlias  Required.
  * @param       {number}  longestUsername Required.
- * @returns     {YeomanChoice}
- * @description Given an SFDX Org Info object, the length of the longest-expected Alias and the
- *              longest-expected username, returns a Yeoman Choice that will be formatted with
- *              appropriate padding to make multiple choices look aligned when shown to the user.
+ * @returns     {InquirerChoice}
+ * @description Given either a Standard or Scratch Org Info object, the length of the longest-expected
+ *              Alias and the longest-expected username, returns a Yeoman Choice that will be formatted
+ *              with appropriate padding to make multiple choices look aligned when shown to the user.
  * @private
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-function createOrgAliasChoice(orgInfo:SfdxOrgInfo, longestAlias:number, longestUsername:number):YeomanChoice {
+function createOrgAliasChoice(orgInfo:StandardOrgInfo|ScratchOrgInfo, longestAlias:number, longestUsername:number):InquirerChoice {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}createOrgAliasChoice:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}createOrgAliasChoice:`, arguments);
 
   // Build an OrgAliasChoice as a YeomanChoice data structure.
   return {
-    name:     `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`,
+    name:   `${pad(orgInfo.alias, longestAlias)} -- ${pad(orgInfo.username, longestUsername)}${orgInfo['nsPrefix'] ? ' ['+orgInfo['nsPrefix']+']' : ''}`,
     disabled: false,
-    value:    orgInfo.username,
-    short:    (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
-              ? `${orgInfo.alias} (${orgInfo.username})${orgInfo.nsPrefix ? ' ['+orgInfo.nsPrefix+']' : ''}`  // Use Alias (Username)
-              : orgInfo.username + (orgInfo.nsPrefix ? '['+orgInfo.nsPrefix+']' : '')                         // Just use Username
+    value:  orgInfo.username,
+    short:  (typeof orgInfo.alias !== 'undefined' && orgInfo.alias !== '')
+            ? `${orgInfo.alias} (${orgInfo.username})${orgInfo['nsPrefix'] ? ' ['+orgInfo['nsPrefix']+']' : ''}`  // Use Alias (Username)
+            : orgInfo.username + (orgInfo['nsPrefix'] ? '['+orgInfo['nsPrefix']+']' : '')                         // Just use Username
   };
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    buildOrgAliasChoices
- * @param       {string}  alias Required.
- * @param       {string}  username  Required.
- * @param       {number}  padLength Required.
- * @returns     {YeomanChoice}
- * @description Given an arrray of SfdxOrgInfo objects, builds a fully formed array of Yeoman Choice
- *              objects.  This can be given to Yeoman (or any Inquirer-based interview system) in
- *              order to display a list of choices to the user.
+ * @param       {StandardOrgInfo[]|ScratchOrgInfo[]}  orgInfos  Required.
+ * @returns     {InquirerChoice[]}  Array of Inquirer Choice objects based on the provided Standard
+ *              or Scratch Org Info objects.
+ * @description Given an array of StandardOrgInfo or ScratchOrgInfo objects, builds a fully formed
+ *              array of Inquirer Choice objects in order to display a list of choices to the user.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildOrgAliasChoices(sfdxOrgInfos:SfdxOrgInfo[]):YeomanChoice[] {
+export function buildOrgAliasChoices(orgInfos:StandardOrgInfo[]|ScratchOrgInfo[]):InquirerChoice[] {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}buildOrgAliasChoices:arguments:`, arguments);
 
-  // Create local var to build the YeomanChoice array.
-  const orgAliasChoices = new Array<YeomanChoice>();
+  // Create local var to build the Inquirer Choice array.
+  const orgAliasChoices = [] as InquirerChoice[];
 
   // Calculate the length of the longest Alias
   let longestAlias = 0;
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of orgInfos) {
     if (typeof orgInfo.alias !== 'undefined') {
       longestAlias = Math.max(orgInfo.alias.length, longestAlias);
     }
@@ -308,15 +307,15 @@ export function buildOrgAliasChoices(sfdxOrgInfos:SfdxOrgInfo[]):YeomanChoice[] 
 
   // Calculate the length of the longest Username.
   let longestUsername = 0;
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of orgInfos) {
     if (typeof orgInfo.username !== 'undefined') {
       longestUsername = Math.max(orgInfo.username.length, longestUsername);
     }
   }
 
-  // Iterate over the array of sfdxOrgInfos and then call createOrgAliasChoice
+  // Iterate over the array of Org Infos and call createOrgAliasChoice()
   // and push each one onto the orgAliasChoices array.
-  for (const orgInfo of sfdxOrgInfos) {
+  for (const orgInfo of orgInfos) {
     orgAliasChoices.push(createOrgAliasChoice(orgInfo, longestAlias, longestUsername));
   }
 

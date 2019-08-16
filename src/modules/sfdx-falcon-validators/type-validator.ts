@@ -11,11 +11,15 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Libraries & Modules
+import * as fs              from  'fs-extra';               // Extended set of File System utils.
 import  {isEmpty}           from  'lodash';                 // Useful function for detecting empty objects.
 
 // Import Internal Classes & Functions
 import  {SfdxFalconDebug}   from  '../sfdx-falcon-debug';   // Class. Specialized debug provider for SFDX-Falcon code.
 import  {SfdxFalconError}   from  '../sfdx-falcon-error';   // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+
+// Import Internal Types
+import  {ClassConstructor}  from  '../sfdx-falcon-types';   // Type. Represents the constructor for a Class, ie. something that can be the right operand of the instanceof operator.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'VALIDATOR:type:';
@@ -99,6 +103,62 @@ export function errMsgInvalidArray(arg:unknown, argName:string):string {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    errMsgInvalidBoolean
+ * @param       {unknown} arg Required. The argument involved in the error.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting an invalid object was provided.
+ * @description Given an argument and the name of that argument, returns a standardized error
+ *              message reporting an invalid boolean was provided.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgInvalidBoolean(arg:unknown, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = 'the argument';
+  }
+  return `Expected ${argName} to be a boolean but got type '${typeof arg}' instead.`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    errMsgInvalidInstance
+ * @param       {unknown} arg Required. The argument involved in the error.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the argument was tested against.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting an object that is not an instance
+ *              of the expected class.
+ * @description Given an argument and the name of that argument, returns a standardized error
+ *              message reporting an object that is not an instance of the expected class.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgInvalidInstance(arg:unknown, classConstructor:ClassConstructor, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = 'the argument';
+  }
+  // Figure out the name of the Expected Instance.
+  let expectedInstanceOf = 'unknown';
+  if (typeof classConstructor !== 'undefined' && classConstructor !== null) {
+    if (classConstructor.constructor) {
+      expectedInstanceOf = classConstructor.constructor.name;
+    }
+  }
+  // Figure out the name of the Actual Instance.
+  let actualInstanceOf = '';
+  if (typeof arg !== 'undefined' && arg !== null) {
+    if (arg.constructor) {
+      actualInstanceOf = arg.constructor.name;
+    }
+  }
+  // Build and return the Error Message.
+  return `Expected ${argName} to be an instance of '${expectedInstanceOf}'`
+       + actualInstanceOf ? ` but got an instance of ${actualInstanceOf} instead` : ``
+       + `.`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    errMsgInvalidObject
  * @param       {unknown} arg Required. The argument involved in the error.
  * @param       {string}  argName Required. The variable name of the argument involved in the error.
@@ -135,6 +195,25 @@ export function errMsgInvalidString(arg:unknown, argName:string):string {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    errMsgNonReadablePath
+ * @param       {string}  path  Required. The path involved in the Error.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting a non-readable path was provided.
+ * @description Given a path and the name of an argument associated with that path, returns a
+ *              standardized error message reporting a non-existant or inaccessible path.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgNonReadablePath(path:string, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = '';
+  }
+  return  ( argName ? `Expected ${argName} to reference a readable path, but ` : `` )
+          + `'${path}' does not exist or is not accessible by the currently running user.`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    errMsgNullInvalidArray
  * @param       {unknown} arg Required. The argument involved in the error.
  * @param       {string}  argName Required. The variable name of the argument involved in the error.
@@ -149,6 +228,63 @@ export function errMsgNullInvalidArray(arg:unknown, argName:string):string {
     argName = 'the argument';
   }
   return `Expected ${argName} to be a non-null array${Array.isArray(arg) !== true ? ` but got type '${typeof arg}' instead.` : `.`}`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    errMsgNullInvalidBoolean
+ * @param       {unknown} arg Required. The argument involved in the error.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting a null or invalid boolean was provided.
+ * @description Given an argument and the name of that argument, returns a standardized error
+ *              message reporting a null or invalid boolean was provided.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgNullInvalidBoolean(arg:unknown, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = 'the argument';
+  }
+  return `Expected ${argName} to be a non-null boolean${typeof arg !== 'boolean' ? ` but got type '${typeof arg}' instead.` : `.`}`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    errMsgNullInvalidInstance
+ * @param       {unknown} arg Required. The argument involved in the error.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the argument was tested against.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting a null object or an object that
+ *              is not an instance of the expected class.
+ * @description Given an argument and the name of that argument, returns a standardized error
+ *              message reporting a null object or an object that is not an instance of the
+ *              expected class.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgNullInvalidInstance(arg:unknown, classConstructor:ClassConstructor, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = 'the argument';
+  }
+  // Figure out the name of the Expected Instance.
+  let expectedInstanceOf = 'unknown';
+  if (typeof classConstructor !== 'undefined' && classConstructor !== null) {
+    if (classConstructor.prototype && classConstructor.prototype.constructor) {
+      expectedInstanceOf = classConstructor.prototype.constructor.name;
+    }
+  }
+  // Figure out the name of the Actual Instance.
+  let actualInstanceOf = '';
+  if (typeof arg !== 'undefined' && arg !== null) {
+    if (arg.constructor) {
+      actualInstanceOf = arg.constructor.name;
+    }
+  }
+  // Build and return the Error Message.
+  return `Expected ${argName} to be a non-null instance of '${expectedInstanceOf}'` +
+         (actualInstanceOf ? ` but got an instance of '${actualInstanceOf}' instead` : ``) +
+         `.`;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -231,12 +367,40 @@ export function isEmptyNullInvalidObject(variable:unknown):boolean {
  * @function    isInvalidArray
  * @param       {unknown} variable  Required. The variable whose type will be validated.
  * @returns     {boolean}
- * @description Checks if the given variable is NOT an array
+ * @description Checks if the given variable is NOT an array.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isInvalidArray(variable:unknown):boolean {
   return (Array.isArray(variable) !== true);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isInvalidBoolean
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks if the given variable is NOT a boolean.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isInvalidBoolean(variable:unknown):boolean {
+  return (typeof variable !== 'boolean');
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isInvalidInstance
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the variable will be tested against.
+ * @returns     {boolean}
+ * @description Checks if the given variable is NOT an instance of a the expected class.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isInvalidInstance(variable:unknown, classConstructor:ClassConstructor):boolean {
+  return (typeof variable !== 'object' || ((variable instanceof classConstructor) !== true));
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -280,6 +444,34 @@ export function isNullInvalidArray(variable:unknown):boolean {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    isNullInvalidBoolean
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks if the given variable is NOT a boolean, or if it is null.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNullInvalidBoolean(variable:unknown):boolean {
+  return (typeof variable !== 'boolean' || variable === null);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNullInvalidInstance
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the variable will be tested against.
+ * @returns     {boolean}
+ * @description Checks if the given variable is null or is NOT an instance of the expected class.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNullInvalidInstance(variable:unknown, classConstructor:ClassConstructor):boolean {
+  return (typeof variable !== 'object' || variable === null || ((variable instanceof classConstructor) !== true));
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    isNullInvalidObject
  * @param       {unknown} variable  Required. The variable whose type will be validated.
  * @returns     {boolean}
@@ -302,6 +494,211 @@ export function isNullInvalidObject(variable:unknown):boolean {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isNullInvalidString(variable:unknown):boolean {
   return (typeof variable !== 'string' || variable === null);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isReadablePath
+ * @param       {string}  path  Required. Path that will be checked for readability.
+ * @returns     {boolean}
+ * @description Checks if the given path exists AND is readable by the currently running user.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isReadablePath(path:string):boolean {
+  try {
+    fs.accessSync(path, fs.constants.R_OK);
+  }
+  catch (accessError) {
+    return false;
+  }
+  return true;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotEmptyNullInvalidArray
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isEmptyNullInvalidArray().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotEmptyNullInvalidArray(variable:unknown):boolean {
+  return !isEmptyNullInvalidArray(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotEmptyNullInvalidString
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isEmptyNullInvalidString().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotEmptyNullInvalidString(variable:unknown):boolean {
+  return !isEmptyNullInvalidString(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotEmptyNullInvalidObject
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isEmptyNullInvalidObject().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotEmptyNullInvalidObject(variable:unknown):boolean {
+  return !isEmptyNullInvalidObject(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotInvalidArray
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isInvalidArray().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotInvalidArray(variable:unknown):boolean {
+  return !isInvalidArray(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotInvalidBoolean
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isInvalidBoolean().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotInvalidBoolean(variable:unknown):boolean {
+  return !isInvalidBoolean(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotInvalidInstance
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the variable will be tested against.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isInvalidInstance().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotInvalidInstance(variable:unknown, classConstructor:ClassConstructor):boolean {
+  return !isInvalidInstance(variable, classConstructor);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotInvalidObject
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isInvalidObject().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotInvalidObject(variable:unknown):boolean {
+  return !isInvalidObject(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotInvalidString
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isInvalidString().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotInvalidString(variable:unknown):boolean {
+  return !isInvalidString(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullInvalidArray
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isNullInvalidArray().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullInvalidArray(variable:unknown):boolean {
+  return !isNullInvalidArray(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullInvalidBoolean
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isNullInvalidBoolean().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullInvalidBoolean(variable:unknown):boolean {
+  return !isNullInvalidBoolean(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullInvalidInstance
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the variable will be tested against.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isNullInvalidInstance().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullInvalidInstance(variable:unknown, classConstructor:ClassConstructor):boolean {
+  return !isNullInvalidInstance(variable, classConstructor);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullInvalidObject
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isNullInvalidObject().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullInvalidObject(variable:unknown):boolean {
+  return !isNullInvalidObject(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullInvalidString
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isNullInvalidString().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullInvalidString(variable:unknown):boolean {
+  return !isNullInvalidString(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotReadablePath
+ * @param       {string}  path  Required. Path that will be checked for readability.
+ * @returns     {boolean}
+ * @description Checks for the inverse of isReadablePath().
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotReadablePath(path:string):boolean {
+  return !isReadablePath(path);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -390,6 +787,50 @@ export function throwOnInvalidArray(arg:unknown, dbgNsExt:string, argName?:strin
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    throwOnInvalidBoolean
+ * @param       {unknown} arg Required. The argument whose type will be validated.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  [argName] Optional. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given an argument of unknown type, attempts to validate that the argument is a
+ *              boolean. Uses the debug namespace of the external caller as the base of
+ *              the "source" string used by the thrown SfdxFalconError.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnInvalidBoolean(arg:unknown, dbgNsExt:string, argName?:string):void {
+  if (isInvalidBoolean(arg)) {
+    throw new SfdxFalconError( errMsgInvalidBoolean(arg, argName)
+                             , `TypeError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    throwOnInvalidInstance
+ * @param       {unknown} arg Required. The argument whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the argument will be tested against.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  [argName] Optional. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given an argument of unknown type, attempts to validate that the argument is an
+ *              object that's an instace of the specified class. Uses the debug namespace of the
+ *              external caller as the base of the "source" string used by the thrown SfdxFalconError.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnInvalidInstance(arg:unknown, classConstructor:ClassConstructor, dbgNsExt:string, argName?:string):void {
+  if (isInvalidInstance(arg, classConstructor))  {
+    throw new SfdxFalconError( errMsgInvalidInstance(arg, classConstructor, argName)
+                             , `TypeError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    throwOnInvalidObject
  * @param       {unknown} arg Required. The argument whose type will be validated.
  * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
@@ -453,6 +894,51 @@ export function throwOnNullInvalidArray(arg:unknown, dbgNsExt:string, argName?:s
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    throwOnNullInvalidBoolean
+ * @param       {unknown} arg Required. The argument whose type will be validated.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  [argName] Optional. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given an argument of unknown type, attempts to validate that the argument is a
+ *              non-null boolean. Uses the debug namespace of the external caller as the base of
+ *              the "source" string used by the thrown SfdxFalconError.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnNullInvalidBoolean(arg:unknown, dbgNsExt:string, argName?:string):void {
+  if (isNullInvalidBoolean(arg)) {
+    throw new SfdxFalconError( errMsgNullInvalidBoolean(arg, argName)
+                             , `TypeError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    throwOnNullInvalidInstance
+ * @param       {unknown} arg Required. The argument whose type will be validated.
+ * @param       {ClassConstructor}  classConstructor  Required. Constructor function of the object
+ *              that the argument will be tested against.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  argName Required. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given an argument of unknown type, attempts to validate that the argument is a
+ *              non-null object that's an instace of the specified class. Uses the debug namespace
+ *              of the external caller as the base of the "source" string used by the thrown
+ *              SfdxFalconError.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnNullInvalidInstance(arg:unknown, classConstructor:ClassConstructor, dbgNsExt:string, argName:string):void {
+  if (isNullInvalidInstance(arg, classConstructor))  {
+    throw new SfdxFalconError( errMsgNullInvalidInstance(arg, classConstructor, argName)
+                             , `TypeError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    throwOnNullInvalidObject
  * @param       {unknown} arg Required. The argument whose type will be validated.
  * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
@@ -495,6 +981,27 @@ export function throwOnNullInvalidString(arg:unknown, dbgNsExt:string, argName?:
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    throwOnNonReadablePath
+ * @param       {string}  path  Required. Path that will be checked for readability.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  [argName] Optional. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given a string containing a filesystem path, attempts to validate that the path is
+ *              readable by the running user. Uses the debug namespace of the external caller as the
+ *              base of the "source" string used by the thrown SfdxFalconError.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnNonReadablePath(path:string, dbgNsExt:string, argName?:string):void {
+  if (isNotReadablePath(path))  {
+    throw new SfdxFalconError( errMsgNonReadablePath(path, argName)
+                             , `PathError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    validateTheValidator
  * @returns     {void}
  * @description Ensures that the three expected arguments (unknown[], string, and string[]) were
@@ -504,6 +1011,9 @@ export function throwOnNullInvalidString(arg:unknown, dbgNsExt:string, argName?:
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function validateTheValidator():void {
+
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}validateTheValidator:arguments:`, arguments);
 
   // Validate "args". Throw on null or invalid Array.
   throwOnNullInvalidArray(arguments[0], dbgNs, 'args');

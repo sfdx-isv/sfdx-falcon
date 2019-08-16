@@ -1,7 +1,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-util/sfdx.ts
- * @copyright     Vivek M. Chawla - 2018
+ * @copyright     Vivek M. Chawla / Salesforce - 2019
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Utility Module - SFDX
  * @description   Utility functions related to Salesforce DX and the Salesforce CLI
@@ -9,12 +9,16 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
+// Import External Libraries, Modules, and Types
 import {Aliases}                from  '@salesforce/core';       // Why?
 import {AuthInfo}               from  '@salesforce/core';       // Why?
 import {Connection}             from  '@salesforce/core';       // Why?
 import {AnyJson}                from  '@salesforce/ts-types';   // Why?
+import {JsonMap}                from  '@salesforce/ts-types';   // Why?
 import * as path                from  'path';                   // Why?
+
+// Import Internal Libraries
+import * as typeValidator       from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
 
 // Import Internal Modules
 import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
@@ -36,18 +40,20 @@ import {MetadataPackage}        from  '../sfdx-falcon-types';  // Interface. Rep
 import {MetadataPackageVersion} from  '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
 import {PackageVersionMap}      from  '../sfdx-falcon-types';  // Type. Alias to a Map with string keys and MetadataPackageVersion values.
 import {QueryResult}            from  '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
-import {RawSfdxOrgInfo}         from  '../sfdx-falcon-types';  // Interface. Represents the data returned by the sfdx force:org:list command.
+import {RawStandardOrgInfo}     from  '../sfdx-falcon-types';  // Interface. Represents the standard (ie. non-scratch) org data returned by the sfdx force:org:list command.
 import {RawScratchOrgInfo}      from  '../sfdx-falcon-types';  // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
 import {ResolvedConnection}     from  '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
-import {SfdxOrgInfoMap}         from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 import {ScratchOrgInfoMap}      from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding ScratchOrgInfo values.
-import {SfdxOrgInfoSetup}       from  '../sfdx-falcon-types';  // Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
+import {StandardOrgInfoMap}     from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding StandardOrgInfo values.
+import {StandardOrgInfoOptions} from  '../sfdx-falcon-types';  // Interface. Represents the options that can be set when constructing a StandardOrgInfo object.
 
 // Requires
 const shell = require('shelljs'); // Cross-platform shell access - use for setting up Git repo.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:sfdx:';
+SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
+
 
 /**
  * Interface. Represents the expected possible input and output of a generic Salesforce CLI call.
@@ -112,7 +118,7 @@ export class ScratchOrgInfo {
   /**
    * @constructs  ScratchOrgInfo
    * @param       {RawScratchOrgInfo}  rawScratchOrgInfo Required.
-   * @description Constructs a SfdxOrgInfo object.
+   * @description Constructs a ScratchOrgInfo object.
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -161,15 +167,16 @@ export class ScratchOrgInfo {
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @class       SfdxOrgInfo
- * @summary     Stores information about orgs that are connected to the local Salesforce CLI.
- * @description This class models a single NON-scratch org that is connected to the local Salesforce
- *              CLI. The information required to contruct an SfdxOrgInfo object can be obtained by a
- *              call to "force:org:list" or "force:org:list --all".
+ * @class       StandardOrgInfo
+ * @summary     Stores information about a standard (ie. non-scratch) org that is connected to the
+ *              local Salesforce CLI.
+ * @description This class models a single standard (ie. NON-scratch) org that is connected to the
+ *              local Salesforce CLI. The information required to contruct a StandardOrgInfo object
+ *              can be obtained by a call to "force:org:list" or "force:org:list --all".
  * @public
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export class SfdxOrgInfo {
+export class StandardOrgInfo {
 
   // Public members
   public readonly   alias:                    string;                       // Why?
@@ -227,13 +234,13 @@ export class SfdxOrgInfo {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
-   * @constructs  SfdxOrgInfo
-   * @param       {SfdxOrgInfoSetup}  opts Required. Sets initial values.
-   * @description Constructs a SfdxOrgInfo object.
+   * @constructs  StandardOrgInfo
+   * @param       {StandardOrgInfoOptions}  opts Required. Sets initial values.
+   * @description Constructs a StandardOrgInfo object.
    * @public
    */
   //───────────────────────────────────────────────────────────────────────────┘
-  constructor(opts:SfdxOrgInfoSetup) {
+  constructor(opts:StandardOrgInfoOptions) {
 
     // Initialize core class members.
     this.alias              = opts.alias;
@@ -274,7 +281,7 @@ export class SfdxOrgInfo {
     // Check if the aliased user is able to get a describe of the SignupRequest object.
     const signupRequestDescribe = await describeSignupRequest(this.alias);
 
-    SfdxFalconDebug.obj(`${dbgNs}determineEnvHubStatus:signupRequestDescribe:`, signupRequestDescribe, `signupRequestDescribe: `);
+    SfdxFalconDebug.obj(`${dbgNs}determineEnvHubStatus:signupRequestDescribe:`, signupRequestDescribe);
 
     // Make sure that SignupRequest is CREATABLE. Anything else means NOT an EnvHub.
     if (signupRequestDescribe.createable === true) {
@@ -306,15 +313,15 @@ export class SfdxOrgInfo {
 
     // Run Tooling API query.
     this._metadataPackageResults = await getPackages(this.alias);
-    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._metadataPackageResults, `this._metadataPackageResults: `);
+    SfdxFalconDebug.obj(`${dbgNs}StandardOrgInfo:determinePkgOrgStatus:_metadataPackageResults:`, this._metadataPackageResults);
 
     // Extract any packages from the results we just got.
     this._packages = this.extractPackages(this._metadataPackageResults);
-    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._packages, `this._packages: `);
+    SfdxFalconDebug.obj(`${dbgNs}StandardOrgInfo:determinePkgOrgStatus:_packages:`, this._packages);
 
     // Create a Package Version Map.
     this._pkgVersionMap = this.mapPackageVersions(this._packages);
-    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:determinePkgOrgStatus:`, this._pkgVersionMap, `this._pkgVersionMap: `);
+    SfdxFalconDebug.obj(`${dbgNs}StandardOrgInfo:determinePkgOrgStatus:_pkgVersionMap:`, this._pkgVersionMap);
 
     // Search the packages for a namespace.
     for (const packageObj of this._packages) {
@@ -386,7 +393,7 @@ export class SfdxOrgInfo {
   private extractPackages(metadataPackages:QueryResult<MetadataPackage>):MetadataPackage[] {
 
     // Debug incoming arguments
-    SfdxFalconDebug.obj(`${dbgNs}SfdxOrgInfo:extractPackages:arguments:`, arguments, `arguments: `);
+    SfdxFalconDebug.obj(`${dbgNs}StandardOrgInfo:extractPackages:arguments:`, arguments);
 
     // If there isn't a Metadata Package Query Result, return an empty array.
     if (typeof metadataPackages === 'undefined' || Array.isArray(metadataPackages.records) !== true) {
@@ -490,7 +497,7 @@ export class SfdxOrgInfo {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    buildScratchOrgInfoMap
- * @param       {RawScratchOrgInfo[]} rawScratchOrgList This should be the raw list of SFDX orgs
+ * @param       {RawScratchOrgInfo[]} rawScratchOrgInfos This should be the raw list of SFDX orgs
  *              that comes in the result of a call to force:org:list --all.
  * @returns     {ScratchOrgInfoMap} Map containing ScratchOrgInfo objects for EVERY scratch org that
  *              was part of the raw scratch org list. The Scratch Org Info's "username" value will
@@ -501,23 +508,19 @@ export class SfdxOrgInfo {
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildScratchOrgInfoMap(rawScratchOrgList:RawScratchOrgInfo[]):ScratchOrgInfoMap {
+export function buildScratchOrgInfoMap(rawScratchOrgInfos:RawScratchOrgInfo[]):ScratchOrgInfoMap {
 
   // Debug incoming arguments
   SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgInfoMap:arguments:`, arguments);
 
   // Make sure that the caller passed us an Array.
-  if (Array.isArray(rawScratchOrgList) !== true) {
-    throw new SfdxFalconError( `Expected rawScratchOrgList to an Array but got type '${typeof rawScratchOrgList}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}buildScratchOrgInfoMap`);
-  }
+  typeValidator.throwOnInvalidArray(rawScratchOrgInfos, `${dbgNs}buildScratchOrgInfoMap`, `rawScratchOrgInfos`);
 
   // Initalize an array to hold the ScratchOrgInfo objects we're going to create.
   const scratchOrgInfoMap = new Map<string, ScratchOrgInfo>();
 
   // Iterate over the raw list of orgs to create ScratchOrgInfo objects.
-  for (const rawScratchOrgInfo of rawScratchOrgList) {
+  for (const rawScratchOrgInfo of rawScratchOrgInfos) {
 
     // Only work with orgs that have an ACTIVE status.
     if (rawScratchOrgInfo.status === 'Active') {
@@ -533,65 +536,61 @@ export function buildScratchOrgInfoMap(rawScratchOrgList:RawScratchOrgInfo[]):Sc
   // DEBUG
   SfdxFalconDebug.obj(`${dbgNs}buildScratchOrgInfoMap:scratchOrgInfoMap:`, scratchOrgInfoMap);
 
-  // Return the Scratch Org Infos to the caller. Let them worry about putting it into Shared Data.
+  // Return the Scratch Org Infos to the caller.
   return scratchOrgInfoMap;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
- * @function    buildSfdxOrgInfoMap
- * @param       {RawSfdxOrgInfo[]}  rawSfdxOrgList  This should be the raw list of SFDX orgs that
- *              comes in the result of a call to force:org:list. This list will NEVER contain
- *              scratch orgs.
- * @returns     {SfdxOrgInfoMap} Map containing SfdxOrgInfo objects for EVERY org that
- *              was part of the raw SFDX org list. The Org Info's "username" value will be used
+ * @function    buildStandardOrgInfoMap
+ * @param       {RawStandardOrgInfo[]}  rawStandardOrgInfos  This should be the raw list of SFDX
+ *              orgs that comes in the result of a call to force:org:list. This list will NEVER
+ *              contain scratch orgs.
+ * @returns     {StandardOrgInfoMap} Map containing StandardOrgInfo objects for EVERY org that
+ *              was part of the raw org list. The Org Info's "username" value will be used
  *              as the key for this map.
- * @description Given a raw list of SFDX Org Information (like what you get from force:org:list),
- *              creates an SfdxOrgInfo object for each one, then builds a map of SfdxOrgInfo objects
- *              keyed by the "username" of each org.
+ * @description Given a raw list of Standard Org Information (like what you get from force:org:list),
+ *              creates a StandardOrgInfo object for each one, then builds a map of StandardOrgInfo
+ *              objects keyed by the "username" of each org.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function buildSfdxOrgInfoMap(rawSfdxOrgList:RawSfdxOrgInfo[]):SfdxOrgInfoMap {
+export function buildStandardOrgInfoMap(rawStandardOrgInfos:RawStandardOrgInfo[]):StandardOrgInfoMap {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfoMap:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildStandardOrgInfoMap:arguments:`, arguments);
 
   // Make sure that the caller passed us an Array.
-  if (Array.isArray(rawSfdxOrgList) !== true) {
-    throw new SfdxFalconError( `Expected rawSfdxOrgList to an Array but got type '${typeof rawSfdxOrgList}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}buildSfdxOrgInfoMap`);
-  }
+  typeValidator.throwOnInvalidArray(rawStandardOrgInfos, `${dbgNs}buildStandardOrgInfoMap`, `rawStandardOrgInfos`);
 
-  // Initalize an array to hold the SfdxOrgInfo objects we're going to create.
-  const sfdxOrgInfoMap = new Map<string, SfdxOrgInfo>();
+  // Initalize an array to hold the StandardOrgInfo objects we're going to create.
+  const standardOrgInfoMap = new Map<string, StandardOrgInfo>();
 
-  // Iterate over the raw list of orgs to create SfdxOrgInfo objects.
-  for (const rawOrgInfo of rawSfdxOrgList) {
+  // Iterate over the raw list of orgs to create StandardOrgInfo objects.
+  for (const rawStandardOrgInfo of rawStandardOrgInfos) {
 
     // Only work with orgs that have a CONNECTED status.
-    if (rawOrgInfo.connectedStatus === 'Connected') {
+    if (rawStandardOrgInfo.connectedStatus === 'Connected') {
 
-      // Create a new SfdxOrgInfo object and add it to the Map using the Username as the key.
-      sfdxOrgInfoMap.set(rawOrgInfo.username, new SfdxOrgInfo({
-        alias:            rawOrgInfo.alias,
-        username:         rawOrgInfo.username,
-        orgId:            rawOrgInfo.orgId,
-        connectedStatus:  rawOrgInfo.connectedStatus,
-        isDevHub:         rawOrgInfo.isDevHub
+      // Create a new StandardOrgInfo object and add it to the Map using the Username as the key.
+      standardOrgInfoMap.set(rawStandardOrgInfo.username, new StandardOrgInfo({
+        alias:            rawStandardOrgInfo.alias,
+        username:         rawStandardOrgInfo.username,
+        orgId:            rawStandardOrgInfo.orgId,
+        connectedStatus:  rawStandardOrgInfo.connectedStatus,
+        isDevHub:         rawStandardOrgInfo.isDevHub
       }));
     }
     else {
-      SfdxFalconDebug.str(`${dbgNs}buildSfdxOrgInfoMap:`, `${rawOrgInfo.alias}(${rawOrgInfo.username})`, `ORG NOT CONNECTED!`);
+      SfdxFalconDebug.str(`${dbgNs}buildStandardOrgInfoMap:`, `${rawStandardOrgInfo.alias}(${rawStandardOrgInfo.username})`, `ORG NOT CONNECTED!`);
     }
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}buildSfdxOrgInfoMap:sfdxOrgInfoMap:`, sfdxOrgInfoMap, `sfdxOrgInfoMap: `);
+  SfdxFalconDebug.obj(`${dbgNs}buildStandardOrgInfoMap:standardOrgInfoMap:`, standardOrgInfoMap);
 
-  // Return the SFDX Org Infos to the caller. Let them worry about putting it into Shared Data.
-  return sfdxOrgInfoMap;
+  // Return the Standard Org Info map to the caller
+  return standardOrgInfoMap;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -665,7 +664,7 @@ export async function deployMetadata(aliasOrUsername:string, deployDirectory:str
 export function detectSalesforceCliError(thingToCheck:unknown):boolean {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:arguments:`, arguments);
 
   // Parse thingToCheck if it's a string, assign it directly if not.
   let possibleCliError:object;
@@ -677,7 +676,7 @@ export function detectSalesforceCliError(thingToCheck:unknown):boolean {
   }
 
   // Debug
-  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:possibleCliError:`, possibleCliError, `possibleCliError: `);
+  SfdxFalconDebug.obj(`${dbgNs}detectSalesforceCliError:possibleCliError:`, possibleCliError);
 
   // If the Possible CLI Error "status" property is present AND has a non-zero value, then IT IS a Salesforce CLI Error.
   if (possibleCliError['status'] && possibleCliError['status'] !== 0) {
@@ -1157,6 +1156,43 @@ export function getRecordCountFromResult(result:SfdxFalconResult):number {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    getRecordsFromResult
+ * @param       {SfdxFalconResult}  result  Required. An SfdxFalconResult object that should have
+ *              a valid block of Salesforce Response JSON in its detail member.
+ * @returns     {JsonMap[]} Returns the records contained in the result as an array of JsonMaps.
+ * @description Given an SfdxFalconResult, opens up the result's "detail" member and looks for a
+ *              "stdOutParsed" key, then inspects the JSON result, ultimately returning the
+ *              "records" array. If this process discovers anything other than a "records" array,
+ *              it will throw an Error.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function getRecordsFromResult(result:SfdxFalconResult):JsonMap[] {
+
+  // Define the function-local debug namespace.
+  const dbgNsLocal = `${dbgNs}getRecordsFromResult`;
+
+  // Debug incoming arguments
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
+
+  // Make sure that the caller passed us an SfdxFalconResult.
+  typeValidator.throwOnNullInvalidInstance(result, SfdxFalconResult, `${dbgNsLocal}`, `result`);
+
+  // Make sure that the result detail contains a "stdOutParsed" key.
+  typeValidator.throwOnEmptyNullInvalidObject(result.detail['stdOutParsed'], `${dbgNsLocal}`, `result.detail.stdOutParsed`);
+
+  // Make sure that the "stdOutParsed" detail contains a "result" key.
+  typeValidator.throwOnEmptyNullInvalidObject(result.detail['stdOutParsed']['result'], `${dbgNsLocal}`, `result.detail.stdOutParsed.result`);
+
+  // Make sure that the "stdOutParsed" detail contains a "result" key with a "records" array.
+  typeValidator.throwOnNullInvalidArray(result.detail['stdOutParsed']['result']['records'], `${dbgNsLocal}`, `result.detail.stdOutParsed.result.records`);
+
+  // If we get here, we can safely return the "records" array.
+  return result.detail['stdOutParsed']['result']['records'];
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    getUsernameFromAlias
  * @param       {string}  sfdxAlias The local SFDX alias whose Salesforce Username should be found.
  * @returns     {Promise<string>}   Resolves to the username if the alias was found, NULL if not.
@@ -1173,33 +1209,29 @@ export async function getUsernameFromAlias(sfdxAlias:string):Promise<string> {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyDevHubOrgs
- * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
- *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
- * @returns     {SfdxOrgInfo[]} Array containing only SfdxOrgInfo objects that point to
+ * @param       {StandardOrgInfoMap} standardOrgInfoMap  This should be the baseline list of
+ *              Standard Org Info objects previously created by a call to buildStandardOrgInfoMap().
+ * @returns     {StandardOrgInfo[]} Array containing only StandardOrgInfo objects that point to
  *              Dev Hub orgs.
  * @description Given a list of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfoMap(), finds all the org connections that point to DevHub Orgs and
- *              returns them as an array of SfdxOrgInfo objects.
+ *              buildStandardOrgInfoMap(), finds all the org connections that point to DevHub Orgs and
+ *              returns them as an array of StandardOrgInfo objects.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export function identifyDevHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):SfdxOrgInfo[] {
+export function identifyDevHubOrgs(standardOrgInfoMap:StandardOrgInfoMap):StandardOrgInfo[] {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:arguments:`, arguments);
 
   // Make sure that the caller passed us a Map.
-  if ((sfdxOrgInfoMap instanceof Map) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}identifyDevHubOrgs`);
-  }
+  typeValidator.throwOnNullInvalidInstance(standardOrgInfoMap, Map, `${dbgNs}identifyDevHubOrgs`, `standardOrgInfoMap`);
 
-  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
-  const devHubOrgInfos = new Array<SfdxOrgInfo>();
+  // Array of StandardOrgInfo objects that will hold Dev Hubs.
+  const devHubOrgInfos = new Array<StandardOrgInfo>();
 
   // Iterate over the Org Info list and identify Developer Hub Orgs.
-  for (const orgInfo of sfdxOrgInfoMap.values()) {
+  for (const orgInfo of standardOrgInfoMap.values()) {
     if (orgInfo.isDevHub) {
       SfdxFalconDebug.str(`${dbgNs}identifyDevHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `DEVELOPER HUB FOUND: `);
       devHubOrgInfos.push(orgInfo);
@@ -1210,7 +1242,7 @@ export function identifyDevHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):SfdxOrgInfo[] 
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:devHubOrgInfos`, devHubOrgInfos, `devHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyDevHubOrgs:devHubOrgInfos`, devHubOrgInfos);
 
   // Return the list of Packaging Orgs to the caller
   return devHubOrgInfos;
@@ -1219,33 +1251,29 @@ export function identifyDevHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):SfdxOrgInfo[] 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyEnvHubOrgs
- * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
- *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
- * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
- *              that point to Environment Hub Orgs.
- * @description Given a list of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfoMap(), finds all the org connections that point to Environment Hub
- *              Orgs and returns them as an array of SfdxOrgInfo objects.
+ * @param       {StandardOrgInfoMap} standardOrgInfoMap  This should be the baseline list of
+ *              Standard Org Info objects previously created by a call to buildStandardOrgInfoMap().
+ * @returns     {Promise<StandardOrgInfo[]>}  Resolves with an array containing only StandardOrgInfo
+ *              objects that point to Environment Hub Orgs.
+ * @description Given a list of Standard Org Info objects previously created by a call to
+ *              buildStandardOrgInfoMap(), finds all the org connections that point to Environment
+ *              Hub Orgs and returns them as an array of StandardOrgInfo objects.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function identifyEnvHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<SfdxOrgInfo[]> {
+export async function identifyEnvHubOrgs(standardOrgInfoMap:StandardOrgInfoMap):Promise<StandardOrgInfo[]> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:arguments:`, arguments);
 
   // Make sure that the caller passed us a Map.
-  if ((sfdxOrgInfoMap instanceof Map) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}identifyEnvHubOrgs`);
-  }
+  typeValidator.throwOnNullInvalidInstance(standardOrgInfoMap, Map, `${dbgNs}identifyEnvHubOrgs`, `standardOrgInfoMap`);
 
-  // Array of SfdxOrgInfo objects that will hold Dev Hubs.
-  const envHubOrgInfos = new Array<SfdxOrgInfo>();
+  // Array of StandardOrgInfo objects that will hold Dev Hubs.
+  const envHubOrgInfos = new Array<StandardOrgInfo>();
 
   // Iterate over the Org Info list and identify Environment Hub Orgs.
-  for (const orgInfo of sfdxOrgInfoMap.values()) {
+  for (const orgInfo of standardOrgInfoMap.values()) {
     if (await orgInfo.determineEnvHubStatus()) {
       SfdxFalconDebug.str(`${dbgNs}identifyEnvHubOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `ENVIRONMENT HUB FOUND: `);
       envHubOrgInfos.push(orgInfo);
@@ -1256,7 +1284,7 @@ export async function identifyEnvHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:envHubOrgInfos`, envHubOrgInfos, `envHubOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyEnvHubOrgs:envHubOrgInfos`, envHubOrgInfos);
 
   // Return the list of Packaging Orgs to the caller
   return envHubOrgInfos;
@@ -1265,33 +1293,29 @@ export async function identifyEnvHubOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    identifyPkgOrgs
- * @param       {SfdxOrgInfoMap} sfdxOrgInfoMap  This should be the baseline list of SFDX
- *              Org Info objects previously created by a call to buildSfdxOrgInfoMap().
- * @returns     {Promise<SfdxOrgInfo[]>}  Resolves with an array containing only SfdxOrgInfo objects
- *              that point to Packaging Orgs.
+ * @param       {StandardOrgInfoMap} standardOrgInfoMap  This should be the baseline list of SFDX
+ *              Org Info objects previously created by a call to buildStandardOrgInfoMap().
+ * @returns     {Promise<StandardOrgInfo[]>}  Resolves with an array containing only StandardOrgInfo
+ *              objects that point to Packaging Orgs.
  * @description Given a map of SFDX Org Info objects previously created by a call to
- *              buildSfdxOrgInfoMap(), finds all the org connections that point to Packaging Orgs and
- *              returns them as an array of SfdxOrgInfo objects.
+ *              buildStandardOrgInfoMap(), finds all the org connections that point to Packaging
+ *              Orgs and returns them as an array of StandardOrgInfo objects.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function identifyPkgOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<SfdxOrgInfo[]> {
+export async function identifyPkgOrgs(standardOrgInfoMap:StandardOrgInfoMap):Promise<StandardOrgInfo[]> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:arguments:`, arguments);
 
   // Make sure that the caller passed us a Map.
-  if ((sfdxOrgInfoMap instanceof Map) !== true) {
-    throw new SfdxFalconError( `Expected sfdxOrgInfoMap to a Map but got a '${typeof sfdxOrgInfoMap !== 'undefined' ? sfdxOrgInfoMap.constructor.name : 'undefined'}' instead.`
-                             , `TypeError`
-                             , `${dbgNs}identifyPkgOrgs`);
-  }
+  typeValidator.throwOnNullInvalidInstance(standardOrgInfoMap, Map, `${dbgNs}identifyPkgOrgs`, `standardOrgInfoMap`);
 
-  // Array of SfdxOrgInfo objects that will hold Packaging Org info.
-  const pkgOrgInfos = new Array<SfdxOrgInfo>();
+  // Array of StandardOrgInfo objects that will hold Packaging Org info.
+  const pkgOrgInfos = new Array<StandardOrgInfo>();
 
   // Iterate over the Org Info list and identify Packaging Orgs.
-  for (const orgInfo of sfdxOrgInfoMap.values()) {
+  for (const orgInfo of standardOrgInfoMap.values()) {
     if (await orgInfo.determinePkgOrgStatus()) {
       SfdxFalconDebug.str(`${dbgNs}identifyPkgOrgs:`, `${orgInfo.alias}(${orgInfo.username})`, `PACKAGING ORG FOUND: `);
       pkgOrgInfos.push(orgInfo);
@@ -1302,7 +1326,7 @@ export async function identifyPkgOrgs(sfdxOrgInfoMap:SfdxOrgInfoMap):Promise<Sfd
   }
 
   // DEBUG
-  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos`, pkgOrgInfos, `pkgOrgInfos: `);
+  SfdxFalconDebug.obj(`${dbgNs}identifyPkgOrgs:pkgOrgInfos`, pkgOrgInfos);
 
   // Return the list of Packaging Orgs to the caller
   return pkgOrgInfos;
@@ -1456,9 +1480,8 @@ export async function retrieveMetadata(aliasOrUsername:string, manifestFilePath:
  * @function    scanConnectedOrgs
  * @returns     {Promise<SfdxFalconResult>} Uses an SfdxFalconResult to return data to the caller for
  *              both RESOLVE and REJECT.
- * @description Calls force:org:list via an async shell command, then creates an array of
- *              SfdxOrgInfo objects by parsing the JSON response returned by the CLI command.
- *              Sends results back to caller as an SfdxFalconResult.
+ * @description Calls force:org:list --all via an async shell command, then sends the results back
+ *              to the caller as an SfdxFalconResult.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘

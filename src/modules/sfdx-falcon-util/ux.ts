@@ -9,20 +9,29 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import * as _ from 'lodash';
+// Import External Libraries, Modules, and Types
+import  chalk                 from  'chalk';                    // Helps write colored text to the console.
+import  * as _                from 'lodash';                    // Useful collection of utility functions.
+import  pad                   = require('pad');                 // Provides consistent spacing when trying to align console output.
+
+// Import Internal Libraries
+import  * as typeValidator    from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
 
 // Import Internal Modules
-import {SfdxFalconDebug}  from  '../sfdx-falcon-debug';   // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}  from  '../sfdx-falcon-error';   // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import  {SfdxFalconDebug}     from  '../sfdx-falcon-debug';     // Class. Specialized debug provider for SFDX-Falcon code.
+import  {SfdxFalconError}     from  '../sfdx-falcon-error';     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+
+// Import Internal Types
+import  {StatusMessage}       from  '../sfdx-falcon-types';     // Interface. Represents a "state aware" message. Contains a title, a message, and a type.
+import  {StatusMessageType}   from  '../sfdx-falcon-types';     // Enum. Represents the various types/states of a Status Message.
+import  {StyledMessage}       from  '../sfdx-falcon-types';     // Interface. Allows for specification of a message string and chalk-specific styling information.
 
 // Requires
-const stripAnsi       = require('strip-ansi');                      // Strips ANSI escape codes from strings.
-const chalk           = require('chalk');                           // Utility for creating colorful console output.
-const pad             = require('pad');                             // Provides consistent spacing when trying to align console output.
+const stripAnsi = require('strip-ansi');                        // Strips ANSI escape codes from strings.
 
 // Set the File Local Debug Namespace
-const dbgNs     = 'UTILITY:ux:';
+const dbgNs = 'UTILITY:ux:';
+SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
 
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -51,7 +60,7 @@ export type SfdxFalconTableData = SfdxFalconKeyValueTableDataRow[];
  * @description Represents a Status Message that may eventually be displayed using a Falcon Table.
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-export interface StatusMessage {
+export interface StatusMessageOLD {
   title:    string;
   message:  string;
   type:     'error'|'info'|'success'|'warning';
@@ -116,37 +125,33 @@ export interface TableOptions {
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function printStatusMessage(statusMessage:StatusMessage, padLength:number=0, separator:string=' : '):void {
+
   // Validate input
-  if (typeof statusMessage.title !== 'string') {
-    throw new SfdxFalconError( `Expected string for statusMessage.title but got '${typeof statusMessage.title}'`
-                             , `TypeError`
-                             , `${dbgNs}printStatusMessage`);
-  }
-  if (typeof statusMessage.message !== 'string') {
-    throw new SfdxFalconError( `Expected string for statusMessage.message but got '${typeof statusMessage.message}'`
-                             , `TypeError`
-                             , `${dbgNs}printStatusMessage`);
-  }
-  if (typeof separator !== 'string') {
-    throw new SfdxFalconError( `Expected string for separator but got '${typeof separator}'`
-                             , `TypeError`
-                             , `${dbgNs}printStatusMessage`);
-  }
+  typeValidator.throwOnNullInvalidString(statusMessage.title,   `${dbgNs}printStatusMessage`, `statusMessage.title`);
+  typeValidator.throwOnNullInvalidString(statusMessage.message, `${dbgNs}printStatusMessage`, `statusMessage.message`);
+  typeValidator.throwOnNullInvalidString(statusMessage.type,    `${dbgNs}printStatusMessage`, `statusMessage.type`);
+  typeValidator.throwOnNullInvalidString(separator,             `${dbgNs}printStatusMessage`, `separator`);
+
+  // Make sure we move forward with Pad Length as an actual number.
   if (isNaN(padLength)) {
     padLength = 0;
   }
+
   // Print the Status Message
   switch (statusMessage.type) {
-    case 'error':
+    case StatusMessageType.ERROR:
       console.log(chalk`{bold.red ${pad(statusMessage.title, padLength)+separator}}{bold ${statusMessage.message}}`);
       break;
-    case 'info':
+    case StatusMessageType.FATAL:
+      console.log(chalk`{bold.red ${pad(statusMessage.title, padLength)+separator}}{bold ${statusMessage.message}}`);
+      break;
+    case StatusMessageType.INFO:
       console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}${statusMessage.message}`);
       break;
-    case 'success':
+    case StatusMessageType.SUCCESS:
       console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}{green ${statusMessage.message}}`);
       break;
-    case 'warning':
+    case StatusMessageType.WARNING:
       console.log(chalk`{bold ${pad(statusMessage.title, padLength)+separator}}{yellow ${statusMessage.message}}`);
       break;
     default:
@@ -202,6 +207,37 @@ export function printStatusMessages(statusMessages:StatusMessage[], separator:st
   // Print all of the Satus Messages
   for (const statusMessage of statusMessages) {
     printStatusMessage(statusMessage, longestTitle, separator);
+  }
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    printStyledMessage
+ * @param       {StyledMessage} styledMessage Required. The styled message to be printed to console.
+ * @returns     {void}
+ * @description Given a single StyledMessage object, outputs that message to the console using the
+ *              styling information provided inside the object.
+ * @public
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function printStyledMessage(styledMessage:StyledMessage):void {
+
+  // If the incoming Styled Message is undefined, don't do anything.
+  if (typeof styledMessage === 'undefined') {
+    return;
+  }
+
+  // Validate incoming arguments.
+  typeValidator.throwOnEmptyNullInvalidObject (styledMessage,         `${dbgNs}printStyledMessage`, `styledMessage`);
+  typeValidator.throwOnNullInvalidString      (styledMessage.message, `${dbgNs}printStyledMessage`, `styledMessage.message`);
+  typeValidator.throwOnNullInvalidString      (styledMessage.styling, `${dbgNs}printStyledMessage`, `styledMessage.styling`);
+
+  // If styling info was provided, use it. Otherwise just log an unadorned message to the console.
+  if (styledMessage.styling) {
+    console.log(chalk`{${styledMessage.styling} ${styledMessage.message}}`);
+  }
+  else {
+    console.log(styledMessage.message);
   }
 }
 

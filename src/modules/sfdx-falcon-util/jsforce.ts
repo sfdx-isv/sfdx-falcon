@@ -1,7 +1,7 @@
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @file          modules/sfdx-falcon-util/jsforce.ts
- * @copyright     Vivek M. Chawla - 2018
+ * @copyright     Vivek M. Chawla / Salesforce - 2019
  * @author        Vivek M. Chawla <@VivekMChawla>
  * @summary       Utility Module - JSForce
  * @description   Utility functions related to JSForce. Allows developer to work directly against
@@ -10,31 +10,33 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
-import {Connection}               from  '@salesforce/core';     // Why?
-import {AnyJson}                  from  '@salesforce/ts-types'; // Why?
-import {JsonMap}                  from  '@salesforce/ts-types'; // Why?
-import * as jsf                   from  'jsforce';              // Why?
+// Import External Libraries, Modules, and Types
+import {Connection}               from  '@salesforce/core';     // Handles connections and requests to Salesforce Orgs.
+import {JsonCollection}           from  '@salesforce/ts-types'; // Any valid JSON collection value (JsonMap or JsonArray).
+import {JsonMap}                  from  '@salesforce/ts-types'; // Any JSON-compatible object.
+import * as jsf                   from  'jsforce';              // Provides low-level services for interacting with Salesforce orgs.
 
-// Import Internal Modules
+// Import Internal Libraries
+import * as typeValidator         from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
+
+// Import Internal Classes & Functions
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug'; // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
-
-// Import Utility Functions
 import {resolveConnection}        from  './sfdx';               // Function. Takes either an alias or a connection and gives back a connection.
 
-// Import Falcon Types
+// Import Internal Types
 import {AliasOrConnection}        from  '../sfdx-falcon-types'; // Type. Represents either an Org Alias or a JSForce Connection.
 import {MetadataPackage}          from  '../sfdx-falcon-types'; // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
 import {ObjectDescribe}           from  '../sfdx-falcon-types'; // Interface. Represents the REST response provided for an Object Describe.
 import {PermissionSetAssignment}  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce PermissionSetAssignment SObject.
 import {Profile}                  from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce Profile SObject
 import {QueryResult}              from  '../sfdx-falcon-types'; // Type. Alias to the JSForce definition of QueryResult.
-import {RestApiRequestDefinition} from  '../sfdx-falcon-types'; // IInterface. Represents information needed to make a REST API request via a JSForce connection.
+import {RawRestResponse}          from  '../sfdx-falcon-types'; // Interface. Represents the unparsed response to a "raw" REST API request via a JSForce connection.
+import {RestApiRequestDefinition} from  '../sfdx-falcon-types'; // Interface. Represents information needed to make a REST API request via a JSForce connection.
 import {User}                     from  '../sfdx-falcon-types'; // Interface. Represents the Salesforce User SObject.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'UTILITY:jsforce:';
-
+SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
 
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -307,29 +309,97 @@ export async function getUserId(aliasOrConnection:AliasOrConnection, username:st
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
  * @function    restApiRequest
- * @param       {RestApiRequestDefinition}  restRequestDef  Required. ???
- * @returns     {Promise<any>}  Result of a REST API request to Salesforce.
- * @description Given a REST API Request Definition, makes a REST call using JSForce.
- * @version     1.0.0
+ * @param       {RestApiRequestDefinition}  restRequestDef  Required. Contains information about the
+ *              desired REST request as well as the Alias or Connection that's the target of the
+ *              REST request.
+ * @returns     {Promise<JsonCollection>}  Parsed result of a REST API request to Salesforce.
+ * @description Given a REST API Request Definition, makes the REST call to Salesforce with JSForce.
+ *              The response from Salesforce is parsed by JSForce so that the value returned is
+ *              always a JsonMap or a JsonArray.
+ *
+ *              If the HTTP status code of the response is not 2xx, then JSForce will throw an
+ *              error and attempt to provide meaningful information in the thrown Error.message.
+ *              If an unparsed response from Salesforce is required, you should use restApiRequestRaw()
+ *              instead of this function.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Promise<AnyJson> {
+export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Promise<JsonCollection> {
+  
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:arguments:`, arguments);
+
+  // Validate incoming arguments.
+  typeValidator.throwOnEmptyNullInvalidObject(restRequestDef,  `${dbgNs}restApiRequest`, `restRequestDef`);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(restRequestDef.aliasOrConnection);
   
-  // Execute the command. Note that this is a synchronous request.
+  // Execute the REST request.
   const restResult = await rc.connection.request(restRequestDef.request);
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:restResult:`, restResult);
 
-  // Debug
-  SfdxFalconDebug.obj(`${dbgNs}restApiRequest:restResult:`, restResult, `restResult: `);
-
-  // Process the results in a standard way
-  // TODO: Not sure if there is anything to actually do here...
-
-  // Resolve to caller
+  // Return the results.
   return restResult;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    restApiRequestRaw
+ * @param       {RestApiRequestDefinition}  restRequestDef  Required. Contains information about the
+ *              desired REST request as well as the Alias or Connection that's the target of the
+ *              REST request.
+ * @returns     {Promise<RawRestResponse>}  Unparsed (raw) result of a REST API request to Salesforce.
+ * @description Given a REST API Request Definition, makes a REST call to Salesforce with JSForce.
+ *              The response from Salesforce is provided in its "raw" form to the caller by way of
+ *              a specialized JsonMap that breaks out the status code, status message, headers, and
+ *              body of the HTTP Response.
+ *
+ *              Unlike the restApiRequest() function, non 2xx responses from Salesforce WILL NOT
+ *              cause errors to be thrown.  The caller MUST inspect the HTTP Status Code to determine
+ *              whether or not their request was successful.
+ * @public @async
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function restApiRequestRaw(restRequestDef:RestApiRequestDefinition):Promise<RawRestResponse> {
+  
+  // Debug incoming arguments.
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequestRaw:arguments:`, arguments);
+
+  // Validate incoming arguments.
+  typeValidator.throwOnEmptyNullInvalidObject(restRequestDef,  `${dbgNs}restApiRequestRaw`, `restRequestDef`);
+
+  // Resolve our connection situation based on the incoming "alias or connection" param.
+  const rc = await resolveConnection(restRequestDef.aliasOrConnection);
+
+  // Normalize the URL provided in the restRequestDef.
+  // This is necessary because connection.requestRaw() does not do
+  // this for us automatically like it does in connection.request().
+  let normalizedUrl = '';
+  if (restRequestDef.request.url[0] === '/') {
+    if (restRequestDef.request.url.indexOf('/services/') === 0) {
+      normalizedUrl = rc.connection.instanceUrl + restRequestDef.request.url;
+    } else {
+      normalizedUrl = rc.connection._baseUrl()  + restRequestDef.request.url;
+    }
+  }
+  if (normalizedUrl) {
+    restRequestDef.request.url = normalizedUrl;
+  }
+
+  // Execute the REST request.
+  const rawResult = await rc.connection.requestRaw(restRequestDef.request);
+  SfdxFalconDebug.obj(`${dbgNs}restApiRequestRaw:rawResult:`, rawResult);
+
+  // TODO: Try to extract error info from the body to make the caller's life easier.
+
+  // Extract and return only the key information from the Raw Result.
+  return {
+    statusCode:     rawResult.statusCode as number,
+    statusMessage:  rawResult.statusMessage as string,
+    headers:        rawResult.headers as JsonMap,
+    body:           rawResult.body as string
+  };
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -347,7 +417,7 @@ export async function restApiRequest(restRequestDef:RestApiRequestDefinition):Pr
 export async function toolingApiQuery<T>(aliasOrConnection:AliasOrConnection, query:string):Promise<QueryResult<T>> {
 
   // Debug incoming arguments
-  SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:arguments:`, arguments, `arguments: `);
+  SfdxFalconDebug.obj(`${dbgNs}toolingApiQuery:arguments:`, arguments);
 
   // Resolve our connection situation based on the incoming "alias or connection" param.
   const rc = await resolveConnection(aliasOrConnection);
