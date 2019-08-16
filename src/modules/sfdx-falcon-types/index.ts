@@ -621,7 +621,7 @@ export interface Bulk2JobInfoResponse extends Bulk2JobCreateResponse {
  * Interface. Represents a record that encountered an error while being processed by a Bulk API 2.0 job.
  * Contains all field data that was provided in the original job data upload request.
  */
-export interface Bulk2FailureRecord extends JsonMap {
+export interface Bulk2FailedRecord extends JsonMap {
   /** Error code and message, if applicable. */
   sf__Error:    string;
   /** ID of the record that had an error during processing, if applicable. */
@@ -631,15 +631,15 @@ export interface Bulk2FailureRecord extends JsonMap {
 }
 
 /**
- * Type. Represents the collection of "Successful Results" data from a Bulk API 2.0 job.
+ * Type. Represents the collection of "Failed Results" data from a Bulk API 2.0 job.
  */
-export type Bulk2FailureResults = Bulk2FailureRecord[];
+export type Bulk2FailedResults = Bulk2FailedRecord[];
 
 /**
  * Interface. Represents a record that has been successfully processed by a Bulk API 2.0 job.
  * Contains all field data that was provided in the original job data upload request.
  */
-export interface Bulk2SuccesRecord extends JsonMap {
+export interface Bulk2SuccessfulRecord extends JsonMap {
   /** Indicates if the record was created. */
   sf__Created:  string;
   /** ID of the record that was successfully processed. */
@@ -651,7 +651,7 @@ export interface Bulk2SuccesRecord extends JsonMap {
 /**
  * Type. Represents the collection of "Successful Results" data from a Bulk API 2.0 job.
  */
-export type Bulk2SuccesfulResults = Bulk2SuccesRecord[];
+export type Bulk2SuccessfulResults = Bulk2SuccessfulRecord[];
 
 /**
  * Interface. Represents the overall status of a Bulk API 2.0 operation.
@@ -661,12 +661,17 @@ export interface Bulk2OperationStatus extends JsonMap {
   dataSourcePath?:          string;
   dataSourceSize?:          number;
   dataSourceUploadStatus?:  Status;
-  failureResults?:          Bulk2FailureResults;
-  failureResultsPath?:      string;
+  failedResults?:           Bulk2FailedResults;
+  failedResultsPath?:       string;
   initialJobStatus?:        Bulk2JobCreateResponse;
-  successfulResults?:       Bulk2SuccesfulResults;
+  successfulResults?:       Bulk2SuccessfulResults;
   successfulResultsPath?:   string;
 }
+
+/**
+ * Type. Represents a collection of either "Successful" or "Failure" Results data from a Bulk API 2.0 job.
+ */
+export type Bulk2Results = Bulk2SuccessfulResults | Bulk2FailedResults;
 
 /**
  * Type. Alias to a Map with string keys and MetadataPackageVersion values.

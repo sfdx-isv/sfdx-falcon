@@ -12,13 +12,10 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Libraries, Modules, and Types
-//import {Connection}               from  '@salesforce/core';     // Handles connections and requests to Salesforce Orgs.
-//import {JsonCollection}           from  '@salesforce/ts-types'; // Any valid JSON collection value.
-//import {JsonMap}                  from  '@salesforce/ts-types'; // Any JSON-compatible object.
-//import {AnyJson}                  from  '@salesforce/ts-types'; // Any valid JSON value.
-import * as fs                    from  'fs-extra';             // Extended set of File System utils.
+import * as fs                    from  'fs-extra'; // Extended set of File System utils.
 
 // Import Internal Libraries
+import * as csv                   from  '../sfdx-falcon-util/csv';                  // Library of helper functions that make it easier to work with CSV data.
 import * as typeValidator         from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
 
 // Import Internal Classes & Functions
@@ -29,16 +26,20 @@ import {restApiRequestRaw}        from  './jsforce';            // Function. Giv
 
 // Import Internal Types
 import {AliasOrConnection}          from  '../sfdx-falcon-types'; // Type. Represents either an Org Alias or a JSForce Connection.
-import {Bulk2OperationStatus}       from  '../sfdx-falcon-types'; // Interface. Represents the overall status of a Bulk API 2.0 operation.
+import {Bulk2FailedResults}         from  '../sfdx-falcon-types'; // Type. Represents the collection of "Failed Results" data from a Bulk API 2.0 job.
+import {Bulk2SuccessfulResults}     from  '../sfdx-falcon-types'; // Type. Represents the collection of "Successful Results" data from a Bulk API 2.0 job.
+import {Bulk2Results}               from  '../sfdx-falcon-types'; // Type. Represents a collection of either "Successful" or "Failure" Results data from a Bulk API 2.0 job.
 import {Bulk2JobCloseAbortRequest}  from  '../sfdx-falcon-types'; // Interface. Represents the request body required to close or abort a Bulk API 2.0 job.
 import {Bulk2JobCloseAbortResponse} from  '../sfdx-falcon-types'; // Interface. Represents the response body returned by Salesforce when closing or aborting a specific Bulk API 2.0 job.
 import {Bulk2JobCreateRequest}      from  '../sfdx-falcon-types'; // Interface. Represents the request body required to create a Bulk API 2.0 job.
 import {Bulk2JobCreateResponse}     from  '../sfdx-falcon-types'; // Interface. Represents the response body returned by Salesforce after attempting to create a Bulk API 2.0 job.
 import {Bulk2JobInfoResponse}       from  '../sfdx-falcon-types'; // Interface. Represents the response body returned by Salesforce when requesting info about a specific Bulk API 2.0 job.
+import {Bulk2OperationStatus}       from  '../sfdx-falcon-types'; // Interface. Represents the overall status of a Bulk API 2.0 operation.
 import {RawRestResponse}            from  '../sfdx-falcon-types'; // Interface. Represents the unparsed response to a "raw" REST API request via a JSForce connection.
 import {RestApiRequestDefinition}   from  '../sfdx-falcon-types'; // Interface. Represents information needed to make a REST API request via a JSForce connection.
-import {Status}                     from  '../sfdx-falcon-types'; // Enum. Represents a generic set of commonly used Status values.
-import { waitASecond } from './async';
+
+// DEVTEST
+import {waitASecond}                from  './async';
 
 // Set file local globals
 const maxBulk2DataSourceFileSize            = 1048576;
@@ -71,10 +72,8 @@ SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobCreateRequest:Bulk2JobCreateRequest, dataSourcePath:string, apiVersion:string=''):Promise<Bulk2OperationStatus> {
 
-  // Define function-local debug namespace.
+  // Define function-local debug namespace and validate incoming arguments.
   const dbgNsLocal = `${dbgNs}bulk2Insert`;
-
-  // Debug incoming arguments.
   SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
 
   // Validate incoming arguments.
@@ -97,9 +96,10 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
 
   // Start defining the Bulk2 Operation Status object we'll end up returning.
   const bulk2OperationStatus = {
-    dataSourcePath: dataSourcePath,
-    dataSourceSize: fileStats.size,
-    dataSourceUploadStatus: Status.NOT_STARTED
+    dataSourcePath:         dataSourcePath,
+    dataSourceSize:         fileStats.size,
+    successfulResultsPath:  dataSourcePath + '.successfulResults',
+    failedResultsPath:      dataSourcePath + '.failedResults'
   } as Bulk2OperationStatus;
 
   // Make sure that the Operation is set to "insert"
@@ -108,7 +108,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
   // Create the Bulk2 ingest job.
   bulk2OperationStatus.initialJobStatus = await createBulk2Job(aliasOrConnection, bulk2JobCreateRequest)
   .catch(bulk2JobError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:bulk2JobError:`, bulk2JobError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobError:`, bulk2JobError);
     throw new SfdxFalconError ( `${baseErrorMsg} Bulk job to ingest data could not be created.`
                               , `Bulk2InsertError`
                               , `${dbgNsLocal}`
@@ -118,7 +118,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
   // Upload the CSV file to Salesforce.
   await uploadBulk2DataSource(aliasOrConnection, dataSourcePath, bulk2OperationStatus.initialJobStatus.contentUrl)
   .catch(bulk2DataUploadError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:bulk2DataUploadError:`, bulk2DataUploadError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2DataUploadError:`, bulk2DataUploadError);
     throw new SfdxFalconError ( `${baseErrorMsg} The data source file could not be uploaded.`
                               , `Bulk2InsertError`
                               , `${dbgNsLocal}`
@@ -128,7 +128,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
   // Close the Bulk2 job.
   await closeBulk2Job(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id)
   .catch(bulk2CloseJobError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:bulk2CloseJobError:`, bulk2CloseJobError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2CloseJobError:`, bulk2CloseJobError);
     throw new SfdxFalconError ( `${baseErrorMsg} Could not close the bulk data load job. `
                               + `You may want to try and close the job manually via the Setup UI in your org.`
                               , `Bulk2InsertError`
@@ -136,29 +136,34 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
                               , bulk2CloseJobError);
   });
 
-  // Monitor the Bulk2 job.
+  // Monitor the Bulk2 job. This should resolve once the Job is complete, failed, or the timeout expires.
+  bulk2OperationStatus.currentJobStatus = await monitorBulk2Job(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, 10, 600)
+  .catch(bulk2JobMonitorError => {
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobMonitorError:`, bulk2JobMonitorError);
+    throw new SfdxFalconError ( `${baseErrorMsg} Monitoring failed for Job ID '${bulk2OperationStatus.initialJobStatus.id}'.`
+                              , `Bulk2InsertError`
+                              , `${dbgNsLocal}`
+                              , bulk2JobMonitorError);
+  });
 
-
-  // Download the Success Results.
+  // Download the Successful Results.
+  bulk2OperationStatus.successfulResults = await downloadSuccessfulResults(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, bulk2OperationStatus.successfulResultsPath)
+  .catch(downloadSuccessfulResultsError => {
+    SfdxFalconDebug.obj(`${dbgNsLocal}:downloadSuccessfulResultsError:`, downloadSuccessfulResultsError);
+    throw new SfdxFalconError ( `${baseErrorMsg} Could not download Successful Results.`
+                              , `Bulk2SuccessfulResultsError`
+                              , `${dbgNsLocal}`
+                              , downloadSuccessfulResultsError);
+  });
 
   // Download the Failed Results.
-  await downloadFailedResults(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, dataSourcePath+'.failedResults')
+  bulk2OperationStatus.failedResults = await downloadFailedResults(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, bulk2OperationStatus.failedResultsPath)
   .catch(downloadFailedResultsError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:downloadFailedResultsError:`, downloadFailedResultsError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:downloadFailedResultsError:`, downloadFailedResultsError);
     throw new SfdxFalconError ( `${baseErrorMsg} Could not download Failed Results.`
                               , `Bulk2FailedResultsError`
                               , `${dbgNsLocal}`
                               , downloadFailedResultsError);
-  });
-
-  // Get the current status of the Bulk2 job.
-  bulk2OperationStatus.currentJobStatus = await getBulk2JobInfo(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id)
-  .catch(bulk2JobInfoError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:bulk2JobInfoError:`, bulk2JobInfoError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Could not get info for Job ID '${bulk2OperationStatus.initialJobStatus.id}'.`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2JobInfoError);
   });
 
   // Debug and return the Bulk2 Operation Status.
@@ -213,13 +218,13 @@ export async function closeBulk2Job(aliasOrConnection:AliasOrConnection, jobId:s
   // Execute the REST request. If the request fails, JSForce will throw an exception.
   const restResponse = await restApiRequest(restRequest)
   .catch(restRequestError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequestError:`, restRequestError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:restRequestError:`, restRequestError);
     throw new SfdxFalconError ( `Error closing Job ID '${jobId}'. ${restRequestError.message}`
                               , `Bulk2JobError`
                               , `${dbgNsLocal}`
                               , restRequestError);
   }) as Bulk2JobCloseAbortResponse;
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
 
   // Return the REST response.
   return restResponse;
@@ -272,21 +277,17 @@ export async function createBulk2Job(aliasOrConnection:AliasOrConnection, bulk2J
   // Execute the REST request. If the request fails, JSForce will throw an exception.
   const restResponse = await restApiRequest(restRequest)
   .catch(restRequestError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequestError:`, restRequestError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:restRequestError:`, restRequestError);
     throw new SfdxFalconError ( `Error creating Bulk2 job. ${restRequestError.message}`
                               , `Bulk2JobError`
                               , `${dbgNsLocal}`
                               , restRequestError);
   }) as Bulk2JobCreateResponse;
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
 
   // Return the REST response.
   return restResponse;
 }
-
-
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -294,19 +295,19 @@ export async function createBulk2Job(aliasOrConnection:AliasOrConnection, bulk2J
  * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @param       {string}  jobId Required. Unique ID of the Bulk API 2.0 job the caller wants
- *              Failure Results from.
- * @param       {string}  pathToResults Required. Path to the location where the Successful Results
+ *              Failed Results from.
+ * @param       {string}  pathToResults Required. Path to the location where the Failed Results
  *              CSV file should be written.
- * @returns     {Promise<string>} Resolves with a string containing the Successful Results in the
- *              form of CSV data.
- * @description Given an Alias or Connection and a Bulk API v2 Job ID, downloads the "Successful
+ * @returns     {Promise<Bulk2FailedResults>} Resolves with the Failed Results, converted to an
+ *              array of JsonMaps.
+ * @description Given an Alias or Connection and a Bulk API v2 Job ID, downloads the "Failed
  *              Results" CSV data which are related to the specified Job, then saves the data
- *              to the user's system at the specified path.  Resolves with a string containing the
- *              CSV data.
+ *              to the user's system at the specified path. Resolves with the Failed Results
+ *              Records, converted to an array of JsonMaps.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function downloadFailedResults(aliasOrConnection:AliasOrConnection, jobId:string, pathToResults:string):Promise<string> {
+export async function downloadFailedResults(aliasOrConnection:AliasOrConnection, jobId:string, pathToResults:string):Promise<Bulk2FailedResults> {
 
   // Define function-local debug namespace and debug incoming arguments.
   const dbgNsLocal = `${dbgNs}downloadFailedResults`;
@@ -317,7 +318,7 @@ export async function downloadFailedResults(aliasOrConnection:AliasOrConnection,
   typeValidator.throwOnEmptyNullInvalidString(pathToResults,  `${dbgNsLocal}`, `pathToResults`);
 
   // Create the appropriate Resource URL.
-  const resourceUrl = `/jobs/ingest/${jobId}/failedResultsXXX/`;
+  const resourceUrl = `/jobs/ingest/${jobId}/failedResults/`;
 
   // Download and return the results.
   return await downloadResults(aliasOrConnection, resourceUrl, pathToResults)
@@ -326,9 +327,8 @@ export async function downloadFailedResults(aliasOrConnection:AliasOrConnection,
                               , `Bulk2ResultsError`
                               , `${dbgNsLocal}`
                               , downloadResultsError);
-  });
+  }) as Bulk2FailedResults;
 }
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -338,24 +338,20 @@ export async function downloadFailedResults(aliasOrConnection:AliasOrConnection,
  * @param       {string}  resourceUrl Required. Endpoint URL where the Results can be downloaded from.
  * @param       {string}  pathToResults Required. Path to the location where the results CSV file
  *              should be written.
- * @returns     {Promise<string>} Resolves with a string containing the Results in the form of CSV data.
+ * @returns     {Promise<Bulk2Results>} Resolves with the Results in the form of an array of JsonMaps
+ *              for each Results Record.
  * @description Given an Alias or Connection and a Bulk API v2 Job ID, downloads the "Successful
  *              Results" CSV data which are related to the specified Job, then saves the data
- *              to the user's system at the specified path.  Resolves with a string containing the
- *              CSV data.
+ *              to the user's system at the specified path.  Resolves with the Results in the form
+ *              of an array of JsonMaps for each Results Record.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function downloadResults(aliasOrConnection:AliasOrConnection, resourceUrl:string, pathToResults:string):Promise<string> {
-
-
-
-  await waitASecond(5);
-
+export async function downloadResults(aliasOrConnection:AliasOrConnection, resourceUrl:string, pathToResults:string):Promise<Bulk2Results> {
 
   // Define function-local debug namespace and debug incoming arguments.
   const dbgNsLocal = `${dbgNs}downloadResults`;
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:arguments:`, arguments);
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
 
   // Validate incoming arguments.
   typeValidator.throwOnEmptyNullInvalidString(resourceUrl,    `${dbgNsLocal}`, `resourceUrl`);
@@ -373,31 +369,51 @@ export async function downloadResults(aliasOrConnection:AliasOrConnection, resou
       url:    resourceUrl
     }
   };
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequest:`, restRequest);
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restRequest:`, restRequest);
 
   // Execute the REST request. If the request fails, JSForce will throw an exception.
   const restResponseRaw = await restApiRequestRaw(restRequest)
   .catch(restRequestError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequestError:`, restRequestError);
-    throw new SfdxFalconError ( `REST Request to '${resourceUrl}' failed. ${restRequestError.message}`
+    SfdxFalconDebug.obj(`${dbgNsLocal}:restRequestError:`, restRequestError);
+    throw new SfdxFalconError ( `REST request to '${resourceUrl}' failed. ${restRequestError.message}`
                               , `Bulk2ResultsError`
                               , `${dbgNsLocal}`
                               , restRequestError);
   })
   .then((rawRestResponse:RawRestResponse) => {
+    SfdxFalconDebug.obj(`${dbgNsLocal}:rawRestResponse:`, rawRestResponse);
+    if (isNaN(rawRestResponse.statusCode) || rawRestResponse.statusCode !== 200) {
+      throw new SfdxFalconError ( `REST request to '${resourceUrl}' failed (STATUS_CODE: ${rawRestResponse.statusCode}). `
+                                + rawRestResponse.body
+                                , `Bulk2ResultsError`
+                                , `${dbgNsLocal}`);
+    }
     return rawRestResponse;
   });
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restResponseRaw:`, restResponseRaw);
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restResponseRaw:`, restResponseRaw);
 
+  // Save the body of the Raw REST Response to the local filesystem.
+  await csv.writeCsvToFile(restResponseRaw.body, pathToResults)
+  .catch(writeError => {
+    throw new SfdxFalconError ( `Job results not saved. ${writeError.message}`
+                              , `Bulk2ResultsError`
+                              , `${dbgNsLocal}`
+                              , writeError);
+  });
 
+  // Parse the CSV response into JSON.
+  const bulk2Results = await csv.parseString(restResponseRaw.body)
+  .catch(csvParseError => {
+    throw new SfdxFalconError ( `Job results not parseable. ${csvParseError.message}`
+                              , `Bulk2ResultsError`
+                              , `${dbgNsLocal}`
+                              , csvParseError);
+  }) as Bulk2Results;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2Results:`, bulk2Results);
 
-
-  return 'xxxDEVTESTxxx';
+  // Return the JSON version of the response.
+  return bulk2Results;
 }
-
-
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -408,20 +424,37 @@ export async function downloadResults(aliasOrConnection:AliasOrConnection, resou
  *              Successful Results from.
  * @param       {string}  pathToResults Required. Path to the location where the Successful Results
  *              CSV file should be written.
- * @returns     {Promise<string>} Resolves with a string containing the Successful Results in the
- *              form of CSV data.
+ * @returns     {Promise<Bulk2SuccessfulResults>} Resolves with the Successful Results, converted
+ *              to an array of JsonMaps.
  * @description Given an Alias or Connection and a Bulk API v2 Job ID, downloads the "Successful
  *              Results" CSV data which are related to the specified Job, then saves the data
- *              to the user's system at the specified path.  Resolves with a string containing the
- *              CSV data.
+ *              to the user's system at the specified path.  Resolves with the Successful Results
+ *              Records, converted to an array of JsonMaps.
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function downloadSuccessfulResults(aliasOrConnection:AliasOrConnection, jobId:string, pathToResults:string):Promise<Bulk2SuccessfulResults> {
 
+  // Define function-local debug namespace and debug incoming arguments.
+  const dbgNsLocal = `${dbgNs}downloadSuccessfulResults`;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
 
+  // Validate incoming arguments.
+  typeValidator.throwOnEmptyNullInvalidString(jobId,          `${dbgNsLocal}`, `jobId`);
+  typeValidator.throwOnEmptyNullInvalidString(pathToResults,  `${dbgNsLocal}`, `pathToResults`);
 
+  // Create the appropriate Resource URL.
+  const resourceUrl = `/jobs/ingest/${jobId}/successfulResults/`;
 
-
+  // Download and return the results.
+  return await downloadResults(aliasOrConnection, resourceUrl, pathToResults)
+  .catch(downloadResultsError => {
+    throw new SfdxFalconError ( `Could not download Successful Results. ${downloadResultsError.message}`
+                              , `Bulk2ResultsError`
+                              , `${dbgNsLocal}`
+                              , downloadResultsError);
+  }) as Bulk2SuccessfulResults;
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -465,22 +498,17 @@ export async function getBulk2JobInfo(aliasOrConnection:AliasOrConnection, jobId
   // Execute the REST request. If the request fails, JSForce will throw an exception.
   const restResponse = await restApiRequest(restRequest)
   .catch(restRequestError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequestError:`, restRequestError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:restRequestError:`, restRequestError);
     throw new SfdxFalconError ( `Error creating Bulk2 job. ${restRequestError.message}`
                               , `Bulk2JobError`
                               , `${dbgNsLocal}`
                               , restRequestError);
   }) as Bulk2JobInfoResponse;
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
 
   // Return the REST response.
   return restResponse;
 }
-
-
-
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -502,16 +530,23 @@ export async function getBulk2JobInfo(aliasOrConnection:AliasOrConnection, jobId
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export async function monitorBulk2Job(aliasOrConnection:AliasOrConnection, jobId:string, pollingInterval:number, timeout:number):Promise<Bulk2JobInfoResponse> {
 
+  // Define function-local debug namespace and validate incoming arguments.
+  const dbgNsLocal = `${dbgNs}monitorBulk2Job`;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
 
+  // TODO: Need to fully implement this function.
+  await waitASecond(5);
 
-
-  return null;
+  // Get the current status of the Bulk2 job.
+  return await getBulk2JobInfo(aliasOrConnection, jobId)
+  .catch((bulk2JobInfoError:Error) => {
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobInfoError:`, bulk2JobInfoError);
+    throw new SfdxFalconError ( `Error while monitoring Job ID '${jobId}'. ${bulk2JobInfoError.message}`
+                              , `Bulk2InsertError`
+                              , `${dbgNsLocal}`
+                              , bulk2JobInfoError);
+  });
 }
-
-
-
-
-
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -577,13 +612,13 @@ export async function uploadBulk2DataSource(aliasOrConnection:AliasOrConnection,
   // Execute the REST request. If the request fails, JSForce will throw an exception.
   const restResponse = await restApiRequest(restRequest)
   .catch(restRequestError => {
-    SfdxFalconDebug.debugObject(`${dbgNsLocal}:restRequestError:`, restRequestError);
+    SfdxFalconDebug.obj(`${dbgNsLocal}:restRequestError:`, restRequestError);
     throw new SfdxFalconError ( `Error uploading '${dataSourcePath}' to Salesforce. ${restRequestError.message}`
                               , `DataUploadError`
                               , `${dbgNsLocal}`
                               , restRequestError);
   });
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
+  SfdxFalconDebug.obj(`${dbgNsLocal}:restResponse:`, {restResponse: restResponse});
 
   // Make sure we got back HTTP 201
 

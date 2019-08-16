@@ -547,6 +547,59 @@ export async function parseFile(csvFilePath:string, opts:Csv2JsonOptions={}):Pro
 
 //─────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    parseString
+ * @param       {string}  csvData Required. String containing a complete set of CSV data.
+ * @param       {Csv2JsonOptions} [opts]  Optional. Options for the CSV parser.
+ * @returns     {Promise<JsonMap[]>} Array of JSON Maps, one for each row of the CSV data.
+ * @description Given a string containing valid CSV data, parses that data and returns an array of
+ *              JSON Maps, one for each row of the CSV data.
+ * @public @async
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+export async function parseString(csvData:string, opts:Csv2JsonOptions={}):Promise<JsonMap[]> {
+
+  // Define function-local debug namespace and debug incoming arguments.
+  const dbgNsLocal = `${dbgNs}parseString`;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
+
+  // Results will be an array of JSON Maps.
+  const results = [] as JsonMap[];
+
+  // Wrap the file system stream read in a promise.
+  return new Promise((resolve, reject) => {
+
+    // Create a readable JSON object stream that will pull rows from the JSON Data array on each read.
+    /*
+    const csvDataStream = new Readable();
+    csvDataStream.push(csvData);
+    csvDataStream.push(null);
+    //*/
+
+    const csvDataStream = new Readable({
+      read: function() {
+        this.push(csvData);
+        this.push(null);
+      }
+    });
+
+    // Pipe the CSV Data Stream to the csv2json converter.
+    csvDataStream.pipe(csv2json(opts))
+    .on('data', (data:JsonMap) => results.push(data))
+    .on('end',  () => {
+      SfdxFalconDebug.obj(`${dbgNsLocal}:results:`, results);
+      resolve(results);
+    })
+    .on('error', (error:Error) => {
+      reject(new SfdxFalconError( `Unable to parse the CSV data string. ${error.message}`
+                                , `CsvParsingError`
+                                , `${dbgNsLocal}`
+                                , error));
+    });
+  });
+}
+
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    streamJsonToCsvFile
  * @param       {JsonMap[]} jsonData Required. Array of JSON data used to build each CSV file row.
  * @param       {string}  csvFilePath Required. Path to where the CSV file should be written to.
