@@ -1073,6 +1073,35 @@ export class SfdxFalconResult {
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
+   * @method      hasChild
+   * @param       {unknown} childReference  Varialbe whose referred object will
+   *              be checked against the array of Child Results owned by this
+   *              instance.
+   * @returns     {boolean} Returns TRUE if the Child Reference points to the
+   *              same location in memory as one of this instance's children.
+   * @description Given a reference to any object, compares that reference to
+   *              each Child Result owned by this instance. Returns true if a
+   *              match is found, false if not.
+   * @public
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  public hasChild(childReference:unknown):boolean {
+
+    // Only search for the Child if its reference is an Object.
+    if (typeof childReference === 'object') {
+      for (const childResult of this.children) {
+        if (childResult === childReference) {
+          return true;
+        }
+      }
+    }
+
+    // Child not found.
+    return false;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
    * @method      finish
    * @param       {SfdxFalconResultStatus}  finalStatus Required.
    * @returns     {SfdxFalconResultStatus}  This Result's actual final status.
