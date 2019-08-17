@@ -167,7 +167,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
   });
 
   // Debug and return the Bulk2 Operation Status.
-  SfdxFalconDebug.debugObject(`${dbgNsLocal}:bulk2OperationStatus:`, bulk2OperationStatus);
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:`, bulk2OperationStatus);
   return bulk2OperationStatus;
 }
 
