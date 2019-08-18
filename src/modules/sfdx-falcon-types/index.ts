@@ -57,11 +57,11 @@ export interface StyledMessage extends JsonMap {
  */
 export interface IntervalOptions extends JsonMap {
   /** The initial interval, in seconds. */
-  initial:      number;
+  initial?:      number;
   /** The amount to increment the interval by each time it completes. */
-  incrementBy:  number;
+  incrementBy?:  number;
   /** The maximum value that an interval can grow to. */
-  maximum:      number;
+  maximum?:      number;
 }
 
 /**
