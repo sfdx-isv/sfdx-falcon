@@ -53,6 +53,18 @@ export interface StyledMessage extends JsonMap {
 }
 
 /**
+ * Interface. Represents options that determine how a generic interval operates.
+ */
+export interface IntervalOptions extends JsonMap {
+  /** The initial interval, in seconds. */
+  initial:      number;
+  /** The amount to increment the interval by each time it completes. */
+  incrementBy:  number;
+  /** The maximum value that an interval can grow to. */
+  maximum:      number;
+}
+
+/**
  * Enum. Represents a generic set of commonly used Status values.
  */
 export enum Status {
