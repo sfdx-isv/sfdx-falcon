@@ -9,21 +9,89 @@
  * @license       MIT
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
-// Import External Modules
+// Import External Libraries, Modules, and Types
 import {ConfigFile}         from  '@salesforce/core';     // Module. SFDX Core library.
 import {JsonMap}            from  '@salesforce/ts-types'; // Type. Any JSON key-value structure.
 import * as path            from  'path';                 // Module. Node's path library.
+const uuid                  = require('uuid/v1');         // Generates a timestamp-based UUID
 
-// Import Local Modules
+// Import Internal Libraries
+import * as typeValidator   from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
+
+// Import Internal Classes & Functions
 import {SfdxFalconDebug}    from  '../sfdx-falcon-debug'; // Class. Internal Debug module
 import {SfdxFalconError}    from  '../sfdx-falcon-error'; // Class. Provides custom Error structures for SFDX-Falcon.
 
-// Require Modules
-const uuid = require('uuid/v1');  // Generates a timestamp-based UUID
-
 // Set the File Local Debug Namespace
-const dbgNs     = 'UTILITY:general:';
+const dbgNs = 'UTILITY:general:';
+SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
 
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    convertPropertyToBoolean
+ * @param       {object}  targetObject Object containing the property the caller wants to convert.
+ * @param       {string}  targetKey Key for the property the caller wants to convert.
+ * @param       {boolean} [retainUnconvertedValues=true] Determines whether or not values that
+ *              can not be successfully converted to Boolean should be kept as-is or should be
+ *              assigned as `undefined` since that's how they come out of the `valueToBoolean()`
+ *              function.
+ * @returns     {void}
+ * @description Given a target object and key that the caller wants to convert, attempts to coerce
+ *              a `boolean` value based on the intent of the value currently in that property.
+ *              Will have no effect on target properties that are `undefined`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function convertPropertyToBoolean(targetObject:object, targetKey:string, retainUnconvertedValues=true):void {
+  const dbgNsLocal = `${dbgNs}convertPropertyToBoolean`;
+  typeValidator.throwOnNullInvalidObject      (targetObject,  `${dbgNsLocal}`,  `targetObject`);
+  typeValidator.throwOnEmptyNullInvalidString (targetKey,     `${dbgNsLocal}`,  `targetKey`);
+  if (typeof targetObject[targetKey] === 'string' || typeof targetObject[targetKey] === 'number') {
+    const convertedValue = valueToBoolean(targetObject[targetKey]);
+    if (typeof convertedValue === 'undefined' && retainUnconvertedValues === true) {
+      return;
+    }
+    targetObject[targetKey] = convertedValue;
+  }
+  else {
+    if (retainUnconvertedValues === false) {
+      targetObject[targetKey] = undefined;
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    convertPropertyToNumber
+ * @param       {object}  targetObject Object containing the property the caller wants to convert.
+ * @param       {string}  targetKey Key for the property the caller wants to convert.
+ * @param       {boolean} [retainUnconvertedValues=true] Determines whether or not values that
+ * @returns     {void}
+ * @description Given a target object and key that the caller wants to convert, attempts to coerce
+ *              a `number` value based on the intent of the value currently in that property, then
+ *              stores that `number` in the same object property that was tested. Will have no
+ *              effect on target properties that are `undefined` or `null`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function convertPropertyToNumber(targetObject:object, targetKey:string, retainUnconvertedValues=true):void {
+  const dbgNsLocal = `${dbgNs}convertPropertyToNumber`;
+  typeValidator.throwOnNullInvalidObject      (targetObject,  `${dbgNsLocal}`,  `targetObject`);
+  typeValidator.throwOnEmptyNullInvalidString (targetKey,     `${dbgNsLocal}`,  `targetKey`);
+  if (typeof targetObject[targetKey] === 'string' || typeof targetObject[targetKey] === 'number' || targetObject[targetKey] === 'boolean') {
+    const convertedValue = valueToNumber(targetObject[targetKey]);
+    if (typeof convertedValue === 'undefined' && retainUnconvertedValues === true) {
+      return;
+    }
+    targetObject[targetKey] = convertedValue;
+  }
+  else {
+    if (retainUnconvertedValues === false) {
+      targetObject[targetKey] = undefined;
+    }
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
@@ -122,4 +190,64 @@ export function findJson(contentToSearch:string):JsonMap {
     foundJson = null;
   }
   return foundJson;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    valueToBoolean
+ * @param       {unknown} valueToParse  An `unknown` value to parse. Normally this should be a
+ *              `string`, though it's possible that unexpected types will enter this function.
+ * @returns     {boolean} Returns a `boolean` ONLY if the intent of the caller can be determined, and
+ *              returns `undefined` otherwise.
+ * @description Given an `unknown` value to parse, tries to determine what the boolean intent of the
+ *              value is. For example, the string `'TrUe'` would result in boolean `true` being returned.
+ *              On the other hand, `'random string'`, though true in a traditional boolean sense,
+ *              would result in the return of `undefined`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function valueToBoolean(valueToParse:unknown):boolean {
+  if (typeof valueToParse === 'undefined' || typeof valueToParse === 'boolean' || valueToParse === null) {
+    return valueToParse;
+  }
+  if (typeof valueToParse === 'number') {
+    return valueToParse === 0 ? false : true;
+  }
+  if (typeof valueToParse === 'string') {
+    switch (valueToParse.toLowerCase().trim()) {
+      case 'true'   : case 'yes'  : case '1': return true;
+      case 'false'  : case 'no'   : case '0': return false;
+      case ''                               : return null;
+    }
+  }
+  return undefined;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    valueToNumber
+ * @param       {unknown} valueToParse  An `unknown` value to parse. Normally this should be a
+ *              `string`, though it's possible that unexpected types will enter this function.
+ * @returns     {boolean} Returns a `number` ONLY if the intent of the caller can be determined, and
+ *              returns `undefined` otherwise.
+ * @description Given an `unknown` value to parse, tries to determine what the numeric intent of the
+ *              value is. For example, the string `'7'` would result in the number `7` being returned.
+ *              On the other hand, `'random string'` would return `undefined`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function valueToNumber(valueToParse:unknown, radix:number=10):number {
+  if (typeof valueToParse === 'undefined' || typeof valueToParse === 'number' || valueToParse === null) {
+    return valueToParse;
+  }
+  if (typeof valueToParse === 'boolean') {
+    return valueToParse ? 1 : 0;
+  }
+  if (typeof valueToParse === 'string') {
+    const parsedNumber = parseInt(valueToParse, (isNaN(radix) ? 10 : radix));
+    if (isNaN(parsedNumber) === false) {
+      return parsedNumber;
+    }
+  }
+  return undefined;
 }
