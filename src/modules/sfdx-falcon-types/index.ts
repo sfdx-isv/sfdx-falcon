@@ -57,12 +57,19 @@ export interface StyledMessage extends JsonMap {
  */
 export interface IntervalOptions extends JsonMap {
   /** The initial interval, in seconds. */
-  initial?:      number;
-  /** The amount to increment the interval by each time it completes. */
-  incrementBy?:  number;
-  /** The maximum value that an interval can grow to. */
-  maximum?:      number;
+  initial?:     number;
+  /** The amount to increment the interval by, in seconds, each time it completes. */
+  incrementBy?: number;
+  /** The maximum value, in seconds, that the interval can grow to. */
+  maximum?:     number;
+  /** The number of seconds before the interval-based operation times-out */
+  timeout?:     number;
 }
+
+/**
+ * Type. Represents an SObject Record ID.
+ */
+export type SObjectRecordId = string;
 
 /**
  * Enum. Represents a generic set of commonly used Status values.
@@ -105,6 +112,399 @@ export enum StatusMessageType {
 //
 //
 //─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Metadata API Types
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Interface. Modeled on the MDAPI Object `CodeCoverageResult`. May be part of the results returned by `force:mdapi:deploy` or `force:apex:test:report`.
+ *
+ * Contains information about whether or not the compile of the specified Apex and run of the unit tests was successful. Child of the `RunTestsResult`.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieveresult.htm
+ */
+export interface CodeCoverageResult extends JsonMap {
+  /** For each class or trigger tested, for each portion of code tested, this property contains the DML statement locations, the number of times the code was executed, and the total cumulative time spent in these calls. This can be helpful for performance monitoring. */
+  dmlInfo?:             CodeLocation[];
+  /** The ID of the CodeLocation. The ID is unique within an organization. */
+  id?:                  string;
+  /** For each class or trigger tested, if any code is not covered, the line and column of the code not tested, and the number of times the code was executed. */
+  locationsNotCovered?: CodeLocation[];
+  /** For each class or trigger tested, the method invocation locations, the number of times the code was executed, and the total cumulative time spent in these calls. This can be helpful for performance monitoring. */
+  methodInfo?:          CodeLocation[];
+  /** The name of the class or trigger covered. */
+  name?:                string;
+  /** The namespace that contained the unit tests, if one is specified. */
+  namespace?:           string;
+  /** The total number of code locations. */
+  numLocations?:        number;
+  /** For each class or trigger tested, the location of SOQL statements in the code, the number of times this code was executed, and the total cumulative time spent in these calls. This can be helpful for performance monitoring. */
+  soqlInfo?:            CodeLocation[];
+  /** Do not use. In early, unsupported releases, used to specify class or package. */
+  type?:                string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `CodeCoverageWarning`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about the Apex class which generated warnings. Child of the `RunTestsResult` object.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface CodeCoverageWarning extends JsonMap {
+  /** The ID of the CodeLocation. The ID is unique within an organization. */
+  id?:        string;
+  /** The message of the warning generated. */
+  message?:   string;
+  /** The namespace that contained the unit tests, if one is specified. */
+  name?:      string;
+  /** The namespace that contained the unit tests, if one is specified. */
+  namespace?: string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `CodeLocation`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Child of the `RunTestsResult` object.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface CodeLocation extends JsonMap {
+  /** The column location of the Apex tested. */
+  column?:        number;
+  /** The line location of the Apex tested. */
+  line?:          number;
+  /** The number of times the Apex was executed in the test run. */
+  numExecutions?: number;
+  /** The total cumulative time spent at this location. This can be helpful for performance monitoring. */
+  time?:          number;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `DeployDetails`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * While a deployment is still in-progress, the `DeployDetails` object only contains `componentFailures` data. After the deployment process finishes, the other fields populate with the data for the entire deployment.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface DeployDetails extends JsonMap {
+  /** One or more DeployMessage objects containing deployment errors for each component. */
+  componentFailures?:   DeployMessage[];
+  /** One or more DeployMessage objects containing successful deployment details for each component. */
+  componentSuccesses?:  DeployMessage[];
+  /** If the performRetrieve parameter was specified for the deploy() call, a retrieve() call is performed immediately after the deploy() process completes. This field contains the results of that retrieval. */
+  retrieveResult?:      RetrieveResult;
+  /** If tests were run for the deploy() call, this field contains the test results. While a deployment is still in-progress, this field only contains error data. After the deployment process finishes, this field populates with the data for the entire deployment. */
+  runTestResult?:       RunTestsResult;
+}
+
+/**
+ * Interface. Modeled on the MDAPI object `DeployMessage`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about the deployment success or failure of a component in the deployment .zip file. `DeployResult` objects contain one or more `DeployMessage` objects.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface DeployMessage extends JsonMap {
+  /** If true, the component was changed as a result of this deployment. If false, the deployed component was the same as the corresponding component already in the organization. */
+  changed?:       boolean;
+  /** Each component is represented by a text file. If an error occurred during deployment, this field represents the column of the text file where the error occurred. */
+  columnNumber?:  number;
+  /** The metadata type of the component in this deployment. */
+  componentType?: string;
+  /** If true, the component was created as a result of this deployment. If false, the component was either deleted or modified as a result of the deployment. */
+  created?:       boolean;
+  /** The date and time when the component was created as a result of this deployment. */
+  createdDate?:   string;
+  /** If true, the component was deleted as a result of this deployment. If false, the component was either new or modified as result of the deployment. */
+  deleted?:       boolean;
+  /** The name of the file in the .zip file used to deploy this component. */
+  fileName?:      string;
+  /** The full name of the component. */
+  fullName?:      string;
+  /** ID of the component being deployed. */
+  id?:            string;
+  /** Each component is represented by a text file. If an error occurred during deployment, this field represents the line number of the text file where the error occurred. */
+  lineNumber?:    number;
+  /** If an error or warning occurred, this field contains a description of the problem that caused the compile to fail. */
+  problem?:       string;
+  /** Indicates the problem type. The problem details are tracked in the problem field. The valid values are: */
+  problemType?:   'Warning'|'Error';
+  /** Indicates whether the component was successfully deployed (true) or not (false). */
+  success?:       boolean;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `DeployResult`. Returned by a call to `force:mdapi:deploy`.
+ *
+ * Contains information about the success or failure of the associated `force:mdapi:deploy` call.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface DeployResult extends JsonMap {
+  /** ID of the component being deployed. */
+  id?:                        string;
+  /** The ID of the user who canceled the deployment. */
+  canceledBy?:                string;
+  /** The full name of the user who canceled the deployment. */
+  canceledByName?:            string;
+  /** Indicates whether this deployment is being used to check the validity of the deployed files without making any changes in the organization (true) or not (false). A check-only deployment does not deploy any components or change the organization in any way. */
+  checkOnly?:                 boolean;
+  /** Timestamp for when the deployment process ended. */
+  completedDate?:             string;
+  /** The ID of the user who created the deployment. */
+  createdBy?:                 string;
+  /** The full name of the user who created the deployment. */
+  createdByName?:             string;
+  /** Timestamp for when the `force:mdapi:deploy` call was received. */
+  createdDate?:               string;
+  /** Provides the details of a deployment that is in-progress or ended */
+  details?:                   DeployDetails;
+  /** Indicates whether the server finished processing the `force:mdapi:deploy` call for the specified `id`. */
+  done?:                      boolean;
+  /** Message corresponding to the values in the errorStatusCode field, if any. */
+  errorMessage?:              string;
+  /** If an error occurred during the `force:mdapi:deploy` call, a status code is returned, and the message corresponding to the status code is returned in the `errorMessagefield`. */
+  errorStatusCode?:           string;
+  /** Optional. Defaults to false. Specifies whether a deployment should continue even if the deployment generates warnings. Do not set this argument to true for deployments to production organizations. */
+  ignoreWarnings?:            boolean;
+  /** Timestamp of the last update for the deployment process. */
+  lastModifiedDate?:          string;
+  /** The number of components that generated errors during this deployment. */
+  numberComponentErrors?:     number;
+  /** The number of components deployed in the deployment process. Use this value with the numberComponentsTotal value to get an estimate of the deployment’s progress. */
+  numberComponentsDeployed?:  number;
+  /** The total number of components in the deployment. Use this value with the numberComponentsDeployed value to get an estimate of the deployment’s progress. */
+  numberComponentsTotal?:     number;
+  /** The number of Apex tests that have generated errors during this deployment. */
+  numberTestErrors?:          number;
+  /** The number of completed Apex tests for this deployment. Use this value with the numberTestsTotal value to get an estimate of the deployment’s test progress. */
+  numberTestsCompleted?:      number;
+  /** The total number of Apex tests for this deployment. Use this value with the numberTestsCompleted value to get an estimate of the deployment’s test progress. The value in this field is not accurate until the deployment has started running tests for the components being deployed. */
+  numberTestsTotal?:          number;
+  /** Indicates whether Apex tests were run as part of this deployment (true) or not (false). Tests are either automatically run as part of a deployment or can be set to run using the `--testlevel` flag for the `force:mdapi:deploy` call. */
+  runTestsEnabled?:           boolean;
+  /** Optional. Defaults to true. Indicates whether any failure causes a complete rollback (true) or not (false). If false, whatever set of actions can be performed without errors are performed, and errors are returned for the remaining actions. This parameter must be set to true if you are deploying to a production organization. */
+  rollbackOnError?:           boolean;
+  /** Timestamp for when the deployment process began. */
+  startDate?:                 string;
+  /** Indicates which component is being deployed or which Apex test class is running. */
+  stateDetail?:               string;
+  /** Indicates the current state of the deployment. */
+  status?:                    'Pending'|'InProgress'|'Succeeded'|'SucceededPartial'|'Failed'|'Canceling'|'Canceled';
+  /** Indicates whether the deployment was successful (true) or not (false). */
+  success?:                   boolean;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `FileProperties`. May be part of the results returned by `force:mdapi:retrieve`.
+ *
+ * Contains information about the properties of each component in the .zip file, and the manifest file `package.xml`.
+ * One object per component is returned. Note that this component does not contain information about any associated
+ * metadata files in the .zip file, only the component files and manifest file. `FileProperties` contains the
+ * following properties:
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieveresult.htm
+ */
+export interface FileProperties extends JsonMap {
+  /** ID of the user who created the file. */
+  createdById?:         string;
+  /** Name of the user who created the file. */
+  createdByName?:       string;
+  /** Date and time when the file was created. */
+  createdDate?:         string;
+  /** Name of the file. */
+  fileName?:            string;
+  /** The file developer name used as a unique identifier for API access. The value is based on the fileName but the characters allowed are more restrictive. The fullName can contain only underscores and alphanumeric characters. It must be unique, begin with a letter, not include spaces, not end with an underscore, and not contain two consecutive underscores. */
+  fullName?:            string;
+  /** ID of the file. */
+  id?:                  string;
+  /** ID of the user who last modified the file. */
+  lastModifiedById?:    string;
+  /** Name of the user who last modified the file. */
+  lastModifiedByName?:  string;
+  /** Date and time that the file was last modified. */
+  lastModifiedDate?:    string;
+  /** Indicates the manageable state of the specified component if it is contained in a package. */
+  manageableState?:     'beta'|'deleted'|'deprecated'|'installed'|'released'|'unmanaged';
+  /** If any, the namespace prefix of the component. */
+  namespacePrefix?:     string;
+  /** Required. The metadata type, such as CustomObject, CustomField, or ApexClass. */
+  type?:                string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `FlowCoverageResult`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about the flow version and the number of elements executed by a test run. Available in API version 44.0 and later.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface FlowCoverageResult extends JsonMap {
+  /** List of elements in the flow version that weren’t executed by the test run. */
+  elementsNotCovered?:    string;
+  /** The ID of the flow version. The ID is unique within an org. */
+  flowId?:                string;
+  /** The name of the flow that was executed by the test run. */
+  flowName?:              string;
+  /** The namespace that contains the flow, if one is specified. */
+  flowNamespace?:         string;
+  /** The total number of elements in the flow version. */
+  numElements?:           number;
+  /** The number of elements in the flow version that weren’t executed by the test run */
+  numElementsNotCovered?: number;
+  /** The process type of the flow version. */
+  processType?:  string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `FlowCoverageWarning`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about the flow version that generated warnings. Available in API version 44.0 and later.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface FlowCoverageWarning extends JsonMap {
+  /** The ID of the flow version that generated the warning. */
+  flowId:         string;
+  /** The name of the flow that generated the warning. If the warning applies to the overall test coverage of flows within your org, this value is null. */
+  flowName:       string;
+  /** The namespace that contains the flow, if one was specified. */
+  flowNamespace:  string;
+  /** The message of the warning that was generated. */
+  message:        string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `RetrieveResult`. Returned by a call to `force:mdapi:retrieve`.
+ *
+ * Contains information about the success or failure of the associated `force:mdapi:retrieve` call.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieveresult.htm
+ */
+export interface RetrieveResult extends JsonMap {
+  /** Required. Indicates whether the retrieve() call is completed (true) or not (false). */
+  done?:            boolean;
+  /** If an error occurs during the force:mdapi:retrieve call, this field contains a descriptive message about this error. */
+  errorMessage?:    string;
+  /** If an error occurs during the force:mdapi:retrieve call, this field contains the status code for this error. */
+  errorStatusCode?: string;
+  /** Contains information about the properties of each component in the .zip file, and the manifest file package.xml. One object per component is returned. */
+  fileProperties?:  FileProperties;
+  /** ID of the component being retrieved. */
+  id?:              string;
+  /** Contains information about the success or failure of the force:mdapi:retrieve call. */
+  messages?:        RetrieveMessage[];
+  /** The status of the retrieve() call. Valid values are 'Pending', 'InProgress', 'Succeeded', and 'Failed' */
+  status?:          'Pending'|'InProgress'|'Succeeded'|'Failed';
+  /** Indicates whether the retrieve() call was successful (true) or not (false).  */
+  success?:         boolean;
+  /** The zip file returned by the retrieve request. Base 64-encoded binary data.  */
+  zipFile?:         string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `RunTestsResult`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about the execution of unit tests, including whether unit tests were completed successfully, code coverage results, and failures.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface RunTestsResult extends JsonMap {
+  /** The ID of an `ApexLog` object that is created at the end of a test run. The `ApexLog` object is created if there is an active trace flag on the user running an Apex test, or on a class or trigger being executed. */
+  apexLogId?:             string;
+  /** An array of one or more `CodeCoverageResult` objects that contains the details of the code coverage for the specified unit tests. */
+  codeCoverage?:          CodeCoverageResult[];
+  /** An array of one or more code coverage warnings for the test run. The results include both the total number of lines that could have been executed, as well as the number, line, and column positions of code that was not executed. */
+  codeCoverageWarnings?:  CodeCoverageWarning[];
+  /** An array of one or more `RunTestFailure` objects that contain information about the unit test failures, if there are any. */
+  failures?:              RunTestFailure[];
+  /** An array of results from test runs that executed flows */
+  flowCoverage?:          FlowCoverageResult[];
+  /** An array of warnings generated by test runs that executed flows. */
+  flowCoverageWarnings?:  FlowCoverageWarning[];
+  /** The number of failures for the unit tests. */
+  numFailures?:           number;
+  /** The number of unit tests that were run. */
+  numTestsRun?:           number;
+  /** An array of one or more `RunTestSuccess` objects that contain information about successes, if there are any. */
+  successes?:             RunTestSuccess[];
+  /** The total cumulative time spent running tests. This can be helpful for performance monitoring. */
+  totalTime?:             number;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `RunTestFailure`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about failures during the unit test run.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface RunTestFailure extends JsonMap {
+  /** The ID of the class which generated failures. */
+  id?:          string;
+  /** The failure message. */
+  message?:     string;
+  /** The name of the method that failed. */
+  methodName?:  string;
+  /** The name of the class that failed. */
+  name?:        string;
+  /** The namespace that contained the class, if one was specified. */
+  namespace?:   string;
+  /** Indicates whether the test method has access to organization data (true) or not (false). This field is available in API version 33.0 and later. */
+  seeAllData?:  boolean;
+  /** The stack trace for the failure. */
+  stackTrace?:  string;
+  /** The time spent running tests for this failed operation. This can be helpful for performance monitoring. */
+  time?:        number;
+  /** Do not use. In early, unsupported releases, used to specify class or package. */
+  type?:        string;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `RunTestSuccess`. May be part of the results returned by `force:mdapi:deploy`.
+ *
+ * Contains information about successes during the unit test run.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_deployresult.htm
+ */
+export interface RunTestSuccess extends JsonMap {
+  /** The ID of the class which generated the success. */
+  id?:	        string;
+  /** The name of the method that succeeded. */
+  methodName:	  string;
+  /** The name of the class that succeeded. */
+  name?:	      string;
+  /** The namespace that contained the unit tests, if one is specified. */
+  namespace?:	  string;
+  /** Indicates whether the test method has access to organization data (true) or not (false). */
+  seeAllData?:	boolean;
+  /** The time spent running tests for this operation. This can be helpful for performance monitoring. */
+  time?:	      number;
+}
+
+/**
+ * Interface. Modeled on the MDAPI Object `RetrieveMessage`. May be returned by a call to `force:mdapi:retrieve`.
+ *
+ * Contains information about the success or failure of the `force:mdapi:retrieve` call. One object per problem is returned.
+ *
+ * Reference: https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_retrieveresult.htm
+ */
+export interface RetrieveMessage extends JsonMap {
+  /** The name of the file in the retrieved .zip file where a problem occurred. */
+  fileName?:  string;
+  /** A description of the problem that occurred. */
+  problem?:   string;
+}
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 // Falcon and SFDX Config-related interfaces and types.
 //─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 //
@@ -113,95 +513,11 @@ export enum StatusMessageType {
 //
 
 /**
- * Interface. Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
+ * Represents the status code and JSON result that is sent to the caller when SFDX-Falcon CLI Commands are run.
  */
 export interface SfdxFalconJsonResponse extends JsonMap {
   falconStatus: number;
   falconResult: AnyJson;
-}
-
-/**
- * Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
- */
-export interface SfdxFalconProjectConfig extends JsonMap {
-  developerAlias?:  string;                   // eg. 'univ-ctrs'
-  developerName?:   string;                   // eg. 'Universal Containers'
-  projectAlias?:    string;                   // eg. 'my-sfdx-falcon-project'
-  projectName?:     string;                   // eg. 'My SFDX Falcon Project'
-  projectFamily?:   string;                   // 'ADK' | 'APK'
-  projectType?:     string;                   // '1GP:managed' | '1GP:unmanaged' | '2GP:managed' | '2GP:unlocked' | 'single-demo' | 'multi-demo'
-  defaultRecipe?:   string;                   // eg. 'demo-recipe-1.json'
-  gitRemoteUri?:    string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project.git'
-  gitHubUrl?:       string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project'
-  projectVersion?:  string;                   // eg. '1.5.1'
-  schemaVersion?:   string;                   // eg. '1.0.0'
-  pluginVersion?:   string;                   // eg. '1.0.0'
-  appxPackage?:     AppxPackageProjectConfig;
-  appxDemo?:        AppxDemoProjectConfig;
-}
-
-/**
- * Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
- */
-export interface SfdxFalconLocalConfig extends JsonMap {
-  devHubAlias?:   string;                   // eg. 'My_DevHub'
-  envHubAlias?:   string;                   // eg. 'My_EnvHub'
-  pkgOrgAlias?:   string;                   // eg. 'My_PkgOrg'
-  appxPackage?:   AppxPackageLocalConfig;
-  appxDemo?:      AppxDemoLocalConfig;
-}
-
-/**
- * Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
- */
-export interface SfdxFalconGlobalConfig extends JsonMap {
-  propertiesTBD?: any;                       // tslint:disable-line: no-any
-}
-
-/**
- * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to ADK projects.
- */
-export interface AppxDemoProjectConfig extends JsonMap {
-  demoRecipes:      string[];               // eg. ['demo-recipe-1.json', 'demo-recipe-2.json']
-  partnerAlias:     string;                 // eg. 'appy-inc'
-  partnerName:      string;                 // eg. 'Appy Apps, Incorporated'
-}
-
-/**
- * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to ADK projects.
- */
-export interface AppxDemoLocalConfig extends JsonMap {
-  propertiesTBD: any;                       // tslint:disable-line: no-any
-}
-
-/**
- * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to APK projects.
- */
-export interface AppxPackageProjectConfig extends JsonMap {
-  developerRecipes:   string[];             // eg. ['developer-recipe-1.json', 'developer-recipe-2.json']
-  namespacePrefix:    string;               // eg. 'my_ns_prefix'
-  packageName:        string;               // eg. 'My Package Name'
-  metadataPackageId:  string;               // eg. '033000000000000'
-  packageVersionId: {
-    stable: string;                         // eg. '04t111111111111'
-    beta:   string;                         // eg. '04t222222222222'
-  };
-}
-
-/**
- * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to APK projects.
- */
-export interface AppxPackageLocalConfig extends JsonMap {
-  propertiesTBD: any;                       // tslint:disable-line: no-any
-}
-
-/**
- * Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
- */
-export interface ProjectResolutionOptions extends JsonMap {
-  resolveProjectConfig?: boolean;
-  resolveLocalConfig?:   boolean;
-  resolveGlobalConfig?:  boolean;
 }
 
 //
@@ -270,7 +586,7 @@ export interface ListrTask {
 }
 
 /**
- * Type. Represents an "enabled" function for use in a Listr Task.
+ * Represents an "enabled" function for use in a Listr Task.
  */
 export type ListrEnabledFunction =
   (context?:any)=> boolean; // tslint:disable-line: no-any
@@ -288,13 +604,13 @@ export type ListrSkipCommand =
   (message?:string) => void;
 
 /**
- * Type. Represents a "task" function for use in a Listr Task.
+ * Represents a "task" function for use in a Listr Task.
  */
 export type ListrTaskFunction =
   (context?:ListrContext, task?:ListrTask) => void|Promise<void>|Observable<any>; // tslint:disable-line: no-any
 
 /**
- * Interface. Represents the set of "execution options" related to the use of Listr.
+ * Represents the set of "execution options" related to the use of Listr.
  */
 export interface ListrExecutionOptions {
   listrContext: any;  // tslint:disable-line: no-any
@@ -304,7 +620,7 @@ export interface ListrExecutionOptions {
 }
 
 /**
- * Type. Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
+ * Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
  */
 export type ListrContext = any; // tslint:disable-line: no-any
 
@@ -379,7 +695,7 @@ export type InquirerQuestions           = import('inquirer').QuestionCollection;
 export type InquirerAnswers             = import('inquirer').Answers;
 
 /**
- * Type. Represents a Yeoman/Inquirer choice object.
+ * Represents a Yeoman/Inquirer choice object.
  */
 export type  YeomanChoice = InquirerChoice;
 
@@ -394,7 +710,7 @@ export type YeomanCheckboxChoice = InquirerChoice;
 export type YeomanChoiceDisabledFunction = (answers:unknown) => boolean|string; // tslint:disable-line: no-any
 
 /**
- * Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions
+ * Represents what an answers hash should look like during Yeoman/Inquirer interactions
  * where the user is being asked to proceed/retry/abort something.
  */
 export interface ConfirmationAnswers extends JsonMap {
@@ -417,15 +733,15 @@ export type ErrorOrResult = Error | SfdxFalconResult;
  * Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
  */
 export interface PromptOptions<T extends object> {
-  questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
-  questionsArgs?:       unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
-  defaultAnswers:       T;                                        // Required. Default answers to the Questions.
-  confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
-  confirmationArgs?:    unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
-  invertConfirmation?:  boolean;                                  // Optional. Treats
-  display?:             AnswersDisplay<T>;                        // ???
-  context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
-  data?:                object;                                   // Optional. ???
+  questions:            Questions | QuestionsBuilder; // Required. Questions for the user.
+  questionsArgs?:       unknown[];                    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  defaultAnswers:       T;                            // Required. Default answers to the Questions.
+  confirmation?:        Questions | QuestionsBuilder; // Optional. Confirmation Questions.
+  confirmationArgs?:    unknown[];                    // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  invertConfirmation?:  boolean;                      // Optional. Treats
+  display?:             AnswersDisplay<T>;            // ???
+  context?:             object;                       // Optional. The scope of the caller who creates an SfdxFalconPrompt.
+  data?:                object;                       // Optional. ???
 }
 
 /**
@@ -456,7 +772,6 @@ export interface InterviewGroupOptions<T extends object> {
   abort?:               AbortInterview;
   title?:               string;
 }
-
 /**
  * Interface. Represents a set of status indicators for an SfdxFalconInterview.
  */
@@ -467,32 +782,32 @@ export interface InterviewStatus {
 }
 
 /**
- * Type. Alias defining a function that checks whether an Interview should be aborted.
+ * Type alias defining a function that checks whether an Interview should be aborted.
  */
 export type AbortInterview = (groupAnswers:InquirerAnswers, userAnswers?:InquirerAnswers) => boolean | string;
 
 /**
- * Type. Alias defining a function that can be used to determine boolean control-flow inside an Interview.
+ * Type alias defining a function that can be used to determine boolean control-flow inside an Interview.
  */
 export type InterviewControlFunction = (userAnswers:InquirerAnswers, sharedData?:object) => boolean | Promise<boolean>;
 
 /**
- * Type. Alias defining a function or simple boolean that checks whether an Interview Group should be shown.
+ * Type alias defining a function or simple boolean that checks whether an Interview Group should be shown.
  */
 export type ShowInterviewGroup = boolean | InterviewControlFunction;
 
 /**
- * Type. Function type alias defining a function that returns Inquirer Questions.
+ * Function type alias defining a function that returns Inquirer Questions.
  */
 export type QuestionsBuilder = () => Questions;
 
 /**
- * Type. Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ * Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Questions = Questions;
 
 /**
- * Type. Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ * Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
  */
 export type Question = Question;
 
@@ -601,7 +916,7 @@ export interface Bulk2JobCreateResponse extends Bulk2JobCreateRequest {
   /** The job’s type. Values include "BigObjectIngest" (BigObjects), "Classic" (Bulk API 1.0), or "V2Ingest" (Bulk API 2.0 job) */
   jobType?:             'BigObjectIngest'|'Classic'|'V2Ingest';
   /** The current state of processing for the job. */
-  state?:               'Open'|'UploadComplete'|'Aborted'|'JobComplete'|'Failed';
+  state?:               'Open'|'UploadComplete'|'InProgress'|'JobComplete'|'Failed'|'Aborted';
   /** Date and time in the UTC time zone when the job finished. */
   systemModstamp?:      string;
 }
@@ -614,7 +929,7 @@ export interface Bulk2JobCloseAbortResponse extends Bulk2JobCreateResponse {} //
 /**
  * Interface. Represents the response body returned by Salesforce when requesting info about a specific Bulk API 2.0 job.
  */
-export interface Bulk2JobInfoResponse extends Bulk2JobCreateResponse {
+export interface Bulk2JobInfoResponse extends Bulk2JobCloseAbortResponse {
   /** The number of milliseconds taken to process triggers and other processes related to the job data. This doesn't include the time used for processing asynchronous and batch Apex operations. If there are no triggers, the value is 0. */
   apexProcessingTime?:      number;
   /** The number of milliseconds taken to actively process the job and includes apexProcessingTime, but doesn't include the time the job waited in the queue to be processed or the time required for serialization and deserialization. */

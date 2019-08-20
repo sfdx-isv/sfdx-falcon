@@ -22,10 +22,10 @@ import {SfdxFalconRecipe}           from  '../sfdx-falcon-recipe';            //
 import {SfdxFalconResult}           from  '../sfdx-falcon-result';            // Class. Provides framework for bubbling "results" up from nested calls.
 
 // Import Falcon Types
-import {ProjectResolutionOptions}   from  '../sfdx-falcon-types';             // Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
-import {SfdxFalconProjectConfig}    from  '../sfdx-falcon-types';             // Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
-import {SfdxFalconLocalConfig}      from  '../sfdx-falcon-types';             // Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
-import {SfdxFalconGlobalConfig}     from  '../sfdx-falcon-types';             // Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
+import {ProjectResolutionOptions}   from  '../sfdx-falcon-types-local';       // Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
+import {SfdxFalconProjectConfig}    from  '../sfdx-falcon-types-local';       // Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
+import {SfdxFalconLocalConfig}      from  '../sfdx-falcon-types-local';       // Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
+import {SfdxFalconGlobalConfig}     from  '../sfdx-falcon-types-local';       // Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
 
 // Set the File Local Debug Namespace
 const dbgNs     = 'PROJECT:sfdx-falcon-project:';
