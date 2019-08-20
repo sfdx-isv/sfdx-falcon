@@ -24,6 +24,7 @@ import * as iq                          from  '../modules/sfdx-falcon-util/inter
 import {SfdxFalconDebug}                from  '../modules/sfdx-falcon-debug';                     // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 import {SfdxFalconError}                from  '../modules/sfdx-falcon-error';                     // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
 import {SfdxFalconInterview}            from  '../modules/sfdx-falcon-interview';                 // Class. Provides a standard way of building a multi-group Interview to collect user input.
+import {SfdxFalconProject}              from  '../modules/sfdx-falcon-project';                   // Class. Represents an SFDX-Falcon project, including locally stored project data.
 import {SfdxFalconKeyValueTableDataRow} from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents a row of data in an SFDX-Falcon data table.
 import {SfdxFalconTableData}            from  '../modules/sfdx-falcon-util/ux';                   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
 import {GeneratorOptions}               from  '../modules/sfdx-falcon-yeoman-command';            // Interface. Represents options used by SFDX-Falcon Yeoman generators.
@@ -31,7 +32,9 @@ import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-gen
 
 // Import Falcon Types
 import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
-import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StandardOrgInfoMap}             from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StatusMessageType}              from  '../modules/sfdx-falcon-types';                     // Enum. Represents the various types/states of a Status Message.
+import {SfdxFalconProjectConfig}        from  '../modules/sfdx-falcon-types-local';               // Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -203,7 +206,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
 
     // Grab the SFDX Org Info Map out of Shared Data.
-    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
 
     // Figure out where the Git Repo is being cloned into.
     const repoClonedInto  = this.defaultAnswers.gitCloneDirectory
@@ -222,6 +225,42 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
 
     // Return the Falcon Table Data.
     return tableData;
+  }
+
+  //───────────────────────────────────────────────────────────────────────────┐
+  /**
+   * @method      _resolveFalconProjectConfig
+   * @returns     {Promise<SfdxFalconProjectConfig>}  Falcon Project config
+   *              JSON for the project that resides at the path provided.
+   * @description Given a local filepath, tries to resolve an SFDX Project at
+   *              that location, then extracts the SFDX-Falcon specific config
+   *              from it.
+   * @protected @async
+   */
+  //───────────────────────────────────────────────────────────────────────────┘
+  protected async _resolveFalconProjectConfig(projectPath:string):Promise<SfdxFalconProjectConfig> {
+
+    // Debug incoming arguments.
+    SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:arguments:`, arguments, `arguments: `);
+
+    // Instantiate the SFDX-Falcon Project residing at the Project Path.
+    const sfdxFalconProjectConfig = await SfdxFalconProject.resolve(projectPath, {resolveLocalConfig:false})
+      .then((sfdxFalconProject:SfdxFalconProject) => {
+        SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:sfdxFalconProject:`, sfdxFalconProject, `sfdxFalconProject: `);
+        return sfdxFalconProject.falconProjectConfig; // Peel off the Falcon Project config
+      })
+      .catch(error => {
+        SfdxFalconDebug.obj(`${dbgNs}_resolveFalconProjectConfig:error:`, error, `error: `);
+        this.generatorStatus.abort({
+          type:     StatusMessageType.ERROR,
+          title:    `Cloned Project is Invalid`,
+          message:  `${projectPath} does not contain a valid SFDX-Falcon project`
+        });
+        return null;    // Swallow errors and return null to let the caller know there was a problem.
+      }) as SfdxFalconProjectConfig;
+
+    // Done. Caller will need to check for NULL.
+    return sfdxFalconProjectConfig;
   }
 
   //───────────────────────────────────────────────────────────────────────────┐
@@ -310,7 +349,7 @@ export default class CloneAppxDemoProject extends SfdxFalconYeomanGenerator<Inte
     }
 
     // Extract the SFDX Org Info Map from Shared Data.
-    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
 
     // Set the FINAL Org Aliases.
     this.finalAnswers.devHubAlias = sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername) ? sfdxOrgInfoMap.get(this.finalAnswers.devHubUsername).alias : 'NOT_SPECIFIED';

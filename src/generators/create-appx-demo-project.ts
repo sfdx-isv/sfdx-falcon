@@ -28,7 +28,7 @@ import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-gen
 
 // Import Falcon Types
 import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
-import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StandardOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
 
 // Require Modules
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -259,7 +259,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
 
     // Grab the SFDX Org Info Map out of Shared Data.
-    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
 
     // Project related answers
     tableData.push({option:'Target Directory:',       value:`${interviewAnswers.targetDirectory}`});
@@ -359,7 +359,7 @@ export default class CreateAppxDemoProject extends SfdxFalconYeomanGenerator<Int
     }
 
     // Extract the SFDX Org Info Map from Shared Data.
-    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
 
     // Compose a FINAL Org Name and FINAL Org Description that are relevant to this project.
     this.finalAnswers.scratchDefOrgName     = `${this.finalAnswers.projectName} - Demo Org`;

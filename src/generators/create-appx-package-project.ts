@@ -31,7 +31,8 @@ import {SfdxFalconYeomanGenerator}      from  '../modules/sfdx-falcon-yeoman-gen
 
 // Import Falcon Types
 import {YeomanChoice}                   from  '../modules/sfdx-falcon-types';                     // Interface. Represents a Yeoman/Inquirer choice object.
-import {SfdxOrgInfoMap}                 from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StandardOrgInfoMap}             from  '../modules/sfdx-falcon-types';                     // Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+import {StatusMessageType}              from  '../modules/sfdx-falcon-types';                     // Enum. Represents the various types/states of a Status Message.
 
 // Requires
 const chalk = require('chalk');   // Utility for creating colorful console output.
@@ -325,7 +326,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     const tableData = new Array<SfdxFalconKeyValueTableDataRow>();
 
     // Grab the SFDX Org Info Map out of Shared Data.
-    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
 
     // Project related answers
     tableData.push({option:'Target Directory:',       value:`${interviewAnswers.targetDirectory}`});
@@ -446,7 +447,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
 
     // Add a success message
     this.generatorStatus.addMessage({
-      type:     'success',
+      type:     StatusMessageType.SUCCESS,
       title:    `Package Conversion`,
       message:  `Success - Package successfully retrieved from Salesforce and converted`
     });
@@ -524,7 +525,7 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
     }
 
     // Extract the SFDX Org Info Map from Shared Data.
-    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as SfdxOrgInfoMap;
+    const sfdxOrgInfoMap  = this.sharedData['sfdxOrgInfoMap'] as StandardOrgInfoMap;
     const selectedPackage = sfdxOrgInfoMap.get(this.finalAnswers.pkgOrgUsername);
 
     // Compose a FINAL Org Name and FINAL Org Description that are relevant to this project.
@@ -750,12 +751,12 @@ export default class CreateAppxPackageProject extends SfdxFalconYeomanGenerator<
           // Fetch/convert failed. Mark the install as INCOMPLETE and add a warning message.
           this.installComplete = false;
           this.generatorStatus.addMessage({
-            type:     'warning',
+            type:     StatusMessageType.WARNING,
             title:    `Fetch/Convert Project`,
             message:  `Warning - Could not fetch/convert your managed package`
           });
           this.generatorStatus.addMessage({
-            type:     'warning',
+            type:     StatusMessageType.WARNING,
             title:    `Git Initialzation`,
             message:  `Warning - Git initialization skipped since managed package was not fetched/converted`
           });
