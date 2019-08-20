@@ -26,9 +26,15 @@ type DebugFunc = any; // tslint:disable-line: no-any
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 export class SfdxFalconDebug {
-  public  static lineBreaks:        number                  = 5;
-  public  static debugDepth:        number                  = 2;
+  
+  // Public members
+  public static lineBreaks: number  = 5;
+  public static debugDepth: number  = 2;
 
+  // Public getters
+  public static get enabledDebugNamespaceCount():number {
+    return SfdxFalconDebug.enabledDebugNamespaces.size;
+  }
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
@@ -49,7 +55,7 @@ export class SfdxFalconDebug {
     // Check the namespace from top level to last level.
     for (const namespaceGroup of namespaceGroups) {
       namespaceToTest += namespaceGroup;
-      if (SfdxFalconDebug.enabledDebuggers.get(namespaceToTest)) {
+      if (SfdxFalconDebug.enabledDebugNamespaces.get(namespaceToTest)) {
         return true;
       }
       namespaceToTest += ':';
@@ -76,10 +82,10 @@ export class SfdxFalconDebug {
   //───────────────────────────────────────────────────────────────────────────┘
   public static enableDebuggers(namespaces:string[], debugDepth:number=2):void {
     for (const namespace of namespaces) {
-      SfdxFalconDebug.enabledDebuggers.set(namespace, true);
+      SfdxFalconDebug.enabledDebugNamespaces.set(namespace, true);
     }
     SfdxFalconDebug.debugDepth = debugDepth;
-    if (SfdxFalconDebug.enabledDebuggers.size > 0) {
+    if (SfdxFalconDebug.enabledDebugNamespaces.size > 0) {
       console.log(chalk`\n{blue The Following Debug Namesapces are Enabled (Debug Depth = ${debugDepth}):}\n%O\n`, namespaces);
     }
   }
@@ -90,7 +96,8 @@ export class SfdxFalconDebug {
    * @param       {string}  namespace Required.
    * @param       {string}  message  Required.
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace and a string containing a message,
+   *              outputs that message to the console.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -107,7 +114,9 @@ export class SfdxFalconDebug {
    * @param       {string}  [strLead] Optional
    * @param       {string}  [strTail] Optional
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace, an object to debug, and optionally
+   *              leading and trailing strings to included in the output, sends
+   *              the debug output to the console.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -128,7 +137,9 @@ export class SfdxFalconDebug {
    * @param       {string}  [strLead] Optional
    * @param       {string}  [strTail] Optional
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace, a string to debug, and optionally
+   *              leading and trailing strings to included in the output, sends
+   *              the debug output to the console.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -142,13 +153,14 @@ export class SfdxFalconDebug {
    * @method      disableDebuggers
    * @param       {string[]} namespaces  Required.
    * @returns     {void}
-   * @description ???
+   * @description Given an array of debug namespaces, iterates over each and
+   *              sets them to FALSE in the Enabled Debugger Namespace map.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
   public static disableDebuggers(namespaces:string[]):void {
     for (const namespace of namespaces) {
-      SfdxFalconDebug.enabledDebuggers.set(namespace, false);
+      SfdxFalconDebug.enabledDebugNamespaces.set(namespace, false);
     }
   }
 
@@ -157,7 +169,10 @@ export class SfdxFalconDebug {
    * @method      getDebugger
    * @param       {string}  namespace Required
    * @returns     {DebugFunc} Returns the debugger with the appropriate namespace.
-   * @description ???
+   * @description Given a debug namespace (eg. "UTILITY:sfdx:executeCommand:"),
+   *              attempts to find a match for an existing Debugger object. If
+   *              one can't be found, creates a new Debugger, enables it, then
+   *              returns it to the caller.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -179,7 +194,9 @@ export class SfdxFalconDebug {
    * @param       {string}  namespace Required.
    * @param       {string}  message  Required.
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace and a string containing a message,
+   *              outputs that message to the console but ONLY if the specified
+   *              namespace was enabled by the user via the --falcondebug flag.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -197,7 +214,10 @@ export class SfdxFalconDebug {
    * @param       {string}  [strLead] Optional
    * @param       {string}  [strTail] Optional
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace, an object to debug, and optionally
+   *              leading and trailing strings to included in the output, sends
+   *              the debug output to the console but ONLY if the specified
+   *              namespace was enabled by the user via the --falcondebug flag.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -215,7 +235,10 @@ export class SfdxFalconDebug {
    * @param       {string}  [strLead] Optional
    * @param       {string}  [strTail] Optional
    * @returns     {void}
-   * @description ???
+   * @description Given a debug namespace, a string to debug, and optionally
+   *              leading and trailing strings to included in the output, sends
+   *              the debug output to the console but ONLY if the specified
+   *              namespace was enabled by the user via the --falcondebug flag.
    * @public @static
    */
   //───────────────────────────────────────────────────────────────────────────┘
@@ -243,10 +266,8 @@ export class SfdxFalconDebug {
   }
 
   // Private members
-  private static debuggers:         Map<string, DebugFunc>  = new Map();
-  private static enabledDebuggers:  Map<string, boolean>    = new Map<string, boolean>();
-  //private static falconErrorColor:  string                  = 'blue';
-  //private static systemErrorColor:  string                  = 'yellow';
+  private static debuggers:               Map<string, DebugFunc>  = new Map();
+  private static enabledDebugNamespaces:  Map<string, boolean>    = new Map<string, boolean>();
 
   //───────────────────────────────────────────────────────────────────────────┐
   /**
