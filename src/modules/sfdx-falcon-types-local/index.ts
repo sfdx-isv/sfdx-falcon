@@ -1,0 +1,607 @@
+//─────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @file          modules/sfdx-falcon-types/index.d.ts
+ * @copyright     Vivek M. Chawla - 2018
+ * @author        Vivek M. Chawla <@VivekMChawla>
+ * @summary       Collection of interfaces and types used across SFDX-Falcon modules.
+ * @description   Collection of interfaces and types used across SFDX-Falcon modules.
+ * @version       1.0.0
+ * @license       MIT
+ */
+//─────────────────────────────────────────────────────────────────────────────────────────────────┘
+// Import External Modules/Types
+import {Connection}           from  '@salesforce/core';         // Why?
+//import {AnyJson}              from  '@salesforce/ts-types';     // Why?
+import {JsonMap}              from  '@salesforce/ts-types';     // Why?
+import {QueryResult}          from  'jsforce';                  // Why?
+import {RequestInfo}          from  'jsforce';                  // Why?
+import {Observable}           from  'rxjs';                     // Why?
+import {Observer}             from  'rxjs';                     // Why?
+import {Subscriber}           from  'rxjs';                     // Why?
+import {Questions}            from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
+import {Question}             from  'yeoman-generator';         // Interface. Represents an array of Inquirer "question" objects.
+
+// Import Internal Modules/Types
+import {SfdxFalconResult}     from  '../sfdx-falcon-result';    // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
+import {StandardOrgInfo}      from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about an org that is connected to the local Salesforce CLI.
+import {ScratchOrgInfo}       from  '../sfdx-falcon-util/sfdx'; // Class. Stores information about a scratch orgs that is connected to the local Salesforce CLI.
+import {SfdxFalconTableData}  from  '../sfdx-falcon-util/ux';   // Interface. Represents and array of SfdxFalconKeyValueTableDataRow objects.
+
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Types that are unique to the SFDX-Falcon APK/ADK plugin.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Interface. Represents the SFDX-Falcon specific part of a project's sfdx-project.json config file.
+ */
+export interface SfdxFalconProjectConfig {
+  developerAlias?:  string;                   // eg. 'univ-ctrs'
+  developerName?:   string;                   // eg. 'Universal Containers'
+  projectAlias?:    string;                   // eg. 'my-sfdx-falcon-project'
+  projectName?:     string;                   // eg. 'My SFDX Falcon Project'
+  projectFamily?:   string;                   // 'ADK' | 'APK'
+  projectType?:     string;                   // '1GP:managed' | '1GP:unmanaged' | '2GP:managed' | '2GP:unlocked' | 'single-demo' | 'multi-demo'
+  defaultRecipe?:   string;                   // eg. 'demo-recipe-1.json'
+  gitRemoteUri?:    string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project.git'
+  gitHubUrl?:       string;                   // eg. 'https://github.com/my-org/my-sfdx-falcon-project'
+  projectVersion?:  string;                   // eg. '1.5.1'
+  schemaVersion?:   string;                   // eg. '1.0.0'
+  pluginVersion?:   string;                   // eg. '1.0.0'
+  appxPackage?:     AppxPackageProjectConfig;
+  appxDemo?:        AppxDemoProjectConfig;
+}
+
+/**
+ * Interface. Represents the special, hidden "local config" file for an SFDX-Falcon project.
+ */
+export interface SfdxFalconLocalConfig {
+  devHubAlias?:   string;                   // eg. 'My_DevHub'
+  envHubAlias?:   string;                   // eg. 'My_EnvHub'
+  pkgOrgAlias?:   string;                   // eg. 'My_PkgOrg'
+  appxPackage?:   AppxPackageLocalConfig;
+  appxDemo?:      AppxDemoLocalConfig;
+}
+
+/**
+ * Interface. Represents a "global" SFDX-Falcon configuration data structure. Not yet implmented.
+ */
+export interface SfdxFalconGlobalConfig {
+  propertiesTBD?: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to ADK projects.
+ */
+export interface AppxDemoProjectConfig {
+  demoRecipes:      string[];               // eg. ['demo-recipe-1.json', 'demo-recipe-2.json']
+  partnerAlias:     string;                 // eg. 'appy-inc'
+  partnerName:      string;                 // eg. 'Appy Apps, Incorporated'
+}
+
+/**
+ * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to ADK projects.
+ */
+export interface AppxDemoLocalConfig {
+  propertiesTBD: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the portion of an SFDX-Falcon Project Config that is specific to APK projects.
+ */
+export interface AppxPackageProjectConfig {
+  developerRecipes:   string[];             // eg. ['developer-recipe-1.json', 'developer-recipe-2.json']
+  namespacePrefix:    string;               // eg. 'my_ns_prefix'
+  packageName:        string;               // eg. 'My Package Name'
+  metadataPackageId:  string;               // eg. '033000000000000'
+  packageVersionId: {
+    stable: string;                         // eg. '04t111111111111'
+    beta:   string;                         // eg. '04t222222222222'
+  };
+}
+
+/**
+ * Interface. Represents the portion of the hidden SFDX-Falcon "local config" that is specific to APK projects.
+ */
+export interface AppxPackageLocalConfig {
+  propertiesTBD: any;                       // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents the options that can be set when calling SfdxFalconProject.resolve().
+ */
+export interface ProjectResolutionOptions {
+  resolveProjectConfig?: boolean;
+  resolveLocalConfig?:   boolean;
+  resolveGlobalConfig?:  boolean;
+}
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Packaging-related types.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+ */
+export interface MetadataPackage {
+  Id:                       string;
+  Name:                     string;
+  NamespacePrefix:          string;
+  MetadataPackageVersions:  MetadataPackageVersion[];
+}
+
+/**
+ * Interface. Represents a Metadata Package Version (04t).
+ */
+export interface MetadataPackageVersion {
+  Id:                 string;
+  Name:               string;
+  MetadataPackageId:  string;
+  MajorVersion:       number;
+  MinorVersion:       number;
+  PatchVersion:       number;
+  BuildNumber:        number;
+  ReleaseState:       string;
+}
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Listr related interfaces and types.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Interface. Represents a "runnable" Listr object (ie. an object that has the run() method attached).
+ */
+export interface ListrObject extends Object {
+  run():Promise<any>; // tslint:disable-line: no-any
+}
+
+/**
+ * Interface. Represents a Listr Task object that can be executed by a Listr Task Runner.
+ */
+export interface ListrTask {
+  title:    string;
+  task:     ListrTaskFunction;
+  skip?:    boolean|ListrSkipFunction|ListrSkipCommand;
+  enabled?: boolean|ListrEnabledFunction;
+}
+
+/**
+ * Type. Represents an "enabled" function for use in a Listr Task.
+ */
+export type ListrEnabledFunction =
+  (context?:any)=> boolean; // tslint:disable-line: no-any
+
+/**
+ * Type. Represents a "skip" function for use in a Listr Task.
+ */
+export type ListrSkipFunction =
+  (context?:any) => boolean|string|Promise<boolean|string>;  // tslint:disable-line: no-any
+
+/**
+ * Type. A built-in function of the "this task" Listr Task object that gets passed into executable task code.
+ */
+export type ListrSkipCommand =
+  (message?:string) => void;
+
+/**
+ * Type. Represents a "task" function for use in a Listr Task.
+ */
+export type ListrTaskFunction =
+  (context?:ListrContext, task?:ListrTask) => void|Promise<void>|Observable<any>; // tslint:disable-line: no-any
+
+/**
+ * Interface. Represents the set of "execution options" related to the use of Listr.
+ */
+export interface ListrExecutionOptions {
+  listrContext: any;  // tslint:disable-line: no-any
+  listrTask:    any;  // tslint:disable-line: no-any
+  observer:     any;  // tslint:disable-line: no-any
+  sharedData?:  object;
+}
+
+/**
+ * Type. Represents the Listr "Context" that's passed to various functions set up inside Listr Tasks.
+ */
+export type ListrContext = any; // tslint:disable-line: no-any
+
+/**
+ * Interface. Represents the Listr Context variables used by the "finalizeGit" task collection.
+ */
+export interface ListrContextFinalizeGit extends JsonMap {
+  gitInstalled:           boolean;
+  gitInitialized:         boolean;
+  projectFilesStaged:     boolean;
+  projectFilesCommitted:  boolean;
+  gitRemoteIsValid:       boolean;
+  gitRemoteAdded:         boolean;
+}
+
+/**
+ * Interface. Represents the Listr Context variables used by the "Package Retrieve/Extract/Convert" task collection.
+ */
+export interface ListrContextPkgRetExCon extends JsonMap {
+  packagesRetrieved:  boolean;
+  sourceExtracted:    boolean;
+  sourceConverted:    boolean;
+}
+
+/**
+ * Type. Alias to an rxjs Observer<unknown> type.
+ */
+export type Observer = Observer<unknown>;
+
+/**
+ * Type. Alias to an rxjs Subscriber<unknown> type.
+ */
+export type Subscriber = Subscriber<unknown>;
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Yeoman/Inquirer/SfdxFalconInterview/SfdxFalconPrompt related interfaces and types.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+export type InquirerChoice<U=unknown>   = import('inquirer/lib/objects/choice')<U>;
+export type InquirerSeparator           = import('inquirer/lib/objects/separator');
+export type InquirerChoices             = Array<InquirerChoice|InquirerSeparator>;
+export type InquirerQuestion            = import('inquirer').Question;
+export type InquirerQuestions           = import('inquirer').QuestionCollection;
+export type InquirerAnswers             = import('inquirer').Answers;
+
+/**
+ * Type. Represents a Yeoman/Inquirer choice object.
+ */
+export type  YeomanChoice = InquirerChoice;
+
+/**
+ * Type. Represents a "checkbox choice" in Yeoman/Inquirer.
+ */
+export type YeomanCheckboxChoice = InquirerChoice;
+
+/**
+ * Type. Represents the function signature for a "Disabled" function.
+ */
+export type YeomanChoiceDisabledFunction = (answers:unknown) => boolean|string; // tslint:disable-line: no-any
+
+/**
+ * Interface. Represents what an answers hash should look like during Yeoman/Inquirer interactions
+ * where the user is being asked to proceed/retry/abort something.
+ */
+export interface ConfirmationAnswers extends JsonMap {
+  proceed:  boolean;
+  restart:  boolean;
+  abort:    boolean;
+}
+
+/**
+ * Type. Defines a function that displays answers to a user.
+ */
+export type AnswersDisplay<T extends object> = (userAnswers?:T) => Promise<void | SfdxFalconTableData>;
+
+/**
+ * Type. Alias to a combination of Error or SfdxFalconResult.
+ */
+export type ErrorOrResult = Error | SfdxFalconResult;
+
+/**
+ * Interface. Represents the options that can be set by the SfdxFalconPrompt constructor.
+ */
+export interface PromptOptions<T extends object> {
+  questions:            Questions | QuestionsBuilder;             // Required. Questions for the user.
+  questionsArgs?:       unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  defaultAnswers:       T;                                        // Required. Default answers to the Questions.
+  confirmation?:        Questions | QuestionsBuilder;             // Optional. Confirmation Questions.
+  confirmationArgs?:    unknown[];                                // Optional. Array of arguments to be passed to a QuestionsBuilder function.
+  invertConfirmation?:  boolean;                                  // Optional. Treats
+  display?:             AnswersDisplay<T>;                        // ???
+  context?:             object;                                   // Optional. The scope of the caller who creates an SfdxFalconPrompt.
+  data?:                object;                                   // Optional. ???
+}
+
+/**
+ * Interface. Represents the options that can be set by the SfdxFalconInterview constructor.
+ */
+export interface InterviewOptions<T extends object> {
+  defaultAnswers:       T;                            // Required. Default answers to the Questions.
+  confirmation?:        Questions | QuestionsBuilder; // Optional. Confirmation Questions.
+  confirmationHeader?:  string;                       // Optional. Text to be shown above the Interview's Confirmation Question.
+  invertConfirmation?:  boolean;                      // Optional. Inverts the relevant Confirmation Answers before considering their value.
+  display?:             AnswersDisplay<T>;            // Optional. Async function that returns void if the function renders something, or an array of Falcon Data Table rows if not.
+  displayHeader?:       string;                       // Optional. Text to be shown above the Display Table.
+  context?:             object;                       // Optional. ???
+  sharedData?:          object;                       // Optional. ???
+}
+
+/**
+ * Interface. Represents the options that can be set by the InterviewGroup constructor.
+ */
+export interface InterviewGroupOptions<T extends object> {
+  questions:            Questions | QuestionsBuilder;
+  questionsArgs?:       unknown[];
+  confirmation?:        Questions | QuestionsBuilder;
+  confirmationArgs?:    unknown[];
+  invertConfirmation?:  boolean;
+  display?:             AnswersDisplay<T>;
+  when?:                ShowInterviewGroup;
+  abort?:               AbortInterview;
+  title?:               string;
+}
+
+/**
+ * Interface. Represents a set of status indicators for an SfdxFalconInterview.
+ */
+export interface InterviewStatus {
+  aborted?:   boolean;
+  completed?: boolean;
+  reason?:    string;
+}
+
+/**
+ * Type. Alias defining a function that checks whether an Interview should be aborted.
+ */
+export type AbortInterview = (groupAnswers:InquirerAnswers, userAnswers?:InquirerAnswers) => boolean | string;
+
+/**
+ * Type. Alias defining a function that can be used to determine boolean control-flow inside an Interview.
+ */
+export type InterviewControlFunction = (userAnswers:InquirerAnswers, sharedData?:object) => boolean | Promise<boolean>;
+
+/**
+ * Type. Alias defining a function or simple boolean that checks whether an Interview Group should be shown.
+ */
+export type ShowInterviewGroup = boolean | InterviewControlFunction;
+
+/**
+ * Type. Function type alias defining a function that returns Inquirer Questions.
+ */
+export type QuestionsBuilder = () => Questions;
+
+/**
+ * Type. Alias to the Questions type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ */
+export type Questions = Questions;
+
+/**
+ * Type. Alias to the Question type from yeoman-generator. This is the "official" type for SFDX-Falcon.
+ */
+export type Question = Question;
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// Salesforce DX / JSForce related types.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Type. Represents either an Org Alias or a JSForce Connection.
+ */
+export type AliasOrConnection = string | Connection;
+
+/**
+ * Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
+ */
+export interface ResolvedConnection {
+  connection:       Connection;
+  orgIdentifier:    string;
+}
+
+/**
+ * Interface. Represents information needed to make a REST API request via a JSForce connection.
+ */
+export interface RestApiRequestDefinition {
+  aliasOrConnection:  string|Connection;
+  request:            RequestInfo;
+  options?:           {any};
+}
+
+/**
+ * Type. Alias to a Map with string keys and MetadataPackageVersion values.
+ */
+export type PackageVersionMap = Map<string, MetadataPackageVersion[]>;
+
+/**
+ * Type. Alias to the JSForce definition of QueryResult.
+ */
+export type QueryResult<T> = QueryResult<T>;
+
+/**
+ * Interface. Represents the "nonScratchOrgs" data returned by the sfdx force:org:list command.
+ */
+export interface RawSfdxOrgInfo {
+  orgId:                    string;                       // Why?
+  username:                 string;                       // Why?
+  alias:                    string;                       // Why?
+  accessToken:              string;                       // Why?
+  instanceUrl:              string;                       // Why?
+  loginUrl:                 string;                       // Why?
+  clientId:                 string;                       // Why?
+  isDevHub:                 boolean;                      // Why?
+  isDefaultDevHubUsername:  boolean;                      // Why?
+  defaultMarker:            string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  lastUsed:                 string;                       // Why?
+}
+
+/**
+ * Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
+ */
+export interface RawScratchOrgInfo {
+  orgId:                    string;                       // Why?
+  username:                 string;                       // Why?
+  alias:                    string;                       // Why?
+  accessToken:              string;                       // Why?
+  instanceUrl:              string;                       // Why?
+  loginUrl:                 string;                       // Why?
+  clientId:                 string;                       // Why?
+  createdOrgInstance:       string;                       // Why?
+  created:                  string;                       // Wyy?
+  devHubUsername:           string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  lastUsed:                 string;                       // Why?
+  attributes:               object;                       // Why?
+  orgName:                  string;                       // Why?
+  status:                   string;                       // Why?
+  createdBy:                string;                       // Why?
+  createdDate:              string;                       // Why?
+  expirationDate:           string;                       // Why?
+  edition:                  string;                       // Why?
+  signupUsername:           string;                       // Why?
+  devHubOrgId:              string;                       // Why?
+  isExpired:                boolean;                      // Why?
+}
+
+/**
+ * Type. Alias for a Map with string keys holding SfdxOrgInfo values.
+ */
+export type SfdxOrgInfoMap = Map<string, StandardOrgInfo>;
+
+/**
+ * Type. Alias for a Map with string keys holding ScratchOrgInfo values.
+ */
+export type ScratchOrgInfoMap = Map<string, ScratchOrgInfo>;
+
+/**
+ * Interface. Represents the subset of Org Information that's relevant to SFDX-Falcon logic.
+ */
+export interface SfdxOrgInfoSetup {
+  alias:                    string;                       // Why?
+  username:                 string;                       // Why?
+  orgId:                    string;                       // Why?
+  connectedStatus:          string;                       // Why?
+  isDevHub:                 boolean;                      // Why?
+  metadataPackageResults?:  QueryResult<MetadataPackage>; // Why?
+}
+
+/**
+ * Enum. Represents the various CLI log level flag values.
+ */
+export enum SfdxCliLogLevel {
+  TRACE = 'trace',
+  DEBUG = 'debug',
+  INFO  = 'info',
+  WARN  = 'warn',
+  ERROR = 'error',
+  FATAL = 'fatal'
+}
+
+/**
+ * Interface. Represents the result of a call to shell.execL().
+ */
+export interface ShellExecResult {
+  code?:     number;
+  stdout?:   string;
+  stderr?:   string;
+  message?:  string;
+  resolve?:  boolean;
+}
+
+/**
+ * Interface. Represents the REST response provided for an Object Describe.
+ */
+export interface ObjectDescribe {
+  activateable?:        boolean;
+  createable?:          boolean;
+  custom?:              boolean;
+  customSetting?:       boolean;
+  deletable?:           boolean;
+  deprecatedAndHidden?: boolean;
+  feedEnabled?:         boolean;
+  hasSubtypes?:         boolean;
+  isSubtype?:           boolean;
+  keyPrefix?:           string;
+  label?:               string;
+  labelPlural?:         string;
+  layoutable?:          boolean;
+  mergeable?:           boolean;
+  mruEnabled?:          boolean;
+  name?:                string;
+  queryable?:           boolean;
+  replicateable?:       boolean;
+  retrieveable?:        boolean;
+  searchable?:          boolean;
+  triggerable?:         boolean;
+  undeletable?:         boolean;
+  updateable?:          boolean;
+  urls?:                any;      // tslint:disable-line: no-any
+}
+
+//
+//
+//
+//
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+// SObject related types.
+//─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+//
+//
+//
+//
+
+/**
+ * Interface. Represents a baseline SObject.
+ */
+export interface SObject {
+  id?:    string;
+  name?:  string;
+}
+
+/**
+ * Interface. Represents the Salesforce Profile SObject.
+ */
+export type Profile = SObject;
+
+/**
+ * Interface. Represents the Salesforce PermissionSetAssignment SObject.
+ */
+export interface PermissionSetAssignment extends SObject {
+  PermissionSetId:  string;
+  AssigneeId:       string;
+}
+
+/**
+ * Interface. Represents the Salesforce User SObject.
+ */
+export interface User extends SObject {
+  username?: string;
+}
+
+/**
+ * Type. Alias for an array of objects that may have "Id" and "Name" properties.
+ */
+export type SObjectFindResult = Array<{Id?: string; Name?: string; }>;
