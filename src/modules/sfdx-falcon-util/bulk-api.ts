@@ -12,7 +12,7 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Libraries, Modules, and Types
-import * as fs                    from  'fs-extra'; // Extended set of File System utils.
+import * as fs                    from  'fs-extra';             // Extended set of File System utils.
 
 // Import Internal Libraries
 import * as csv                   from  '../sfdx-falcon-util/csv';                  // Library of helper functions that make it easier to work with CSV data.
@@ -21,6 +21,7 @@ import * as typeValidator         from  '../sfdx-falcon-validators/type-validato
 // Import Internal Classes & Functions
 import {SfdxFalconDebug}          from  '../sfdx-falcon-debug'; // Class. Provides custom "debugging" services (ie. debug-style info to console.log()).
 import {SfdxFalconError}          from  '../sfdx-falcon-error'; // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {waitASecond}              from  './async';              // Function. Simple helper function that can be used to introduce a delay when called inside async functions using the "await" keyword.
 import {restApiRequest}           from  './jsforce';            // Function. Given a REST API Request Definition, makes a REST call using JSForce.
 import {restApiRequestRaw}        from  './jsforce';            // Function. Given a REST API Request Definition, makes a REST call using JSForce.
 
@@ -35,11 +36,9 @@ import {Bulk2JobCreateRequest}      from  '../sfdx-falcon-types'; // Interface. 
 import {Bulk2JobCreateResponse}     from  '../sfdx-falcon-types'; // Interface. Represents the response body returned by Salesforce after attempting to create a Bulk API 2.0 job.
 import {Bulk2JobInfoResponse}       from  '../sfdx-falcon-types'; // Interface. Represents the response body returned by Salesforce when requesting info about a specific Bulk API 2.0 job.
 import {Bulk2OperationStatus}       from  '../sfdx-falcon-types'; // Interface. Represents the overall status of a Bulk API 2.0 operation.
+import {IntervalOptions}            from  '../sfdx-falcon-types'; // Interface. Represents options that determine how a generic interval operates.
 import {RawRestResponse}            from  '../sfdx-falcon-types'; // Interface. Represents the unparsed response to a "raw" REST API request via a JSForce connection.
 import {RestApiRequestDefinition}   from  '../sfdx-falcon-types'; // Interface. Represents information needed to make a REST API request via a JSForce connection.
-
-// DEVTEST
-import {waitASecond}                from  './async';
 
 // Set file local globals
 const maxBulk2DataSourceFileSize            = 1048576;
@@ -59,6 +58,7 @@ SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
  *              https://developer.salesforce.com/docs/atlas.en-us.api_bulk_v2.meta/api_bulk_v2/create_job.htm
  *              for documentation for how to create the proper payload.
  * @param       {string}  dataSourcePath Required. Path to the file containing data to be loaded.
+ * @param       {IntervalOptions} [intervalOptions] Optional. Options for Bulk2 job status polling.
  * @param       {string}  [apiVersion]  Optional. Overrides default of "most current" API version.
  * @returns     {Promise<Bulk2OperationStatus>}  Resolves with status of the Bulk2 Insert request.
  * @description Given an Alias or Connection, the path to a CSV data file, and a Bulk API v2 request
@@ -70,7 +70,7 @@ SfdxFalconDebug.msg(`${dbgNs}`, `Debugging initialized for ${dbgNs}`);
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobCreateRequest:Bulk2JobCreateRequest, dataSourcePath:string, apiVersion:string=''):Promise<Bulk2OperationStatus> {
+export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobCreateRequest:Bulk2JobCreateRequest, dataSourcePath:string, intervalOptions:IntervalOptions={}, apiVersion:string=''):Promise<Bulk2OperationStatus> {
 
   // Define function-local debug namespace and validate incoming arguments.
   const dbgNsLocal = `${dbgNs}bulk2Insert`;
@@ -93,6 +93,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
                               , `${dbgNsLocal}`
                               , bulk2DataSourceError);
   });
+  SfdxFalconDebug.obj(`${dbgNsLocal}:fileStats:`, fileStats);
 
   // Start defining the Bulk2 Operation Status object we'll end up returning.
   const bulk2OperationStatus = {
@@ -101,6 +102,7 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
     successfulResultsPath:  dataSourcePath + '.successfulResults',
     failedResultsPath:      dataSourcePath + '.failedResults'
   } as Bulk2OperationStatus;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:afterInit:`, bulk2OperationStatus);
 
   // Make sure that the Operation is set to "insert"
   bulk2JobCreateRequest.operation = 'insert';
@@ -109,62 +111,78 @@ export async function bulk2Insert(aliasOrConnection:AliasOrConnection, bulk2JobC
   bulk2OperationStatus.initialJobStatus = await createBulk2Job(aliasOrConnection, bulk2JobCreateRequest)
   .catch(bulk2JobError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobError:`, bulk2JobError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Bulk job to ingest data could not be created.`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2JobError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} Bulk job to ingest data could not be created.`
+                                                , `Bulk2InsertError`
+                                                , `${dbgNsLocal}`
+                                                , bulk2JobError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:afterCreate:`, bulk2OperationStatus);
 
   // Upload the CSV file to Salesforce.
   await uploadBulk2DataSource(aliasOrConnection, dataSourcePath, bulk2OperationStatus.initialJobStatus.contentUrl)
   .catch(bulk2DataUploadError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2DataUploadError:`, bulk2DataUploadError);
-    throw new SfdxFalconError ( `${baseErrorMsg} The data source file could not be uploaded.`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2DataUploadError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} The data source file could not be uploaded.`
+                                                , `Bulk2InsertError`
+                                                , `${dbgNsLocal}`
+                                                , bulk2DataUploadError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
 
   // Close the Bulk2 job.
   await closeBulk2Job(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id)
   .catch(bulk2CloseJobError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2CloseJobError:`, bulk2CloseJobError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Could not close the bulk data load job. `
-                              + `You may want to try and close the job manually via the Setup UI in your org.`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2CloseJobError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} Could not close the bulk data load job. `
+                                                + `You may want to try and close the job manually via the Setup UI in your org.`
+                                                , `Bulk2InsertError`
+                                                , `${dbgNsLocal}`
+                                                , bulk2CloseJobError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
 
   // Monitor the Bulk2 job. This should resolve once the Job is complete, failed, or the timeout expires.
-  bulk2OperationStatus.currentJobStatus = await monitorBulk2Job(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, 10, 600)
+  bulk2OperationStatus.currentJobStatus = await monitorBulk2Job(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, intervalOptions)
   .catch(bulk2JobMonitorError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobMonitorError:`, bulk2JobMonitorError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Monitoring failed for Job ID '${bulk2OperationStatus.initialJobStatus.id}'.`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2JobMonitorError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} Monitoring failed for Job ID '${bulk2OperationStatus.initialJobStatus.id}'.`
+                                                , `Bulk2InsertError`
+                                                , `${dbgNsLocal}`
+                                                , bulk2JobMonitorError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:afterMonitor:`, bulk2OperationStatus);
 
   // Download the Successful Results.
   bulk2OperationStatus.successfulResults = await downloadSuccessfulResults(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, bulk2OperationStatus.successfulResultsPath)
   .catch(downloadSuccessfulResultsError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:downloadSuccessfulResultsError:`, downloadSuccessfulResultsError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Could not download Successful Results.`
-                              , `Bulk2SuccessfulResultsError`
-                              , `${dbgNsLocal}`
-                              , downloadSuccessfulResultsError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} Could not download Successful Results.`
+                                                , `Bulk2SuccessfulResultsError`
+                                                , `${dbgNsLocal}`
+                                                , downloadSuccessfulResultsError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:afterSuccessDownload:`, bulk2OperationStatus);
 
   // Download the Failed Results.
   bulk2OperationStatus.failedResults = await downloadFailedResults(aliasOrConnection, bulk2OperationStatus.initialJobStatus.id, bulk2OperationStatus.failedResultsPath)
   .catch(downloadFailedResultsError => {
     SfdxFalconDebug.obj(`${dbgNsLocal}:downloadFailedResultsError:`, downloadFailedResultsError);
-    throw new SfdxFalconError ( `${baseErrorMsg} Could not download Failed Results.`
-                              , `Bulk2FailedResultsError`
-                              , `${dbgNsLocal}`
-                              , downloadFailedResultsError);
+    const errorWithDetail = new SfdxFalconError ( `${baseErrorMsg} Could not download Failed Results.`
+                                                , `Bulk2FailedResultsError`
+                                                , `${dbgNsLocal}`
+                                                , downloadFailedResultsError);
+    errorWithDetail.setDetail(bulk2OperationStatus);
+    throw errorWithDetail;
   });
+  SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:afterFailedDownload:`, bulk2OperationStatus);
 
   // Debug and return the Bulk2 Operation Status.
   SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2OperationStatus:`, bulk2OperationStatus);
@@ -516,9 +534,7 @@ export async function getBulk2JobInfo(aliasOrConnection:AliasOrConnection, jobId
  * @param       {AliasOrConnection} aliasOrConnection  Required. Either a string containing the
  *              Alias of the org being queried or an authenticated JSForce Connection object.
  * @param       {string}  jobId Required. Unique ID of the Bulk API 2.0 job the caller wants to close.
- * @param       {number}  pollingInterval Required. Number of seconds between checking the Job to see
- *              if it has completed.
- * @param       {number}  timeout Required. Number of seconds before monitoring is stopped.
+ * @param       {IntervalOptions} [intervalOptions] Optional. Options for Bulk2 job status polling.
  * @returns     {Promise<Bulk2JobInfoResponse>} Resolves with the last Bulk2 Job Info returned from
  *              Salesforce before monitoring stopped.
  * @description Given an Alias or Connection and a Bulk API v2 Job ID, polls Salesforce at the
@@ -528,24 +544,80 @@ export async function getBulk2JobInfo(aliasOrConnection:AliasOrConnection, jobId
  * @public @async
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
-export async function monitorBulk2Job(aliasOrConnection:AliasOrConnection, jobId:string, pollingInterval:number, timeout:number):Promise<Bulk2JobInfoResponse> {
+export async function monitorBulk2Job(aliasOrConnection:AliasOrConnection, jobId:string, intervalOptions:IntervalOptions={}):Promise<Bulk2JobInfoResponse> {
 
   // Define function-local debug namespace and validate incoming arguments.
   const dbgNsLocal = `${dbgNs}monitorBulk2Job`;
   SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
 
-  // TODO: Need to fully implement this function.
-  await waitASecond(5);
+  // Validate incoming arguments.
+  typeValidator.throwOnEmptyNullInvalidString (jobId,           `${dbgNsLocal}`, `jobId`);
+  typeValidator.throwOnNullInvalidObject      (intervalOptions, `${dbgNsLocal}`, `intervalOptions`);
 
-  // Get the current status of the Bulk2 job.
-  return await getBulk2JobInfo(aliasOrConnection, jobId)
-  .catch((bulk2JobInfoError:Error) => {
-    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobInfoError:`, bulk2JobInfoError);
-    throw new SfdxFalconError ( `Error while monitoring Job ID '${jobId}'. ${bulk2JobInfoError.message}`
-                              , `Bulk2InsertError`
-                              , `${dbgNsLocal}`
-                              , bulk2JobInfoError);
-  });
+  // Finalize all Interval Options.
+  const initialInterval     = isNaN(intervalOptions.initial)      ? 5   : Math.round(Math.abs(intervalOptions.initial));
+  const incrementIntervalBy = isNaN(intervalOptions.incrementBy)  ? 5   : Math.round(Math.abs(intervalOptions.incrementBy));
+  const maxInterval         = isNaN(intervalOptions.maximum)      ? 30  : Math.round(Math.abs(intervalOptions.maximum));
+  const timeout             = isNaN(intervalOptions.timeout)      ? 600 : Math.round(Math.abs(intervalOptions.timeout));
+
+  // Define the variable we'll use to track the interval as it changes.
+  let interval = initialInterval;
+
+  // Determine the timecode beyond which polling should end.
+  const pollingEnd = Date.now() + (timeout * 1000);
+  
+  // Declare variable to hold Bulk2 Job Info we get back.
+  let bulk2JobInfo:Bulk2JobInfoResponse = null;
+
+  // Define the "active states" that will trigger the continuation of monitoring if they're encountered.
+  const activeStates = ['Open', 'UploadComplete', 'InProgress'];
+
+  // Begin monitoring the Bulk2 Job.
+  do {
+
+    // Debug.
+    SfdxFalconDebug.str(`${dbgNsLocal}:interval:`, interval.toString());
+    SfdxFalconDebug.str(`${dbgNsLocal}:secsBeforeTimeout:`, Math.round((pollingEnd - Date.now()) / 1000).toString());
+
+    // Wait for the specified interval to pass.
+    await waitASecond(interval);
+
+    // Get the current status of the Bulk2 job.
+    bulk2JobInfo = await getBulk2JobInfo(aliasOrConnection, jobId)
+    .catch((bulk2JobInfoError:Error) => {
+      SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobInfoError:`, bulk2JobInfoError);
+      throw new SfdxFalconError ( `Error while monitoring Job ID '${jobId}'. ${bulk2JobInfoError.message}`
+                                , `Bulk2InsertError`
+                                , `${dbgNsLocal}`
+                                , bulk2JobInfoError);
+    });
+    SfdxFalconDebug.obj(`${dbgNsLocal}:bulk2JobInfo:`, bulk2JobInfo);
+
+    // Update the interval
+    const newInterval = interval + incrementIntervalBy;
+    interval = (newInterval <= maxInterval) ? newInterval : maxInterval;
+
+    // Compute the current Timecode with the interval added on.
+    const timecodeNow = Date.now();
+    SfdxFalconDebug.str(`${dbgNsLocal}:timecodeNow:`, timecodeNow.toString());
+
+    const timecodePlusInterval  = timecodeNow + (interval * 1000);
+    SfdxFalconDebug.str(`${dbgNsLocal}:timecodePlusInterval:`, timecodePlusInterval.toString());
+
+    // Break the loop if the updated interval would put the next request AFTER the timeout.
+    if (timecodePlusInterval > pollingEnd) {
+      SfdxFalconDebug.msg(`${dbgNsLocal}:breakFromLoop:`, `Exceeded the Bulk2 job monitoring timeout.`);
+      break;
+    }
+
+  } while (activeStates.includes(bulk2JobInfo.state));
+
+  // Wait a few more seconds to make sure the results are available.
+  await waitASecond(3);
+
+  // Return the last set of Bulk2 Job Info we got back.
+  return bulk2JobInfo;
+
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
