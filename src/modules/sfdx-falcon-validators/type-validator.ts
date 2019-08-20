@@ -325,6 +325,24 @@ export function errMsgNullInvalidString(arg:unknown, argName:string):string {
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
 /**
+ * @function    errMsgNullUndefined
+ * @param       {unknown} arg Required. The argument involved in the error.
+ * @param       {string}  argName Required. The variable name of the argument involved in the error.
+ * @returns     {string}  A standardized error message reporting a `null` or `undefined` value was provided.
+ * @description Given an argument and the name of that argument, returns a standardized error
+ *              message reporting that a `null` or `undefined` value was provided.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function errMsgNullUndefined(arg:unknown, argName:string):string {
+  if (isEmptyNullInvalidString(argName)) {
+    argName = 'the argument';
+  }
+  return `Expected ${argName} to be a non-null, defined type but got ${typeof arg === 'undefined' ? `'undefined'` : `a null value`} instead.`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
  * @function    isEmptyNullInvalidArray
  * @param       {unknown} variable  Required. The variable whose type will be validated.
  * @returns     {boolean}
@@ -488,12 +506,25 @@ export function isNullInvalidObject(variable:unknown):boolean {
  * @function    isNullInvalidString
  * @param       {unknown} variable  Required. The variable whose type will be validated.
  * @returns     {boolean}
- * @description Checks if the given variable is NOT a string, or if it is null.
+ * @description Checks if the given variable is NOT a `string`, or if it is `null`.
  * @public
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isNullInvalidString(variable:unknown):boolean {
   return (typeof variable !== 'string' || variable === null);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNullUndefined
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks if the given variable is `null` or `undefined`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNullUndefined(variable:unknown):boolean {
+  return (typeof variable === 'undefined' || variable === null);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -686,6 +717,19 @@ export function isNotNullInvalidObject(variable:unknown):boolean {
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 export function isNotNullInvalidString(variable:unknown):boolean {
   return !isNullInvalidString(variable);
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    isNotNullUndefined
+ * @param       {unknown} variable  Required. The variable whose type will be validated.
+ * @returns     {boolean}
+ * @description Checks for the inverse of `isNullUndefined()`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function isNotNullUndefined(variable:unknown):boolean {
+  return !isNullUndefined(variable);
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -974,6 +1018,27 @@ export function throwOnNullInvalidObject(arg:unknown, dbgNsExt:string, argName?:
 export function throwOnNullInvalidString(arg:unknown, dbgNsExt:string, argName?:string):void {
   if (isNullInvalidString(arg)) {
     throw new SfdxFalconError( errMsgNullInvalidString(arg, argName)
+                             , `TypeError`
+                             , `${dbgNsExt}`);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    throwOnNullUndefined
+ * @param       {unknown} arg Required. The argument whose type will be validated.
+ * @param       {string}  dbgNsExt  Required. The debug namespace of the external caller.
+ * @param       {string}  [argName] Optional. The variable name of the argument being validated.
+ * @returns     {void}
+ * @description Given an argument of `unknown` type, attempts to validate that the argument is a
+ *              not `null` nor `undefined`. Uses the debug namespace of the external caller as the
+ *              base of the "source" string used by the thrown `SfdxFalconError`.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function throwOnNullUndefined(arg:unknown, dbgNsExt:string, argName?:string):void {
+  if (isNullUndefined(arg)) {
+    throw new SfdxFalconError( errMsgNullUndefined(arg, argName)
                              , `TypeError`
                              , `${dbgNsExt}`);
   }
