@@ -10,45 +10,46 @@
  */
 //─────────────────────────────────────────────────────────────────────────────────────────────────┘
 // Import External Libraries, Modules, and Types
-import {Aliases}                from  '@salesforce/core';       // Why?
-import {AuthInfo}               from  '@salesforce/core';       // Why?
-import {Connection}             from  '@salesforce/core';       // Why?
-import {AnyJson}                from  '@salesforce/ts-types';   // Why?
-import {JsonMap}                from  '@salesforce/ts-types';   // Why?
-import * as path                from  'path';                   // Why?
+import {Aliases}                  from  '@salesforce/core';       // Aliases specify alternate names for groups of properties used by the Salesforce CLI, such as orgs.
+import {AuthInfo}                 from  '@salesforce/core';       // Handles persistence and fetching of user authentication information using JWT, OAuth, or refresh tokens. Sets up the refresh flows that jsForce will use to keep tokens active.
+import {Connection}               from  '@salesforce/core';       // Handles connections and requests to Salesforce Orgs.
+import {AnyJson}                  from  '@salesforce/ts-types';   // Any valid JSON value.
+import {JsonMap}                  from  '@salesforce/ts-types';   // Any JSON-compatible object.
+import {cloneDeep}                from  'lodash';                 // Recursively clones objects.
+import * as path                  from  'path';                   // Node's native tool for inspecting/manipulating file paths.
+const shell                       = require('shelljs');           // Cross-platform shell access - use for setting up Git repo.
 
 // Import Internal Libraries
-import * as typeValidator       from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
+import * as typeValidator         from  '../sfdx-falcon-validators/type-validator'; // Library of SFDX Helper functions specific to SFDX-Falcon.
 
-// Import Internal Modules
-import {SfdxFalconDebug}        from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
-import {SfdxFalconError}        from  '../sfdx-falcon-error';         // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
-import {SfdxCliError}           from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned from CLI commands run via shell exec.
-import {ShellError}             from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned by failed shell commands
-import {SfdxFalconResult}       from  '../sfdx-falcon-result';        // Why?
-import {SfdxFalconResultType}   from  '../sfdx-falcon-result';        // Why?
+// Import Internal Classes & Functions
+import {SfdxFalconDebug}          from  '../sfdx-falcon-debug';         // Class. Specialized debug provider for SFDX-Falcon code.
+import {SfdxFalconError}          from  '../sfdx-falcon-error';         // Class. Extends SfdxError to provide specialized error structures for SFDX-Falcon modules.
+import {SfdxCliError}             from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned from CLI commands run via shell exec.
+import {ShellError}               from  '../sfdx-falcon-error';         // Class. Extends SfdxFalconError to provide specialized error handling of error results returned by failed shell commands
+import {SfdxFalconResult}         from  '../sfdx-falcon-result';        // Class. Implements a framework for creating results-driven, informational objects with a concept of heredity (child results) and the ability to "bubble up" both Errors (thrown exceptions) and application-defined "failures".
+import {safeParse}                from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
+import {convertPropertyToBoolean} from  '../sfdx-falcon-util';          // Function. Given a target object and key that the caller wants to convert, attempts to coerce a boolean value based on the intent of the value currently in that property.
+import {convertPropertyToNumber}  from  '../sfdx-falcon-util';          // Function. Given a target object and key that the caller wants to convert, attempts to coerce a number value based on the intent of the value currently in that property.
+import {waitASecond}              from  '../sfdx-falcon-util/async';    // Function. Can be used to introduce a delay when called inside async functions with the "await" keyword.
+import {describeSignupRequest}    from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, tries to get an "Object Describe" back for the SignupRequest SObject.
+import {getPackages}              from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
 
-// Import Utility Functions
-import {safeParse}              from  '../sfdx-falcon-util';          // Function. Given any content to parse, returns a JavaScript object based on that content.
-import {waitASecond}            from  '../sfdx-falcon-util/async';    // Function. Can be used to introduce a delay when called inside async functions with the "await" keyword.
-import {describeSignupRequest}  from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, tries to get an "Object Describe" back for the SignupRequest SObject.
-import {getPackages}            from  '../sfdx-falcon-util/jsforce';  // Function. Given an Org Alias or a JSForce Connection, queries the related org and returns a QueryResult containing the MetadataPackage objects and their child objects.
-
-// Import Falcon Types
-import {AliasOrConnection}      from  '../sfdx-falcon-types';  // Type. Represents either an Org Alias or a JSForce Connection.
-import {MetadataPackage}        from  '../sfdx-falcon-types';  // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
-import {MetadataPackageVersion} from  '../sfdx-falcon-types';  // Interface. Represents a Metadata Package Version (04t).
-import {PackageVersionMap}      from  '../sfdx-falcon-types';  // Type. Alias to a Map with string keys and MetadataPackageVersion values.
-import {QueryResult}            from  '../sfdx-falcon-types';  // Type. Alias to the JSForce definition of QueryResult.
-import {RawStandardOrgInfo}     from  '../sfdx-falcon-types';  // Interface. Represents the standard (ie. non-scratch) org data returned by the sfdx force:org:list command.
-import {RawScratchOrgInfo}      from  '../sfdx-falcon-types';  // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
-import {ResolvedConnection}     from  '../sfdx-falcon-types';  // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
-import {ScratchOrgInfoMap}      from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding ScratchOrgInfo values.
-import {StandardOrgInfoMap}     from  '../sfdx-falcon-types';  // Type. Alias for a Map with string keys holding StandardOrgInfo values.
-import {StandardOrgInfoOptions} from  '../sfdx-falcon-types';  // Interface. Represents the options that can be set when constructing a StandardOrgInfo object.
-
-// Requires
-const shell = require('shelljs'); // Cross-platform shell access - use for setting up Git repo.
+// Import Internal Types
+import {SfdxFalconResultType}     from  '../sfdx-falcon-result';  // Enum. Represents the different types of sources where Results might come from.
+import {AliasOrConnection}        from  '../sfdx-falcon-types';   // Type. Represents either an Org Alias or a JSForce Connection.
+import {DeployResult}             from  '../sfdx-falcon-types';   // Interface. Modeled on the MDAPI Object DeployResult. Returned by a call to force:mdapi:deploy.
+import {DeployMessage}            from  '../sfdx-falcon-types';   // Interface. Modeled on the MDAPI object DeployMessage. May be part of the results returned by force:mdapi:deploy.
+import {MetadataPackage}          from  '../sfdx-falcon-types';   // Interface. Represents a Metadata Package (033). Can be managed or unmanaged.
+import {MetadataPackageVersion}   from  '../sfdx-falcon-types';   // Interface. Represents a Metadata Package Version (04t).
+import {PackageVersionMap}        from  '../sfdx-falcon-types';   // Type. Alias to a Map with string keys and MetadataPackageVersion values.
+import {QueryResult}              from  '../sfdx-falcon-types';   // Type. Alias to the JSForce definition of QueryResult.
+import {RawStandardOrgInfo}       from  '../sfdx-falcon-types';   // Interface. Represents the standard (ie. non-scratch) org data returned by the sfdx force:org:list command.
+import {RawScratchOrgInfo}        from  '../sfdx-falcon-types';   // Interface. Represents the "scratchOrgs" data returned by the sfdx force:org:list --all command.
+import {ResolvedConnection}       from  '../sfdx-falcon-types';   // Interface. Represents a resolved (active) JSForce connection to a Salesforce Org.
+import {ScratchOrgInfoMap}        from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding ScratchOrgInfo values.
+import {StandardOrgInfoMap}       from  '../sfdx-falcon-types';   // Type. Alias for a Map with string keys holding StandardOrgInfo values.
+import {StandardOrgInfoOptions}   from  '../sfdx-falcon-types';   // Interface. Represents the options that can be set when constructing a StandardOrgInfo object.
 
 // Set the File Local Debug Namespace
 const dbgNs = 'UTILITY:sfdx:';
@@ -1330,6 +1331,203 @@ export async function identifyPkgOrgs(standardOrgInfoMap:StandardOrgInfoMap):Pro
 
   // Return the list of Packaging Orgs to the caller
   return pkgOrgInfos;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    parseDeployMessages
+ * @param       {object[]}  rawDeployMessages Required. Expected to be "raw" JSON that represents an
+ *              array of `DeployMessage` objects returned from a call to `force:mdapi:deploy`.
+ * @returns     {DeployMessage[]}  The contents of the "raw" deploy result JSON parsed into an array
+ *              of solid instances of `DeployMessage` JsonMap objects.
+ * @description Given an object variable that should contain the "raw" JSON representing an array of
+ *              `DeployMessage` objects resulting from a call to `force:mdapi:deploy`, validates and
+ *              parses the contents of each and transforms them into an array of as fleshed-out as
+ *              possible instances of a `DeployMessage` JsonMap objects.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function parseDeployMessages(rawDeployMessages:object[]):DeployMessage[] {
+
+  // Define function-local deubg namespace and debug arguments.
+  const dbgNsLocal = `${dbgNs}parseDeployMessages`;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
+
+  // Validate arguments.
+  typeValidator.throwOnNullInvalidArray(rawDeployMessages, `${dbgNsLocal}`, `rawDeployMessages`);
+
+  // Declare an array to hold the parsed deploy messages.
+  const deployMessages = [] as DeployMessage[];
+
+  // Iterate over the collection of Raw Deploy Messages.
+  try {
+    for (const rawDeployMessage of rawDeployMessages) {
+
+      // Make sure we have a valid object.
+      typeValidator.throwOnNullInvalidObject(rawDeployMessage, `${dbgNsLocal}`, `rawDeployMessage`);
+
+      // Create a deep clone of the raw deploy message.
+      const deployMessage = cloneDeep(rawDeployMessage) as JsonMap;
+      
+      // Convert any existing member who should be a boolean.
+      convertPropertyToBoolean(deployMessage, 'changed');
+      convertPropertyToBoolean(deployMessage, 'created');
+      convertPropertyToBoolean(deployMessage, 'deleted');
+      convertPropertyToBoolean(deployMessage, 'success');
+      
+      // Convert any existing member who should be a number.
+      convertPropertyToNumber(deployMessage, 'columnNumber');
+      convertPropertyToNumber(deployMessage, 'lineNumber');
+
+      // Add the parsed DeployMessage to the array.
+      deployMessages.push(deployMessage);
+    }
+  }
+  catch (validationError) {
+    throw new SfdxFalconError ( `The object being parsed is not a valid DeployMessage.`
+                              , `InvalidDeploymentResult`
+                              , `${dbgNsLocal}`
+                              , validationError);
+  }
+
+  // Send back the parsed array of Deploy Messages.
+  return deployMessages;
+}
+
+// ────────────────────────────────────────────────────────────────────────────────────────────────┐
+/**
+ * @function    parseDeployResult
+ * @param       {object}  rawDeployResult Required. Expected to be the "raw" JSON from the `result`
+ *              key returned from a call to `force:mdapi:deploy`.
+ * @returns     {DeployResult}  The contents of the "raw" deploy result JSON parsed into a solid
+ *              instance of a `DeployResult` JsonMap.
+ * @description Given an object variable that should contain the "raw" JSON resulting from a call
+ *              to `force:mdapi:deploy`, validates and parses the contents into as fleshed-out as
+ *              possible an instance of a `DeployResult` JsonMap.
+ * @public
+ */
+// ────────────────────────────────────────────────────────────────────────────────────────────────┘
+export function parseDeployResult(rawDeployResult:object):DeployResult {
+
+  // Define function-local deubg namespace and debug arguments.
+  const dbgNsLocal = `${dbgNs}parseDeployResult`;
+  SfdxFalconDebug.obj(`${dbgNsLocal}:arguments:`, arguments);
+
+  // Validate arguments.
+  typeValidator.throwOnEmptyNullInvalidObject(rawDeployResult, `${dbgNsLocal}`, `rawDeployResult`);
+
+  // Validate that the RAW DeployResult object has the minimum set of expected fields.
+  try {
+    typeValidator.throwOnNullUndefined          (rawDeployResult['checkOnly'],                `${dbgNsLocal}`,  `rawDeployResult.checkOnly`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['createdBy'],                `${dbgNsLocal}`,  `rawDeployResult.createdBy`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['createdByName'],            `${dbgNsLocal}`,  `rawDeployResult.createdByName`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['createdDate'],              `${dbgNsLocal}`,  `rawDeployResult.createdDate`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['done'],                     `${dbgNsLocal}`,  `rawDeployResult.done`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['id'],                       `${dbgNsLocal}`,  `rawDeployResult.id`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['ignoreWarnings'],           `${dbgNsLocal}`,  `rawDeployResult.ignoreWarnings`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberComponentErrors'],    `${dbgNsLocal}`,  `rawDeployResult.numberComponentErrors`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberComponentsDeployed'], `${dbgNsLocal}`,  `rawDeployResult.numberComponentsDeployed`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberComponentsTotal'],    `${dbgNsLocal}`,  `rawDeployResult.numberComponentsTotal`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberTestErrors'],         `${dbgNsLocal}`,  `rawDeployResult.numberTestErrors`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberTestsCompleted'],     `${dbgNsLocal}`,  `rawDeployResult.numberTestsCompleted`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['numberTestsTotal'],         `${dbgNsLocal}`,  `rawDeployResult.numberTestsTotal`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['rollbackOnError'],          `${dbgNsLocal}`,  `rawDeployResult.rollbackOnError`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['runTestsEnabled'],          `${dbgNsLocal}`,  `rawDeployResult.runTestsEnabled`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['startDate'],                `${dbgNsLocal}`,  `rawDeployResult.startDate`);
+    typeValidator.throwOnEmptyNullInvalidString (rawDeployResult['status'],                   `${dbgNsLocal}`,  `rawDeployResult.status`);
+    typeValidator.throwOnNullUndefined          (rawDeployResult['success'],                  `${dbgNsLocal}`,  `rawDeployResult.success`);
+  }
+  catch (validationError) {
+    throw new SfdxFalconError ( `The object being parsed is not a valid DeployResult.`
+                              , `InvalidDeploymentResult`
+                              , `${dbgNsLocal}`
+                              , validationError);
+  }
+
+  // Create a deep clone of the raw deploy result.
+  const deployResult = cloneDeep(rawDeployResult);
+
+  // Convert any existing member who should be a boolean.
+  convertPropertyToBoolean(deployResult, 'checkOnly');
+  convertPropertyToBoolean(deployResult, 'done');
+  convertPropertyToBoolean(deployResult, 'ignoreWarnings');
+  convertPropertyToBoolean(deployResult, 'runTestsEnabled');
+  convertPropertyToBoolean(deployResult, 'rollbackOnError');
+  convertPropertyToBoolean(deployResult, 'success');
+
+  // Convert any existing member who should be a number.
+  convertPropertyToNumber(deployResult, 'numberComponentErrors');
+  convertPropertyToNumber(deployResult, 'numberComponentsDeployed');
+  convertPropertyToNumber(deployResult, 'numberComponentsTotal');
+  convertPropertyToNumber(deployResult, 'numberTestErrors');
+  convertPropertyToNumber(deployResult, 'numberTestsCompleted');
+  convertPropertyToNumber(deployResult, 'numberTestsTotal');
+
+  // Convert DeployDetails
+  if (typeof deployResult['details'] === 'object') {
+
+    // Convert Component Successes and Failures.
+    deployResult['details']['componentFailures']  = Array.isArray(deployResult['details']['componentFailures'])   ? parseDeployMessages(deployResult['details']['componentFailures'])   : [];
+    deployResult['details']['componentSuccesses'] = Array.isArray(deployResult['details']['componentSuccesses'])  ? parseDeployMessages(deployResult['details']['componentSuccesses'])  : [];
+
+    // Convert Retrieve Results.
+    if (typeof deployResult['details']['retrieveResult'] === 'object') {
+
+      // Convert any existing member who should be a boolean.
+      convertPropertyToBoolean(deployResult['details']['retrieveResult'], 'done');
+      convertPropertyToBoolean(deployResult['details']['retrieveResult'], 'success');
+
+      // Make sure "messages" is an array. If not, make it an empty array.
+      if (Array.isArray(deployResult['details']['retrieveResult']['messages']) !== true) {
+        deployResult['details']['retrieveResult']['messages'] = [];
+      }
+    }
+    else {
+      delete deployResult['details']['retrieveResult'];
+    }
+
+    // Convert RunTest Results
+    if (typeof deployResult['details']['runTestResult'] === 'object') {
+
+      // Convert any existing member who should be a number.
+      convertPropertyToNumber(deployResult['details']['runTestResult'], 'numFailures');
+      convertPropertyToNumber(deployResult['details']['runTestResult'], 'numTestsRun');
+      convertPropertyToNumber(deployResult['details']['runTestResult'], 'totalTime');
+
+      // TODO: Implement the remaining parsing/processing steps in this section.
+
+      // Process Code Coverage Results...
+
+
+      // Process Code Coverage Warnings...
+
+
+      // Process RunTest Failures...
+
+
+      // Process Flow Coverage Results...
+
+
+      // Process Flow Coverage Warnings...
+
+
+      // Process RunTest Successes...
+
+    }
+    else {
+      delete deployResult['details']['runTestResult'];
+    }
+  }
+  else {
+    delete deployResult['details'];
+  }
+
+  // Debug the original "raw" DeployResult and the newly parsed one.
+  SfdxFalconDebug.obj(`${dbgNsLocal}:rawDeployResult:`,   rawDeployResult);
+  SfdxFalconDebug.obj(`${dbgNsLocal}:parsedDeployResult`, deployResult);
+
+  // Send back the parsed DeployResult.
+  return deployResult as DeployResult;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────────────────────┐
