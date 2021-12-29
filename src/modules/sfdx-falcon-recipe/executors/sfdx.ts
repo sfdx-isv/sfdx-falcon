@@ -281,13 +281,15 @@ function parseSfdxCommand(sfdxCommand:SfdxCommandDefinition):string {
  */
 // ────────────────────────────────────────────────────────────────────────────────────────────────┘
 function sanitizeArgument(argument:string):string {
-
+  var isWin = process.platform === "win32"; // Determinig if the OS is Windows either x86 or x64
   // Ensure incoming argument is a String with no leading/trailing spaces.
   argument = String(argument).trim();
 
   // If the argument has any chars that may be unsafe, single-quote the entire thing.
   if (/[^A-Za-z0-9_\/:=-]/.test(argument)) {
-    argument = "'" + argument.replace(/'/g, "'\\''") + "'";  // Escape any existing single quotes.
+    if(!isWin){
+      argument = "'" + argument.replace(/'/g, "'\\''") + "'";  // Escape any existing single quotes.
+    }
     argument = argument.replace(/^(?:'')+/g, '')            // Unduplicate single-quote at the beginning.
                        .replace(/\\'''/g, "\\'" );          // Remove non-escaped single-quote if there are enclosed between 2 escaped
   }
